@@ -12,6 +12,8 @@ from pylab import imread
 from skimage.morphology import disk
 import os
 import cv2
+import Tkinter 
+import tkFileDialog as fd
 from natsort import natsorted
 import glob
 
