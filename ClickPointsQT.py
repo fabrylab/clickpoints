@@ -555,9 +555,10 @@ class DrawImage(QMainWindow):
                  i = y*self.number_of_imagesY + x
                  startX = x*max_image_size
                  startY = y*max_image_size
-                 endX = max([ (x+1)*max_image_size, self.im.shape[1] ])
-                 endY = max([ (y+1)*max_image_size, self.im.shape[0] ])
+                 endX = min([ (x+1)*max_image_size, self.im.shape[1] ])
+                 endY = min([ (y+1)*max_image_size, self.im.shape[0] ])
                  self.image_mask_full[startY:endY,startX:endX] = self.image_mask[i]
+                 
             im = Image.fromarray(self.image_mask_full.astype(np.uint8), 'L')
             im.save(self.current_maskname)
             print self.current_maskname, " saved"
