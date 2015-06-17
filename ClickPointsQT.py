@@ -11,42 +11,30 @@ import numpy
 from pylab import imread
 from skimage.morphology import disk
 import os
+from os.path import join,split
 import cv2
-import Tkinter
-import tkFileDialog as fd
+
 from natsort import natsorted
 import glob
 
 ### parameter and path setup
-srcpath='H:\\THESlack\\002_20nN\\'
-filename= 'frame_000000.tif'
+srcpath='/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/'
+filename= '20140401-124426_atkaGEPAN.png'
 
 
 use_filedia = True
-if use_filedia==True:
-    root = Tkinter.Tk()
-    root.update()
-    tmp =fd.askopenfilename(initialdir=srcpath)
-    srcpath = os.path.split(tmp)[0]
-    filename = os.path.split(tmp)[-1]
-    print srcpath
-    print filename
-    root.destroy()
 
 
-logname= filename[:-4] +'_pos.txt'
-maskname=filename[:-4] +'_mask.png'
-
-outputpath='H:\\THESlack\\Video\\'
+outputpath='/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/results/'
 logname_tag = '_pos.txt'
 maskname_tag = '_mask.png'
-
+logname= filename[:-4] + logname_tag
+maskname=filename[:-4] + maskname_tag
 if not os.path.exists(outputpath):
     os.makedirs(outputpath) # recursive path creation
 
-max_image_size = 32768
-#max_image_size = 10000#32000
 
+max_image_size = 32768
 
 #types = [ ["juveniles", [255,0.,0], 0], ["adults", [0,.8*255,0], 0], ["border", [0.8*255,0.8*255,0], 1], ["horizon", [0.0,0, 0.8*255], 0] ]
 types = [ ["juveniles", [255,0.,0], 0], ["adults", [0,.8*255,0], 0], ["border", [0.8*255,0.8*255,0], 1],["bgroup", [0.5*255,0.5*255,0], 0], ["horizon", [0.0,0, 0.8*255], 0], ["iceberg", [0.0,0.8*255, 0.8*255], 0]]
@@ -334,7 +322,7 @@ class DrawImage(QMainWindow):
 
         self.counter = []
 
-        self.LoadPath(srcpath, os.path.join(srcpath, filename))
+        self.LoadPath(srcpath, join(srcpath, filename))
         #self.LoadImage(srcpath + filename, outputpath + maskname, outputpath + logname)
 
         self.Crosshair = Crosshair(self.pixMapItems[0], self.local_scene, self)
@@ -659,9 +647,18 @@ class DrawImage(QMainWindow):
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
+    
+    if use_filedia==True:
+        tmp = QFileDialog.getOpenFileName(None,"Choose Image",srcpath)
+        srcpath = os.path.split(str(tmp))[0]
+        filename = os.path.split(str(tmp))[-1]
+        print srcpath
+        print filename
+
     window = DrawImage()
     window.show()
     app.exec_()
+    
 
 
 """
