@@ -1,3 +1,5 @@
+
+from __future__ import division
 import sys
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
@@ -10,17 +12,28 @@ from pylab import imread
 from skimage.morphology import disk
 import os
 import cv2
+from natsort import natsorted
+import glob
 
 ### parameter and path setup
-srcpath='/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/'
-filename= '20140401-124426_atkaGEPAN.png'
+srcpath='H:\\THESlack\\002_20nN\\'
+filename= 'frame_000000.tif'
 
-outputpath='/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/results/'
+srcpath='H:\\THESlack\\Video\\'
+filename= 'spitzetweezer0000.TIF'
+
+outputpath='H:\\THESlack\\002_20nN\\'
 logname= filename[:-4] +'_pos.txt'
 maskname=filename[:-4] +'_mask.png'
 
+outputpath='H:\\THESlack\\Video\\'
+logname_tag = '_pos.txt'
+maskname_tag = '_mask.png'
+
 if not os.path.exists(outputpath):
     os.makedirs(outputpath) # recursive path creation
+
+max_image_size = 32768
 
 
 #types = [ ["juveniles", [255,0.,0], 0], ["adults", [0,.8*255,0], 0], ["border", [0.8*255,0.8*255,0], 1], ["horizon", [0.0,0, 0.8*255], 0] ]
@@ -66,7 +79,8 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.type = point_type
         self.window = window
-        self.window.counter[self.type].AddCount(1)
+        if len(self.window.counter):
+            self.window.counter[self.type].AddCount(1)
 
         self.setBrush(QBrush(QColor(*types[self.type][1])))
         self.setPen(QPen(QColor(0,0,0,0)))
@@ -94,16 +108,18 @@ class MyMarkerItem(QGraphicsPathItem):
             self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2))
             self.UpdateRect()
 
+        self.window.PointsUnsaved = True
+
     def OnRemove(self):
         self.window.counter[self.type].AddCount(-1)
         if self.partner and self.partner.rectObj:
             self.window.local_scene.removeItem(self.partner.rectObj)
             self.partner.rectObj = None
-            self.partner.partner = None     
+            self.partner.partner = None
         if self.rectObj:
             self.partner.partner = None
             self.window.local_scene.removeItem(self.rectObj)
-          
+
 
     def UpdateRect(self):
         x ,y  = self.pos().x(), self.pos().y()
@@ -143,6 +159,7 @@ class MyMarkerItem(QGraphicsPathItem):
         if not self.dragged:
             return
         if event.button() == 1:
+            self.window.PointsUnsaved = True
             self.dragged = False
             QApplication.setOverrideCursor(QCursor(QtCore.Qt.OpenHandCursor))
             self.window.Crosshair.Hide()
@@ -199,7 +216,29 @@ class Crosshair():
         self.Crosshair.setScale(0)
 
     def MoveCrosshair(self, x,y):
-        self.d[:,:,:] = self.window.im[y-50:y+50+1,x-50:x+50+1]
+        self.d[:,:,:] = 0
+        x,y = int(x),int(y)
+        h,w = self.window.im.shape[:2]
+        y1 = y-50; y1b = 0
+        x1 = x-50; x1b = 0
+        y2 = y+50+1; y2b = 101
+        x2 = x+50+1; x2b = 101
+        if x2 > 0 and y2 > 0 and x1 < w and y1 < h:
+            if y1 < 0:
+                y1b = -y1
+                y1 = 0
+            if x1 < 0:
+                x1b = -x1
+                x1 = 0
+            if y2 >= h:
+                y2 = h-1
+                y2b = y2-y1+y1b
+            if x2 >= w:
+                x2 = w-1
+                x2b = x2-x1+x1b
+            print "B",y1b,y2b,x1b,x2b
+            print "A",y1,y2,x1,x2
+            self.d[y1b:y2b,x1b:x2b,:] = self.window.im[y1:y2,x1:x2,:]
         self.Crosshair.setPixmap(QPixmap(self.CrosshairX))
         self.Crosshair.setPos(x,y)
         #self.CrosshairPathItem.setPos(x,y)
@@ -234,7 +273,11 @@ class MyCounter():
         self.rect.setPos(10, 10+25*self.type)
         self.rect.setZValue(9)
 
-        self.AddCount(0)
+        count = 0
+        for point in self.window.points:
+            if point.type == self.type:
+                count += 1
+        self.AddCount(count)
 
     def AddCount(self, new_count):
         self.count += new_count
@@ -243,7 +286,7 @@ class MyCounter():
         rect.setX(-5)
         rect.setWidth(rect.width()+5)
         self.rect.setRect(rect)
-        
+
     def SetToActiveColor(self):
         self.rect.setBrush(QBrush(QColor(255,255,255,128)))
     def SetToInactiveColor(self):
@@ -263,76 +306,32 @@ class DrawImage(QMainWindow):
         self.local_scene.setAspectLocked(True)
         self.local_scene.invertY(True)
 
-        offset = 0
-        self.local_images = []
-        self.pixMapItems = []
-        self.offsets = []
-
-        print "Loading Image"
-        self.im = imread(srcpath + filename)*255
-        print "... done"
-        #self.im = 255*np.ones(self.im.shape)
-        if os.path.exists(outputpath + maskname):
-            print "Load Mask"
-            self.image_mask_full = (imread(outputpath + maskname)*255)#.astype(np.uint8)
-            print "...done"
-        else:
-            self.image_mask_full = np.zeros((self.im.shape[0],self.im.shape[1]), dtype=np.uint8)
-        w = self.image_mask_full.shape[1]//3
-        self.part_width = w
-        self.image_mask = [self.image_mask_full[:,i*self.part_width:(i+1)*self.part_width] for i in xrange(3)]
-
-        w = self.im.shape[1]//3
+        self.points = []
 
         self.mask_opacity = 0
 
+        self.local_images = []
+        self.pixMapItems = []
+
+        self.image_mask = []
         self.MaskQImages = []
         self.MaskQImageViews = []
         self.MaskPixMaps = []
-        for i in [1,2,3]:#xrange(3):
-            #self.local_images.append( QImage('Fused_1_part%d.jpg'%i) )
-            #self.pixMapItems.append( QGraphicsPixmapItem(QPixmap(self.local_images[-1]), self.local_scene) )
+        self.number_of_imagesX = 0
+        self.number_of_imagesY = 0
 
-            self.pixMapItems.append( QGraphicsPixmapItem(QPixmap(array2qimage(self.im[:,(i-1)*w:i*w,:])), self.local_scene) )
+        self.counter = []
 
-            self.local_scene.addItem(self.pixMapItems[-1])
-            self.pixMapItems[-1].setOffset(offset, 0)
-            self.offsets.append(offset)
-            #offset += self.local_images[-1].width()
+        self.LoadPath(srcpath, srcpath + filename)
+        #self.LoadImage(srcpath + filename, outputpath + maskname, outputpath + logname)
 
-
-            self.pixMapItems[-1].setAcceptHoverEvents(True)
-
-            self.pixMapItems[-1].mousePressEvent    =  self.CanvasMousePress
-            self.pixMapItems[-1].mouseMoveEvent     =  self.CanvasMouseMove
-            self.pixMapItems[-1].mouseReleaseEvent  =  self.CanvasMouseRelease
-            self.pixMapItems[-1].hoverMoveEvent     =  self.CanvasHoverMove
-
-            self.MaskQImages.append(array2qimage(self.image_mask[i-1][:,:]))
-            self.MaskQImageViews.append(rgb_view(self.MaskQImages[-1]))
-            self.MaskPixMaps.append(QGraphicsPixmapItem(QPixmap(self.MaskQImages[-1]), self.local_scene))
-            self.MaskPixMaps[-1].setOffset(offset, 0)
-            self.MaskPixMaps[-1].setOpacity(self.mask_opacity)
-            self.local_scene.addItem(self.MaskPixMaps[-1])
-
-            offset += w
-
-
-
-
-        self.Crosshair = Crosshair(self.pixMapItems[-1], self.local_scene, self)
+        self.Crosshair = Crosshair(self.pixMapItems[0], self.local_scene, self)
 
         self.counter = [MyCounter(self.local_scene, self, i) for i in xrange(len(types))]
         self.counter[active_type].SetToActiveColor()
-        self.points = []
-
-        if os.path.exists(outputpath + logname):
-            data = np.loadtxt(outputpath + logname)
-            for point in data:
-                self.points.append(MyMarkerItem(point[0],  point[1], self.pixMapItems[2], self, int(point[2])))
 
         self.DrawCursorSize = 10
-        self.drawPathItem = QGraphicsPathItem(self.pixMapItems[-1])
+        self.drawPathItem = QGraphicsPathItem(self.pixMapItems[0])
         self.drawPathItem.setBrush(QBrush(QColor(255,255,255)))
         #self.drawPathItem.setBrush(QBrush(QtCore.Qt.blue))
         #pen = QPen(QtCore.Qt.blue, self.DrawCursorSize)
@@ -351,7 +350,7 @@ class DrawImage(QMainWindow):
         self.DrawCursorPath = QPainterPath()
         self.DrawCursorPath.addEllipse(-self.DrawCursorSize*0.5,-self.DrawCursorSize*0.5,self.DrawCursorSize,self.DrawCursorSize)
 
-        self.DrawCursor = QGraphicsPathItem(self.DrawCursorPath, self.pixMapItems[-1])
+        self.DrawCursor = QGraphicsPathItem(self.DrawCursorPath, self.pixMapItems[0])
         self.DrawCursor.setBrush(QBrush(QColor(0,0,0,0)))
         self.DrawCursor.setPen(QPen(QColor(0,0,255)))
         self.DrawCursor.setScale(0)
@@ -363,6 +362,95 @@ class DrawImage(QMainWindow):
         #self.local_scene.addItem(b)
         self.DrawMode = False
         self.MaskChanged = False
+        self.MaskUnsaved = False
+
+    def LoadPath(self,file_name, first_file):
+        glob_path = os.path.join(os.path.dirname(file_name),'*.tif')
+        self.file_list = natsorted(glob.glob(glob_path))
+        self.index = self.file_list.index(first_file)
+        self.UpdateImage()
+
+    def UpdateImage(self):
+        self.MaskChanged = False
+
+        self.index = self.index % len(self.file_list)
+        outputpath
+        self.current_maskname = os.path.join(outputpath, os.path.split(self.file_list[self.index])[1][:-4]+maskname_tag)
+        self.current_logname = os.path.join(outputpath, os.path.split(self.file_list[self.index])[1][:-4]+logname_tag)
+        self.LoadImage(self.file_list[self.index], self.current_maskname, self.current_logname)
+
+    def LoadImage(self, filename, maskname, logname):
+        print "Loading Image"
+        self.im = imread(filename)
+        if len(self.im.shape):
+            self.im.resize(self.im.shape[0], self.im.shape[1], 1)
+            self.im /= 16
+        print "... done"
+        if os.path.exists(maskname):
+            print "Load Mask"
+            self.image_mask_full = (imread(maskname)*255)
+            print "...done"
+        else:
+            self.image_mask_full = np.zeros((self.im.shape[0],self.im.shape[1]), dtype=np.uint8)
+        self.MaskUnsaved = False
+
+        self.number_of_imagesX = int(np.ceil(self.im.shape[1]/max_image_size))
+        self.number_of_imagesY = int(np.ceil(self.im.shape[1]/max_image_size))
+        for i in xrange(len(self.pixMapItems), self.number_of_imagesX*self.number_of_imagesY):
+            new_pixmap = QGraphicsPixmapItem(self.local_scene)
+            self.pixMapItems.append(new_pixmap)
+            self.local_scene.addItem(new_pixmap)
+            if i == 0:
+                new_pixmap.setZValue(5)
+            else:
+                new_pixmap.setZValue(1)
+
+            new_pixmap.setAcceptHoverEvents(True)
+
+            new_pixmap.mousePressEvent    =  self.CanvasMousePress
+            new_pixmap.mouseMoveEvent     =  self.CanvasMouseMove
+            new_pixmap.mouseReleaseEvent  =  self.CanvasMouseRelease
+            new_pixmap.hoverMoveEvent     =  self.CanvasHoverMove
+
+            self.image_mask.append(None)
+
+            self.MaskQImages.append(QImage())
+            self.MaskQImageViews.append(np.zeros((1,1)))
+
+            new_pixmap = QGraphicsPixmapItem(self.local_scene)
+            self.MaskPixMaps.append(new_pixmap)
+            self.local_scene.addItem(new_pixmap)
+            new_pixmap.setZValue(6)
+
+
+            new_pixmap.setOpacity(self.mask_opacity)
+
+        for y in xrange(self.number_of_imagesY):
+            for x in xrange(self.number_of_imagesX):
+                i = y*self.number_of_imagesX+x
+                startX = x*max_image_size
+                startY = y*max_image_size
+                endX = max([ (x+1)*max_image_size, self.im.shape[1] ])
+                endY = max([ (y+1)*max_image_size, self.im.shape[0] ])
+                self.pixMapItems[i].setPixmap( QPixmap(array2qimage(self.im[startY:endY,startX:endX,:]) ))
+                self.pixMapItems[i].setOffset(startX, startY)
+
+                self.image_mask[i]  = self.image_mask_full[startY:endY,startX:endX]
+                self.MaskQImages[i] = array2qimage(self.image_mask[i][:,:])
+                self.MaskQImageViews[i] = rgb_view(self.MaskQImages[i])
+                self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[-1]))
+                self.MaskPixMaps[i].setOffset(startX, startY)
+
+        while len(self.points):
+            self.RemovePoint(self.points[0])
+        #for point in self.points:
+        #    self.RemovePoint(point)
+
+        if os.path.exists(logname):
+            data = np.loadtxt(logname)
+            for point in data:
+                self.points.append(MyMarkerItem(point[0],  point[1], self.pixMapItems[0], self, int(point[2])))
+        self.PointsUnsaved = False
         #
     def CanvasHoverMove(self, event):
         #print "CanvasHoverMove"
@@ -374,7 +462,7 @@ class DrawImage(QMainWindow):
         if event.button() == 1:
             if not self.DrawMode:
                 pos = event.pos()
-                self.points.append(MyMarkerItem(pos.x(),  pos.y(), self.pixMapItems[2], self, active_type))
+                self.points.append(MyMarkerItem(pos.x(),  pos.y(), self.pixMapItems[-1], self, active_type))
             else:
                 self.last_x = event.pos().x()
                 self.last_y = event.pos().y()
@@ -394,10 +482,14 @@ class DrawImage(QMainWindow):
             self.drawPath.moveTo(self.last_x, self.last_y)
             self.drawPath.lineTo(x,y)
             self.MaskChanged = True
+            self.MaskUnsaved = True
 
-            for i in xrange(3):
-                if i*self.part_width < x < (i+1)*self.part_width or i*self.part_width < self.last_x < (i+1)*self.part_width:
-                    cv2.line(self.image_mask[i], (int(x)-i*self.part_width,int(y)), (int(self.last_x-i*self.part_width), int(self.last_y)), draw_types[active_draw_type][0], self.DrawCursorSize)
+            for y1 in xrange(self.number_of_imagesY):
+              for x1 in xrange(self.number_of_imagesX):
+                i = y1*self.number_of_imagesX+x1
+                if y1*max_image_size < x < (y1+1)*max_image_size or y1*max_image_size < self.last_x < (y1+1)*max_image_size:
+                  if x1*max_image_size < x < (x1+1)*max_image_size or x1*max_image_size < self.last_x < (x1+1)*max_image_size:
+                    cv2.line(self.image_mask[i], (int(x)-i*max_image_size,int(y)), (int(self.last_x-i*max_image_size), int(self.last_y)), draw_types[active_draw_type][0], self.DrawCursorSize)
 
             self.last_x = x
             self.last_y = y
@@ -422,10 +514,32 @@ class DrawImage(QMainWindow):
         self.DrawCursor.setPath(self.DrawCursorPath)
 
     def RemovePoint(self, point):
-        print "Remove",point
+        #print "Remove",point
         point.OnRemove()
         self.points.remove(point)
         self.local_scene.removeItem(point)
+        self.PointsUnsaved = True
+
+    def SaveMaskAndPoints(self):
+        if self.PointsUnsaved:#len(self.points):
+            data = [ [point.pos().x(), point.pos().y(), point.type] for point in self.points]
+            np.savetxt(self.current_logname, data, "%f %f %d")
+            print self.current_logname, " saved"
+            self.PointsUnsaved = False
+
+        if self.MaskUnsaved:
+            for y in xrange(self.number_of_imagesY):
+             for x in xrange(self.number_of_imagesX):
+                 i = y*self.number_of_imagesY + x
+                 startX = x*max_image_size
+                 startY = y*max_image_size
+                 endX = max([ (x+1)*max_image_size, self.im.shape[1] ])
+                 endY = max([ (y+1)*max_image_size, self.im.shape[0] ])
+                 self.image_mask_full[startY:endY,startX:endX] = self.image_mask[i]
+            im = Image.fromarray(self.image_mask_full.astype(np.uint8), 'L')
+            im.save(self.current_maskname)
+            print self.current_maskname, " saved"
+            self.MaskUnsaved = False
 
     def keyPressEvent(self,event):
         global active_type, point_display_type, active_draw_type
@@ -450,14 +564,7 @@ class DrawImage(QMainWindow):
                 point.UpdatePath()
 
         if event.key() == QtCore.Qt.Key_S:
-            data = [ [point.pos().x(), point.pos().y(), point.type] for point in self.points]
-            np.savetxt(outputpath + logname, data, "%f %f %d")
-            print outputpath + logname, " saved"
-            for i in xrange(3):
-                self.image_mask_full[:,i*self.part_width:(i+1)*self.part_width] = self.image_mask[i]
-            im = Image.fromarray(self.image_mask_full.astype(np.uint8), 'L')
-            im.save(outputpath + maskname)
-            print outputpath + maskname, " saved"
+            self.SaveMaskAndPoints()
 
         if event.key() == QtCore.Qt.Key_P:
             if self.DrawMode:
@@ -487,14 +594,14 @@ class DrawImage(QMainWindow):
             self.mask_opacity += 0.1
             if self.mask_opacity >= 1:
                 self.mask_opacity = 1
-            for i in xrange(3):
+            for i in xrange(self.number_of_imagesY*self.number_of_imagesX):
                 self.MaskPixMaps[i].setOpacity(self.mask_opacity)
 
         if event.key() == QtCore.Qt.Key_I:
             self.mask_opacity -= 0.1
             if self.mask_opacity <= 0:
                 self.mask_opacity = 0
-            for i in xrange(3):
+            for i in xrange(self.number_of_imagesY*self.number_of_imagesX):
                 self.MaskPixMaps[i].setOpacity(self.mask_opacity)
 
         if event.key() == QtCore.Qt.Key_M:
@@ -503,8 +610,23 @@ class DrawImage(QMainWindow):
         if event.key() == QtCore.Qt.Key_F:
             self.local_scene.autoRange()
 
+        if event.key() == QtCore.Qt.Key_Left:
+            self.SaveMaskAndPoints()
+            self.drawPath = QPainterPath()
+            self.drawPathItem.setPath(self.drawPath)
+
+            self.index -= 1
+            self.UpdateImage()
+        if event.key() == QtCore.Qt.Key_Right:
+            self.SaveMaskAndPoints()
+            self.drawPath = QPainterPath()
+            self.drawPathItem.setPath(self.drawPath)
+
+            self.index += 1
+            self.UpdateImage()
+
     def RedrawMask(self):
-        for i in xrange(3):
+        for i in xrange(self.number_of_imagesY*self.number_of_imagesX):
             self.MaskQImageViews[i][:,:,0] = self.image_mask[i][:,:]
             self.MaskQImageViews[i][:,:,1] = self.image_mask[i][:,:]
             self.MaskQImageViews[i][:,:,2] = self.image_mask[i][:,:]
@@ -512,8 +634,6 @@ class DrawImage(QMainWindow):
         self.drawPath = QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
-
-
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
