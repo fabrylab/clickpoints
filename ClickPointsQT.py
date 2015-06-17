@@ -19,10 +19,16 @@ import glob
 srcpath='H:\\THESlack\\002_20nN\\'
 filename= 'frame_000000.tif'
 
-srcpath='H:\\THESlack\\Video\\'
-filename= 'spitzetweezer0000.TIF'
 
-outputpath='H:\\THESlack\\002_20nN\\'
+use_filedia = True
+if use_filedia==True:
+    root = Tkinter.Tk()
+    root.update()
+    tmp =fd.askopenfilename(initialdir=srcpath)
+    filename = os.path.split(tmp)[-1]
+    root.destroy()
+
+
 logname= filename[:-4] +'_pos.txt'
 maskname=filename[:-4] +'_mask.png'
 
@@ -42,7 +48,7 @@ types = [ ["juveniles", [255,0.,0], 0], ["adults", [0,.8*255,0], 0], ["border", 
 type_counts = [0]*len(types)
 active_type = 0
 
-draw_types = [ [0, (0,0,0)], [255, [255,255,255]]]
+draw_types = [ [0, (0,0,0)], [255, [255,255,255]], [124 ,[124,124,255]]]
 active_draw_type = 1
 
 w = 1.
