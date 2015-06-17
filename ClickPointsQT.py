@@ -10,6 +10,8 @@ from pylab import imread
 from skimage.morphology import disk
 import os
 import cv2
+import Tkinter 
+import tkFileDialog as fd 
 
 ### parameter and path setup
 srcpath='/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/'
