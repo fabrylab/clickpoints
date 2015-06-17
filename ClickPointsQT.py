@@ -18,31 +18,41 @@ from natsort import natsorted
 import glob
 
 ### parameter and path setup
-srcpath='/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/'
-filename= '20140401-124426_atkaGEPAN.png'
-
-
+# default settings
 use_filedia = True
-
-
-outputpath='/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/results/'
+srcpath     = '/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/'
+filename    = '20140401-124426_atkaGEPAN.png'
+outputpath  = '/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/results/'
 logname_tag = '_pos.txt'
-maskname_tag = '_mask.png'
+maskname_tag= '_mask.png'
+
+# marker types
+types       = [ ["juveniles", [255,0.,0], 0],                 
+                ["adults", [0,.8*255,0], 0], 
+                ["border", [0.8*255,0.8*255,0], 1],
+                ["bgroup", [0.5*255,0.5*255,0], 0], 
+                ["horizon", [0.0,0, 0.8*255], 0], 
+                ["iceberg", [0.0,0.8*255, 0.8*255], 0]]
+# painter types
+draw_types  = [ [0, (0,0,0)], 
+                [255, [255,255,255]], 
+                [124 ,[124,124,255]]]
+
+# overwrite defaults with personal cfg if available
+if os.path.exists('cp_cfg.py'):
+    execfile('cp_cfg.py')
+
+# parameter pre processing
 logname= filename[:-4] + logname_tag
 maskname=filename[:-4] + maskname_tag
 if not os.path.exists(outputpath):
     os.makedirs(outputpath) # recursive path creation
 
-
 max_image_size = 32768
-
-#types = [ ["juveniles", [255,0.,0], 0], ["adults", [0,.8*255,0], 0], ["border", [0.8*255,0.8*255,0], 1], ["horizon", [0.0,0, 0.8*255], 0] ]
-types = [ ["juveniles", [255,0.,0], 0], ["adults", [0,.8*255,0], 0], ["border", [0.8*255,0.8*255,0], 1],["bgroup", [0.5*255,0.5*255,0], 0], ["horizon", [0.0,0, 0.8*255], 0], ["iceberg", [0.0,0.8*255, 0.8*255], 0]]
 
 type_counts = [0]*len(types)
 active_type = 0
 
-draw_types = [ [0, (0,0,0)], [255, [255,255,255]], [124 ,[124,124,255]]]
 active_draw_type = 1
 
 w = 1.
