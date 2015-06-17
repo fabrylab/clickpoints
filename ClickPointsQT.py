@@ -96,7 +96,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.setPen(QPen(QColor(0,0,0,0)))
 
         self.setPos(x,y)
-        self.setZValue(20)
+        self.setZValue(50)
         self.imgItem = parent
         self.dragged = False
 
@@ -484,7 +484,7 @@ class DrawImage(QMainWindow):
         if event.button() == 1:
             if not self.DrawMode:
                 pos = event.pos()
-                self.points.append(MyMarkerItem(pos.x(),  pos.y(), self.pixMapItems[-1], self, active_type))
+                self.points.append(MyMarkerItem(pos.x(),  pos.y(), self.pixMapItems[0], self, active_type))
             else:
                 self.last_x = event.pos().x()
                 self.last_y = event.pos().y()
