@@ -12,7 +12,7 @@ from pylab import imread
 from skimage.morphology import disk
 import os
 import cv2
-import Tkinter 
+import Tkinter
 import tkFileDialog as fd
 from natsort import natsorted
 import glob
@@ -27,7 +27,10 @@ if use_filedia==True:
     root = Tkinter.Tk()
     root.update()
     tmp =fd.askopenfilename(initialdir=srcpath)
+    srcpath = os.path.split(tmp)[0]
     filename = os.path.split(tmp)[-1]
+    print srcpath
+    print filename
     root.destroy()
 
 
@@ -42,6 +45,7 @@ if not os.path.exists(outputpath):
     os.makedirs(outputpath) # recursive path creation
 
 max_image_size = 32768
+#max_image_size = 10000#32000
 
 
 #types = [ ["juveniles", [255,0.,0], 0], ["adults", [0,.8*255,0], 0], ["border", [0.8*255,0.8*255,0], 1], ["horizon", [0.0,0, 0.8*255], 0] ]
@@ -330,7 +334,7 @@ class DrawImage(QMainWindow):
 
         self.counter = []
 
-        self.LoadPath(srcpath, srcpath + filename)
+        self.LoadPath(srcpath, os.path.join(srcpath, filename))
         #self.LoadImage(srcpath + filename, outputpath + maskname, outputpath + logname)
 
         self.Crosshair = Crosshair(self.pixMapItems[0], self.local_scene, self)
@@ -372,8 +376,10 @@ class DrawImage(QMainWindow):
         self.MaskChanged = False
         self.MaskUnsaved = False
 
-    def LoadPath(self,file_name, first_file):
-        glob_path = os.path.join(os.path.dirname(file_name),'*.tif')
+    def LoadPath(self,srcpath, first_file):
+        file_ending = os.path.splitext(first_file)[-1]
+        glob_path = os.path.join(srcpath,'*'+file_ending)
+        print glob_path
         self.file_list = natsorted(glob.glob(glob_path))
         self.index = self.file_list.index(first_file)
         self.UpdateImage()
@@ -382,17 +388,17 @@ class DrawImage(QMainWindow):
         self.MaskChanged = False
 
         self.index = self.index % len(self.file_list)
-        outputpath
         self.current_maskname = os.path.join(outputpath, os.path.split(self.file_list[self.index])[1][:-4]+maskname_tag)
         self.current_logname = os.path.join(outputpath, os.path.split(self.file_list[self.index])[1][:-4]+logname_tag)
         self.LoadImage(self.file_list[self.index], self.current_maskname, self.current_logname)
 
     def LoadImage(self, filename, maskname, logname):
         print "Loading Image"
-        self.im = imread(filename)
-        if len(self.im.shape):
+        self.im = imread(filename)*255
+        if len(self.im.shape)==2:
+            print "Add extra dimension for bw channel"
             self.im.resize(self.im.shape[0], self.im.shape[1], 1)
-            self.im /= 16
+            #self.im /= 16
         print "... done"
         if os.path.exists(maskname):
             print "Load Mask"
@@ -403,7 +409,8 @@ class DrawImage(QMainWindow):
         self.MaskUnsaved = False
 
         self.number_of_imagesX = int(np.ceil(self.im.shape[1]/max_image_size))
-        self.number_of_imagesY = int(np.ceil(self.im.shape[1]/max_image_size))
+        self.number_of_imagesY = int(np.ceil(self.im.shape[0]/max_image_size))
+        print self.number_of_imagesX, self.number_of_imagesY
         for i in xrange(len(self.pixMapItems), self.number_of_imagesX*self.number_of_imagesY):
             new_pixmap = QGraphicsPixmapItem(self.local_scene)
             self.pixMapItems.append(new_pixmap)
@@ -438,8 +445,8 @@ class DrawImage(QMainWindow):
                 i = y*self.number_of_imagesX+x
                 startX = x*max_image_size
                 startY = y*max_image_size
-                endX = max([ (x+1)*max_image_size, self.im.shape[1] ])
-                endY = max([ (y+1)*max_image_size, self.im.shape[0] ])
+                endX = min([ (x+1)*max_image_size, self.im.shape[1] ])
+                endY = min([ (y+1)*max_image_size, self.im.shape[0] ])
                 self.pixMapItems[i].setPixmap( QPixmap(array2qimage(self.im[startY:endY,startX:endX,:]) ))
                 self.pixMapItems[i].setOffset(startX, startY)
 
@@ -448,6 +455,13 @@ class DrawImage(QMainWindow):
                 self.MaskQImageViews[i] = rgb_view(self.MaskQImages[i])
                 self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[-1]))
                 self.MaskPixMaps[i].setOffset(startX, startY)
+
+        for i in xrange(self.number_of_imagesX*self.number_of_imagesY,len(self.pixMapItems)):
+            im = np.zeros((1,1,1))
+            self.pixMapItems[i].setPixmap( QPixmap(array2qimage(im) ))
+            self.pixMapItems[i].setOffset(0, 0)
+            self.MaskPixMaps[i].setPixmap( QPixmap(array2qimage(im) ))
+            self.MaskPixMaps[i].setOffset(0, 0)
 
         while len(self.points):
             self.RemovePoint(self.points[0])
