@@ -382,6 +382,7 @@ class DrawImage(QMainWindow):
         self.index = self.file_list.index(first_file)
         self.UpdateImage()
 
+
     def UpdateImage(self):
         self.MaskChanged = False
 
@@ -391,7 +392,8 @@ class DrawImage(QMainWindow):
         self.LoadImage(self.file_list[self.index], self.current_maskname, self.current_logname)
 
     def LoadImage(self, filename, maskname, logname):
-        print "Loading Image"
+        print "Loading Image", os.path.split(filename)[-1]
+        self.setWindowTitle(os.path.split(filename)[-1])
         self.im = imread(filename)*255
         if len(self.im.shape)==2:
             print "Add extra dimension for bw channel"
