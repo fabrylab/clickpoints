@@ -96,7 +96,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.setPen(QPen(QColor(0,0,0,0)))
 
         self.setPos(x,y)
-        self.setZValue(50)
+        self.setZValue(20)
         self.imgItem = parent
         self.dragged = False
 
