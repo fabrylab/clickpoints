@@ -499,22 +499,22 @@ class DrawImage(QMainWindow):
         #print "CanvasMouseMove"
         if self.DrawMode:
             #print "Drawing"
-            x = event.pos().x()
-            y = event.pos().y()
+            pos_x = event.pos().x()
+            pos_y = event.pos().y()
             self.drawPath.moveTo(self.last_x, self.last_y)
-            self.drawPath.lineTo(x,y)
+            self.drawPath.lineTo(pos_x,pos_y)
             self.MaskChanged = True
             self.MaskUnsaved = True
 
-            for y1 in xrange(self.number_of_imagesY):
-              for x1 in xrange(self.number_of_imagesX):
-                i = y1*self.number_of_imagesX+x1
-                if y1*max_image_size < x < (y1+1)*max_image_size or y1*max_image_size < self.last_x < (y1+1)*max_image_size:
-                  if x1*max_image_size < x < (x1+1)*max_image_size or x1*max_image_size < self.last_x < (x1+1)*max_image_size:
-                    cv2.line(self.image_mask[i], (int(x)-i*max_image_size,int(y)), (int(self.last_x-i*max_image_size), int(self.last_y)), draw_types[active_draw_type][0], self.DrawCursorSize)
+            for y in xrange(self.number_of_imagesY):
+                for x in xrange(self.number_of_imagesX):
+                    i = y*self.number_of_imagesX+x
+                    if x*max_image_size < pos_x < (x+1)*max_image_size or x*max_image_size < self.last_x < (x+1)*max_image_size:
+                        if y*max_image_size < pos_y < (y+1)*max_image_size or y*max_image_size < self.last_y < (y+1)*max_image_size:
+                            cv2.line(self.image_mask[i], (int(pos_x-x*max_image_size),int(pos_y-y*max_image_size)), (int(self.last_x-x*max_image_size), int(self.last_y-y*max_image_size)), draw_types[active_draw_type][0], self.DrawCursorSize)
 
-            self.last_x = x
-            self.last_y = y
+            self.last_x = pos_x
+            self.last_y = pos_y
             self.drawPathItem.setPath(self.drawPath)
         else:
             return self.local_scene.mouseMoveEvent(event)
