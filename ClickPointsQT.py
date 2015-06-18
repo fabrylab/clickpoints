@@ -332,16 +332,20 @@ class DrawImage(QMainWindow):
 
         self.counter = []
 
+        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1,1,4]))), self.local_scene)
+        self.MarkerParent.setZValue(10)
+        self.local_scene.addItem(self.MarkerParent )
+
         self.LoadPath(srcpath, join(srcpath, filename))
         #self.LoadImage(srcpath + filename, outputpath + maskname, outputpath + logname)
 
-        self.Crosshair = Crosshair(self.pixMapItems[0], self.local_scene, self)
+        self.Crosshair = Crosshair(self.MarkerParent, self.local_scene, self)
 
         self.counter = [MyCounter(self.local_scene, self, i) for i in xrange(len(types))]
         self.counter[active_type].SetToActiveColor()
 
         self.DrawCursorSize = 10
-        self.drawPathItem = QGraphicsPathItem(self.pixMapItems[0])
+        self.drawPathItem = QGraphicsPathItem(self.MarkerParent)
         self.drawPathItem.setBrush(QBrush(QColor(255,255,255)))
         #self.drawPathItem.setBrush(QBrush(QtCore.Qt.blue))
         #pen = QPen(QtCore.Qt.blue, self.DrawCursorSize)
@@ -360,7 +364,7 @@ class DrawImage(QMainWindow):
         self.DrawCursorPath = QPainterPath()
         self.DrawCursorPath.addEllipse(-self.DrawCursorSize*0.5,-self.DrawCursorSize*0.5,self.DrawCursorSize,self.DrawCursorSize)
 
-        self.DrawCursor = QGraphicsPathItem(self.DrawCursorPath, self.pixMapItems[0])
+        self.DrawCursor = QGraphicsPathItem(self.DrawCursorPath, self.MarkerParent)
         self.DrawCursor.setBrush(QBrush(QColor(0,0,0,0)))
         self.DrawCursor.setPen(QPen(QColor(0,0,255)))
         self.DrawCursor.setScale(0)
@@ -471,7 +475,7 @@ class DrawImage(QMainWindow):
         if os.path.exists(logname):
             data = np.loadtxt(logname)
             for point in data:
-                self.points.append(MyMarkerItem(point[0],  point[1], self.pixMapItems[0], self, int(point[2])))
+                self.points.append(MyMarkerItem(point[0],  point[1], self.MarkerParent, self, int(point[2])))
         self.PointsUnsaved = False
         #
     def CanvasHoverMove(self, event):
@@ -484,7 +488,7 @@ class DrawImage(QMainWindow):
         if event.button() == 1:
             if not self.DrawMode:
                 pos = event.pos()
-                self.points.append(MyMarkerItem(pos.x(),  pos.y(), self.pixMapItems[0], self, active_type))
+                self.points.append(MyMarkerItem(pos.x(),  pos.y(), self.MarkerParent, self, active_type))
             else:
                 self.last_x = event.pos().x()
                 self.last_y = event.pos().y()
