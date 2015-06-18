@@ -453,7 +453,7 @@ class DrawImage(QMainWindow):
                 self.image_mask[i]  = self.image_mask_full[startY:endY,startX:endX]
                 self.MaskQImages[i] = array2qimage(self.image_mask[i][:,:])
                 self.MaskQImageViews[i] = rgb_view(self.MaskQImages[i])
-                self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[-1]))
+                self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[i]))
                 self.MaskPixMaps[i].setOffset(startX, startY)
 
         for i in xrange(self.number_of_imagesX*self.number_of_imagesY,len(self.pixMapItems)):
