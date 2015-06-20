@@ -567,9 +567,13 @@ class DrawImage(QMainWindow):
         self.PointsUnsaved = True
 
     def SaveMaskAndPoints(self):
-        if self.PointsUnsaved:#len(self.points):
-            data = [ [point.pos().x(), point.pos().y(), point.type] for point in self.points]
-            np.savetxt(self.current_logname, data, "%f %f %d")
+        if self.PointsUnsaved:
+            if len(self.points) == 0:
+                if os.path.exists(self.current_logname):
+                    os.remove(self.current_logname)
+            else:
+                data = [ [point.pos().x(), point.pos().y(), point.type] for point in self.points]
+                np.savetxt(self.current_logname, data, "%f %f %d")
             print self.current_logname, " saved"
             self.PointsUnsaved = False
 
