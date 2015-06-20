@@ -12,7 +12,13 @@ from pylab import imread
 from skimage.morphology import disk
 import os
 from os.path import join,split
-import cv2
+try:
+    import cv2
+    cv2_loaded = True
+    print "OpenCV loaded"
+except:
+    cv2_loaded = False
+    print "OpenCV not found"
 
 from natsort import natsorted
 import glob
@@ -76,7 +82,7 @@ path3.addEllipse(-0.25,-0.25,0.5,0.5)#addRect(-0.5,-0.5, 1, 1)
 point_display_types = [path1, path2, path3]
 point_display_type = 0
 
-from PIL import Image, ImageQt
+from PIL import Image, ImageQt, ImageDraw
 from qimage2ndarray import array2qimage, rgb_view, alpha_view
 
 class MyMarkerItem(QGraphicsPathItem):
@@ -454,10 +460,15 @@ class DrawImage(QMainWindow):
                 self.pixMapItems[i].setPixmap( QPixmap(array2qimage(self.im[startY:endY,startX:endX,:]) ))
                 self.pixMapItems[i].setOffset(startX, startY)
 
-                self.image_mask[i]  = self.image_mask_full[startY:endY,startX:endX]
-                self.MaskQImages[i] = array2qimage(self.image_mask[i][:,:])
-                self.MaskQImageViews[i] = rgb_view(self.MaskQImages[i])
-                self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[i]))
+                if cv2_loaded:
+                    self.image_mask[i]  = self.image_mask_full[startY:endY,startX:endX]
+                    self.MaskQImages[i] = array2qimage(self.image_mask[i][:,:])
+                    self.MaskQImageViews[i] = rgb_view(self.MaskQImages[i])
+                    self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[i]))
+                else:
+                    self.image_mask[i]  = Image.fromarray(self.image_mask_full[startY:endY,startX:endX].astype(np.uint8),'L')
+                    pixmap = QPixmap(QImage(ImageQt.ImageQt(self.image_mask[i])))
+                    self.MaskPixMaps[i].setPixmap(pixmap)
                 self.MaskPixMaps[i].setOffset(startX, startY)
 
         for i in xrange(self.number_of_imagesX*self.number_of_imagesY,len(self.pixMapItems)):
@@ -515,7 +526,14 @@ class DrawImage(QMainWindow):
                     i = y*self.number_of_imagesX+x
                     if x*max_image_size < pos_x < (x+1)*max_image_size or x*max_image_size < self.last_x < (x+1)*max_image_size:
                         if y*max_image_size < pos_y < (y+1)*max_image_size or y*max_image_size < self.last_y < (y+1)*max_image_size:
-                            cv2.line(self.image_mask[i], (int(pos_x-x*max_image_size),int(pos_y-y*max_image_size)), (int(self.last_x-x*max_image_size), int(self.last_y-y*max_image_size)), draw_types[active_draw_type][0], self.DrawCursorSize)
+                            if cv2_loaded:
+                                cv2.line(self.image_mask[i], (int(pos_x-x*max_image_size),int(pos_y-y*max_image_size)), (int(self.last_x-x*max_image_size), int(self.last_y-y*max_image_size)), draw_types[active_draw_type][0], self.DrawCursorSize)
+                            else:
+                                #img = Image.fromarray(self.image_mask[i], 'L')
+                                draw = ImageDraw.Draw(self.image_mask[i])
+                                draw.line(( pos_x-x*max_image_size,pos_y-y*max_image_size, self.last_x-x*max_image_size, self.last_y-y*max_image_size ), fill=draw_types[active_draw_type][0], width=self.DrawCursorSize+1)
+                                draw.ellipse( ( pos_x-x*max_image_size-self.DrawCursorSize//2, pos_y-y*max_image_size-self.DrawCursorSize//2, pos_x-x*max_image_size+self.DrawCursorSize//2, pos_y-y*max_image_size+self.DrawCursorSize//2 ),  fill=draw_types[active_draw_type][0])
+                                #self.image_mask[i] = np.array(img.getdata()).reshape(img.size[0], img.size[1])
 
             self.last_x = pos_x
             self.last_y = pos_y
@@ -654,10 +672,13 @@ class DrawImage(QMainWindow):
 
     def RedrawMask(self):
         for i in xrange(self.number_of_imagesY*self.number_of_imagesX):
-            self.MaskQImageViews[i][:,:,0] = self.image_mask[i][:,:]
-            self.MaskQImageViews[i][:,:,1] = self.image_mask[i][:,:]
-            self.MaskQImageViews[i][:,:,2] = self.image_mask[i][:,:]
-            self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[i]))
+            if cv2_loaded:
+                self.MaskQImageViews[i][:,:,0] = self.image_mask[i][:,:]
+                self.MaskQImageViews[i][:,:,1] = self.image_mask[i][:,:]
+                self.MaskQImageViews[i][:,:,2] = self.image_mask[i][:,:]
+                self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[i]))
+            else:
+                self.MaskPixMaps[i].setPixmap(QPixmap(QImage(ImageQt.ImageQt(self.image_mask[i]))))
         self.drawPath = QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
