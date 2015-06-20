@@ -20,7 +20,10 @@ except:
     cv2_loaded = False
     print "OpenCV not found"
 
-from natsort import natsorted
+try:
+    from natsort import natsorted
+except:
+    natsorted = sorted
 import glob
 
 ### parameter and path setup
