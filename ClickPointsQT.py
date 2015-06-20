@@ -311,6 +311,19 @@ class MyCounter():
 
 
 class DrawImage(QMainWindow):
+    
+    def ViewBox_wheelEvent(self, event):
+        self.ViewBox_old_wheelEvent(event)
+        self.UpdateScale()
+        
+    def UpdateScale(self):
+        self.scale = self.local_scene.viewPixelSize()[0]
+        print self.scale
+        if self.scale < 1:
+            self.scale = 1
+        for point in self.points:
+            point.setScale(self.scale)
+        
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
         self.setWindowTitle('Select Window')
@@ -341,6 +354,10 @@ class DrawImage(QMainWindow):
         self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1,1,4]))), self.local_scene)
         self.MarkerParent.setZValue(10)
         self.local_scene.addItem(self.MarkerParent )
+        
+        self.scale = 1
+        self.ViewBox_old_wheelEvent = self.local_scene.wheelEvent
+        self.local_scene.wheelEvent = self.ViewBox_wheelEvent
 
         self.LoadPath(srcpath, join(srcpath, filename))
         #self.LoadImage(srcpath + filename, outputpath + maskname, outputpath + logname)
@@ -535,10 +552,13 @@ class DrawImage(QMainWindow):
 
     def CanvasMousePress( self, event):
         #print "MousePress"
+        self.last_x = event.pos().x()
+        self.last_y = event.pos().y()
         if event.button() == 1:
             if not self.DrawMode:
                 pos = event.pos()
                 self.points.append(MyMarkerItem(pos.x(),  pos.y(), self.MarkerParent, self, active_type))
+                self.points[-1].setScale(self.scale)
             else:
                 self.last_x = event.pos().x()
                 self.last_y = event.pos().y()
@@ -697,6 +717,7 @@ class DrawImage(QMainWindow):
             self.RedrawMask()
         if event.key() == QtCore.Qt.Key_F:
             self.local_scene.autoRange()
+            self.UpdateScale()
 
         if event.key() == QtCore.Qt.Key_Left:
             self.SaveMaskAndPoints()
