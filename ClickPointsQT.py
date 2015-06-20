@@ -255,8 +255,6 @@ class Crosshair():
             if x2 >= w:
                 x2 = w-1
                 x2b = x2-x1+x1b
-            print "B",y1b,y2b,x1b,x2b
-            print "A",y1,y2,x1,x2
             self.d[y1b:y2b,x1b:x2b,:] = self.window.im[y1:y2,x1:x2,:]
         self.Crosshair.setPixmap(QPixmap(self.CrosshairX))
         self.Crosshair.setPos(x,y)
@@ -321,7 +319,6 @@ class DrawImage(QMainWindow):
         
     def UpdateScale(self):
         self.scale = self.local_scene.viewPixelSize()[0]
-        print self.scale
         if self.scale < 1:
             self.scale = 1
         for point in self.points:
@@ -433,7 +430,6 @@ class DrawImage(QMainWindow):
     def LoadPath(self,srcpath, first_file):
         file_ending = os.path.splitext(first_file)[-1]
         glob_path = os.path.join(srcpath,'*'+file_ending)
-        print glob_path
         self.file_list = natsorted(glob.glob(glob_path))
         self.index = self.file_list.index(first_file)
         self.UpdateImage()
@@ -449,7 +445,6 @@ class DrawImage(QMainWindow):
 
     def ReadImage(self, filename):
         im = imread(filename)
-        print im.dtype
         if im.dtype == np.uint8:
             return im
         if im.dtype == np.uint16:
@@ -493,7 +488,6 @@ class DrawImage(QMainWindow):
 
         self.number_of_imagesX = int(np.ceil(self.im.shape[1]/max_image_size))
         self.number_of_imagesY = int(np.ceil(self.im.shape[0]/max_image_size))
-        print self.number_of_imagesX, self.number_of_imagesY
         for i in xrange(len(self.pixMapItems), self.number_of_imagesX*self.number_of_imagesY):
             new_pixmap = QGraphicsPixmapItem(self.local_scene)
             self.pixMapItems.append(new_pixmap)
@@ -635,7 +629,6 @@ class DrawImage(QMainWindow):
 
     def UpdateDrawCursorSize(self):
         global active_draw_type
-        print draw_types[active_draw_type][1]
         pen = QPen(QColor(*draw_types[active_draw_type][1]), self.DrawCursorSize)
         pen.setCapStyle(32)
         self.drawPathItem.setPen(pen)
@@ -680,7 +673,6 @@ class DrawImage(QMainWindow):
 
     def keyPressEvent(self,event):
         global active_type, point_display_type, active_draw_type
-        print('press', event.key())
         sys.stdout.flush()
         numberkey = event.key()-49
 
@@ -742,7 +734,6 @@ class DrawImage(QMainWindow):
                 self.MaskPixMaps[i].setOpacity(self.mask_opacity)
 
         if event.key() == QtCore.Qt.Key_M:
-            print "M"
             self.RedrawMask()
         if event.key() == QtCore.Qt.Key_F:
             self.local_scene.autoRange()
