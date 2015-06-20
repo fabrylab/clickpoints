@@ -323,6 +323,27 @@ class DrawImage(QMainWindow):
             self.scale = 1
         for point in self.points:
             point.setScale(self.scale)
+            
+    def ViewBox_mouseMoveEvent(self,event):
+        pos = self.local_scene.mapFromView(event.pos())
+        if self.pan:
+            dx = (self.last_x-pos.x())*self.local_scene.viewPixelSize()[0]
+            dy = (self.last_y-pos.y())*self.local_scene.viewPixelSize()[1]
+            self.local_scene.translateBy((dx, dy))
+            self.local_scene.mapFromView(event.pos()) # without the view shakes for strange reasons
+            self.last_x = pos.x()
+            self.last_y = pos.y()
+            
+    def ViewBox_mousePressEvent(self,event):
+        if event.button() == 2:
+            self.pan = True
+            pos = self.local_scene.mapFromView(event.pos())
+            self.last_x = pos.x()
+            self.last_y = pos.y()
+        
+    def ViewBox_mouseReleaseEvent(self,event):
+        if event.button() == 2:
+            self.pan = False
         
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
@@ -358,6 +379,11 @@ class DrawImage(QMainWindow):
         self.scale = 1
         self.ViewBox_old_wheelEvent = self.local_scene.wheelEvent
         self.local_scene.wheelEvent = self.ViewBox_wheelEvent
+        
+        self.pan = False
+        self.local_scene.mouseMoveEvent = self.ViewBox_mouseMoveEvent
+        self.local_scene.mousePressEvent = self.ViewBox_mousePressEvent
+        self.local_scene.mouseReleaseEvent = self.ViewBox_mouseReleaseEvent
 
         self.LoadPath(srcpath, join(srcpath, filename))
         #self.LoadImage(srcpath + filename, outputpath + maskname, outputpath + logname)
