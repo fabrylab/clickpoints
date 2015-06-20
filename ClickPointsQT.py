@@ -401,10 +401,25 @@ class DrawImage(QMainWindow):
         self.current_logname = os.path.join(outputpath, os.path.split(self.file_list[self.index])[1][:-4]+logname_tag)
         self.LoadImage(self.file_list[self.index], self.current_maskname, self.current_logname)
 
+    def ReadImage(self, filename):
+        im = imread(filename)
+        print im.dtype
+        if im.dtype == np.uint8:
+            return im
+        if im.dtype == np.uint16:
+            # Maybe actually a 12bit image in a 16bit container?
+            if np.amax(im) < 2**12:
+                return im/16
+            return im/256
+        if im.dtype == np.float32:
+            return im*256
+        print "Unsported data type",im.dtype
+        return im
+
     def LoadImage(self, filename, maskname, logname):
         print "Loading Image", os.path.split(filename)[-1]
         self.setWindowTitle(os.path.split(filename)[-1])
-        self.im = imread(filename)*255
+        self.im = self.ReadImage(filename)
         if len(self.im.shape)==2:
             print "Add extra dimension for bw channel"
             self.im.resize(self.im.shape[0], self.im.shape[1], 1)
@@ -414,7 +429,7 @@ class DrawImage(QMainWindow):
         if os.path.exists(maskname):
             print "Load Mask"
             try:
-                self.image_mask_full = (imread(maskname)*255)
+                self.image_mask_full = self.ReadImage(maskname)
                 if self.image_mask_full.shape[:2] != self.im.shape[:2]:
                     mask_valid = False
                     print "ERROR: Mask file",maskname,"doesn't have the same dimensions as the image"
