@@ -48,8 +48,8 @@ draw_types  = [ [0, (0,0,0)],
                 [124 ,[124,124,255]]]
 
 # overwrite defaults with personal cfg if available
-if os.path.exists('cp_cfg.py'):
-    execfile('cp_cfg.py')
+if os.path.exists('cp_cfg.txt'):
+    execfile('cp_cfg.txt')
 
 # parameter pre processing
 logname= filename[:-4] + logname_tag
