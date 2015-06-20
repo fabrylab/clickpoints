@@ -763,6 +763,21 @@ class DrawImage(QMainWindow):
             self.index += 1
             self.UpdateImage()
 
+        if event.key() == QtCore.Qt.Key_L:
+            # saveguard/confirmation with MessageBox
+            reply=QMessageBox.question(None,'Warning','Load Mask & Points of last Image?',QMessageBox.Yes,QMessageBox.No)
+            if reply== QMessageBox.Yes:
+                print 'Loading last mask & points ...'
+                # load mask and log of last image
+                self.LoadMask(self.index-1)
+                self.LoadLog(self.index-1)
+                # force save of mask and log
+                self.MaskUnsaved=True
+                self.PointsUnsaved=True
+                # refresh display
+                self.RedrawMask()
+
+
     def RedrawMask(self):
         for i in xrange(self.number_of_imagesY*self.number_of_imagesX):
             if cv2_loaded:
