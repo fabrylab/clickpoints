@@ -484,11 +484,21 @@ class DrawImage(QMainWindow):
         #    self.RemovePoint(point)
 
         if os.path.exists(logname):
-            data = np.loadtxt(logname)
-            if data.shape == (3,):
-                data = np.array([data])
-            for point in data:
-                self.points.append(MyMarkerItem(point[0],  point[1], self.MarkerParent, self, int(point[2])))
+            try:
+                data = np.loadtxt(logname)
+                if data.shape == (3,):
+                    data = np.array([data])
+                if data.shape[1] == 3:
+                    data_valid = True
+                else:
+                    data_valid = False
+            except:
+                data_valid = False
+            if data_valid:
+                for point in data:
+                    self.points.append(MyMarkerItem(point[0],  point[1], self.MarkerParent, self, int(point[2])))
+            else:
+                print "ERROR: Can't read file",logname
         self.PointsUnsaved = False
         #
     def CanvasHoverMove(self, event):
