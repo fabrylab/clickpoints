@@ -29,9 +29,9 @@ import glob
 ### parameter and path setup
 # default settings
 use_filedia = True
-srcpath     = '/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/'
-filename    = '20140401-124426_atkaGEPAN.png'
-outputpath  = '/media/fox/a1f5434a-74d1-4bcb-bf9c-b9fa8d1df3d0/atkaSPOT/atkaGEPAN/results/'
+srcpath     = None
+filename    = None
+outputpath  = None
 logname_tag = '_pos.txt'
 maskname_tag= '_mask.png'
 
@@ -52,9 +52,9 @@ if os.path.exists('cp_cfg.txt'):
     execfile('cp_cfg.txt')
 
 # parameter pre processing
-logname= filename[:-4] + logname_tag
-maskname=filename[:-4] + maskname_tag
-if not os.path.exists(outputpath):
+if srcpath == None:
+    srcpath = os.getcwd()
+if outputpath != None and not os.path.exists(outputpath):
     os.makedirs(outputpath) # recursive path creation
 
 max_image_size = 32768
@@ -779,12 +779,14 @@ class DrawImage(QMainWindow):
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     
-    if use_filedia==True:
+    if use_filedia==True or filename == None:
         tmp = QFileDialog.getOpenFileName(None,"Choose Image",srcpath)
         srcpath = os.path.split(str(tmp))[0]
         filename = os.path.split(str(tmp))[-1]
         print srcpath
         print filename
+    if outputpath == None:
+        outputpath = srcpath
 
     window = DrawImage()
     window.show()
