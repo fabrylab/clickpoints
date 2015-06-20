@@ -457,15 +457,8 @@ class DrawImage(QMainWindow):
         print "Unsported data type",im.dtype
         return im
 
-    def LoadImage(self, filename, maskname, logname):
-        print "Loading Image", os.path.split(filename)[-1]
-        self.setWindowTitle(os.path.split(filename)[-1])
-        self.im = self.ReadImage(filename)
-        if len(self.im.shape)==2:
-            print "Add extra dimension for bw channel"
-            self.im.resize(self.im.shape[0], self.im.shape[1], 1)
-            #self.im /= 16
-        print "... done"
+    def LoadMask(self, index):
+        maskname = os.path.join(outputpath, os.path.split(self.file_list[index])[1][:-4]+maskname_tag)
         mask_valid = False
         if os.path.exists(maskname):
             print "Load Mask"
@@ -475,7 +468,7 @@ class DrawImage(QMainWindow):
                     mask_valid = False
                     print "ERROR: Mask file",maskname,"doesn't have the same dimensions as the image"
                 else:
-                    mask_valid = True                
+                    mask_valid = True
                 if len(self.image_mask_full.shape) == 3:
                     self.image_mask_full = np.mean(self.image_mask_full, axis=2)
             except:
@@ -485,6 +478,40 @@ class DrawImage(QMainWindow):
         if mask_valid == False:
             self.image_mask_full = np.zeros((self.im.shape[0],self.im.shape[1]), dtype=np.uint8)
         self.MaskUnsaved = False
+
+    def LoadLog(self,index):
+        logname = os.path.join(outputpath, os.path.split(self.file_list[index])[1][:-4]+logname_tag)
+        while len(self.points):
+            self.RemovePoint(self.points[0])
+        if os.path.exists(logname):
+            try:
+                data = np.loadtxt(logname)
+                if data.shape == (3,):
+                    data = np.array([data])
+                if data.shape[1] == 3:
+                    data_valid = True
+                else:
+                    data_valid = False
+            except:
+                data_valid = False
+            if data_valid:
+                for point in data:
+                    self.points.append(MyMarkerItem(point[0],  point[1], self.MarkerParent, self, int(point[2])))
+            else:
+                print "ERROR: Can't read file",logname
+        self.PointsUnsaved = False
+
+    def LoadImage(self, filename, maskname, logname):
+        print "Loading Image", os.path.split(filename)[-1]
+        self.setWindowTitle(os.path.split(filename)[-1])
+        self.im = self.ReadImage(filename)
+        if len(self.im.shape)==2:
+            print "Add extra dimension for bw channel"
+            self.im.resize(self.im.shape[0], self.im.shape[1], 1)
+            #self.im /= 16
+        print "... done"
+
+        self.LoadMask(self.index)
 
         self.number_of_imagesX = int(np.ceil(self.im.shape[1]/max_image_size))
         self.number_of_imagesY = int(np.ceil(self.im.shape[0]/max_image_size))
@@ -545,29 +572,8 @@ class DrawImage(QMainWindow):
             self.MaskPixMaps[i].setPixmap( QPixmap(array2qimage(im) ))
             self.MaskPixMaps[i].setOffset(0, 0)
 
-        while len(self.points):
-            self.RemovePoint(self.points[0])
-        #for point in self.points:
-        #    self.RemovePoint(point)
-
-        if os.path.exists(logname):
-            try:
-                data = np.loadtxt(logname)
-                if data.shape == (3,):
-                    data = np.array([data])
-                if data.shape[1] == 3:
-                    data_valid = True
-                else:
-                    data_valid = False
-            except:
-                data_valid = False
-            if data_valid:
-                for point in data:
-                    self.points.append(MyMarkerItem(point[0],  point[1], self.MarkerParent, self, int(point[2])))
-            else:
-                print "ERROR: Can't read file",logname
-        self.PointsUnsaved = False
-        #
+        self.LoadLog(self.index)
+      
     def CanvasHoverMove(self, event):
         #print "CanvasHoverMove"
         if self.DrawMode:
