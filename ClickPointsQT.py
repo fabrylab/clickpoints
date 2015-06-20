@@ -410,11 +410,23 @@ class DrawImage(QMainWindow):
             self.im.resize(self.im.shape[0], self.im.shape[1], 1)
             #self.im /= 16
         print "... done"
+        mask_valid = False
         if os.path.exists(maskname):
             print "Load Mask"
-            self.image_mask_full = (imread(maskname)*255)
+            try:
+                self.image_mask_full = (imread(maskname)*255)
+                if self.image_mask_full.shape[:2] != self.im.shape[:2]:
+                    mask_valid = False
+                    print "ERROR: Mask file",maskname,"doesn't have the same dimensions as the image"
+                else:
+                    mask_valid = True                
+                if len(self.image_mask_full.shape) == 3:
+                    self.image_mask_full = np.mean(self.image_mask_full, axis=2)
+            except:
+                mask_valid = False
+                print "ERROR: Can't read mask file"
             print "...done"
-        else:
+        if mask_valid == False:
             self.image_mask_full = np.zeros((self.im.shape[0],self.im.shape[1]), dtype=np.uint8)
         self.MaskUnsaved = False
 
