@@ -460,6 +460,7 @@ class DrawImage(QMainWindow):
     def LoadMask(self, index):
         maskname = os.path.join(outputpath, os.path.split(self.file_list[index])[1][:-4]+maskname_tag)
         mask_valid = False
+        print maskname
         if os.path.exists(maskname):
             print "Load Mask"
             try:
@@ -478,6 +479,28 @@ class DrawImage(QMainWindow):
         if mask_valid == False:
             self.image_mask_full = np.zeros((self.im.shape[0],self.im.shape[1]), dtype=np.uint8)
         self.MaskUnsaved = False
+
+        # Display Mask ... doesn't work if i use it as a function?
+        for y in xrange(self.number_of_imagesY):
+            for x in xrange(self.number_of_imagesX):
+                i = y*self.number_of_imagesX+x
+                startX = x*max_image_size
+                startY = y*max_image_size
+                endX = min([ (x+1)*max_image_size, self.im.shape[1] ])
+                endY = min([ (y+1)*max_image_size, self.im.shape[0] ])
+                self.pixMapItems[i].setPixmap( QPixmap(array2qimage(self.im[startY:endY,startX:endX,:]) ))
+                self.pixMapItems[i].setOffset(startX, startY)
+
+                if cv2_loaded:
+                    self.image_mask[i]  = self.image_mask_full[startY:endY,startX:endX]
+                    self.MaskQImages[i] = array2qimage(self.image_mask[i][:,:])
+                    self.MaskQImageViews[i] = rgb_view(self.MaskQImages[i])
+                    self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[i]))
+                else:
+                    self.image_mask[i]  = Image.fromarray(self.image_mask_full[startY:endY,startX:endX].astype(np.uint8),'L')
+                    pixmap = QPixmap(QImage(ImageQt.ImageQt(self.image_mask[i])))
+                    self.MaskPixMaps[i].setPixmap(pixmap)
+                self.MaskPixMaps[i].setOffset(startX, startY)
 
     def LoadLog(self,index):
         logname = os.path.join(outputpath, os.path.split(self.file_list[index])[1][:-4]+logname_tag)
@@ -511,8 +534,6 @@ class DrawImage(QMainWindow):
             #self.im /= 16
         print "... done"
 
-        self.LoadMask(self.index)
-
         self.number_of_imagesX = int(np.ceil(self.im.shape[1]/max_image_size))
         self.number_of_imagesY = int(np.ceil(self.im.shape[0]/max_image_size))
         for i in xrange(len(self.pixMapItems), self.number_of_imagesX*self.number_of_imagesY):
@@ -544,26 +565,8 @@ class DrawImage(QMainWindow):
 
             new_pixmap.setOpacity(self.mask_opacity)
 
-        for y in xrange(self.number_of_imagesY):
-            for x in xrange(self.number_of_imagesX):
-                i = y*self.number_of_imagesX+x
-                startX = x*max_image_size
-                startY = y*max_image_size
-                endX = min([ (x+1)*max_image_size, self.im.shape[1] ])
-                endY = min([ (y+1)*max_image_size, self.im.shape[0] ])
-                self.pixMapItems[i].setPixmap( QPixmap(array2qimage(self.im[startY:endY,startX:endX,:]) ))
-                self.pixMapItems[i].setOffset(startX, startY)
-
-                if cv2_loaded:
-                    self.image_mask[i]  = self.image_mask_full[startY:endY,startX:endX]
-                    self.MaskQImages[i] = array2qimage(self.image_mask[i][:,:])
-                    self.MaskQImageViews[i] = rgb_view(self.MaskQImages[i])
-                    self.MaskPixMaps[i].setPixmap(QPixmap(self.MaskQImages[i]))
-                else:
-                    self.image_mask[i]  = Image.fromarray(self.image_mask_full[startY:endY,startX:endX].astype(np.uint8),'L')
-                    pixmap = QPixmap(QImage(ImageQt.ImageQt(self.image_mask[i])))
-                    self.MaskPixMaps[i].setPixmap(pixmap)
-                self.MaskPixMaps[i].setOffset(startX, startY)
+        self.LoadMask(self.index)
+        #self.DisplayMask()
 
         for i in xrange(self.number_of_imagesX*self.number_of_imagesY,len(self.pixMapItems)):
             im = np.zeros((1,1,1))
@@ -573,7 +576,7 @@ class DrawImage(QMainWindow):
             self.MaskPixMaps[i].setOffset(0, 0)
 
         self.LoadLog(self.index)
-      
+
     def CanvasHoverMove(self, event):
         #print "CanvasHoverMove"
         if self.DrawMode:
