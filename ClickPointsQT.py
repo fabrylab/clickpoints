@@ -485,6 +485,8 @@ class DrawImage(QMainWindow):
 
         if os.path.exists(logname):
             data = np.loadtxt(logname)
+            if data.shape == (3,):
+                data = np.array([data])
             for point in data:
                 self.points.append(MyMarkerItem(point[0],  point[1], self.MarkerParent, self, int(point[2])))
         self.PointsUnsaved = False
