@@ -749,6 +749,19 @@ class DrawImage(QMainWindow):
                 self.mask_opacity = 0
             for i in xrange(self.number_of_imagesY*self.number_of_imagesX):
                 self.MaskPixMaps[i].setOpacity(self.mask_opacity)
+                
+        if event.key() == QtCore.Qt.Key_D:
+            x1,x2 = self.local_scene.viewRange()[0]
+            self.local_scene.translateBy(( (x2-x1)*0.9, 0 ))
+        if event.key() == QtCore.Qt.Key_A:
+            x1,x2 = self.local_scene.viewRange()[0]
+            self.local_scene.translateBy((-(x2-x1)*0.9, 0))
+        if event.key() == QtCore.Qt.Key_S:
+            y1,y2 = self.local_scene.viewRange()[1] 
+            self.local_scene.translateBy(( 0, (y2-y1)*0.9))
+        if event.key() == QtCore.Qt.Key_W:
+            y1,y2 = self.local_scene.viewRange()[1] 
+            self.local_scene.translateBy(( 0, -(y2-y1)*0.9))
 
         if event.key() == QtCore.Qt.Key_M:
             self.RedrawMask()
