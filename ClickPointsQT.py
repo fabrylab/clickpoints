@@ -113,7 +113,7 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.partner = None
         self.rectObj = None
-        if types[self.type][2] == 1:
+        if types[self.type][2] == 1 or types[self.type][2] == 2:
             for point in self.window.points:
                 if point.type == self.type:
                     if point.partner == None:
@@ -123,9 +123,14 @@ class MyMarkerItem(QGraphicsPathItem):
                         self.partner.UseCrosshair = False
 
         if self.partner:
-            self.rectObj = QGraphicsRectItem(self.imgItem)
-            self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2))
-            self.UpdateRect()
+            if types[self.type][2] == 1:
+                self.rectObj = QGraphicsRectItem(self.imgItem)
+                self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2))
+                self.UpdateRect()
+            if types[self.type][2] == 2:
+                self.rectObj = QGraphicsLineItem(self.imgItem)
+                self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2))
+                self.UpdateRect()
 
         self.window.PointsUnsaved = True
 
@@ -143,7 +148,10 @@ class MyMarkerItem(QGraphicsPathItem):
     def UpdateRect(self):
         x ,y  = self.pos().x(), self.pos().y()
         x2,y2 = self.partner.pos().x(), self.partner.pos().y()
-        self.rectObj.setRect(x,y,x2-x,y2-y)
+        if types[self.type][2] == 1:
+            self.rectObj.setRect(x,y,x2-x,y2-y)
+        if types[self.type][2] == 2:
+            self.rectObj.setLine(x,y,x2,y2)
 
     def hoverEnterEvent(self, event):
         QApplication.setOverrideCursor(QCursor(QtCore.Qt.OpenHandCursor))
