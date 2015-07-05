@@ -47,6 +47,9 @@ draw_types  = [ [0, (0,0,0)],
                 [255, [255,255,255]], 
                 [124 ,[124,124,255]]]
 
+# possible addons
+addons = []
+
 # overwrite defaults with personal cfg if available
 if os.path.exists('cp_cfg.txt'):
     execfile('cp_cfg.txt')
@@ -438,6 +441,7 @@ class DrawImage(QMainWindow):
     def LoadPath(self,srcpath, first_file):
         file_ending = os.path.splitext(first_file)[-1]
         glob_path = os.path.join(srcpath,'*'+file_ending)
+        print glob_path
         self.file_list = natsorted(glob.glob(glob_path))
         self.index = self.file_list.index(first_file)
         self.UpdateImage()
@@ -496,8 +500,6 @@ class DrawImage(QMainWindow):
                 startY = y*max_image_size
                 endX = min([ (x+1)*max_image_size, self.im.shape[1] ])
                 endY = min([ (y+1)*max_image_size, self.im.shape[0] ])
-                self.pixMapItems[i].setPixmap( QPixmap(array2qimage(self.im[startY:endY,startX:endX,:]) ))
-                self.pixMapItems[i].setOffset(startX, startY)
 
                 if cv2_loaded:
                     self.image_mask[i]  = self.image_mask_full[startY:endY,startX:endX]
@@ -531,19 +533,16 @@ class DrawImage(QMainWindow):
             else:
                 print "ERROR: Can't read file",logname
         self.PointsUnsaved = False
-
-    def LoadImage(self, filename, maskname, logname):
-        print "Loading Image", os.path.split(filename)[-1]
-        self.setWindowTitle(os.path.split(filename)[-1])
-        self.im = self.ReadImage(filename)
-        if len(self.im.shape)==2:
-            print "Add extra dimension for bw channel"
-            self.im.resize(self.im.shape[0], self.im.shape[1], 1)
-            #self.im /= 16
-        print "... done"
-
-        self.number_of_imagesX = int(np.ceil(self.im.shape[1]/max_image_size))
-        self.number_of_imagesY = int(np.ceil(self.im.shape[0]/max_image_size))
+        
+    def ResetPixMapItems(self, list_pixMap):    
+        for i in xrange(0,len(list_pixMap)):
+            im = np.zeros((1,1,1))
+            list_pixMap[i].setPixmap( QPixmap(array2qimage(im) ))
+            list_pixMap[i].setOffset(0, 0)
+            
+    def SetPixMapTiled(self, list_pixMap, image):
+        self.number_of_imagesX = int(np.ceil(image.shape[1]/max_image_size))
+        self.number_of_imagesY = int(np.ceil(image.shape[0]/max_image_size))
         for i in xrange(len(self.pixMapItems), self.number_of_imagesX*self.number_of_imagesY):
             new_pixmap = QGraphicsPixmapItem(self.local_scene)
             self.pixMapItems.append(new_pixmap)
@@ -572,17 +571,35 @@ class DrawImage(QMainWindow):
 
 
             new_pixmap.setOpacity(self.mask_opacity)
+            
+        for y in xrange(self.number_of_imagesY):
+            for x in xrange(self.number_of_imagesX):
+                i = y*self.number_of_imagesX+x
+                startX = x*max_image_size
+                startY = y*max_image_size
+                endX = min([ (x+1)*max_image_size, image.shape[1] ])
+                endY = min([ (y+1)*max_image_size, image.shape[0] ])
+                list_pixMap[i].setPixmap( QPixmap(array2qimage(image[startY:endY,startX:endX,:]) ))
+                list_pixMap[i].setOffset(startX, startY)
 
+    def JustLoadImage(self, filename):
+        print "Loading Image", os.path.split(filename)[-1]
+        print filename
+        self.im = self.ReadImage(filename)
+        if len(self.im.shape)==2:
+            print "Add extra dimension for bw channel"
+            self.im.resize(self.im.shape[0], self.im.shape[1], 1)
+            #self.im /= 16
+        print "... done"
+                
+        self.SetPixMapTiled(self.pixMapItems, self.im)
+
+    def LoadImage(self, filename, maskname, logname):
+        self.setWindowTitle(os.path.split(filename)[-1])
+        self.ResetPixMapItems(self.pixMapItems)
+        self.JustLoadImage(filename)
+        
         self.LoadMask(self.index)
-        #self.DisplayMask()
-
-        for i in xrange(self.number_of_imagesX*self.number_of_imagesY,len(self.pixMapItems)):
-            im = np.zeros((1,1,1))
-            self.pixMapItems[i].setPixmap( QPixmap(array2qimage(im) ))
-            self.pixMapItems[i].setOffset(0, 0)
-            self.MaskPixMaps[i].setPixmap( QPixmap(array2qimage(im) ))
-            self.MaskPixMaps[i].setOffset(0, 0)
-
         self.LoadLog(self.index)
 
     def CanvasHoverMove(self, event):
@@ -811,6 +828,9 @@ class DrawImage(QMainWindow):
         self.drawPath = QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
+
+for addon in addons:
+    execfile(addon+".py")
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
