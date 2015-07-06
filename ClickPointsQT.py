@@ -15,10 +15,10 @@ from os.path import join,split
 try:
     import cv2
     cv2_loaded = True
-    print "OpenCV loaded"
+    print("OpenCV loaded")
 except:
     cv2_loaded = False
-    print "OpenCV not found"
+    print("OpenCV not found")
 
 try:
     from natsort import natsorted
@@ -52,7 +52,9 @@ addons = []
 
 # overwrite defaults with personal cfg if available
 if os.path.exists('cp_cfg.txt'):
-    execfile('cp_cfg.txt')
+    with open("cp_cfg.txt") as f:
+        code = compile(f.read(), "cp_cfg.txt", 'exec')
+        exec(code)
 
 # parameter pre processing
 if srcpath == None:
@@ -441,7 +443,7 @@ class DrawImage(QMainWindow):
     def LoadPath(self,srcpath, first_file):
         file_ending = os.path.splitext(first_file)[-1]
         glob_path = os.path.join(srcpath,'*'+file_ending)
-        print glob_path
+        print(glob_path)
         self.file_list = natsorted(glob.glob(glob_path))
         self.index = self.file_list.index(first_file)
         self.UpdateImage()
@@ -466,28 +468,28 @@ class DrawImage(QMainWindow):
             return im/256
         if im.dtype == np.float32:
             return im*256
-        print "Unsported data type",im.dtype
+        print("Unsported data type",im.dtype)
         return im
 
     def LoadMask(self, index):
         maskname = os.path.join(outputpath, os.path.split(self.file_list[index])[1][:-4]+maskname_tag)
         mask_valid = False
-        print maskname
+        print(maskname)
         if os.path.exists(maskname):
-            print "Load Mask"
+            print("Load Mask")
             try:
                 self.image_mask_full = self.ReadImage(maskname)
                 if self.image_mask_full.shape[:2] != self.im.shape[:2]:
                     mask_valid = False
-                    print "ERROR: Mask file",maskname,"doesn't have the same dimensions as the image"
+                    print("ERROR: Mask file",maskname,"doesn't have the same dimensions as the image")
                 else:
                     mask_valid = True
                 if len(self.image_mask_full.shape) == 3:
                     self.image_mask_full = np.mean(self.image_mask_full, axis=2)
             except:
                 mask_valid = False
-                print "ERROR: Can't read mask file"
-            print "...done"
+                print("ERROR: Can't read mask file")
+            print("...done")
         if mask_valid == False:
             self.image_mask_full = np.zeros((self.im.shape[0],self.im.shape[1]), dtype=np.uint8)
         self.MaskUnsaved = False
@@ -531,7 +533,7 @@ class DrawImage(QMainWindow):
                 for point in data:
                     self.points.append(MyMarkerItem(point[0],  point[1], self.MarkerParent, self, int(point[2])))
             else:
-                print "ERROR: Can't read file",logname
+                print("ERROR: Can't read file",logname)
         self.PointsUnsaved = False
         
     def ResetPixMapItems(self, list_pixMap):    
@@ -583,14 +585,14 @@ class DrawImage(QMainWindow):
                 list_pixMap[i].setOffset(startX, startY)
 
     def JustLoadImage(self, filename):
-        print "Loading Image", os.path.split(filename)[-1]
-        print filename
+        print("Loading Image", os.path.split(filename)[-1])
+        print(filename)
         self.im = self.ReadImage(filename)
         if len(self.im.shape)==2:
-            print "Add extra dimension for bw channel"
+            print("Add extra dimension for bw channel")
             self.im.resize(self.im.shape[0], self.im.shape[1], 1)
             #self.im /= 16
-        print "... done"
+        print("... done")
                 
         self.SetPixMapTiled(self.pixMapItems, self.im)
 
@@ -603,12 +605,12 @@ class DrawImage(QMainWindow):
         self.LoadLog(self.index)
 
     def CanvasHoverMove(self, event):
-        #print "CanvasHoverMove"
+        #print("CanvasHoverMove")
         if self.DrawMode:
             self.DrawCursor.setPos(event.pos())
 
     def CanvasMousePress( self, event):
-        #print "MousePress"
+        #print("MousePress")
         self.last_x = event.pos().x()
         self.last_y = event.pos().y()
         if event.button() == 1:
@@ -627,9 +629,9 @@ class DrawImage(QMainWindow):
 
     def CanvasMouseMove(self, event):
         global active_draw_type
-        #print "CanvasMouseMove"
+        #print("CanvasMouseMove")
         if self.DrawMode:
-            #print "Drawing"
+            #print("Drawing")
             pos_x = event.pos().x()
             pos_y = event.pos().y()
             self.drawPath.moveTo(self.last_x, self.last_y)
@@ -658,7 +660,7 @@ class DrawImage(QMainWindow):
             return self.local_scene.mouseMoveEvent(event)
 
     def CanvasMouseRelease(self, event):
-        #print "CanvasMouseRelease"
+        #print("CanvasMouseRelease")
         return self.local_scene.mouseReleaseEvent(event)
 
     def UpdateDrawCursorSize(self):
@@ -673,7 +675,7 @@ class DrawImage(QMainWindow):
         self.DrawCursor.setPath(self.DrawCursorPath)
 
     def RemovePoint(self, point):
-        #print "Remove",point
+        #print("Remove",point)
         point.OnRemove()
         self.points.remove(point)
         self.local_scene.removeItem(point)
@@ -687,7 +689,7 @@ class DrawImage(QMainWindow):
             else:
                 data = [ [point.pos().x(), point.pos().y(), point.type] for point in self.points]
                 np.savetxt(self.current_logname, data, "%f %f %d")
-            print self.current_logname, " saved"
+            print(self.current_logname, " saved")
             self.PointsUnsaved = False
 
         if self.MaskUnsaved:
@@ -702,7 +704,7 @@ class DrawImage(QMainWindow):
                  
             im = Image.fromarray(self.image_mask_full.astype(np.uint8), 'L')
             im.save(self.current_maskname)
-            print self.current_maskname, " saved"
+            print(self.current_maskname, " saved")
             self.MaskUnsaved = False
 
     def keyPressEvent(self,event):
@@ -716,7 +718,7 @@ class DrawImage(QMainWindow):
             self.counter[active_type].SetToActiveColor()
         if self.DrawMode == True and 0 <= numberkey < len(draw_types):
             active_draw_type = numberkey
-            print "Changed Draw type", active_draw_type
+            print("Changed Draw type", active_draw_type)
             self.UpdateDrawCursorSize()
 
         if event.key() == QtCore.Qt.Key_T:
@@ -805,7 +807,7 @@ class DrawImage(QMainWindow):
             # saveguard/confirmation with MessageBox
             reply=QMessageBox.question(None,'Warning','Load Mask & Points of last Image?',QMessageBox.Yes,QMessageBox.No)
             if reply== QMessageBox.Yes:
-                print 'Loading last mask & points ...'
+                print('Loading last mask & points ...')
                 # load mask and log of last image
                 self.LoadMask(self.index-1)
                 self.LoadLog(self.index-1)
@@ -830,7 +832,9 @@ class DrawImage(QMainWindow):
         self.MaskChanged = False
 
 for addon in addons:
-    execfile(addon+".py")
+    with open(addon+".py") as f:
+        code = compile(f.read(), addon+".py", 'exec')
+        exec(code)
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
@@ -839,8 +843,8 @@ if __name__ == '__main__':
         tmp = QFileDialog.getOpenFileName(None,"Choose Image",srcpath)
         srcpath = os.path.split(str(tmp))[0]
         filename = os.path.split(str(tmp))[-1]
-        print srcpath
-        print filename
+        print(srcpath)
+        print(filename)
     if outputpath == None:
         outputpath = srcpath
 
