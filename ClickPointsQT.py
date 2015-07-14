@@ -24,6 +24,9 @@ try:
     from natsort import natsorted
 except:
     natsorted = sorted
+    
+    
+from mediahandler import MediaHandler
 import glob
 
 ### parameter and path setup
@@ -398,7 +401,11 @@ class DrawImage(QMainWindow):
         self.local_scene.mousePressEvent = self.ViewBox_mousePressEvent
         self.local_scene.mouseReleaseEvent = self.ViewBox_mouseReleaseEvent
 
-        self.LoadPath(srcpath, join(srcpath, filename))
+
+        self.MediaHandler = MediaHandler(join(srcpath, filename))
+        self.im = self.MediaHandler.getFrame(0)
+        self.UpdateImage()
+        #self.LoadPath(srcpath, join(srcpath, filename))
         #self.LoadImage(srcpath + filename, outputpath + maskname, outputpath + logname)
 
         self.Crosshair = Crosshair(self.MarkerParent, self.local_scene, self)
@@ -439,40 +446,29 @@ class DrawImage(QMainWindow):
         self.DrawMode = False
         self.MaskChanged = False
         self.MaskUnsaved = False
-
-    def LoadPath(self,srcpath, first_file):
-        file_ending = os.path.splitext(first_file)[-1]
-        glob_path = os.path.join(srcpath,'*'+file_ending)
-        print(glob_path)
-        self.file_list = natsorted(glob.glob(glob_path))
-        self.index = self.file_list.index(first_file)
-        self.UpdateImage()
-
-
+    
     def UpdateImage(self):
         self.MaskChanged = False
 
-        self.index = self.index % len(self.file_list)
-        self.current_maskname = os.path.join(outputpath, os.path.split(self.file_list[self.index])[1][:-4]+maskname_tag)
-        self.current_logname = os.path.join(outputpath, os.path.split(self.file_list[self.index])[1][:-4]+logname_tag)
-        self.LoadImage(self.file_list[self.index], self.current_maskname, self.current_logname)
+        filepath, filename = self.MediaHandler.getCFilename()
+        base_filename = os.path.splitext(filename)[0]
+        self.current_maskname = os.path.join(outputpath, base_filename+maskname_tag)
+        self.current_logname  = os.path.join(outputpath, base_filename+logname_tag)
+        
+        self.setWindowTitle(filename)
+        self.ResetPixMapItems(self.pixMapItems)
+        
+        self.LoadImage(filename)        
+        self.LoadMask(self.current_maskname)
+        self.LoadLog(self.current_logname)
+        
+    def LoadImage(self, filename):
+        #self.im = self.MediaHandler.getFrame(0)
+        self.SetPixMapTiled(self.pixMapItems, self.im)     
 
-    def ReadImage(self, filename):
-        im = imread(filename)
-        if im.dtype == np.uint8:
-            return im
-        if im.dtype == np.uint16:
-            # Maybe actually a 12bit image in a 16bit container?
-            if np.amax(im) < 2**12:
-                return im/16
-            return im/256
-        if im.dtype == np.float32:
-            return im*256
-        print("Unsported data type",im.dtype)
-        return im
-
-    def LoadMask(self, index):
-        maskname = os.path.join(outputpath, os.path.split(self.file_list[index])[1][:-4]+maskname_tag)
+    def LoadMask(self, maskname):
+        self.current_maskname = maskname
+        print maskname
         mask_valid = False
         print(maskname)
         if os.path.exists(maskname):
@@ -514,8 +510,9 @@ class DrawImage(QMainWindow):
                     self.MaskPixMaps[i].setPixmap(pixmap)
                 self.MaskPixMaps[i].setOffset(startX, startY)
 
-    def LoadLog(self,index):
-        logname = os.path.join(outputpath, os.path.split(self.file_list[index])[1][:-4]+logname_tag)
+    def LoadLog(self,logname):
+        self.current_logname = logname
+        print logname
         while len(self.points):
             self.RemovePoint(self.points[0])
         if os.path.exists(logname):
@@ -582,27 +579,7 @@ class DrawImage(QMainWindow):
                 endX = min([ (x+1)*max_image_size, image.shape[1] ])
                 endY = min([ (y+1)*max_image_size, image.shape[0] ])
                 list_pixMap[i].setPixmap( QPixmap(array2qimage(image[startY:endY,startX:endX,:]) ))
-                list_pixMap[i].setOffset(startX, startY)
-
-    def JustLoadImage(self, filename):
-        print("Loading Image", os.path.split(filename)[-1])
-        print(filename)
-        self.im = self.ReadImage(filename)
-        if len(self.im.shape)==2:
-            print("Add extra dimension for bw channel")
-            self.im.resize(self.im.shape[0], self.im.shape[1], 1)
-            #self.im /= 16
-        print("... done")
-                
-        self.SetPixMapTiled(self.pixMapItems, self.im)
-
-    def LoadImage(self, filename, maskname, logname):
-        self.setWindowTitle(os.path.split(filename)[-1])
-        self.ResetPixMapItems(self.pixMapItems)
-        self.JustLoadImage(filename)
-        
-        self.LoadMask(self.index)
-        self.LoadLog(self.index)
+                list_pixMap[i].setOffset(startX, startY)   
 
     def CanvasHoverMove(self, event):
         #print("CanvasHoverMove")
@@ -793,14 +770,16 @@ class DrawImage(QMainWindow):
             self.drawPath = QPainterPath()
             self.drawPathItem.setPath(self.drawPath)
 
-            self.index -= 1
+            #self.index -= 1
+            self.im = self.MediaHandler.getPrevious()
             self.UpdateImage()
         if event.key() == QtCore.Qt.Key_Right:
             self.SaveMaskAndPoints()
             self.drawPath = QPainterPath()
             self.drawPathItem.setPath(self.drawPath)
 
-            self.index += 1
+            #self.index += 1
+            self.im = self.MediaHandler.getNext()
             self.UpdateImage()
 
         if event.key() == QtCore.Qt.Key_L:
