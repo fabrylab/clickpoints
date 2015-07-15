@@ -1,6 +1,7 @@
 
 from __future__ import division
-import sys
+import sys, os
+sys.path.append( os.path.join(os.path.dirname(__file__),"..","mediahandler") )
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
