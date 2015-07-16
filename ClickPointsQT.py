@@ -724,6 +724,7 @@ class DrawImage(QMainWindow):
             self.counter[active_type].SetToActiveColor()
         if self.DrawMode == True and 0 <= numberkey < len(draw_types):
             active_draw_type = numberkey
+            self.RedrawMask()
             print("Changed Draw type", active_draw_type)
             self.UpdateDrawCursorSize()
 
