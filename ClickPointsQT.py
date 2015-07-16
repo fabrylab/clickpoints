@@ -25,8 +25,8 @@ try:
     from natsort import natsorted
 except:
     natsorted = sorted
-    
-    
+
+
 from mediahandler import MediaHandler
 import glob
 
@@ -40,15 +40,15 @@ logname_tag = '_pos.txt'
 maskname_tag= '_mask.png'
 
 # marker types
-types       = [ ["juveniles", [255,0.,0], 0],                 
-                ["adults", [0,.8*255,0], 0], 
+types       = [ ["juveniles", [255,0.,0], 0],
+                ["adults", [0,.8*255,0], 0],
                 ["border", [0.8*255,0.8*255,0], 1],
-                ["bgroup", [0.5*255,0.5*255,0], 0], 
-                ["horizon", [0.0,0, 0.8*255], 0], 
+                ["bgroup", [0.5*255,0.5*255,0], 0],
+                ["horizon", [0.0,0, 0.8*255], 0],
                 ["iceberg", [0.0,0.8*255, 0.8*255], 0]]
 # painter types
-draw_types  = [ [0, (0,0,0)], 
-                [255, [255,255,255]], 
+draw_types  = [ [0, (0,0,0)],
+                [255, [255,255,255]],
                 [124 ,[124,124,255]]]
 
 # possible addons
@@ -114,7 +114,7 @@ class BigImageDisplay():
                 new_pixmap = QGraphicsPixmapItem(self.pixMapItems[0])
             self.pixMapItems.append(new_pixmap)
             self.local_scene.addItem(new_pixmap)
-            
+
             new_pixmap.setAcceptHoverEvents(True)
 
             new_pixmap.mousePressEvent    =  self.window.CanvasMousePress
@@ -131,7 +131,7 @@ class BigImageDisplay():
         self.number_of_imagesX = int(np.ceil(image.shape[1]/max_image_size))
         self.number_of_imagesY = int(np.ceil(image.shape[0]/max_image_size))
         self.UpdatePixmapCount()
-            
+
         for y in xrange(self.number_of_imagesY):
             for x in xrange(self.number_of_imagesX):
                 i = y*self.number_of_imagesX+x
@@ -141,9 +141,9 @@ class BigImageDisplay():
                 endY = min([ (y+1)*max_image_size, image.shape[0] ])
                 self.pixMapItems[i].setPixmap( QPixmap(array2qimage(image[startY:endY,startX:endX,:]) ))
                 self.pixMapItems[i].setOffset(startX, startY)
-                
-class BigPaintableImageDisplay():   
-                
+
+class BigPaintableImageDisplay():
+
     def __init__(self, scene):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
@@ -151,7 +151,7 @@ class BigPaintableImageDisplay():
         self.local_scene = scene
         self.full_image = None
         self.images = []
-        
+
         self.opacity = 0
 
     def UpdatePixmapCount(self):
@@ -176,7 +176,7 @@ class BigPaintableImageDisplay():
         self.number_of_imagesY = int(np.ceil(image.shape[0]/max_image_size))
         self.UpdatePixmapCount()
         self.full_image = image
-            
+
         for y in xrange(self.number_of_imagesY):
             for x in xrange(self.number_of_imagesX):
                 i = y*self.number_of_imagesX+x
@@ -184,16 +184,16 @@ class BigPaintableImageDisplay():
                 startY = y*max_image_size
                 endX = min([ (x+1)*max_image_size, image.shape[1] ])
                 endY = min([ (y+1)*max_image_size, image.shape[0] ])
-                
+
                 self.images[i]  = Image.fromarray(image[startY:endY,startX:endX].astype(np.uint8),'L')
                 pixmap = QPixmap(QImage(ImageQt.ImageQt(self.images[i])))
                 self.pixMapItems[i].setPixmap(pixmap)
                 self.pixMapItems[i].setOffset(startX, startY)
-                
+
     def UpdateImage(self):
         for i in xrange(self.number_of_imagesY*self.number_of_imagesX):
             self.pixMapItems[i].setPixmap(QPixmap(QImage(ImageQt.ImageQt(self.images[i]))))
-            
+
     def DrawLine(self, x1, x2, y1, y2, size):
         for y in xrange(self.number_of_imagesY):
             for x in xrange(self.number_of_imagesX):
@@ -203,12 +203,12 @@ class BigPaintableImageDisplay():
                         draw = ImageDraw.Draw(self.images[i])
                         draw.line(( x1-x*max_image_size,y1-y*max_image_size, x2-x*max_image_size, y2-y*max_image_size ), fill=draw_types[active_draw_type][0], width=size+1)
                         draw.ellipse( ( x1-x*max_image_size-size//2, y1-y*max_image_size-size//2, x1-x*max_image_size+size//2, y1-y*max_image_size+size//2 ),  fill=draw_types[active_draw_type][0])
-                        
+
     def setOpacity(self, opacity):
         self.opacity = opacity
         for pixmap in self.pixMapItems:
             pixmap.setOpacity(opacity)
-            
+
     def save(self, filename):
         for y in xrange(self.number_of_imagesY):
              for x in xrange(self.number_of_imagesX):
@@ -218,10 +218,10 @@ class BigPaintableImageDisplay():
                  endX = min([ (x+1)*max_image_size, self.full_image.shape[1] ])
                  endY = min([ (y+1)*max_image_size, self.full_image.shape[0] ])
                  self.full_image[startY:endY,startX:endX] = self.images[i]
-                 
+
         im = Image.fromarray(self.full_image.astype(np.uint8), 'L')
-        im.save(filename)        
-        
+        im.save(filename)
+
 class MyMarkerItem(QGraphicsPathItem):
 
     def __init__(self, x,y, parent, window, point_type):
@@ -454,18 +454,18 @@ class MyCounter():
 
 
 class DrawImage(QMainWindow):
-    
+
     def ViewBox_wheelEvent(self, event):
         self.ViewBox_old_wheelEvent(event)
         self.UpdateScale()
-        
+
     def UpdateScale(self):
         self.scale = self.local_scene.viewPixelSize()[0]
         if self.scale < 1:
             self.scale = 1
         for point in self.points:
             point.setScale(self.scale)
-            
+
     def ViewBox_mouseMoveEvent(self,event):
         pos = self.local_scene.mapFromView(event.pos())
         if self.pan:
@@ -475,18 +475,18 @@ class DrawImage(QMainWindow):
             self.local_scene.mapFromView(event.pos()) # without the view shakes for strange reasons
             self.last_x = pos.x()
             self.last_y = pos.y()
-            
+
     def ViewBox_mousePressEvent(self,event):
         if event.button() == 2:
             self.pan = True
             pos = self.local_scene.mapFromView(event.pos())
             self.last_x = pos.x()
             self.last_y = pos.y()
-        
+
     def ViewBox_mouseReleaseEvent(self,event):
         if event.button() == 2:
             self.pan = False
-        
+
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
         self.setWindowTitle('Select Window')
@@ -512,11 +512,11 @@ class DrawImage(QMainWindow):
         self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1,1,4]))), self.local_scene)
         self.MarkerParent.setZValue(10)
         self.local_scene.addItem(self.MarkerParent )
-        
+
         self.scale = 1
         self.ViewBox_old_wheelEvent = self.local_scene.wheelEvent
         self.local_scene.wheelEvent = self.ViewBox_wheelEvent
-        
+
         self.pan = False
         self.local_scene.mouseMoveEvent = self.ViewBox_mouseMoveEvent
         self.local_scene.mousePressEvent = self.ViewBox_mousePressEvent
@@ -563,7 +563,7 @@ class DrawImage(QMainWindow):
         self.DrawMode = False
         self.MaskChanged = False
         self.MaskUnsaved = False
-    
+
     def UpdateImage(self):
         self.MaskChanged = False
 
@@ -571,13 +571,13 @@ class DrawImage(QMainWindow):
         base_filename = os.path.splitext(filename)[0]
         self.current_maskname = os.path.join(outputpath, base_filename+maskname_tag)
         self.current_logname  = os.path.join(outputpath, base_filename+logname_tag)
-        
+
         self.setWindowTitle(filename)
 
         self.LoadImage(filename)
         self.LoadMask(self.current_maskname)
         self.LoadLog(self.current_logname)
-        
+
     def LoadImage(self, filename):
         self.im = self.MediaHandler.getCurrentImg()
         self.ImageDisplay.SetImage(self.im)
@@ -769,7 +769,7 @@ class DrawImage(QMainWindow):
             if self.mask_opacity <= 0:
                 self.mask_opacity = 0
             self.MaskDisplay.setOpacity(self.mask_opacity)
-                
+
         if event.key() == QtCore.Qt.Key_D:
             x1,x2 = self.local_scene.viewRange()[0]
             self.local_scene.translateBy(( (x2-x1)*0.9, 0 ))
@@ -832,7 +832,7 @@ for addon in addons:
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
-    
+
     if use_filedia==True or filename == None:
         tmp = QFileDialog.getOpenFileName(None,"Choose Image",srcpath)
         srcpath = os.path.split(str(tmp))[0]
@@ -845,7 +845,7 @@ if __name__ == '__main__':
     window = DrawImage()
     window.show()
     app.exec_()
-    
+
 
 
 """
