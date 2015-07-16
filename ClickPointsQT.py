@@ -55,9 +55,12 @@ draw_types  = [ [0, (0,0,0)],
 addons = []
 
 # overwrite defaults with personal cfg if available
-if os.path.exists('cp_cfg.txt'):
-    with open("cp_cfg.txt") as f:
-        code = compile(f.read(), "cp_cfg.txt", 'exec')
+config_filename = 'cp_cfg.txt'
+if len(sys.argv) >= 2:
+	config_filename = sys.argv[1]
+if os.path.exists(config_filename):
+    with open(config_filename) as f:
+        code = compile(f.read(), config_filename, 'exec')
         exec(code)
 
 # parameter pre processing
