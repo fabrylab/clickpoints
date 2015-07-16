@@ -523,7 +523,6 @@ class DrawImage(QMainWindow):
         self.local_scene.mouseReleaseEvent = self.ViewBox_mouseReleaseEvent
 
         self.MediaHandler = MediaHandler(join(srcpath, filename))
-        self.im = self.MediaHandler.getFrame(0)
         self.UpdateImage()
 
         self.Crosshair = Crosshair(self.MarkerParent, self.local_scene, self)
@@ -568,19 +567,19 @@ class DrawImage(QMainWindow):
     def UpdateImage(self):
         self.MaskChanged = False
 
-        filepath, filename = self.MediaHandler.getCFilename()
+        filepath, filename = self.MediaHandler.getCurrentFilename()
         base_filename = os.path.splitext(filename)[0]
         self.current_maskname = os.path.join(outputpath, base_filename+maskname_tag)
         self.current_logname  = os.path.join(outputpath, base_filename+logname_tag)
         
         self.setWindowTitle(filename)
-        
-        self.LoadImage(filename)        
+
+        self.LoadImage(filename)
         self.LoadMask(self.current_maskname)
         self.LoadLog(self.current_logname)
         
     def LoadImage(self, filename):
-        #self.im = self.MediaHandler.getFrame(0)
+        self.im = self.MediaHandler.getCurrentImg()
         self.ImageDisplay.SetImage(self.im)
 
     def LoadMask(self, maskname):
@@ -778,10 +777,10 @@ class DrawImage(QMainWindow):
             x1,x2 = self.local_scene.viewRange()[0]
             self.local_scene.translateBy((-(x2-x1)*0.9, 0))
         if event.key() == QtCore.Qt.Key_S:
-            y1,y2 = self.local_scene.viewRange()[1] 
+            y1,y2 = self.local_scene.viewRange()[1]
             self.local_scene.translateBy(( 0, (y2-y1)*0.9))
         if event.key() == QtCore.Qt.Key_W:
-            y1,y2 = self.local_scene.viewRange()[1] 
+            y1,y2 = self.local_scene.viewRange()[1]
             self.local_scene.translateBy(( 0, -(y2-y1)*0.9))
 
         if event.key() == QtCore.Qt.Key_M:
@@ -795,17 +794,15 @@ class DrawImage(QMainWindow):
             self.drawPath = QPainterPath()
             self.drawPathItem.setPath(self.drawPath)
 
-            #self.index -= 1
-            self.im = self.MediaHandler.getPrevious()
-            self.UpdateImage()
+            if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos()-1):
+                self.UpdateImage()
         if event.key() == QtCore.Qt.Key_Right:
             self.SaveMaskAndPoints()
             self.drawPath = QPainterPath()
             self.drawPathItem.setPath(self.drawPath)
 
-            #self.index += 1
-            self.im = self.MediaHandler.getNext()
-            self.UpdateImage()
+            if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos()+1):
+                self.UpdateImage()
 
         if event.key() == QtCore.Qt.Key_L:
             # saveguard/confirmation with MessageBox
