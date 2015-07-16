@@ -8,27 +8,12 @@ from PyQt4.QtCore import *
 
 import pyqtgraph as pg
 import numpy as np
-import numpy
-from pylab import imread
 from skimage.morphology import disk
 import os
-from os.path import join,split
-try:
-	import cv2
-	cv2_loaded = True
-	print("OpenCV loaded")
-except:
-	cv2_loaded = False
-	print("OpenCV not found")
-
-try:
-	from natsort import natsorted
-except:
-	natsorted = sorted
+from os.path import join
 
 
 from mediahandler import MediaHandler
-import glob
 
 ### parameter and path setup
 # default settings
