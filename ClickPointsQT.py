@@ -156,6 +156,9 @@ class BigPaintableImageDisplay():
         self.images = []
 
         self.opacity = 0
+        self.colormap = [QColor(i,i,i).rgba() for i in xrange(256)]
+        for drawtype in draw_types:
+           self.colormap[drawtype[0]] = QColor(*drawtype[1]).rgba()
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
@@ -189,13 +192,18 @@ class BigPaintableImageDisplay():
                 endY = min([ (y+1)*max_image_size, image.shape[0] ])
 
                 self.images[i]  = Image.fromarray(image[startY:endY,startX:endX].astype(np.uint8),'L')
-                pixmap = QPixmap(QImage(ImageQt.ImageQt(self.images[i])))
+                qimage = QImage(ImageQt.ImageQt(self.images[i]))
+                qimage.setColorTable(self.colormap)
+                pixmap = QPixmap(qimage)
                 self.pixMapItems[i].setPixmap(pixmap)
                 self.pixMapItems[i].setOffset(startX, startY)
 
     def UpdateImage(self):
         for i in xrange(self.number_of_imagesY*self.number_of_imagesX):
-            self.pixMapItems[i].setPixmap(QPixmap(QImage(ImageQt.ImageQt(self.images[i]))))
+            qimage = QImage(ImageQt.ImageQt(self.images[i]))
+            qimage.setColorTable(self.colormap)
+            pixmap = QPixmap(qimage)
+            self.pixMapItems[i].setPixmap(pixmap)#QPixmap(QImage(ImageQt.ImageQt(self.images[i]))))
 
     def DrawLine(self, x1, x2, y1, y2, size):
         for y in xrange(self.number_of_imagesY):
