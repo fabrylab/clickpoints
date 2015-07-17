@@ -12,6 +12,9 @@ from skimage.morphology import disk
 import os
 from os.path import join
 
+from PIL import Image, ImageQt, ImageDraw
+from qimage2ndarray import array2qimage, rgb_view
+
 
 from mediahandler import MediaHandler
 
@@ -81,9 +84,6 @@ path3 = QPainterPath()
 path3.addEllipse(-0.25,-0.25,0.5,0.5)#addRect(-0.5,-0.5, 1, 1)
 point_display_types = [path1, path2, path3]
 point_display_type = 0
-
-from PIL import Image, ImageQt, ImageDraw
-from qimage2ndarray import array2qimage, rgb_view, alpha_view
 
 class BigImageDisplay():
 	def __init__(self, scene, window):
