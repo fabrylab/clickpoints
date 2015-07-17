@@ -521,10 +521,11 @@ class DrawImage(QMainWindow):
 		self.MediaHandler = MediaHandler(join(srcpath, filename))
 		self.UpdateImage()
 
-		self.Crosshair = Crosshair(self.MarkerParent, self.local_scene, self)
+		if len(types):
+			self.Crosshair = Crosshair(self.MarkerParent, self.local_scene, self)
 
-		self.counter = [MyCounter(self.local_scene, self, i) for i in xrange(len(types))]
-		self.counter[active_type].SetToActiveColor()
+			self.counter = [MyCounter(self.local_scene, self, i) for i in xrange(len(types))]
+			self.counter[active_type].SetToActiveColor()
 
 		self.DrawCursorSize = 10
 		self.drawPathItem = QGraphicsPathItem(self.MarkerParent)
@@ -556,7 +557,12 @@ class DrawImage(QMainWindow):
 		#b = QGraphicsPixmapItem(QPixmap(a), self.local_scene)
 		#b.setPos(100,200)
 		#self.local_scene.addItem(b)
-		self.DrawMode = False
+		if len(types):
+			self.SetDrawMode(False)
+		else:
+			self.SetDrawMode(True)
+			self.mask_opacity = 0.5
+			self.MaskDisplay.setOpacity(self.mask_opacity)
 		self.MaskChanged = False
 		self.MaskUnsaved = False
 
@@ -706,6 +712,20 @@ class DrawImage(QMainWindow):
 			print(self.current_maskname, " saved")
 			self.MaskUnsaved = False
 
+	def SetDrawMode(self,doset):
+		if doset == False:
+			self.DrawMode = False
+			self.DrawCursor.setScale(0)
+			for point in self.points:
+				point.setAcceptHoverEvents(True)
+				point.setAcceptedMouseButtons(Qt.MouseButtons(3))
+		else:
+			self.DrawMode = True
+			self.DrawCursor.setScale(1)
+			for point in self.points:
+				point.setAcceptHoverEvents(False)
+				point.setAcceptedMouseButtons(Qt.MouseButtons(0))
+
 	def keyPressEvent(self,event):
 		global active_type, point_display_type, active_draw_type
 		sys.stdout.flush()
@@ -732,18 +752,9 @@ class DrawImage(QMainWindow):
 			self.SaveMaskAndPoints()
 
 		if event.key() == QtCore.Qt.Key_P:
-			if self.DrawMode:
-				self.DrawMode = False
-				self.DrawCursor.setScale(0)
-				for point in self.points:
-					point.setAcceptHoverEvents(True)
-					point.setAcceptedMouseButtons(Qt.MouseButtons(3))
-			else:
-				self.DrawMode = True
-				self.DrawCursor.setScale(1)
-				for point in self.points:
-					point.setAcceptHoverEvents(False)
-					point.setAcceptedMouseButtons(Qt.MouseButtons(0))
+			if len(types):
+				self.SetDrawMode(self.DrawMode==False)
+				self.RedrawMask()
 
 		if event.key() == QtCore.Qt.Key_Plus:
 			self.DrawCursorSize += 1
