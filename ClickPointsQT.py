@@ -283,18 +283,12 @@ class MyMarkerItem(QGraphicsPathItem):
 		if types[self.type][2] == 2:
 			self.rectObj.setLine(x,y,x2,y2)
 
-	def hoverEnterEvent(self, event):
-		QApplication.setOverrideCursor(QCursor(QtCore.Qt.OpenHandCursor))
-
-	def hoverLeaveEvent(self, event):
-		QApplication.setOverrideCursor(QCursor(QtCore.Qt.ArrowCursor))
-
 	def mousePressEvent(self, event):
 		if event.button() == 2:
 			self.window.RemovePoint(self)
 		if event.button() == 1:
 			self.dragged = True
-			QApplication.setOverrideCursor(QCursor(QtCore.Qt.BlankCursor))
+			self.setCursor(QCursor(QtCore.Qt.BlankCursor))
 			if self.UseCrosshair:
 				self.window.Crosshair.MoveCrosshair(self.pos().x(),self.pos().y())
 				self.window.Crosshair.Show(self.type)
@@ -318,18 +312,21 @@ class MyMarkerItem(QGraphicsPathItem):
 		if event.button() == 1:
 			self.window.PointsUnsaved = True
 			self.dragged = False
-			QApplication.setOverrideCursor(QCursor(QtCore.Qt.OpenHandCursor))
+			self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
 			self.window.Crosshair.Hide()
 			pass
 
+	def SetActive(self, active):
+		if active:
+			self.setAcceptedMouseButtons(Qt.MouseButtons(3))
+			self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+		else:
+			self.setAcceptedMouseButtons(Qt.MouseButtons(0))
+			self.unsetCursor()
+
 	def UpdatePath(self):
 		self.setPath(point_display_types[point_display_type])
-		if point_display_type == len(point_display_types)-1:
-			self.setAcceptedMouseButtons(Qt.MouseButtons(0))
-			self.setAcceptHoverEvents(False)
-		else:
-			self.setAcceptedMouseButtons(Qt.MouseButtons(3))
-			self.setAcceptHoverEvents(True)
+		self.SetActive(point_display_type != len(point_display_types)-1)
 
 class Crosshair():
 	def __init__(self, parent, scene, window):
@@ -716,15 +713,17 @@ class DrawImage(QMainWindow):
 		if doset == False:
 			self.DrawMode = False
 			self.DrawCursor.setScale(0)
+
 			for point in self.points:
-				point.setAcceptHoverEvents(True)
-				point.setAcceptedMouseButtons(Qt.MouseButtons(3))
+				point.SetActive(True)
+			self.local_grview.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 		else:
 			self.DrawMode = True
 			self.DrawCursor.setScale(1)
+
 			for point in self.points:
-				point.setAcceptHoverEvents(False)
-				point.setAcceptedMouseButtons(Qt.MouseButtons(0))
+				point.SetActive(False)
+			self.local_grview.setCursor(QCursor(QtCore.Qt.BlankCursor))
 
 	def keyPressEvent(self,event):
 		global active_type, point_display_type, active_draw_type
