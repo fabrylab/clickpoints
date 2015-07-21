@@ -580,9 +580,6 @@ class DrawImage(QMainWindow):
         self.MaskChanged = False
         self.MaskUnsaved = False
 
-        #self.view.fitInView()
-        #self.view.ensureVisible(0, 0, self.view.size().width(), self.view.size().height())
-
     def UpdateImage(self):
         self.MaskChanged = False
 
