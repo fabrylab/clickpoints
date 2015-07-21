@@ -422,7 +422,7 @@ class Crosshair():
         self.Crosshair.setScale(0)
 
     def Show(self, type):
-        self.Crosshair.setScale(10 / self.window.view.getOriginScale())
+        self.Crosshair.setScale(2 / self.window.view.getOriginScale())
         self.CrosshairPathItem2.setPen(QPen(QColor(*types[type][1]), 1))
         self.CrosshairPathItem.setPen(QPen(QColor(*types[type][1]), 3))
 
