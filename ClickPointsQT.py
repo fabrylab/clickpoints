@@ -10,7 +10,6 @@ from PyQt4.QtCore import *
 from QExtendedGraphicsView import QExtendedGraphicsView
 
 import numpy as np
-from skimage.morphology import disk
 import os
 from os.path import join
 
@@ -86,6 +85,13 @@ path3.addEllipse(-0.25, -0.25, 0.5, 0.5)  # addRect(-0.5,-0.5, 1, 1)
 point_display_types = [path1, path2, path3]
 point_display_type = 0
 
+def disk(radius):
+    disk = np.zeros((radius*2+1,radius*2+1))
+    for x in xrange(radius*2+1):
+        for y in xrange(radius*2+1):
+            if np.sqrt( (radius-x)**2 + (radius-y)**2 ) < radius:
+                disk[y,x] = True
+    return disk
 
 class BigImageDisplay():
     def __init__(self, origin, window):
