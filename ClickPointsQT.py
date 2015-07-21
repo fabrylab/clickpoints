@@ -2,11 +2,13 @@ from __future__ import division
 import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-import pyqtgraph as pg
+from QExtendedGraphicsView import QExtendedGraphicsView
+
 import numpy as np
 from skimage.morphology import disk
 import os
@@ -86,34 +88,31 @@ point_display_type = 0
 
 
 class BigImageDisplay():
-    def __init__(self, scene, window):
+    def __init__(self, origin, window):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
-        self.local_scene = scene
+        self.origin = origin
         self.window = window
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
         for i in xrange(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
             if i == 0:
-                new_pixmap = QGraphicsPixmapItem(self.local_scene)
+                new_pixmap = QGraphicsPixmapItem(self.origin)
             else:
                 new_pixmap = QGraphicsPixmapItem(self.pixMapItems[0])
             self.pixMapItems.append(new_pixmap)
-            self.local_scene.addItem(new_pixmap)
 
             new_pixmap.setAcceptHoverEvents(True)
 
-            new_pixmap.mousePressEvent = self.window.CanvasMousePress
-            new_pixmap.mouseMoveEvent = self.window.CanvasMouseMove
-            new_pixmap.mouseReleaseEvent = self.window.CanvasMouseRelease
-            new_pixmap.hoverMoveEvent = self.window.CanvasHoverMove
+            new_pixmap.installSceneEventFilter(self.window.scene_event_filter)
+
         # Hide images which are not needed
         for i in xrange(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
             im = np.zeros((1, 1, 1))
-            list_pixMap[i].setPixmap(QPixmap(array2qimage(im)))
-            list_pixMap[i].setOffset(0, 0)
+            self.pixMapItems[i].setPixmap(QPixmap(array2qimage(im)))
+            self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
         self.number_of_imagesX = int(np.ceil(image.shape[1] / max_image_size))
@@ -132,11 +131,11 @@ class BigImageDisplay():
 
 
 class BigPaintableImageDisplay():
-    def __init__(self, scene):
+    def __init__(self, origin):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
-        self.local_scene = scene
+        self.origin = origin
         self.full_image = None
         self.images = []
 
@@ -150,11 +149,10 @@ class BigPaintableImageDisplay():
         for i in xrange(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
             self.images.append(None)
             if i == 0:
-                new_pixmap = QGraphicsPixmapItem(self.local_scene)
+                new_pixmap = QGraphicsPixmapItem(self.origin)
             else:
                 new_pixmap = QGraphicsPixmapItem(self.pixMapItems[0])
             self.pixMapItems.append(new_pixmap)
-            self.local_scene.addItem(new_pixmap)
             new_pixmap.setOpacity(self.opacity)
         # Hide images which are not needed
         for i in xrange(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
@@ -268,7 +266,16 @@ class MyMarkerItem(QGraphicsPathItem):
                 self.UpdateRect()
 
         self.window.PointsUnsaved = True
+        self.setAcceptHoverEvents(True)
+    """
+    def hoverEnterEvent(self, event):
+        print "Hover", self
+        QApplication.setOverrideCursor(QCursor(QtCore.Qt.OpenHandCursor))
 
+    def hoverLeaveEvent(self, event):
+        print "Leave", self
+        QApplication.setOverrideCursor(QCursor(QtCore.Qt.ArrowCursor))
+    """
     def OnRemove(self):
         self.window.counter[self.type].AddCount(-1)
         if self.partner and self.partner.rectObj:
@@ -338,6 +345,7 @@ class Crosshair():
         self.parent = parent
         self.scene = scene
         self.window = window
+        self.origin = window.origin
 
         self.a = self.window.im[-102:-1, 0:101].copy()
         self.b = disk(50) * 255
@@ -345,12 +353,11 @@ class Crosshair():
         self.CrosshairX = array2qimage(self.c)
         self.d = rgb_view(self.CrosshairX)
 
-        self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairX), self.scene)
+        self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairX), self.origin)
         self.d[:, :, 0] = 255
         self.Crosshair.setOffset(-50, -50)
         self.Crosshair.setZValue(30)
         self.Crosshair.setScale(3)
-        self.scene.addItem(self.Crosshair)
 
         self.pathCrosshair = QPainterPath()
         self.pathCrosshair.addEllipse(-50, -50, 100, 100)
@@ -409,14 +416,14 @@ class Crosshair():
         self.Crosshair.setScale(0)
 
     def Show(self, type):
-        self.Crosshair.setScale(3 * self.scene.viewPixelSize()[0])
+        self.Crosshair.setScale(10 / self.window.view.getOriginScale())
         self.CrosshairPathItem2.setPen(QPen(QColor(*types[type][1]), 1))
         self.CrosshairPathItem.setPen(QPen(QColor(*types[type][1]), 3))
 
 
 class MyCounter():
     def __init__(self, parent, window, point_type):
-        self.parent = parent
+        self.parent = window.view.hud
         self.window = window
         self.type = point_type
         self.count = 0
@@ -457,49 +464,62 @@ class MyCounter():
         self.rect.setBrush(QBrush(QColor(0, 0, 0, 128)))
 
 
+class GraphicsItemEventFilter(QGraphicsItem):
+    def __init__(self, parent, window):
+        super(GraphicsItemEventFilter, self).__init__(parent)
+        self.window = window
+        self.last_x = 0
+        self.last_y = 0
+    def paint(self, *args):
+        pass
+    def boundingRect(self):
+        return QRectF(0,0,0,0)
+    def sceneEventFilter(self, object, event):
+        if event.type() == 156:#QtCore.QEvent.MouseButtonPress:
+            if event.button() == 1:
+                if not self.window.DrawMode:
+                    self.window.points.append(MyMarkerItem(event.pos().x(), event.pos().y(), self.window.MarkerParent, self.window, active_type))
+                    self.window.points[-1].setScale(1/self.window.view.getOriginScale())
+                    return True
+                else:
+                    self.last_x = event.pos().x()
+                    self.last_y = event.pos().y()
+                    return True
+        if event.type() == 155:# Mouse Move
+            if self.window.DrawMode:
+                pos_x = event.pos().x()
+                pos_y = event.pos().y()
+                self.window.drawPath.moveTo(self.last_x, self.last_y)
+                self.window.drawPath.lineTo(pos_x, pos_y)
+                self.window.MaskChanged = True
+                self.window.MaskUnsaved = True
+
+                self.window.MaskDisplay.DrawLine(pos_x, self.last_x, pos_y, self.last_y, self.window.DrawCursorSize)
+                self.last_x = pos_x
+                self.last_y = pos_y
+                self.window.drawPathItem.setPath(self.window.drawPath)
+                return True
+        if event.type() == 161:# Mouse Hover
+            self.window.DrawCursor.setPos(event.pos())
+        return False
+
 class DrawImage(QMainWindow):
-    def ViewBox_wheelEvent(self, event):
-        self.ViewBox_old_wheelEvent(event)
-        self.UpdateScale()
 
-    def UpdateScale(self):
-        self.scale = self.local_scene.viewPixelSize()[0]
-        if self.scale < 1:
-            self.scale = 1
+    def zoomEvent(self, scale, pos):
         for point in self.points:
-            point.setScale(self.scale)
-
-    def ViewBox_mouseMoveEvent(self, event):
-        pos = self.local_scene.mapFromView(event.pos())
-        if self.pan:
-            dx = (self.last_x - pos.x()) * self.local_scene.viewPixelSize()[0]
-            dy = (self.last_y - pos.y()) * self.local_scene.viewPixelSize()[1]
-            self.local_scene.translateBy((dx, dy))
-            self.local_scene.mapFromView(event.pos())  # without the view shakes for strange reasons
-            self.last_x = pos.x()
-            self.last_y = pos.y()
-
-    def ViewBox_mousePressEvent(self, event):
-        if event.button() == 2:
-            self.pan = True
-            pos = self.local_scene.mapFromView(event.pos())
-            self.last_x = pos.x()
-            self.last_y = pos.y()
-
-    def ViewBox_mouseReleaseEvent(self, event):
-        if event.button() == 2:
-            self.pan = False
+            point.setScale(1/self.view.getOriginScale())
 
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
         self.setWindowTitle('Select Window')
 
-        self.local_grview = pg.GraphicsLayoutWidget()
-        self.setCentralWidget(self.local_grview)
-        self.local_scene = self.local_grview.addViewBox(enableMenu=False)
+        self.view = QExtendedGraphicsView()
+        self.view.zoomEvent = self.zoomEvent
+        self.setCentralWidget(self.view)
+        self.local_scene = self.view.scene
+        self.origin = self.view.origin
 
-        self.local_scene.setAspectLocked(True)
-        self.local_scene.invertY(True)
+        self.scene_event_filter = GraphicsItemEventFilter(self.origin, self)
 
         self.points = []
 
@@ -507,23 +527,13 @@ class DrawImage(QMainWindow):
 
         self.local_images = []
         self.pixMapItems = []
-        self.ImageDisplay = BigImageDisplay(self.local_scene, self)
-        self.MaskDisplay = BigPaintableImageDisplay(self.local_scene)
+        self.ImageDisplay = BigImageDisplay(self.origin, self)
+        self.MaskDisplay = BigPaintableImageDisplay(self.origin)
 
         self.counter = []
 
-        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.local_scene)
+        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.origin)
         self.MarkerParent.setZValue(10)
-        self.local_scene.addItem(self.MarkerParent)
-
-        self.scale = 1
-        self.ViewBox_old_wheelEvent = self.local_scene.wheelEvent
-        self.local_scene.wheelEvent = self.ViewBox_wheelEvent
-
-        self.pan = False
-        self.local_scene.mouseMoveEvent = self.ViewBox_mouseMoveEvent
-        self.local_scene.mousePressEvent = self.ViewBox_mousePressEvent
-        self.local_scene.mouseReleaseEvent = self.ViewBox_mouseReleaseEvent
 
         self.MediaHandler = MediaHandler(join(srcpath, filename))
         self.UpdateImage()
@@ -563,6 +573,9 @@ class DrawImage(QMainWindow):
             self.MaskDisplay.setOpacity(self.mask_opacity)
         self.MaskChanged = False
         self.MaskUnsaved = False
+
+        #self.view.fitInView()
+        #self.view.ensureVisible(0, 0, self.view.size().width(), self.view.size().height())
 
     def UpdateImage(self):
         self.MaskChanged = False
@@ -626,47 +639,10 @@ class DrawImage(QMainWindow):
             if data_valid:
                 for point in data:
                     self.points.append(MyMarkerItem(point[0], point[1], self.MarkerParent, self, int(point[2])))
+                    self.points[-1].setScale(1/self.view.getOriginScale())
             else:
                 print("ERROR: Can't read file", logname)
         self.PointsUnsaved = False
-
-    def CanvasHoverMove(self, event):
-        if self.DrawMode:
-            self.DrawCursor.setPos(event.pos())
-
-    def CanvasMousePress(self, event):
-        self.last_x = event.pos().x()
-        self.last_y = event.pos().y()
-        if event.button() == 1:
-            if not self.DrawMode:
-                pos = event.pos()
-                self.points.append(MyMarkerItem(pos.x(), pos.y(), self.MarkerParent, self, active_type))
-                self.points[-1].setScale(self.scale)
-            else:
-                self.last_x = event.pos().x()
-                self.last_y = event.pos().y()
-        else:
-            return self.local_scene.mousePressEvent(event)
-
-    def CanvasMouseMove(self, event):
-        global active_draw_type
-        if self.DrawMode:
-            pos_x = event.pos().x()
-            pos_y = event.pos().y()
-            self.drawPath.moveTo(self.last_x, self.last_y)
-            self.drawPath.lineTo(pos_x, pos_y)
-            self.MaskChanged = True
-            self.MaskUnsaved = True
-
-            self.MaskDisplay.DrawLine(pos_x, self.last_x, pos_y, self.last_y, self.DrawCursorSize)
-            self.last_x = pos_x
-            self.last_y = pos_y
-            self.drawPathItem.setPath(self.drawPath)
-        else:
-            return self.local_scene.mouseMoveEvent(event)
-
-    def CanvasMouseRelease(self, event):
-        return self.local_scene.mouseReleaseEvent(event)
 
     def UpdateDrawCursorSize(self):
         global active_draw_type
@@ -709,14 +685,14 @@ class DrawImage(QMainWindow):
 
             for point in self.points:
                 point.SetActive(True)
-            self.local_grview.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+            self.view.setCursor(QCursor(QtCore.Qt.ArrowCursor))
         else:
             self.DrawMode = True
             self.DrawCursor.setScale(1)
 
             for point in self.points:
                 point.SetActive(False)
-            self.local_grview.setCursor(QCursor(QtCore.Qt.BlankCursor))
+            self.view.setCursor(QCursor(QtCore.Qt.BlankCursor))
 
     def keyPressEvent(self, event):
         global active_type, point_display_type, active_draw_type
@@ -770,24 +746,23 @@ class DrawImage(QMainWindow):
                 self.mask_opacity = 0
             self.MaskDisplay.setOpacity(self.mask_opacity)
 
-        if event.key() == QtCore.Qt.Key_D:
-            x1, x2 = self.local_scene.viewRange()[0]
-            self.local_scene.translateBy(((x2 - x1) * 0.9, 0))
-        if event.key() == QtCore.Qt.Key_A:
-            x1, x2 = self.local_scene.viewRange()[0]
-            self.local_scene.translateBy((-(x2 - x1) * 0.9, 0))
-        if event.key() == QtCore.Qt.Key_S:
-            y1, y2 = self.local_scene.viewRange()[1]
-            self.local_scene.translateBy((0, (y2 - y1) * 0.9))
-        if event.key() == QtCore.Qt.Key_W:
-            y1, y2 = self.local_scene.viewRange()[1]
-            self.local_scene.translateBy((0, -(y2 - y1) * 0.9))
+        #if event.key() == QtCore.Qt.Key_D:
+        #    x1, x2 = self.local_scene.viewRange()[0]
+        #    self.local_scene.translateBy(((x2 - x1) * 0.9, 0))
+        #if event.key() == QtCore.Qt.Key_A:
+        #    x1, x2 = self.local_scene.viewRange()[0]
+        #    self.local_scene.translateBy((-(x2 - x1) * 0.9, 0))
+        #if event.key() == QtCore.Qt.Key_S:
+        #    y1, y2 = self.local_scene.viewRange()[1]
+        #    self.local_scene.translateBy((0, (y2 - y1) * 0.9))
+        #if event.key() == QtCore.Qt.Key_W:
+        #    y1, y2 = self.local_scene.viewRange()[1]
+        #    self.local_scene.translateBy((0, -(y2 - y1) * 0.9))
 
         if event.key() == QtCore.Qt.Key_M:
             self.RedrawMask()
         if event.key() == QtCore.Qt.Key_F:
-            self.local_scene.autoRange()
-            self.UpdateScale()
+            self.view.fitInView()
 
         if event.key() == QtCore.Qt.Key_Left:
             self.SaveMaskAndPoints()
@@ -834,13 +809,13 @@ for addon in addons:
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
 
-    if use_filedia == True or filename == None:
+    if use_filedia is True or filename is None:
         tmp = QFileDialog.getOpenFileName(None, "Choose Image", srcpath)
         srcpath = os.path.split(str(tmp))[0]
         filename = os.path.split(str(tmp))[-1]
         print(srcpath)
         print(filename)
-    if outputpath == None:
+    if outputpath is None:
         outputpath = srcpath
 
     window = DrawImage()
