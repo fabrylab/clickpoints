@@ -58,16 +58,6 @@ def OverloadKeyPressEvent(func):
     def wrapper(*args, **kwargs):
         event = args[1]
         self_class = args[0]
-        if event.key() == QtCore.Qt.Key_Up:
-            print("Up")
-            image = os.path.join(srcpath2, os.path.split(self_class.file_list[self_class.index])[1])
-            self_class.JustLoadImage(image)
-            return
-        if event.key() == QtCore.Qt.Key_Down:
-            print("Down")
-            image = os.path.join(srcpath, os.path.split(self_class.file_list[self_class.index])[1])
-            self_class.JustLoadImage(image)
-            return
         if event.key() == QtCore.Qt.Key_E:
             print("E")
             fp = open( os.path.join(srcpath, "results.csv"),'w')
@@ -86,12 +76,38 @@ def OverloadKeyPressEvent(func):
                 
             return
         if event.key() == QtCore.Qt.Key_Left:
-            self_class.index -= 1
+            self_class.SaveMaskAndPoints()
+            self_class.drawPath = QPainterPath()
+            self_class.drawPathItem.setPath(self_class.drawPath)
+
+            old_pos = self_class.MediaHandler.getCurrentPos()
+            found = 0
+            while self_class.MediaHandler.setCurrentPos(self_class.MediaHandler.getCurrentPos() - 1):
+                if self_class.MediaHandler.getCurrentFilename()[1].find("BF") != -1:
+                    self_class.UpdateImage()
+                    found = 1
+                    break
+            if not found:
+                self_class.MediaHandler.setCurrentPos(old_pos)
+            return
         if event.key() == QtCore.Qt.Key_Right:
-            self_class.index += 1
+            self_class.SaveMaskAndPoints()
+            self_class.drawPath = QPainterPath()
+            self_class.drawPathItem.setPath(self_class.drawPath)
+
+            old_pos = self_class.MediaHandler.getCurrentPos()
+            found = 0
+            while self_class.MediaHandler.setCurrentPos(self_class.MediaHandler.getCurrentPos() + 1):
+                if self_class.MediaHandler.getCurrentFilename()[1].find("BF") != -1:
+                    self_class.UpdateImage()
+                    found = 1
+                    break
+            if not found:
+                self_class.MediaHandler.setCurrentPos(old_pos)
+            return
         return func(*args, **kwargs)
     return wrapper
 
 
-DrawImage.ReadImage = OverloadImageRead(DrawImage.ReadImage)
+MediaHandler.ReadImage = OverloadImageRead(MediaHandler.ReadImage)
 DrawImage.keyPressEvent = OverloadKeyPressEvent(DrawImage.keyPressEvent)
