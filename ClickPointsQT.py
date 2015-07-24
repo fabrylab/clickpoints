@@ -355,6 +355,10 @@ class MyMarkerItem(QGraphicsPathItem):
         self.setPath(point_display_types[point_display_type])
         self.SetActive(point_display_type != len(point_display_types) - 1)
 
+    def setScale(self, scale):
+        if self.rectObj:
+            self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2*scale))
+        super(QGraphicsPathItem, self).setScale(scale)
 
 class Crosshair():
     def __init__(self, parent, scene, window):
