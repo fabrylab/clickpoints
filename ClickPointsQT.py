@@ -530,6 +530,8 @@ class DrawImage(QMainWindow):
         self.points = []
 
         self.mask_opacity = 0
+        self.last_maskname = None
+        self.last_logname = None
 
         self.local_images = []
         self.pixMapItems = []
@@ -697,6 +699,18 @@ class DrawImage(QMainWindow):
                 point.SetActive(False)
             self.view.setCursor(QCursor(QtCore.Qt.BlankCursor))
 
+    def JumpFrames(self, amount):
+        last_maskname = self.current_maskname
+        last_logname = self.current_logname
+        self.SaveMaskAndPoints()
+        self.drawPath = QPainterPath()
+        self.drawPathItem.setPath(self.drawPath)
+
+        if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos() + amount):
+            self.UpdateImage()
+            self.last_maskname = last_maskname
+            self.last_logname = last_logname
+
     def keyPressEvent(self, event):
         global active_type, point_display_type, active_draw_type
         sys.stdout.flush()
@@ -768,34 +782,29 @@ class DrawImage(QMainWindow):
             self.view.fitInView()
 
         if event.key() == QtCore.Qt.Key_Left:
-            self.SaveMaskAndPoints()
-            self.drawPath = QPainterPath()
-            self.drawPathItem.setPath(self.drawPath)
-
-            if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos() - 1):
-                self.UpdateImage()
+            self.JumpFrames(-1)
         if event.key() == QtCore.Qt.Key_Right:
-            self.SaveMaskAndPoints()
-            self.drawPath = QPainterPath()
-            self.drawPathItem.setPath(self.drawPath)
-
-            if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos() + 1):
-                self.UpdateImage()
+            self.JumpFrames(+1)
 
         if event.key() == QtCore.Qt.Key_L:
-            # saveguard/confirmation with MessageBox
-            reply = QMessageBox.question(None, 'Warning', 'Load Mask & Points of last Image?', QMessageBox.Yes,
-                                         QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                print('Loading last mask & points ...')
-                # load mask and log of last image
-                self.LoadMask(self.index - 1)
-                self.LoadLog(self.index - 1)
-                # force save of mask and log
-                self.MaskUnsaved = True
-                self.PointsUnsaved = True
-                # refresh display
-                self.RedrawMask()
+            if self.last_logname:
+                # saveguard/confirmation with MessageBox
+                reply = QMessageBox.question(None, 'Warning', 'Load Mask & Points of last Image?', QMessageBox.Yes,
+                                             QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    print('Loading last mask & points ...')
+                    # load mask and log of last image
+                    current_maskname = self.current_maskname
+                    current_logname = self.current_logname
+                    self.LoadMask(self.last_maskname)
+                    self.LoadLog(self.last_logname)
+                    self.current_maskname = current_maskname
+                    self.current_logname = current_logname
+                    # force save of mask and log
+                    self.MaskUnsaved = True
+                    self.PointsUnsaved = True
+                    # refresh display
+                    self.RedrawMask()
 
     def RedrawMask(self):
         self.MaskDisplay.UpdateImage()
