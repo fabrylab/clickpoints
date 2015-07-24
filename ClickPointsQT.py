@@ -121,6 +121,8 @@ class BigImageDisplay():
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
+        if len(image.shape) == 2:
+            image = image.reshape((image.shape[0],image.shape[1],1))
         self.number_of_imagesX = int(np.ceil(image.shape[1] / max_image_size))
         self.number_of_imagesY = int(np.ceil(image.shape[0] / max_image_size))
         self.UpdatePixmapCount()
