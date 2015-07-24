@@ -21,6 +21,7 @@ from mediahandler import MediaHandler
 ### parameter and path setup
 # default settings
 use_filedia = True
+auto_mask_update = True
 srcpath = None
 filename = None
 outputpath = None
@@ -518,6 +519,9 @@ class GraphicsItemEventFilter(QGraphicsItem):
                 self.last_x = pos_x
                 self.last_y = pos_y
                 self.window.drawPathItem.setPath(self.window.drawPath)
+                self.window.DrawCursor.setPos(event.pos())
+                if auto_mask_update:
+                    self.window.RedrawMask()
                 return True
         if event.type() == 161:# Mouse Hover
             self.window.DrawCursor.setPos(event.pos())
