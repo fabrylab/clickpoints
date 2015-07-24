@@ -209,6 +209,14 @@ class BigPaintableImageDisplay():
                                       x1 - x * max_image_size + size // 2, y1 - y * max_image_size + size // 2),
                                      fill=draw_types[active_draw_type][0])
 
+    def GetColor(self, x1, y1):
+        for y in xrange(self.number_of_imagesY):
+            for x in xrange(self.number_of_imagesX):
+                i = y * self.number_of_imagesX + x
+                if x * max_image_size < x1 < (x + 1) * max_image_size:
+                    if y * max_image_size < y1 < (y + 1) * max_image_size:
+                        return self.images[i].getpixel((x1 - x * max_image_size,y1 - y * max_image_size))
+
     def setOpacity(self, opacity):
         self.opacity = opacity
         for pixmap in self.pixMapItems:
@@ -507,6 +515,7 @@ class GraphicsItemEventFilter(QGraphicsItem):
                 return True
         if event.type() == 161:# Mouse Hover
             self.window.DrawCursor.setPos(event.pos())
+            self.window.color_under_cursor = self.window.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
         return False
 
 class DrawImage(QMainWindow):
@@ -532,6 +541,7 @@ class DrawImage(QMainWindow):
         self.mask_opacity = 0
         self.last_maskname = None
         self.last_logname = None
+        self.color_under_cursor = None
 
         self.local_images = []
         self.pixMapItems = []
