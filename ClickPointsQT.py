@@ -796,6 +796,42 @@ class DrawImage(QMainWindow):
         if event.key() == QtCore.Qt.Key_Right:
             self.JumpFrames(+1)
 
+        # JUMP keys
+        if event.key() == Qt.Key_2 and event.modifiers() == Qt.KeypadModifier:
+            self.JumpFrames(-1)
+            print '-1'
+        if event.key() == Qt.Key_3 and event.modifiers() == Qt.KeypadModifier:
+            self.JumpFrames(+1)
+            print '+1'
+        if event.key() == Qt.Key_5 and event.modifiers() == Qt.KeypadModifier:
+            self.JumpFrames(-10)
+            print '-10'
+        if event.key() == Qt.Key_6 and event.modifiers() == Qt.KeypadModifier:
+            self.JumpFrames(+10)
+            print '+10'
+        if event.key() == Qt.Key_8 and event.modifiers() == Qt.KeypadModifier:
+            self.JumpFrames(-100)
+            print '-100'
+        if event.key() == Qt.Key_9 and event.modifiers() == Qt.KeypadModifier:
+            self.JumpFrames(+100)
+            print '+100'
+        if event.key() == Qt.Key_Slash and event.modifiers() == Qt.KeypadModifier:
+            self.JumpFrames(-1000)
+            print '-1000'
+        if event.key() == Qt.Key_Asterisk and event.modifiers() == Qt.KeypadModifier:
+            self.JumpFrames(+1000)
+            print '+1000'
+
+        if event.key() == QtCore.Qt.Key_K:
+            for index,type in enumerate(draw_types):
+                if type[0] == self.color_under_cursor:
+                    active_draw_type = index
+                    break
+            self.RedrawMask()
+            print("Changed Draw type", active_draw_type)
+            self.UpdateDrawCursorSize()
+            self.color_under_cursor
+
         if event.key() == QtCore.Qt.Key_L:
             if self.last_logname:
                 # saveguard/confirmation with MessageBox
