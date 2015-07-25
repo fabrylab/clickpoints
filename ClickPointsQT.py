@@ -74,6 +74,8 @@ path1.addRect(-r2, -w, b, w * 2)
 path1.addRect(r2, -w, -b, w * 2)
 path1.addRect(-w, -r2, w * 2, b)
 path1.addRect(-w, r2, w * 2, -b)
+path1.addEllipse(-r2, -r2, r2 * 2, r2 * 2)
+path1.addEllipse(-r2*0.9, -r2*0.9, r2 * 2*0.9, r2 * 2*0.9)
 w = 0.5
 b = 2
 o = 1
@@ -290,6 +292,7 @@ class MyMarkerItem(QGraphicsPathItem):
             self.pathItem = QGraphicsPathItem(self.imgItem)
             self.path = QPainterPath()
             self.path.moveTo(x,y)
+            self.id = uuid.uuid4().hex
         self.active = True
 
     def setInvalidNewPoint(self):
@@ -308,7 +311,8 @@ class MyMarkerItem(QGraphicsPathItem):
                     self.path.lineTo(x,y)
                 else:
                     self.path.moveTo(x,y)
-                self.path.addEllipse(x-.5*circle_width, y-.5*circle_width, circle_width, circle_width)
+                if frame != self.window.MediaHandler.getCurrentPos():
+                    self.path.addEllipse(x-.5*circle_width, y-.5*circle_width, circle_width, circle_width)
                 self.path.moveTo(x,y)
             last_active = type != -1
         self.pathItem.setPath(self.path)
@@ -326,11 +330,12 @@ class MyMarkerItem(QGraphicsPathItem):
             self.track[self.window.MediaHandler.getCurrentPos()][2] = self.type
 
     def addPoint(self, x, y, type):
+        if type == -1:
+            x, y = self.pos().x(), self.pos().y()
         self.setPos(x, y)
         self.track[self.window.MediaHandler.getCurrentPos()] = [x,y,type]
         if type == -1:
             self.SetTrackActive(False)
-            print "-1"
         else:
             self.SetTrackActive(True)
             self.setOpacity(1)
@@ -723,33 +728,55 @@ class DrawImage(QMainWindow):
             while len(self.points):
                 self.RemovePoint(self.points[0])
         if os.path.exists(logname):
-            try:
-                data = np.loadtxt(logname)
-                if data.shape == (3,):
-                    data = np.array([data])
-                if data.shape[1] == 3:
-                    data_valid = True
-                else:
+            if tracking == True:
+                for point in self.points:
+                    point.setInvalidNewPoint()
+                with open(logname) as fp:
+                    data = []
+                    for index,line in enumerate(fp.readlines()):
+                        line = line.strip().split(" ")
+                        x = float(line[0])
+                        y = float(line[1])
+                        type = int(line[2])
+                        if len(line) == 3:
+                            if index >= len(self.points):
+                                self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, type))
+                                self.points[-1].setScale(1/self.view.getOriginScale())
+                            else:
+                                self.points[index].addPoint(x,y,type)
+                            continue
+                        active = int(line[3])
+                        if type == -1 or active == 0:
+                            continue
+                        id = line[4]
+                        found = False
+                        for point in self.points:
+                            if point.id == id:
+                                point.addPoint(x,y,type)
+                                found = True
+                                break
+                        if not found:
+                            self.points.append(MyMarkerItem(x,y, self.MarkerParent, self, type))
+                            self.points[-1].setScale(1/self.view.getOriginScale())
+                            self.points[-1].id = id
+                            self.points[-1].setActive(active)
+            else:
+                try:
+                    data = np.loadtxt(logname)
+                    if data.shape == (3,):
+                        data = np.array([data])
+                    if data.shape[1] == 3:
+                        data_valid = True
+                    else:
+                        data_valid = False
+                except:
                     data_valid = False
-            except:
-                data_valid = False
-            if data_valid:
-                if tracking == False:
+                if data_valid:
                     for point in data:
                         self.points.append(MyMarkerItem(point[0], point[1], self.MarkerParent, self, int(point[2])))
                         self.points[-1].setScale(1/self.view.getOriginScale())
                 else:
-                    print data.shape, len(self.points)
-                    for index in xrange(data.shape[0], len(self.points)):
-                        self.points[index].setInvalidNewPoint()
-                    for index,point in enumerate(data):
-                        if index >= len(self.points):
-                            self.points.append(MyMarkerItem(point[0], point[1], self.MarkerParent, self, int(point[2])))
-                            self.points[-1].setScale(1/self.view.getOriginScale())
-                        else:
-                            self.points[index].addPoint(point[0], point[1], int(point[2]))
-            else:
-                print("ERROR: Can't read file", logname)
+                    print("ERROR: Can't read file", logname)
         else:
             for index in xrange(0, len(self.points)):
                 self.points[index].setInvalidNewPoint()
@@ -779,8 +806,14 @@ class DrawImage(QMainWindow):
                 if os.path.exists(self.current_logname):
                     os.remove(self.current_logname)
             else:
-                data = [[point.pos().x(), point.pos().y(), point.type if point.active else -1] for point in self.points]
-                np.savetxt(self.current_logname, data, "%f %f %d")
+                if tracking == True:
+                    data = ["%f %f %d %d %s\n"%(point.pos().x(), point.pos().y(), point.type, point.active, point.id) for point in self.points if point.active]
+                    with open(self.current_logname, 'w') as fp:
+                        for line in data:
+                            fp.write(line)
+                else:
+                    data = [[point.pos().x(), point.pos().y(), point.type] for point in self.points]
+                    np.savetxt(self.current_logname, data, "%f %f %d")
             print(self.current_logname, " saved")
             self.PointsUnsaved = False
 
