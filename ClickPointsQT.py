@@ -22,6 +22,7 @@ from mediahandler import MediaHandler
 # default settings
 use_filedia = True
 auto_mask_update = True
+tracking = True
 srcpath = None
 filename = None
 outputpath = None
@@ -284,6 +285,57 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.window.PointsUnsaved = True
         self.setAcceptHoverEvents(True)
+        if tracking == True:
+            self.track = {self.window.MediaHandler.getCurrentPos(): [x,y, point_type]}
+            self.pathItem = QGraphicsPathItem(self.imgItem)
+            self.path = QPainterPath()
+            self.path.moveTo(x,y)
+        self.active = True
+
+    def setInvalidNewPoint(self):
+        self.addPoint(self.pos().x(), self.pos().y(), -1)
+
+    def UpdateLine(self):
+        self.track[self.window.MediaHandler.getCurrentPos()][:2] = [self.pos().x(),self.pos().y()]
+        self.path = QPainterPath()
+        frames = sorted(self.track.keys())
+        last_active = False
+        circle_width = self.scale_value*10
+        for frame in frames:
+            x,y,type = self.track[frame]
+            if type != -1:
+                if last_active:
+                    self.path.lineTo(x,y)
+                else:
+                    self.path.moveTo(x,y)
+                self.path.addEllipse(x-.5*circle_width, y-.5*circle_width, circle_width, circle_width)
+                self.path.moveTo(x,y)
+            last_active = type != -1
+        self.pathItem.setPath(self.path)
+
+    def SetTrackActive(self, active):
+        if active == False:
+            self.active = False
+            self.setOpacity(0.5)
+            self.pathItem.setOpacity(0.25)
+            self.track[self.window.MediaHandler.getCurrentPos()][2] = -1
+        else:
+            self.active = True
+            self.setOpacity(1)
+            self.pathItem.setOpacity(0.5)
+            self.track[self.window.MediaHandler.getCurrentPos()][2] = self.type
+
+    def addPoint(self, x, y, type):
+        self.setPos(x, y)
+        self.track[self.window.MediaHandler.getCurrentPos()] = [x,y,type]
+        if type == -1:
+            self.SetTrackActive(False)
+            print "-1"
+        else:
+            self.SetTrackActive(True)
+            self.setOpacity(1)
+        self.UpdateLine()
+
     """
     def hoverEnterEvent(self, event):
         print "Hover", self
@@ -313,7 +365,18 @@ class MyMarkerItem(QGraphicsPathItem):
 
     def mousePressEvent(self, event):
         if event.button() == 2:
-            self.window.RemovePoint(self)
+            if tracking == True:
+                self.SetTrackActive(self.active==False)
+                self.window.PointsUnsaved = True#
+                self.UpdateLine()
+                valid_frame_found = False
+                for frame in self.track:
+                    if self.track[frame][2] != -1:
+                        valid_frame_found = True
+                if not valid_frame_found:
+                    self.window.RemovePoint(self)
+            else:
+                self.window.RemovePoint(self)
         if event.button() == 1:
             self.dragged = True
             self.setCursor(QCursor(QtCore.Qt.BlankCursor))
@@ -325,7 +388,9 @@ class MyMarkerItem(QGraphicsPathItem):
     def mouseMoveEvent(self, event):
         if not self.dragged:
             return
+        self.SetTrackActive(True)
         self.setPos(self.pos() + event.pos() * 0.25)
+        self.UpdateLine()
         self.window.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
         if self.partner:
             if self.rectObj:
@@ -357,9 +422,15 @@ class MyMarkerItem(QGraphicsPathItem):
         self.SetActive(point_display_type != len(point_display_types) - 1)
 
     def setScale(self, scale):
+        self.scale_value = scale
         if self.rectObj:
             self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2*scale))
+        if tracking == True:
+            self.pathItem.setPen(QPen(QColor(*types[self.type][1]), 2*scale))
+            self.UpdateLine()
         super(QGraphicsPathItem, self).setScale(scale)
+
+
 
 class Crosshair():
     def __init__(self, parent, scene, window):
@@ -648,8 +719,9 @@ class DrawImage(QMainWindow):
     def LoadLog(self, logname):
         self.current_logname = logname
         print logname
-        while len(self.points):
-            self.RemovePoint(self.points[0])
+        if tracking == False:
+            while len(self.points):
+                self.RemovePoint(self.points[0])
         if os.path.exists(logname):
             try:
                 data = np.loadtxt(logname)
@@ -662,11 +734,25 @@ class DrawImage(QMainWindow):
             except:
                 data_valid = False
             if data_valid:
-                for point in data:
-                    self.points.append(MyMarkerItem(point[0], point[1], self.MarkerParent, self, int(point[2])))
-                    self.points[-1].setScale(1/self.view.getOriginScale())
+                if tracking == False:
+                    for point in data:
+                        self.points.append(MyMarkerItem(point[0], point[1], self.MarkerParent, self, int(point[2])))
+                        self.points[-1].setScale(1/self.view.getOriginScale())
+                else:
+                    print data.shape, len(self.points)
+                    for index in xrange(data.shape[0], len(self.points)):
+                        self.points[index].setInvalidNewPoint()
+                    for index,point in enumerate(data):
+                        if index >= len(self.points):
+                            self.points.append(MyMarkerItem(point[0], point[1], self.MarkerParent, self, int(point[2])))
+                            self.points[-1].setScale(1/self.view.getOriginScale())
+                        else:
+                            self.points[index].addPoint(point[0], point[1], int(point[2]))
             else:
                 print("ERROR: Can't read file", logname)
+        else:
+            for index in xrange(0, len(self.points)):
+                self.points[index].setInvalidNewPoint()
         self.PointsUnsaved = False
 
     def UpdateDrawCursorSize(self):
@@ -693,7 +779,7 @@ class DrawImage(QMainWindow):
                 if os.path.exists(self.current_logname):
                     os.remove(self.current_logname)
             else:
-                data = [[point.pos().x(), point.pos().y(), point.type] for point in self.points]
+                data = [[point.pos().x(), point.pos().y(), point.type if point.active else -1] for point in self.points]
                 np.savetxt(self.current_logname, data, "%f %f %d")
             print(self.current_logname, " saved")
             self.PointsUnsaved = False
