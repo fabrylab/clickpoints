@@ -17,6 +17,7 @@ from PIL import Image, ImageQt, ImageDraw
 from qimage2ndarray import array2qimage, rgb_view
 
 from mediahandler import MediaHandler
+import uuid
 
 ### parameter and path setup
 # default settings
