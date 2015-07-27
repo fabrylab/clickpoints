@@ -395,9 +395,10 @@ class MyMarkerItem(QGraphicsPathItem):
         if not self.dragged:
             return
         self.SetTrackActive(True)
-        self.setPos(self.pos() + event.pos() * 0.25)
+        pos = self.window.origin.mapFromItem(self, event.pos())
+        self.setPos(pos.x(), pos.y())
         self.UpdateLine()
-        self.window.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+        self.window.Crosshair.MoveCrosshair(pos.x(), pos.y())
         if self.partner:
             if self.rectObj:
                 self.UpdateRect()
@@ -481,6 +482,7 @@ class Crosshair():
 
     def MoveCrosshair(self, x, y):
         self.d[:, :, :] = 0
+        self.Crosshair.setPos(x, y)
         x, y = int(x), int(y)
         h, w = self.window.im.shape[:2]
         y1 = y - 50;
@@ -506,7 +508,7 @@ class Crosshair():
                 x2b = x2 - x1 + x1b
             self.d[y1b:y2b, x1b:x2b, :] = self.window.im[y1:y2, x1:x2, :]
         self.Crosshair.setPixmap(QPixmap(self.CrosshairX))
-        self.Crosshair.setPos(x, y)
+
 
     # self.CrosshairPathItem.setPos(x,y)
 
