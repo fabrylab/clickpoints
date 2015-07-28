@@ -1,4 +1,4 @@
-from __future__ import division
+
 import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
@@ -92,8 +92,8 @@ point_display_type = 0
 
 def disk(radius):
     disk = np.zeros((radius*2+1,radius*2+1))
-    for x in xrange(radius*2+1):
-        for y in xrange(radius*2+1):
+    for x in range(radius*2+1):
+        for y in range(radius*2+1):
             if np.sqrt( (radius-x)**2 + (radius-y)**2 ) < radius:
                 disk[y,x] = True
     return disk
@@ -108,7 +108,7 @@ class BigImageDisplay():
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
-        for i in xrange(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
+        for i in range(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
             if i == 0:
                 new_pixmap = QGraphicsPixmapItem(self.origin)
             else:
@@ -120,7 +120,7 @@ class BigImageDisplay():
             new_pixmap.installSceneEventFilter(self.window.scene_event_filter)
 
         # Hide images which are not needed
-        for i in xrange(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
+        for i in range(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
             im = np.zeros((1, 1, 1))
             self.pixMapItems[i].setPixmap(QPixmap(array2qimage(im)))
             self.pixMapItems[i].setOffset(0, 0)
@@ -132,8 +132,8 @@ class BigImageDisplay():
         self.number_of_imagesY = int(np.ceil(image.shape[0] / max_image_size))
         self.UpdatePixmapCount()
 
-        for y in xrange(self.number_of_imagesY):
-            for x in xrange(self.number_of_imagesX):
+        for y in range(self.number_of_imagesY):
+            for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
                 startX = x * max_image_size
                 startY = y * max_image_size
@@ -153,13 +153,13 @@ class BigPaintableImageDisplay():
         self.images = []
 
         self.opacity = 0
-        self.colormap = [QColor(i, i, i).rgba() for i in xrange(256)]
+        self.colormap = [QColor(i, i, i).rgba() for i in range(256)]
         for drawtype in draw_types:
             self.colormap[drawtype[0]] = QColor(*drawtype[1]).rgba()
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
-        for i in xrange(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
+        for i in range(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
             self.images.append(None)
             if i == 0:
                 new_pixmap = QGraphicsPixmapItem(self.origin)
@@ -168,7 +168,7 @@ class BigPaintableImageDisplay():
             self.pixMapItems.append(new_pixmap)
             new_pixmap.setOpacity(self.opacity)
         # Hide images which are not needed
-        for i in xrange(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
+        for i in range(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
             im = np.zeros((1, 1, 1))
             list_pixMap[i].setPixmap(QPixmap(array2qimage(im)))
             list_pixMap[i].setOffset(0, 0)
@@ -179,8 +179,8 @@ class BigPaintableImageDisplay():
         self.UpdatePixmapCount()
         self.full_image = image
 
-        for y in xrange(self.number_of_imagesY):
-            for x in xrange(self.number_of_imagesX):
+        for y in range(self.number_of_imagesY):
+            for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
                 startX = x * max_image_size
                 startY = y * max_image_size
@@ -195,15 +195,15 @@ class BigPaintableImageDisplay():
                 self.pixMapItems[i].setOffset(startX, startY)
 
     def UpdateImage(self):
-        for i in xrange(self.number_of_imagesY * self.number_of_imagesX):
+        for i in range(self.number_of_imagesY * self.number_of_imagesX):
             qimage = QImage(ImageQt.ImageQt(self.images[i]))
             qimage.setColorTable(self.colormap)
             pixmap = QPixmap(qimage)
             self.pixMapItems[i].setPixmap(pixmap)  # QPixmap(QImage(ImageQt.ImageQt(self.images[i]))))
 
     def DrawLine(self, x1, x2, y1, y2, size):
-        for y in xrange(self.number_of_imagesY):
-            for x in xrange(self.number_of_imagesX):
+        for y in range(self.number_of_imagesY):
+            for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
                 if x * max_image_size < x1 < (x + 1) * max_image_size or x * max_image_size < x2 < (
                     x + 1) * max_image_size:
@@ -217,8 +217,8 @@ class BigPaintableImageDisplay():
                                      fill=draw_types[active_draw_type][0])
 
     def GetColor(self, x1, y1):
-        for y in xrange(self.number_of_imagesY):
-            for x in xrange(self.number_of_imagesX):
+        for y in range(self.number_of_imagesY):
+            for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
                 if x * max_image_size < x1 < (x + 1) * max_image_size:
                     if y * max_image_size < y1 < (y + 1) * max_image_size:
@@ -230,8 +230,8 @@ class BigPaintableImageDisplay():
             pixmap.setOpacity(opacity)
 
     def save(self, filename):
-        for y in xrange(self.number_of_imagesY):
-            for x in xrange(self.number_of_imagesX):
+        for y in range(self.number_of_imagesY):
+            for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
                 startX = x * max_image_size
                 startY = y * max_image_size
@@ -648,7 +648,7 @@ class DrawImage(QMainWindow):
         if len(types):
             self.Crosshair = Crosshair(self.MarkerParent, self.local_scene, self)
 
-            self.counter = [MyCounter(self.local_scene, self, i) for i in xrange(len(types))]
+            self.counter = [MyCounter(self.local_scene, self, i) for i in range(len(types))]
             self.counter[active_type].SetToActiveColor()
 
         self.DrawCursorSize = 10
@@ -709,7 +709,7 @@ class DrawImage(QMainWindow):
                 self.image_mask_full = self.MediaHandler.ReadImage(maskname)
                 if self.image_mask_full.shape[:2] != self.im.shape[:2]:
                     mask_valid = False
-                    print("ERROR: Mask file", maskname, "doesn't have the same dimensions as the image")
+                    print(("ERROR: Mask file", maskname, "doesn't have the same dimensions as the image"))
                 else:
                     mask_valid = True
                 if len(self.image_mask_full.shape) == 3:
@@ -726,7 +726,7 @@ class DrawImage(QMainWindow):
 
     def LoadLog(self, logname):
         self.current_logname = logname
-        print logname
+        print(logname)
         if tracking == False:
             while len(self.points):
                 self.RemovePoint(self.points[0])
@@ -779,9 +779,9 @@ class DrawImage(QMainWindow):
                         self.points.append(MyMarkerItem(point[0], point[1], self.MarkerParent, self, int(point[2])))
                         self.points[-1].setScale(1/self.view.getOriginScale())
                 else:
-                    print("ERROR: Can't read file", logname)
+                    print(("ERROR: Can't read file", logname))
         else:
-            for index in xrange(0, len(self.points)):
+            for index in range(0, len(self.points)):
                 self.points[index].setInvalidNewPoint()
         self.PointsUnsaved = False
 
@@ -817,12 +817,12 @@ class DrawImage(QMainWindow):
                 else:
                     data = [[point.pos().x(), point.pos().y(), point.type] for point in self.points]
                     np.savetxt(self.current_logname, data, "%f %f %d")
-            print(self.current_logname, " saved")
+            print((self.current_logname, " saved"))
             self.PointsUnsaved = False
 
         if self.MaskUnsaved:
             self.MaskDisplay.save(self.current_maskname)
-            print(self.current_maskname, " saved")
+            print((self.current_maskname, " saved"))
             self.MaskUnsaved = False
 
     def SetDrawMode(self, doset):
@@ -865,7 +865,7 @@ class DrawImage(QMainWindow):
         if self.DrawMode == True and 0 <= numberkey < len(draw_types):
             active_draw_type = numberkey
             self.RedrawMask()
-            print("Changed Draw type", active_draw_type)
+            print(("Changed Draw type", active_draw_type))
             self.UpdateDrawCursorSize()
 
         if event.key() == QtCore.Qt.Key_T:
@@ -931,28 +931,28 @@ class DrawImage(QMainWindow):
         # JUMP keys
         if event.key() == Qt.Key_2 and event.modifiers() == Qt.KeypadModifier:
             self.JumpFrames(-1)
-            print '-1'
+            print('-1')
         if event.key() == Qt.Key_3 and event.modifiers() == Qt.KeypadModifier:
             self.JumpFrames(+1)
-            print '+1'
+            print('+1')
         if event.key() == Qt.Key_5 and event.modifiers() == Qt.KeypadModifier:
             self.JumpFrames(-10)
-            print '-10'
+            print('-10')
         if event.key() == Qt.Key_6 and event.modifiers() == Qt.KeypadModifier:
             self.JumpFrames(+10)
-            print '+10'
+            print('+10')
         if event.key() == Qt.Key_8 and event.modifiers() == Qt.KeypadModifier:
             self.JumpFrames(-100)
-            print '-100'
+            print('-100')
         if event.key() == Qt.Key_9 and event.modifiers() == Qt.KeypadModifier:
             self.JumpFrames(+100)
-            print '+100'
+            print('+100')
         if event.key() == Qt.Key_Slash and event.modifiers() == Qt.KeypadModifier:
             self.JumpFrames(-1000)
-            print '-1000'
+            print('-1000')
         if event.key() == Qt.Key_Asterisk and event.modifiers() == Qt.KeypadModifier:
             self.JumpFrames(+1000)
-            print '+1000'
+            print('+1000')
 
         if event.key() == QtCore.Qt.Key_K:
             for index,type in enumerate(draw_types):
@@ -960,7 +960,7 @@ class DrawImage(QMainWindow):
                     active_draw_type = index
                     break
             self.RedrawMask()
-            print("Changed Draw type", active_draw_type)
+            print(("Changed Draw type", active_draw_type))
             self.UpdateDrawCursorSize()
             self.color_under_cursor
 

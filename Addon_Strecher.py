@@ -42,7 +42,7 @@ def OverloadKeyPressEvent(func):
                 data = np.loadtxt(filename)
                 if len(data.shape) == 1:
                     data = np.array( [data])
-                print data.shape, len(data.shape)
+                print(data.shape, len(data.shape))
                 fp.write(os.path.split(filename)[1][:-8]+";")
                 fp.write(str(sum(data[:,2]==0))+";")
                 fp.write(str(sum(data[:,2]==1))+";")
