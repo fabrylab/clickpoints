@@ -3,9 +3,10 @@ import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5 import QtGui, QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 
 from QExtendedGraphicsView import QExtendedGraphicsView
 
@@ -60,7 +61,7 @@ if srcpath == None:
 if outputpath != None and not os.path.exists(outputpath):
     os.makedirs(outputpath)  # recursive path creation
 
-max_image_size = 32768
+max_image_size = 327#68
 
 type_counts = [0] * len(types)
 active_type = 0
@@ -116,6 +117,7 @@ class BigImageDisplay():
             self.pixMapItems.append(new_pixmap)
 
             new_pixmap.setAcceptHoverEvents(True)
+            new_pixmap.
 
             new_pixmap.installSceneEventFilter(self.window.scene_event_filter)
 
@@ -174,8 +176,8 @@ class BigPaintableImageDisplay():
             list_pixMap[i].setOffset(0, 0)
 
     def SetImage(self, image):
-        self.number_of_imagesX = int(np.ceil(image.shape[1] / max_image_size))
-        self.number_of_imagesY = int(np.ceil(image.shape[0] / max_image_size))
+        self.number_of_imagesX = int(np.ceil(image.size[0] / max_image_size))
+        self.number_of_imagesY = int(np.ceil(image.size[1] / max_image_size))
         self.UpdatePixmapCount()
         self.full_image = image
 
@@ -184,15 +186,15 @@ class BigPaintableImageDisplay():
                 i = y * self.number_of_imagesX + x
                 startX = x * max_image_size
                 startY = y * max_image_size
-                endX = min([(x + 1) * max_image_size, image.shape[1]])
-                endY = min([(y + 1) * max_image_size, image.shape[0]])
+                endX = min([(x + 1) * max_image_size, image.size[0]])
+                endY = min([(y + 1) * max_image_size, image.size[1]])
 
-                self.images[i] = Image.fromarray(image[startY:endY, startX:endX].astype(np.uint8), 'L')
+                self.images[i] = image.crop((startX, startY, endX, endY)).convert("L")#Image.fromarray(image[startY:endY, startX:endX].astype(np.uint8), 'L')
                 qimage = QImage(ImageQt.ImageQt(self.images[i]))
                 qimage.setColorTable(self.colormap)
                 pixmap = QPixmap(qimage)
                 self.pixMapItems[i].setPixmap(pixmap)
-                self.pixMapItems[i].setOffset(startX, startY)
+                self.pixMapItems[i].setOffset(startX+x*10, startY+y*10)
 
     def UpdateImage(self):
         for i in range(self.number_of_imagesY * self.number_of_imagesX):
@@ -226,6 +228,7 @@ class BigPaintableImageDisplay():
 
     def setOpacity(self, opacity):
         self.opacity = opacity
+        #self.pixMapItems[0].setOpacity(opacity)
         for pixmap in self.pixMapItems:
             pixmap.setOpacity(opacity)
 
@@ -680,6 +683,7 @@ class DrawImage(QMainWindow):
             self.MaskDisplay.setOpacity(self.mask_opacity)
         self.MaskChanged = False
         self.MaskUnsaved = False
+        print("Init finished")
 
     def UpdateImage(self):
         self.MaskChanged = False
@@ -706,20 +710,22 @@ class DrawImage(QMainWindow):
         if os.path.exists(maskname):
             print("Load Mask")
             try:
-                self.image_mask_full = self.MediaHandler.ReadImage(maskname)
-                if self.image_mask_full.shape[:2] != self.im.shape[:2]:
-                    mask_valid = False
-                    print(("ERROR: Mask file", maskname, "doesn't have the same dimensions as the image"))
-                else:
-                    mask_valid = True
-                if len(self.image_mask_full.shape) == 3:
-                    self.image_mask_full = np.mean(self.image_mask_full, axis=2)
+                self.image_mask_full = Image.open(maskname)#self.MediaHandler.ReadImage(maskname)
+                print(self.image_mask_full)
+                mask_valid = True
+                #if self.image_mask_full.shape[:2] != self.im.shape[:2]:
+                #    mask_valid = False
+                #    print(("ERROR: Mask file", maskname, "doesn't have the same dimensions as the image"))
+                #else:
+                #    mask_valid = True
+                #if len(self.image_mask_full.shape) == 3:
+                #    self.image_mask_full = np.mean(self.image_mask_full, axis=2)
             except:
                 mask_valid = False
                 print("ERROR: Can't read mask file")
             print("...done")
         if mask_valid == False:
-            self.image_mask_full = np.zeros((self.im.shape[0], self.im.shape[1]), dtype=np.uint8)
+            self.image_mask_full = Image.new('L', (self.im.shape[1],self.im.shape[0]))#np.zeros((self.im.shape[0], self.im.shape[1]), dtype=np.uint8)np.zeros((self.im.shape[0], self.im.shape[1]), dtype=np.uint8)
         self.MaskUnsaved = False
 
         self.MaskDisplay.SetImage(self.image_mask_full)
@@ -783,6 +789,7 @@ class DrawImage(QMainWindow):
         else:
             for index in range(0, len(self.points)):
                 self.points[index].setInvalidNewPoint()
+        print("...done")
         self.PointsUnsaved = False
 
     def UpdateDrawCursorSize(self):
@@ -997,7 +1004,9 @@ for addon in addons:
         exec (code)
 
 if __name__ == '__main__':
-    app = QtGui.QApplication(sys.argv)
+    print("1")
+    app = QApplication(sys.argv)
+    print("2")
 
     if use_filedia is True or filename is None:
         tmp = QFileDialog.getOpenFileName(None, "Choose Image", srcpath)
