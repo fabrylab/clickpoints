@@ -295,7 +295,7 @@ class MyMarkerItem(QGraphicsPathItem):
             self.pathItem = QGraphicsPathItem(self.imgItem)
             self.path = QPainterPath()
             self.path.moveTo(x,y)
-            self.id = uuid.uuid4().hex
+        self.id = uuid.uuid4().hex
         self.active = True
 
     def setInvalidNewPoint(self):
@@ -734,59 +734,41 @@ class DrawImage(QMainWindow):
     def LoadLog(self, logname):
         self.current_logname = logname
         print(logname)
-        if tracking == False:
+        if not tracking:
             while len(self.points):
                 self.RemovePoint(self.points[0])
         if os.path.exists(logname):
-            if tracking == True:
+            if tracking:
                 for point in self.points:
                     point.setInvalidNewPoint()
-                with open(logname) as fp:
-                    data = []
-                    for index,line in enumerate(fp.readlines()):
-                        line = line.strip().split(" ")
-                        x = float(line[0])
-                        y = float(line[1])
-                        type = int(line[2])
-                        if len(line) == 3:
-                            if index >= len(self.points):
-                                self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, type))
-                                self.points[-1].setScale(1/self.view.getOriginScale())
-                            else:
-                                self.points[index].addPoint(x,y,type)
-                            continue
-                        active = int(line[3])
-                        if type == -1 or active == 0:
-                            continue
-                        id = line[4]
-                        found = False
-                        for point in self.points:
-                            if point.id == id:
-                                point.addPoint(x,y,type)
-                                found = True
-                                break
-                        if not found:
-                            self.points.append(MyMarkerItem(x,y, self.MarkerParent, self, type))
+            with open(logname) as fp:
+                for index, line in enumerate(fp.readlines()):
+                    line = line.strip().split(" ")
+                    x = float(line[0])
+                    y = float(line[1])
+                    type = int(line[2])
+                    if len(line) == 3:
+                        if index >= len(self.points):
+                            self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, type))
                             self.points[-1].setScale(1/self.view.getOriginScale())
-                            self.points[-1].id = id
-                            self.points[-1].setActive(active)
-            else:
-                try:
-                    data = np.loadtxt(logname)
-                    if data.shape == (3,):
-                        data = np.array([data])
-                    if data.shape[1] == 3:
-                        data_valid = True
-                    else:
-                        data_valid = False
-                except:
-                    data_valid = False
-                if data_valid:
-                    for point in data:
-                        self.points.append(MyMarkerItem(point[0], point[1], self.MarkerParent, self, int(point[2])))
+                        else:
+                            self.points[index].addPoint(x,y,type)
+                        continue
+                    active = int(line[3])
+                    if type == -1 or active == 0:
+                        continue
+                    id = line[4]
+                    found = False
+                    for point in self.points:
+                        if point.id == id:
+                            point.addPoint(x, y, type)
+                            found = True
+                            break
+                    if not found:
+                        self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, type))
                         self.points[-1].setScale(1/self.view.getOriginScale())
-                else:
-                    print(("ERROR: Can't read file", logname))
+                        self.points[-1].id = id
+                        self.points[-1].setActive(active)
         else:
             for index in range(0, len(self.points)):
                 self.points[index].setInvalidNewPoint()
@@ -817,20 +799,16 @@ class DrawImage(QMainWindow):
                 if os.path.exists(self.current_logname):
                     os.remove(self.current_logname)
             else:
-                if tracking == True:
-                    data = ["%f %f %d %d %s\n"%(point.pos().x(), point.pos().y(), point.type, point.active, point.id) for point in self.points if point.active]
-                    with open(self.current_logname, 'w') as fp:
-                        for line in data:
-                            fp.write(line)
-                else:
-                    data = [[point.pos().x(), point.pos().y(), point.type] for point in self.points]
-                    np.savetxt(self.current_logname, data, "%f %f %d")
-            print((self.current_logname, " saved"))
+                data = ["%f %f %d %d %s\n"%(point.pos().x(), point.pos().y(), point.type, point.active, point.id) for point in self.points if point.active]
+                with open(self.current_logname, 'w') as fp:
+                    for line in data:
+                        fp.write(line)
+            print(self.current_logname, " saved")
             self.PointsUnsaved = False
 
         if self.MaskUnsaved:
             self.MaskDisplay.save(self.current_maskname)
-            print((self.current_maskname, " saved"))
+            print(self.current_maskname, " saved")
             self.MaskUnsaved = False
 
     def SetDrawMode(self, doset):
@@ -873,7 +851,7 @@ class DrawImage(QMainWindow):
         if self.DrawMode == True and 0 <= numberkey < len(draw_types):
             active_draw_type = numberkey
             self.RedrawMask()
-            print(("Changed Draw type", active_draw_type))
+            print("Changed Draw type", active_draw_type)
             self.UpdateDrawCursorSize()
 
         if event.key() == QtCore.Qt.Key_T:
@@ -968,7 +946,7 @@ class DrawImage(QMainWindow):
                     active_draw_type = index
                     break
             self.RedrawMask()
-            print(("Changed Draw type", active_draw_type))
+            print("Changed Draw type", active_draw_type)
             self.UpdateDrawCursorSize()
             self.color_under_cursor
 
