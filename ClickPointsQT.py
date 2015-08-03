@@ -24,7 +24,7 @@ import uuid
 # default settings
 use_filedia = True
 auto_mask_update = True
-tracking = True
+tracking = False
 srcpath = None
 filename = None
 outputpath = None
@@ -117,7 +117,6 @@ class BigImageDisplay():
             self.pixMapItems.append(new_pixmap)
 
             new_pixmap.setAcceptHoverEvents(True)
-            new_pixmap.
 
             new_pixmap.installSceneEventFilter(self.window.scene_event_filter)
 
@@ -397,10 +396,12 @@ class MyMarkerItem(QGraphicsPathItem):
     def mouseMoveEvent(self, event):
         if not self.dragged:
             return
-        self.SetTrackActive(True)
+        if tracking:
+            self.SetTrackActive(True)
         pos = self.window.origin.mapFromItem(self, event.pos())
         self.setPos(pos.x(), pos.y())
-        self.UpdateLine()
+        if tracking:
+            self.UpdateLine()
         self.window.Crosshair.MoveCrosshair(pos.x(), pos.y())
         if self.partner:
             if self.rectObj:
