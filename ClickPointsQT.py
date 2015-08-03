@@ -77,17 +77,18 @@ path1.addRect(r2, -w, -b, w * 2)
 path1.addRect(-w, -r2, w * 2, b)
 path1.addRect(-w, r2, w * 2, -b)
 path1.addEllipse(-r2, -r2, r2 * 2, r2 * 2)
-path1.addEllipse(-r2*0.9, -r2*0.9, r2 * 2*0.9, r2 * 2*0.9)
-w = 0.5
-b = 2
-o = 1
+path1.addEllipse(-r2, -r2, r2 * 2, r2 * 2)
+w = 2
+b = 3
+o = 3
 path2 = QPainterPath()
 path2.addRect(-b - o, -w * 0.5, b, w)
 path2.addRect(+o, -w * 0.5, b, w)
 path2.addRect(-w * 0.5, -b - o, w, b)
 path2.addRect(-w * 0.5, +o, w, b)
+r3 = 5
 path3 = QPainterPath()
-path3.addEllipse(-0.25, -0.25, 0.5, 0.5)  # addRect(-0.5,-0.5, 1, 1)
+path3.addEllipse(-0.5*r3, -0.5*r3, r3, r3)  # addRect(-0.5,-0.5, 1, 1)
 point_display_types = [path1, path2, path3]
 point_display_type = 0
 
