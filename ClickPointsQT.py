@@ -1,4 +1,5 @@
 
+from __future__ import division
 import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
@@ -19,7 +20,8 @@ import numpy as np
 import os
 from os.path import join
 
-from PIL import Image, ImageQt, ImageDraw
+from PIL import Image,  ImageDraw
+import ImageQt
 from qimage2ndarray import array2qimage, rgb_view
 
 from mediahandler import MediaHandler
@@ -66,7 +68,7 @@ if srcpath == None:
 if outputpath != None and not os.path.exists(outputpath):
     os.makedirs(outputpath)  # recursive path creation
 
-max_image_size = 327#68
+max_image_size = 32768
 
 type_counts = [0] * len(types)
 active_type = 0
@@ -158,6 +160,8 @@ class BigPaintableImageDisplay():
         self.origin = origin
         self.full_image = None
         self.images = []
+        self.DrawImages = []
+        self.qimages = []
 
         self.opacity = 0
         self.colormap = [QColor(i, i, i).rgba() for i in range(256)]
@@ -168,10 +172,12 @@ class BigPaintableImageDisplay():
         # Create new subimages if needed
         for i in range(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
             self.images.append(None)
+            self.DrawImages.append(None)
+            self.qimages.append(None)
             if i == 0:
                 new_pixmap = QGraphicsPixmapItem(self.origin)
             else:
-                new_pixmap = QGraphicsPixmapItem(self.pixMapItems[0])
+                new_pixmap = QGraphicsPixmapItem(self.origin)
             self.pixMapItems.append(new_pixmap)
             new_pixmap.setOpacity(self.opacity)
         # Hide images which are not needed
@@ -194,16 +200,15 @@ class BigPaintableImageDisplay():
                 endX = min([(x + 1) * max_image_size, image.size[0]])
                 endY = min([(y + 1) * max_image_size, image.size[1]])
 
-                self.images[i] = image.crop((startX, startY, endX, endY)).convert("L")#Image.fromarray(image[startY:endY, startX:endX].astype(np.uint8), 'L')
-                qimage = QImage(ImageQt.ImageQt(self.images[i]))
-                qimage.setColorTable(self.colormap)
-                pixmap = QPixmap(qimage)
-                self.pixMapItems[i].setPixmap(pixmap)
-                self.pixMapItems[i].setOffset(startX+x*10, startY+y*10)
+                self.images[i] = image.crop((startX, startY, endX, endY))
+                self.DrawImages[i] = ImageDraw.Draw(self.images[i])
+                self.pixMapItems[i].setOffset(startX, startY)
+        self.UpdateImage()
 
     def UpdateImage(self):
         for i in range(self.number_of_imagesY * self.number_of_imagesX):
-            qimage = QImage(ImageQt.ImageQt(self.images[i]))
+            self.qimages[i] = ImageQt.ImageQt(self.images[i])
+            qimage = QImage(self.qimages[i])
             qimage.setColorTable(self.colormap)
             pixmap = QPixmap(qimage)
             self.pixMapItems[i].setPixmap(pixmap)  # QPixmap(QImage(ImageQt.ImageQt(self.images[i]))))
@@ -216,12 +221,15 @@ class BigPaintableImageDisplay():
                     x + 1) * max_image_size:
                     if y * max_image_size < y1 < (y + 1) * max_image_size or y * max_image_size < y2 < (
                         y + 1) * max_image_size:
-                        draw = ImageDraw.Draw(self.images[i])
+                        draw = self.DrawImages[i]
                         draw.line((x1 - x * max_image_size, y1 - y * max_image_size, x2 - x * max_image_size,
                                    y2 - y * max_image_size), fill=draw_types[active_draw_type][0], width=size + 1)
                         draw.ellipse((x1 - x * max_image_size - size // 2, y1 - y * max_image_size - size // 2,
                                       x1 - x * max_image_size + size // 2, y1 - y * max_image_size + size // 2),
                                      fill=draw_types[active_draw_type][0])
+        draw =  ImageDraw.Draw(self.full_image)
+        draw.line((x1, y1, x2, y2), fill=draw_types[active_draw_type][0], width=size + 1)
+        draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=draw_types[active_draw_type][0])
 
     def GetColor(self, x1, y1):
         for y in range(self.number_of_imagesY):
@@ -238,18 +246,7 @@ class BigPaintableImageDisplay():
             pixmap.setOpacity(opacity)
 
     def save(self, filename):
-        for y in range(self.number_of_imagesY):
-            for x in range(self.number_of_imagesX):
-                i = y * self.number_of_imagesX + x
-                startX = x * max_image_size
-                startY = y * max_image_size
-                endX = min([(x + 1) * max_image_size, self.full_image.shape[1]])
-                endY = min([(y + 1) * max_image_size, self.full_image.shape[0]])
-                self.full_image[startY:endY, startX:endX] = self.images[i]
-
-        im = Image.fromarray(self.full_image.astype(np.uint8), 'L')
-        im.save(filename)
-
+        self.full_image.save(filename)
 
 class MyMarkerItem(QGraphicsPathItem):
     def __init__(self, x, y, parent, window, point_type):
