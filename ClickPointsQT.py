@@ -68,7 +68,7 @@ if srcpath == None:
 if outputpath != None and not os.path.exists(outputpath):
     os.makedirs(outputpath)  # recursive path creation
 
-max_image_size = 32768
+max_image_size = 2**12
 
 type_counts = [0] * len(types)
 active_type = 0
