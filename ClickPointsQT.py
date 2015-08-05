@@ -715,9 +715,6 @@ class DrawImage(QMainWindow):
         self.drawPathItem.setPath(self.drawPath)
         self.drawPathItem.setZValue(10)
 
-        self.last_x = 0
-        self.last_y = 0
-
         self.DrawCursorPath = QPainterPath()
         self.DrawCursorPath.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
                                        self.DrawCursorSize)
@@ -887,21 +884,6 @@ class DrawImage(QMainWindow):
             self.last_maskname = last_maskname
             self.last_logname = last_logname
 
-    def ShowKeyBindings(self):
-        self.HelpText.ShowHelpText()
-        return
-        import re
-        with open(__file__) as fp:
-            for line in fp.readlines():
-                m = re.match(r'\w*#@key (.*)$', line.strip())
-                if m:
-                    print m.groups()[0]
-                    self.help_text.setText(m.groups()[0])
-        rect = self.help_text.boundingRect()
-        rect.setX(-5)
-        rect.setWidth(rect.width() + 5)
-        self.rect.setRect(rect)
-
     def keyPressEvent(self, event):
         global active_type, point_display_type, active_draw_type
         sys.stdout.flush()
@@ -909,7 +891,7 @@ class DrawImage(QMainWindow):
         #@key ---- General ----
         if event.key() == QtCore.Qt.Key_F1:
             #@key F1: toggle help window
-            self.ShowKeyBindings()
+            self.HelpText.ShowHelpText()
 
         numberkey = event.key() - 49
 
