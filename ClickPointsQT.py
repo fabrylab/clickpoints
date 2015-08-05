@@ -550,6 +550,75 @@ class MyCounter():
     def SetToInactiveColor(self):
         self.rect.setBrush(QBrush(QColor(0, 0, 0, 128)))
 
+class HelpText(QGraphicsRectItem):
+    def __init__(self, window):
+        QGraphicsPathItem.__init__(self, window.view.hud)
+
+        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+
+        self.window = window
+        self.font = QFont()
+        self.font.setPointSize(14)
+
+        self.help_text = QGraphicsSimpleTextItem(self.window.view.hud)
+        self.help_text.setText("")
+        self.help_text.setFont(self.font)
+        #self.help_text.setBrush(QBrush(QColor(*types[self.type][1])))
+        self.help_text.setPos(100, 100)
+        self.help_text.setZValue(20)
+
+        #self.rect = QGraphicsRectItem(self.window.view.hud)
+        self.setBrush(QBrush(QColor(255, 255, 255, 255-32)))
+        self.setPos(100, 100)
+        self.setZValue(19)
+
+        self.UpdateText()
+        self.help_text.setScale(0)
+        self.setScale(0)
+        self.shown = False
+
+        self.dragged = False
+
+    def ShowHelpText(self):
+        if self.shown:
+            self.help_text.setScale(0)
+            self.setScale(0)
+            self.shown = False
+        else:
+            self.help_text.setScale(1)
+            self.setScale(1)
+            self.shown = True
+
+    def UpdateText(self):
+        import re
+        text = ""
+        with open(__file__) as fp:
+            for line in fp.readlines():
+                m = re.match(r'\w*#@key (.*)$', line.strip())
+                if m:
+                    text += m.groups()[0]+"\n"
+        self.help_text.setText(text[:-1])
+        rect = self.help_text.boundingRect()
+        rect.setX(-5)
+        rect.setWidth(rect.width() + 5)
+        self.setRect(rect)
+
+    def mousePressEvent(self, event):
+        if event.button() == 1:
+            self.dragged = True
+            self.drag_offset = self.mapToParent(event.pos())-self.pos()
+
+    def mouseMoveEvent(self, event):
+        if not self.dragged:
+            return
+        pos = self.mapToParent(event.pos())-self.drag_offset
+        self.setPos(pos.x(), pos.y())
+        self.help_text.setPos(pos.x(), pos.y())
+
+    def mouseReleaseEvent(self, event):
+        if not self.dragged:
+            return
+        self.dragged = False
 
 class GraphicsItemEventFilter(QGraphicsItem):
     def __init__(self, parent, window):
@@ -669,6 +738,8 @@ class DrawImage(QMainWindow):
         self.MaskChanged = False
         self.MaskUnsaved = False
         self.PointsUnsaved = False
+
+        self.HelpText = HelpText(self)
 
     def UpdateImage(self):
         self.MaskChanged = False
@@ -816,105 +887,38 @@ class DrawImage(QMainWindow):
             self.last_maskname = last_maskname
             self.last_logname = last_logname
 
+    def ShowKeyBindings(self):
+        self.HelpText.ShowHelpText()
+        return
+        import re
+        with open(__file__) as fp:
+            for line in fp.readlines():
+                m = re.match(r'\w*#@key (.*)$', line.strip())
+                if m:
+                    print m.groups()[0]
+                    self.help_text.setText(m.groups()[0])
+        rect = self.help_text.boundingRect()
+        rect.setX(-5)
+        rect.setWidth(rect.width() + 5)
+        self.rect.setRect(rect)
+
     def keyPressEvent(self, event):
         global active_type, point_display_type, active_draw_type
         sys.stdout.flush()
+
+        #@key ---- General ----
+        if event.key() == QtCore.Qt.Key_F1:
+            #@key F1: toggle help window
+            self.ShowKeyBindings()
+
         numberkey = event.key() - 49
 
-        if self.DrawMode is False and 0 <= numberkey < len(types):
-            self.counter[active_type].SetToInactiveColor()
-            active_type = numberkey
-            self.counter[active_type].SetToActiveColor()
-        if self.DrawMode is True and 0 <= numberkey < len(draw_types):
-            active_draw_type = numberkey
-            self.RedrawMask()
-            print("Changed Draw type", active_draw_type)
-            self.UpdateDrawCursorSize()
-
-        if event.key() == QtCore.Qt.Key_T:
-            point_display_type += 1
-            if point_display_type >= len(point_display_types):
-                point_display_type = 0
-            for point in self.points:
-                point.UpdatePath()
-
         if event.key() == QtCore.Qt.Key_S:
+            #@key S: save marker and mask
             self.SaveMaskAndPoints()
 
-        if event.key() == QtCore.Qt.Key_P:
-            if len(types):
-                self.SetDrawMode(self.DrawMode is False)
-                self.RedrawMask()
-
-        if event.key() == QtCore.Qt.Key_Plus:
-            self.DrawCursorSize += 1
-            self.UpdateDrawCursorSize()
-            if self.MaskChanged:
-                self.RedrawMask()
-        if event.key() == QtCore.Qt.Key_Minus:
-            self.DrawCursorSize -= 1
-            self.UpdateDrawCursorSize()
-            if self.MaskChanged:
-                self.RedrawMask()
-        if event.key() == QtCore.Qt.Key_O:
-            self.mask_opacity += 0.1
-            if self.mask_opacity >= 1:
-                self.mask_opacity = 1
-            self.MaskDisplay.setOpacity(self.mask_opacity)
-
-        if event.key() == QtCore.Qt.Key_I:
-            self.mask_opacity -= 0.1
-            if self.mask_opacity <= 0:
-                self.mask_opacity = 0
-            self.MaskDisplay.setOpacity(self.mask_opacity)
-
-        if event.key() == QtCore.Qt.Key_M:
-            self.RedrawMask()
-        if event.key() == QtCore.Qt.Key_F:
-            self.view.fitInView()
-
-        if event.key() == QtCore.Qt.Key_Left:
-            self.JumpFrames(-1)
-        if event.key() == QtCore.Qt.Key_Right:
-            self.JumpFrames(+1)
-
-        # JUMP keys
-        if event.key() == Qt.Key_2 and event.modifiers() == Qt.KeypadModifier:
-            self.JumpFrames(-1)
-            print('-1')
-        if event.key() == Qt.Key_3 and event.modifiers() == Qt.KeypadModifier:
-            self.JumpFrames(+1)
-            print('+1')
-        if event.key() == Qt.Key_5 and event.modifiers() == Qt.KeypadModifier:
-            self.JumpFrames(-10)
-            print('-10')
-        if event.key() == Qt.Key_6 and event.modifiers() == Qt.KeypadModifier:
-            self.JumpFrames(+10)
-            print('+10')
-        if event.key() == Qt.Key_8 and event.modifiers() == Qt.KeypadModifier:
-            self.JumpFrames(-100)
-            print('-100')
-        if event.key() == Qt.Key_9 and event.modifiers() == Qt.KeypadModifier:
-            self.JumpFrames(+100)
-            print('+100')
-        if event.key() == Qt.Key_Slash and event.modifiers() == Qt.KeypadModifier:
-            self.JumpFrames(-1000)
-            print('-1000')
-        if event.key() == Qt.Key_Asterisk and event.modifiers() == Qt.KeypadModifier:
-            self.JumpFrames(+1000)
-            print('+1000')
-
-        if event.key() == QtCore.Qt.Key_K:
-            for index,type in enumerate(draw_types):
-                if type[0] == self.color_under_cursor:
-                    active_draw_type = index
-                    break
-            self.RedrawMask()
-            print("Changed Draw type", active_draw_type)
-            self.UpdateDrawCursorSize()
-            self.color_under_cursor
-
         if event.key() == QtCore.Qt.Key_L:
+            #@key L: load marker and mask from last image
             if self.last_logname:
                 # saveguard/confirmation with MessageBox
                 reply = QMessageBox.question(None, 'Warning', 'Load Mask & Points of last Image?', QMessageBox.Yes,
@@ -933,6 +937,121 @@ class DrawImage(QMainWindow):
                     self.PointsUnsaved = True
                     # refresh display
                     self.RedrawMask()
+
+        #@key ---- Marker ----
+        if self.DrawMode is False and 0 <= numberkey < len(types):
+            #@key 0-9: change marker type
+            self.counter[active_type].SetToInactiveColor()
+            active_type = numberkey
+            self.counter[active_type].SetToActiveColor()
+
+        if event.key() == QtCore.Qt.Key_T:
+            #@key T: toggle marker shape
+            point_display_type += 1
+            if point_display_type >= len(point_display_types):
+                point_display_type = 0
+            for point in self.points:
+                point.UpdatePath()
+
+        #@key ---- Painting ----
+        if event.key() == QtCore.Qt.Key_P:
+            #@key P: toogle brush mode
+            if len(types):
+                self.SetDrawMode(self.DrawMode is False)
+                self.RedrawMask()
+
+        if self.DrawMode is True and 0 <= numberkey < len(draw_types):
+            #@key 0-9: change brush type
+            active_draw_type = numberkey
+            self.RedrawMask()
+            print("Changed Draw type", active_draw_type)
+            self.UpdateDrawCursorSize()
+
+        if event.key() == QtCore.Qt.Key_K:
+            #@key K: pick color of brush
+            for index,type in enumerate(draw_types):
+                if type[0] == self.color_under_cursor:
+                    active_draw_type = index
+                    break
+            self.RedrawMask()
+            print("Changed Draw type", active_draw_type)
+            self.UpdateDrawCursorSize()
+            self.color_under_cursor
+
+        if event.key() == QtCore.Qt.Key_Plus:
+            #@key +: increase brush radius
+            self.DrawCursorSize += 1
+            self.UpdateDrawCursorSize()
+            if self.MaskChanged:
+                self.RedrawMask()
+        if event.key() == QtCore.Qt.Key_Minus:
+            #@key -: decrease brush radius
+            self.DrawCursorSize -= 1
+            self.UpdateDrawCursorSize()
+            if self.MaskChanged:
+                self.RedrawMask()
+        if event.key() == QtCore.Qt.Key_O:
+            #@key O: increase mask transparency
+            self.mask_opacity += 0.1
+            if self.mask_opacity >= 1:
+                self.mask_opacity = 1
+            self.MaskDisplay.setOpacity(self.mask_opacity)
+
+        if event.key() == QtCore.Qt.Key_I:
+            #@key I: decrease mask transparency
+            self.mask_opacity -= 0.1
+            if self.mask_opacity <= 0:
+                self.mask_opacity = 0
+            self.MaskDisplay.setOpacity(self.mask_opacity)
+
+        if event.key() == QtCore.Qt.Key_M:
+            #@key M: redraw the mask
+            self.RedrawMask()
+        if event.key() == QtCore.Qt.Key_F:
+            #@key F: fit image to view
+            self.view.fitInView()
+
+        #@key ---- Frame jumps ----
+        if event.key() == QtCore.Qt.Key_Left:
+            #@key Left: previous image
+            self.JumpFrames(-1)
+        if event.key() == QtCore.Qt.Key_Right:
+            #@key Right: next image
+            self.JumpFrames(+1)
+
+        # JUMP keys
+        if event.key() == Qt.Key_2 and event.modifiers() == Qt.KeypadModifier:
+            #@key Numpad 2: Jump -1 frame
+            self.JumpFrames(-1)
+            print('-1')
+        if event.key() == Qt.Key_3 and event.modifiers() == Qt.KeypadModifier:
+            #@key Numpad 3: Jump +1 frame
+            self.JumpFrames(+1)
+            print('+1')
+        if event.key() == Qt.Key_5 and event.modifiers() == Qt.KeypadModifier:
+            #@key Numpad 5: Jump -10 frame
+            self.JumpFrames(-10)
+            print('-10')
+        if event.key() == Qt.Key_6 and event.modifiers() == Qt.KeypadModifier:
+            #@key Numpad 6: Jump +10 frame
+            self.JumpFrames(+10)
+            print('+10')
+        if event.key() == Qt.Key_8 and event.modifiers() == Qt.KeypadModifier:
+            #@key Numpad 8: Jump -100 frame
+            self.JumpFrames(-100)
+            print('-100')
+        if event.key() == Qt.Key_9 and event.modifiers() == Qt.KeypadModifier:
+            #@key Numpad 9: Jump +100 frame
+            self.JumpFrames(+100)
+            print('+100')
+        if event.key() == Qt.Key_Slash and event.modifiers() == Qt.KeypadModifier:
+            #@key Numpad /: Jump -1000 frame
+            self.JumpFrames(-1000)
+            print('-1000')
+        if event.key() == Qt.Key_Asterisk and event.modifiers() == Qt.KeypadModifier:
+            #@key Numpad *: Jump +1000 frame
+            self.JumpFrames(+1000)
+            print('+1000')
 
     def RedrawMask(self):
         self.MaskDisplay.UpdateImage()
