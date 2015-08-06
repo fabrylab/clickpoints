@@ -205,6 +205,8 @@ class BigImageDisplay():
         import time
         t = time.time()
         if gamma is not None:
+            if gamma > 1:
+                gamma = 1./(1-(gamma-1)+0.00001)
             self.gamma = gamma
         if min is not None:
             self.min = int(min)
@@ -213,12 +215,13 @@ class BigImageDisplay():
         color_range = self.max-self.min
         conversion = np.arange(0,256)
         conversion[:self.min] = 0
-        conversion[self.min:self.max] = np.power(np.arange(0,color_range)/color_range,self.gamma)*color_range
+        conversion[self.min:self.max] = np.power(np.arange(0,color_range)/color_range,self.gamma)*256
         conversion[self.max:] = 255
         for i in range(self.number_of_imagesX * self.number_of_imagesY):
             self.preview_qimageView[:, :, :] = conversion[self.preview_slice]
             self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
         self.window.view.scene.update()
+        self.conversion = conversion
         print "Time", time.time()-t
 
 class BigPaintableImageDisplay():
@@ -761,6 +764,7 @@ class BoxGrabber(QGraphicsRectItem):
         self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
         width = parent.rect().width()
         self.setRect(QRectF(0,0, width,10))
+        self.setPos(parent.rect().x(), 0)
 
         self.setBrush(QBrush(QColor(255, 255, 255, 255-32)))
 
@@ -805,13 +809,18 @@ class SliderBox(QGraphicsRectItem):
         self.hist.setBrush(QBrush(QColor(0,0,0, 128)))
         self.hist.setPos(0, 110)
 
+        self.conv = QGraphicsPathItem(self)
+        self.conv.setPen(QPen(QColor(255,0,0, 128), 2))
+        self.conv.setBrush(QBrush(QColor(0,0,0, 0)))
+        self.conv.setPos(0, 110)
+
 
         self.sliders = []
         functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
         minMax = [[0,2],[0,255],[0,255]]
         start = [1,255,0]
         formats = ["%.2f", "%d", "%d"]
-        for i,name in enumerate(["Gamma","Brightness","Contrast"]):
+        for i,name in enumerate(["Gamma","Max","Min"]):
             slider = MySlider(self, name, maxValue=minMax[i][1], minValue=minMax[i][0])
             slider.format = formats[i]
             slider.setValue(start[i])
@@ -825,19 +834,29 @@ class SliderBox(QGraphicsRectItem):
 
     def updateHist(self, hist):
         histpath = QPainterPath()
-        w = 110/256.
+        w = 100/256.
         for i,h in enumerate(hist[0]):
-            histpath.addRect(i*w, 0, w, -h*100/max(hist[0]))
+            histpath.addRect(i*w+5, 0, w, -h*100/max(hist[0]))
         self.hist.setPath(histpath)
+
+    def updateConv(self):
+        convpath = QPainterPath()
+        w = 100/256.
+        for i,h in enumerate(self.image.conversion):
+            convpath.lineTo(i*w+5,-h*98/255.)
+        self.conv.setPath(convpath)
 
     def updateGamma(self, value):
         self.image.Change(gamma=value)
+        self.updateConv()
 
     def updateBrightnes(self, value):
         self.image.Change(max=value)
+        self.updateConv()
 
     def updateContrast(self, value):
         self.image.Change(min=value)
+        self.updateConv()
 
     def mousePressEvent(self, event):
         pass
