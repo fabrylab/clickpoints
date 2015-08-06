@@ -306,7 +306,9 @@ class BigPaintableImageDisplay():
         draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=draw_types[active_draw_type][0])
 
     def GetColor(self, x1, y1):
-        return self.full_image.getpixel((x1, y1))
+        if x1 > 0 and y1 > 0 and x1 < self.full_image.size[0] and y1 < self.full_image.size[1]:
+            return self.full_image.getpixel((x1, y1))
+        return None
 
     def setOpacity(self, opacity):
         self.opacity = opacity
@@ -871,7 +873,9 @@ class GraphicsItemEventFilter(QGraphicsItem):
                 return True
         if event.type() == 161:# Mouse Hover
             self.window.DrawCursor.setPos(event.pos())
-            self.window.color_under_cursor = self.window.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
+            color = self.window.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
+            if color is not None:
+                self.window.color_under_cursor = color
         return False
 
 class DrawImage(QMainWindow):
