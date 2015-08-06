@@ -170,6 +170,8 @@ class BigImageDisplay():
                 self.QImageViews[i] = rgb_view(self.QImages[i])
                 self.pixMapItems[i].setPixmap(QPixmap(self.QImages[i]))
                 self.pixMapItems[i].setOffset(startX, startY)
+        self.preview_pixMapItem.setPixmap(QPixmap())
+        self.preview_slice = None
 
     def PreviewRect(self):
         startX, startY, endX, endY = self.window.view.GetExtend()
@@ -810,7 +812,6 @@ class SliderBox(QGraphicsRectItem):
         self.conv.setBrush(QBrush(QColor(0,0,0, 0)))
         self.conv.setPos(0, 110)
 
-
         self.sliders = []
         functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
         minMax = [[0,2],[0,255],[0,255]]
@@ -853,6 +854,10 @@ class SliderBox(QGraphicsRectItem):
     def updateContrast(self, value):
         self.image.Change(min=value)
         self.updateConv()
+
+    def onImageChange(self):
+        self.hist.setPath(QPainterPath())
+        self.conv.setPath(QPainterPath())
 
     def mousePressEvent(self, event):
         pass
@@ -1128,6 +1133,7 @@ class DrawImage(QMainWindow):
             self.UpdateImage()
             self.last_maskname = last_maskname
             self.last_logname = last_logname
+        self.slider.onImageChange()
 
     def keyPressEvent(self, event):
         global active_type, point_display_type, active_draw_type
@@ -1290,8 +1296,8 @@ class DrawImage(QMainWindow):
         if event.key() == Qt.Key_Space:
             #@key Space: update rect
             self.ImageDisplay.PreviewRect()
+            self.ImageDisplay.Change()
             self.slider.updateHist(self.ImageDisplay.hist)
-            #print(self.view.GetExtend())
 
     def RedrawMask(self):
         self.MaskDisplay.UpdateImage()
