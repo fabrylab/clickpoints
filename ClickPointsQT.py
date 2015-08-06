@@ -125,6 +125,8 @@ class BigImageDisplay():
         self.preview_qimageView = None
 
         self.gamma = 1
+        self.min = 0
+        self.max = 255
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
@@ -183,6 +185,7 @@ class BigImageDisplay():
         self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
         self.preview_pixMapItem.setOffset(startX, startY)
         self.ChangeGamma(self.gamma)
+        self.hist = np.histogram(self.preview_slice.flatten(), bins=range(0,256), normed=True)
 
     def ChangeGamma(self, value):
         import time
@@ -196,19 +199,27 @@ class BigImageDisplay():
         self.window.view.scene.update()
         print time.time()-t
 
-    def ChangeGamma(self, value):
+    def Change(self, gamma=None, min=None, max=None):
         if self.preview_slice is None:
             self.PreviewRect()
         import time
         t = time.time()
-        self.gamma = value
-        print(value)
-        conversion = np.power(np.arange(0,256)/256.,value)*256
+        if gamma is not None:
+            self.gamma = gamma
+        if min is not None:
+            self.min = int(min)
+        if max is not None:
+            self.max = int(max)
+        color_range = self.max-self.min
+        conversion = np.arange(0,256)
+        conversion[:self.min] = 0
+        conversion[self.min:self.max] = np.power(np.arange(0,color_range)/color_range,self.gamma)*color_range
+        conversion[self.max:] = 255
         for i in range(self.number_of_imagesX * self.number_of_imagesY):
             self.preview_qimageView[:, :, :] = conversion[self.preview_slice]
             self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
         self.window.view.scene.update()
-        print time.time()-t
+        print "Time", time.time()-t
 
 class BigPaintableImageDisplay():
     def __init__(self, origin):
@@ -673,6 +684,170 @@ class HelpText(QGraphicsRectItem):
             return
         self.dragged = False
 
+class MySlider(QGraphicsRectItem):
+    def __init__(self, parent, name="", maxValue=100, minValue=0):
+        QGraphicsRectItem.__init__(self, parent)
+
+        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        self.name = name
+        self.maxValue = maxValue
+        self.minValue = minValue
+        self.format = "%.2f"
+
+        self.parent = parent
+        self.font = QFont()
+        self.font.setPointSize(11)
+
+        self.text = QGraphicsSimpleTextItem(self)
+        self.text.setText("")
+        self.text.setFont(self.font)
+        self.text.setPos(0, -27)
+
+        self.setPen(QPen(QColor(255, 255, 255, 0)))
+        self.setBrush(QBrush(QColor(255, 255, 255, 0)))
+        self.setPos(100, 100)
+        self.setZValue(19)
+
+        self.sliderMiddel = QGraphicsRectItem(self)
+        self.sliderMiddel.setRect(QRectF(0,0,100,1))
+        self.sliderMiddel.setPos(0,0)
+
+        self.slideMarker = QGraphicsPathItem(self)#QGraphicsRectItem(self)
+        path = QPainterPath()
+        path.addEllipse(-5, -5, 10, 10)
+        self.slideMarker.setPath(path)
+        self.slideMarker.setBrush(QBrush(QColor(255, 0, 0, 255)))
+        # self.slideMarker.setRect(QRectF(-5,-5,10,10))
+
+        #self.setBrush(QBrush(QColor(255, 0, 0, 255-32)))
+        self.setRect(QRectF(-5,-5,110,10))
+        self.dragged = False
+
+        self.value = 0.5
+        self.setValue( (self.maxValue+self.minValue)*0.5 )
+
+    def mousePressEvent(self, event):
+        if event.button() == 1:
+            self.dragged = True
+
+    def mouseMoveEvent(self, event):
+        if not self.dragged:
+            return
+        pos = event.pos()
+        x = pos.x()
+        if x < 0: x = 0
+        if x > 100: x = 100
+        self.setValue(x/100.*self.maxValue+self.minValue)
+
+    def setValue(self, value):
+        self.value = value
+        self.text.setText(self.name+": "+self.format%value)
+        self.slideMarker.setPos((value-self.minValue)*100/self.maxValue, 0)
+        self.valueChanged(value)
+
+    def valueChanged(self, value):
+        pass
+
+    def mouseReleaseEvent(self, event):
+        if not self.dragged:
+            return
+        self.dragged = False
+
+class BoxGrabber(QGraphicsRectItem):
+    def __init__(self, parent):
+        QGraphicsRectItem.__init__(self, parent)
+
+        self.parent = parent
+        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        width = parent.rect().width()
+        self.setRect(QRectF(0,0, width,10))
+
+        self.setBrush(QBrush(QColor(255, 255, 255, 255-32)))
+
+        self.sliderMiddel = QGraphicsRectItem(self)
+        self.sliderMiddel.setRect(QRectF(5,3, width-10,1))
+
+        self.sliderMiddel = QGraphicsRectItem(self)
+        self.sliderMiddel.setRect(QRectF(5,6, width-10,1))
+
+        #self.setRect(QRectF(0, 0, 110, 100))
+        self.dragged = False
+
+    def mousePressEvent(self, event):
+        if event.button() == 1:
+            self.dragged = True
+            self.drag_offset = self.parent.mapToParent(self.mapToParent(event.pos()))-self.parent.pos()
+
+    def mouseMoveEvent(self, event):
+        if not self.dragged:
+            return
+        pos = self.parent.mapToParent(self.mapToParent(event.pos()))-self.drag_offset
+        self.parent.setPos(pos.x(), pos.y())
+
+    def mouseReleaseEvent(self, event):
+        if not self.dragged:
+            return
+        self.dragged = False
+
+class SliderBox(QGraphicsRectItem):
+    def __init__(self, parent, image):
+        QGraphicsRectItem.__init__(self, parent)
+
+        self.image = image
+        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+
+        self.setBrush(QBrush(QColor(255, 255, 255, 255-32)))
+        self.setPos(100, 100)
+        self.setZValue(19)
+
+        self.hist = QGraphicsPathItem(self)
+        self.hist.setPen(QPen(QColor(0,0,0, 0)))
+        self.hist.setBrush(QBrush(QColor(0,0,0, 128)))
+        self.hist.setPos(0, 110)
+
+
+        self.sliders = []
+        functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
+        minMax = [[0,2],[0,255],[0,255]]
+        start = [1,255,0]
+        formats = ["%.2f", "%d", "%d"]
+        for i,name in enumerate(["Gamma","Brightness","Contrast"]):
+            slider = MySlider(self, name, maxValue=minMax[i][1], minValue=minMax[i][0])
+            slider.format = formats[i]
+            slider.setValue(start[i])
+            slider.setPos(5, 40+i*30)
+            slider.valueChanged = functions[i]
+            self.sliders.append(slider)
+
+        self.setRect(QRectF(0, 0, 110, 110))
+        BoxGrabber(self)
+        self.dragged = False
+
+    def updateHist(self, hist):
+        histpath = QPainterPath()
+        w = 110/256.
+        for i,h in enumerate(hist[0]):
+            histpath.addRect(i*w, 0, w, -h*100/max(hist[0]))
+        self.hist.setPath(histpath)
+
+    def updateGamma(self, value):
+        self.image.Change(gamma=value)
+
+    def updateBrightnes(self, value):
+        self.image.Change(max=value)
+
+    def updateContrast(self, value):
+        self.image.Change(min=value)
+
+    def mousePressEvent(self, event):
+        pass
+
+    def mousePressEvent(self, event):
+        pass
+
+    def mousePressEvent(self, event):
+        pass
+
 class GraphicsItemEventFilter(QGraphicsItem):
     def __init__(self, parent, window):
         super(GraphicsItemEventFilter, self).__init__(parent)
@@ -790,6 +965,8 @@ class DrawImage(QMainWindow):
         self.PointsUnsaved = False
 
         self.HelpText = HelpText(self)
+
+        self.slider = SliderBox(self.view.hud, self.ImageDisplay)
 
     def UpdateImage(self):
         self.MaskChanged = False
@@ -1098,6 +1275,7 @@ class DrawImage(QMainWindow):
         if event.key() == Qt.Key_Space:
             #@key Space: update rect
             self.ImageDisplay.PreviewRect()
+            self.slider.updateHist(self.ImageDisplay.hist)
             #print(self.view.GetExtend())
 
     def RedrawMask(self):
