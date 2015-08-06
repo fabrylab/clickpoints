@@ -630,13 +630,8 @@ class HelpText(QGraphicsRectItem):
 
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
-        self.window = window
-        self.font = QFont()
-        self.font.setPointSize(11)
-
         self.help_text = QGraphicsSimpleTextItem(self)
-        self.help_text.setText("")
-        self.help_text.setFont(self.font)
+        self.help_text.setFont(QFont("", 11))
         self.help_text.setPos(0, 10)
 
         self.setBrush(QBrush(QColor(255, 255, 255, 255-32)))
@@ -645,21 +640,13 @@ class HelpText(QGraphicsRectItem):
 
         self.UpdateText()
         BoxGrabber(self)
-        self.help_text.setScale(0)
-        self.setScale(0)
-        self.shown = False
-
-        self.dragged = False
+        self.setVisible(False)
 
     def ShowHelpText(self):
-        if self.shown:
-            self.help_text.setScale(0)
-            self.setScale(0)
-            self.shown = False
+        if self.isVisible():
+            self.setVisible(False)
         else:
-            self.help_text.setScale(1)
-            self.setScale(1)
-            self.shown = True
+            self.setVisible(True)
 
     def UpdateText(self):
         import re
@@ -678,10 +665,8 @@ class HelpText(QGraphicsRectItem):
 
     def mousePressEvent(self, event):
         pass
-
     def mouseMoveEvent(self, event):
         pass
-
     def mouseReleaseEvent(self, event):
         pass
 
@@ -689,42 +674,30 @@ class MySlider(QGraphicsRectItem):
     def __init__(self, parent, name="", maxValue=100, minValue=0):
         QGraphicsRectItem.__init__(self, parent)
 
-        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        self.parent = parent
         self.name = name
         self.maxValue = maxValue
         self.minValue = minValue
         self.format = "%.2f"
 
-        self.parent = parent
-        self.font = QFont()
-        self.font.setPointSize(11)
+        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        self.setPen(QPen(QColor(255, 255, 255, 0)))
 
         self.text = QGraphicsSimpleTextItem(self)
-        self.text.setText("")
-        self.text.setFont(self.font)
-        self.text.setPos(0, -27)
-
-        self.setPen(QPen(QColor(255, 255, 255, 0)))
-        self.setBrush(QBrush(QColor(255, 255, 255, 0)))
-        self.setPos(100, 100)
-        self.setZValue(19)
+        self.text.setFont(QFont("",11))
+        self.text.setPos(0, -23)
 
         self.sliderMiddel = QGraphicsRectItem(self)
         self.sliderMiddel.setRect(QRectF(0,0,100,1))
-        self.sliderMiddel.setPos(0,0)
 
-        self.slideMarker = QGraphicsPathItem(self)#QGraphicsRectItem(self)
         path = QPainterPath()
         path.addEllipse(-5, -5, 10, 10)
-        self.slideMarker.setPath(path)
+        self.slideMarker = QGraphicsPathItem(path,self)
         self.slideMarker.setBrush(QBrush(QColor(255, 0, 0, 255)))
-        # self.slideMarker.setRect(QRectF(-5,-5,10,10))
 
-        #self.setBrush(QBrush(QColor(255, 0, 0, 255-32)))
         self.setRect(QRectF(-5,-5,110,10))
         self.dragged = False
 
-        self.value = 0.5
         self.setValue( (self.maxValue+self.minValue)*0.5 )
 
     def mousePressEvent(self, event):
@@ -732,13 +705,12 @@ class MySlider(QGraphicsRectItem):
             self.dragged = True
 
     def mouseMoveEvent(self, event):
-        if not self.dragged:
-            return
-        pos = event.pos()
-        x = pos.x()
-        if x < 0: x = 0
-        if x > 100: x = 100
-        self.setValue(x/100.*self.maxValue+self.minValue)
+        if self.dragged:
+            pos = event.pos()
+            x = pos.x()
+            if x < 0: x = 0
+            if x > 100: x = 100
+            self.setValue(x/100.*self.maxValue+self.minValue)
 
     def setValue(self, value):
         self.value = value
@@ -750,8 +722,6 @@ class MySlider(QGraphicsRectItem):
         pass
 
     def mouseReleaseEvent(self, event):
-        if not self.dragged:
-            return
         self.dragged = False
 
 class BoxGrabber(QGraphicsRectItem):
@@ -766,13 +736,11 @@ class BoxGrabber(QGraphicsRectItem):
 
         self.setBrush(QBrush(QColor(255, 255, 255, 255-32)))
 
-        self.sliderMiddel = QGraphicsRectItem(self)
-        self.sliderMiddel.setRect(QRectF(5,3, width-10,1))
+        path = QPainterPath()
+        path.addRect(QRectF(5,3, width-10,1))
+        path.addRect(QRectF(5,6, width-10,1))
+        QGraphicsPathItem(path, self)
 
-        self.sliderMiddel = QGraphicsRectItem(self)
-        self.sliderMiddel.setRect(QRectF(5,6, width-10,1))
-
-        #self.setRect(QRectF(0, 0, 110, 100))
         self.dragged = False
 
     def mousePressEvent(self, event):
@@ -781,14 +749,11 @@ class BoxGrabber(QGraphicsRectItem):
             self.drag_offset = self.parent.mapToParent(self.mapToParent(event.pos()))-self.parent.pos()
 
     def mouseMoveEvent(self, event):
-        if not self.dragged:
-            return
-        pos = self.parent.mapToParent(self.mapToParent(event.pos()))-self.drag_offset
-        self.parent.setPos(pos.x(), pos.y())
+        if self.dragged:
+            pos = self.parent.mapToParent(self.mapToParent(event.pos()))-self.drag_offset
+            self.parent.setPos(pos.x(), pos.y())
 
     def mouseReleaseEvent(self, event):
-        if not self.dragged:
-            return
         self.dragged = False
 
 class SliderBox(QGraphicsRectItem):
@@ -861,10 +826,8 @@ class SliderBox(QGraphicsRectItem):
 
     def mousePressEvent(self, event):
         pass
-
     def mousePressEvent(self, event):
         pass
-
     def mousePressEvent(self, event):
         pass
 
@@ -1286,13 +1249,7 @@ class DrawImage(QMainWindow):
             self.JumpFrames(+1000)
             print('+1000')
 
-        #@key ---- Gamma Adjustment ---
-        if event.key() == Qt.Key_E:
-            #@key E: increase gamma
-            self.ImageDisplay.ChangeGamma(self.ImageDisplay.gamma*1.1)
-        if event.key() == Qt.Key_R:
-            #@key E: decrease gamma
-            self.ImageDisplay.ChangeGamma(self.ImageDisplay.gamma*0.9)
+        #@key ---- Gamma/Brightness Adjustment ---
         if event.key() == Qt.Key_Space:
             #@key Space: update rect
             self.ImageDisplay.PreviewRect()
