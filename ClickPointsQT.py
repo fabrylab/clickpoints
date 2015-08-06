@@ -618,14 +618,10 @@ class HelpText(QGraphicsRectItem):
         self.font = QFont()
         self.font.setPointSize(14)
 
-        self.help_text = QGraphicsSimpleTextItem(self.window.view.hud)
+        self.help_text = QGraphicsSimpleTextItem(self)
         self.help_text.setText("")
         self.help_text.setFont(self.font)
-        #self.help_text.setBrush(QBrush(QColor(*types[self.type][1])))
-        self.help_text.setPos(100, 100)
-        self.help_text.setZValue(20)
 
-        #self.rect = QGraphicsRectItem(self.window.view.hud)
         self.setBrush(QBrush(QColor(255, 255, 255, 255-32)))
         self.setPos(100, 100)
         self.setZValue(19)
@@ -671,7 +667,6 @@ class HelpText(QGraphicsRectItem):
             return
         pos = self.mapToParent(event.pos())-self.drag_offset
         self.setPos(pos.x(), pos.y())
-        self.help_text.setPos(pos.x(), pos.y())
 
     def mouseReleaseEvent(self, event):
         if not self.dragged:
