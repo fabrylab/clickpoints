@@ -949,7 +949,8 @@ class DrawImage(QMainWindow):
 
         self.HelpText = HelpText(self)
 
-        self.slider = SliderBox(self.view.hud, self.ImageDisplay)
+        self.slider = SliderBox(self.view.hud_lowerRight, self.ImageDisplay)
+        self.slider.setPos(-140, -140)
 
     def UpdateImage(self):
         self.MaskChanged = False
