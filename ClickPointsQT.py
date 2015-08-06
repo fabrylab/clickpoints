@@ -626,21 +626,23 @@ class HelpText(QGraphicsRectItem):
     def __init__(self, window):
         QGraphicsPathItem.__init__(self, window.view.hud)
 
-        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
         self.window = window
         self.font = QFont()
-        self.font.setPointSize(14)
+        self.font.setPointSize(11)
 
         self.help_text = QGraphicsSimpleTextItem(self)
         self.help_text.setText("")
         self.help_text.setFont(self.font)
+        self.help_text.setPos(0, 10)
 
         self.setBrush(QBrush(QColor(255, 255, 255, 255-32)))
         self.setPos(100, 100)
         self.setZValue(19)
 
         self.UpdateText()
+        BoxGrabber(self)
         self.help_text.setScale(0)
         self.setScale(0)
         self.shown = False
@@ -669,23 +671,17 @@ class HelpText(QGraphicsRectItem):
         rect = self.help_text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
+        rect.setHeight(rect.height() + 15)
         self.setRect(rect)
 
     def mousePressEvent(self, event):
-        if event.button() == 1:
-            self.dragged = True
-            self.drag_offset = self.mapToParent(event.pos())-self.pos()
+        pass
 
     def mouseMoveEvent(self, event):
-        if not self.dragged:
-            return
-        pos = self.mapToParent(event.pos())-self.drag_offset
-        self.setPos(pos.x(), pos.y())
+        pass
 
     def mouseReleaseEvent(self, event):
-        if not self.dragged:
-            return
-        self.dragged = False
+        pass
 
 class MySlider(QGraphicsRectItem):
     def __init__(self, parent, name="", maxValue=100, minValue=0):
