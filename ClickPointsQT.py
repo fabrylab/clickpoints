@@ -112,8 +112,19 @@ class BigImageDisplay():
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
+        self.QImages = []
+        self.QImageViews = []
+        self.ImageSlices = []
         self.origin = origin
         self.window = window
+
+        self.preview_pixMapItem = QGraphicsPixmapItem(self.origin)
+        self.preview_pixMapItem.setZValue(10)
+        self.preview_slice = None
+        self.preview_qimage = None
+        self.preview_qimageView = None
+
+        self.gamma = 1
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
@@ -123,6 +134,9 @@ class BigImageDisplay():
             else:
                 new_pixmap = QGraphicsPixmapItem(self.pixMapItems[0])
             self.pixMapItems.append(new_pixmap)
+            self.ImageSlices.append(None)
+            self.QImages.append(None)
+            self.QImageViews.append(None)
 
             new_pixmap.setAcceptHoverEvents(True)
 
@@ -140,6 +154,7 @@ class BigImageDisplay():
         self.number_of_imagesX = int(np.ceil(image.shape[1] / max_image_size))
         self.number_of_imagesY = int(np.ceil(image.shape[0] / max_image_size))
         self.UpdatePixmapCount()
+        self.image = image
 
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
@@ -148,9 +163,52 @@ class BigImageDisplay():
                 startY = y * max_image_size
                 endX = min([(x + 1) * max_image_size, image.shape[1]])
                 endY = min([(y + 1) * max_image_size, image.shape[0]])
-                self.pixMapItems[i].setPixmap(QPixmap(array2qimage(image[startY:endY, startX:endX, :])))
+                self.ImageSlices[i] = image[startY:endY, startX:endX, :]
+                self.QImages[i] = array2qimage(image[startY:endY, startX:endX, :])
+                self.QImageViews[i] = rgb_view(self.QImages[i])
+                self.pixMapItems[i].setPixmap(QPixmap(self.QImages[i]))
                 self.pixMapItems[i].setOffset(startX, startY)
 
+    def PreviewRect(self):
+        startX, startY, endX, endY = self.window.view.GetExtend()
+        if startX < 0: startX = 0
+        if startY < 0: startY = 0
+        if endX > self.image.shape[1]: endX = self.image.shape[1]
+        if endY > self.image.shape[0]: endY = self.image.shape[0]
+        if endX > startX+max_image_size: endX = startX+max_image_size
+        if endY > startY+max_image_size: endY = startY+max_image_size
+        self.preview_slice = self.image[startY:endY,startX:endX,:]
+        self.preview_qimage = array2qimage(self.image[startY:endY,startX:endX, :])
+        self.preview_qimageView = rgb_view(self.preview_qimage)
+        self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
+        self.preview_pixMapItem.setOffset(startX, startY)
+        self.ChangeGamma(self.gamma)
+
+    def ChangeGamma(self, value):
+        import time
+        t = time.time()
+        self.gamma = value
+        print(value)
+        conversion = np.power(np.arange(0,256)/256.,value)*256
+        for i in range(self.number_of_imagesX * self.number_of_imagesY):
+            self.QImageViews[i][:, :, :] = conversion[self.ImageSlices[i]]
+            self.pixMapItems[i].setPixmap(QPixmap(self.QImages[i]))
+        self.window.view.scene.update()
+        print time.time()-t
+
+    def ChangeGamma(self, value):
+        if self.preview_slice is None:
+            self.PreviewRect()
+        import time
+        t = time.time()
+        self.gamma = value
+        print(value)
+        conversion = np.power(np.arange(0,256)/256.,value)*256
+        for i in range(self.number_of_imagesX * self.number_of_imagesY):
+            self.preview_qimageView[:, :, :] = conversion[self.preview_slice]
+            self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
+        self.window.view.scene.update()
+        print time.time()-t
 
 class BigPaintableImageDisplay():
     def __init__(self, origin):
@@ -1034,6 +1092,18 @@ class DrawImage(QMainWindow):
             #@key Numpad *: Jump +1000 frame
             self.JumpFrames(+1000)
             print('+1000')
+
+        #@key ---- Gamma Adjustment ---
+        if event.key() == Qt.Key_E:
+            #@key E: increase gamma
+            self.ImageDisplay.ChangeGamma(self.ImageDisplay.gamma*1.1)
+        if event.key() == Qt.Key_R:
+            #@key E: decrease gamma
+            self.ImageDisplay.ChangeGamma(self.ImageDisplay.gamma*0.9)
+        if event.key() == Qt.Key_Space:
+            #@key Space: update rect
+            self.ImageDisplay.PreviewRect()
+            #print(self.view.GetExtend())
 
     def RedrawMask(self):
         self.MaskDisplay.UpdateImage()
