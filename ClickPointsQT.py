@@ -312,7 +312,7 @@ class BigPaintableImageDisplay():
         self.full_image.save(filename)
 
 class MyMarkerItem(QGraphicsPathItem):
-    def __init__(self, x, y, parent, window, point_type):
+    def __init__(self, x, y, parent, window, point_type, start_id=None):
         global type_counts, types, point_display_type
 
         QGraphicsPathItem.__init__(self, parent)
@@ -331,14 +331,20 @@ class MyMarkerItem(QGraphicsPathItem):
         self.imgItem = parent
         self.dragged = False
 
+        if start_id is not None:
+            self.id = start_id
+        else:
+            self.id = uuid.uuid4().hex
+
         self.UseCrosshair = True
 
         self.partner = None
         self.rectObj = None
         if types[self.type][2] == 1 or types[self.type][2] == 2:
             for point in self.window.points:
-                if point.type == self.type:
+                if point.type == self.type and (start_id is None or point.id == self.id):
                     if point.partner is None:
+                        self.id = point.id
                         self.partner = point
                         point.partner = self
                         self.UseCrosshair = False
@@ -361,7 +367,6 @@ class MyMarkerItem(QGraphicsPathItem):
             self.pathItem = QGraphicsPathItem(self.imgItem)
             self.path = QPainterPath()
             self.path.moveTo(x, y)
-        self.id = uuid.uuid4().hex
         self.active = True
 
     def setInvalidNewPoint(self):
@@ -1038,15 +1043,15 @@ class DrawImage(QMainWindow):
                         continue
                     id = line[4]
                     found = False
-                    for point in self.points:
-                        if point.id == id:
-                            point.addPoint(x, y, type)
-                            found = True
-                            break
+                    if tracking is True:
+                        for point in self.points:
+                            if point.id == id:
+                                point.addPoint(x, y, type)
+                                found = True
+                                break
                     if not found:
-                        self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, type))
+                        self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, type, id))
                         self.points[-1].setScale(1/self.view.getOriginScale())
-                        self.points[-1].id = id
                         self.points[-1].setActive(active)
         else:
             for index in range(0, len(self.points)):
