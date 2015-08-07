@@ -349,6 +349,7 @@ class MyMarkerItem(QGraphicsPathItem):
                         point.partner = self
                         self.UseCrosshair = False
                         self.partner.UseCrosshair = False
+                        break
 
         if self.partner:
             if types[self.type][2] == 1:
