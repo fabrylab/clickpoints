@@ -588,6 +588,7 @@ class MyCounter(QGraphicsRectItem):
         self.window = window
         self.type = point_type
         self.count = 0
+        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
         self.setAcceptHoverEvents(True)
         self.active = False
@@ -652,6 +653,7 @@ class MyCounter2(QGraphicsRectItem):
         self.window = window
         self.type = point_type
         self.count = 0
+        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
         self.setAcceptHoverEvents(True)
         self.active = False
