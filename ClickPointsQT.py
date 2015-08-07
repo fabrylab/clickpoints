@@ -186,26 +186,19 @@ class BigImageDisplay():
         self.preview_qimageView = rgb_view(self.preview_qimage)
         self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
         self.preview_pixMapItem.setOffset(startX, startY)
-        self.ChangeGamma(self.gamma)
         self.hist = np.histogram(self.preview_slice.flatten(), bins=range(0,256), normed=True)
 
     def ChangeGamma(self, value):
-        import time
-        t = time.time()
         self.gamma = value
-        print(value)
         conversion = np.power(np.arange(0,256)/256.,value)*256
         for i in range(self.number_of_imagesX * self.number_of_imagesY):
             self.QImageViews[i][:, :, :] = conversion[self.ImageSlices[i]]
             self.pixMapItems[i].setPixmap(QPixmap(self.QImages[i]))
         self.window.view.scene.update()
-        print time.time()-t
 
     def Change(self, gamma=None, min=None, max=None):
         if self.preview_slice is None:
             self.PreviewRect()
-        import time
-        t = time.time()
         if gamma is not None:
             if gamma > 1:
                 gamma = 1./(1-(gamma-1)+0.00001)
@@ -224,7 +217,6 @@ class BigImageDisplay():
             self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
         self.window.view.scene.update()
         self.conversion = conversion
-        print "Time", time.time()-t
 
 class BigPaintableImageDisplay():
     def __init__(self, origin):
