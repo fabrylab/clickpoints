@@ -804,16 +804,22 @@ class SliderBox(QGraphicsRectItem):
         self.conv.setPath(convpath)
 
     def updateGamma(self, value):
+        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
         self.image.Change(gamma=value)
         self.updateConv()
+        QApplication.restoreOverrideCursor()
 
     def updateBrightnes(self, value):
+        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
         self.image.Change(max=value)
         self.updateConv()
+        QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
+        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
         self.image.Change(min=value)
         self.updateConv()
+        QApplication.restoreOverrideCursor()
 
     def onImageChange(self):
         self.hist.setPath(QPainterPath())
@@ -1084,6 +1090,7 @@ class DrawImage(QMainWindow):
             self.view.setCursor(QCursor(QtCore.Qt.BlankCursor))
 
     def JumpFrames(self, amount):
+        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
         last_maskname = self.current_maskname
         last_logname = self.current_logname
         self.SaveMaskAndPoints()
@@ -1095,6 +1102,7 @@ class DrawImage(QMainWindow):
             self.last_maskname = last_maskname
             self.last_logname = last_logname
         self.slider.onImageChange()
+        QApplication.restoreOverrideCursor()
 
     def keyPressEvent(self, event):
         global active_type, point_display_type, active_draw_type
@@ -1250,9 +1258,11 @@ class DrawImage(QMainWindow):
         #@key ---- Gamma/Brightness Adjustment ---
         if event.key() == Qt.Key_Space:
             #@key Space: update rect
+            QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
             self.ImageDisplay.PreviewRect()
             self.ImageDisplay.Change()
             self.slider.updateHist(self.ImageDisplay.hist)
+            QApplication.restoreOverrideCursor()
 
     def RedrawMask(self):
         self.MaskDisplay.UpdateImage()
