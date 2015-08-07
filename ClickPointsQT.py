@@ -186,6 +186,7 @@ class BigImageDisplay():
         self.preview_qimageView = rgb_view(self.preview_qimage)
         self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
         self.preview_pixMapItem.setOffset(startX, startY)
+        self.preview_pixMapItem.setParentItem(self.pixMapItems[0])
         self.hist = np.histogram(self.preview_slice.flatten(), bins=range(0,256), normed=True)
 
     def ChangeGamma(self, value):
