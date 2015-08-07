@@ -1192,26 +1192,30 @@ class MaskHandler:
         if self.MaskChanged:
             self.RedrawMask()
 
+    def DrawLine(self, startX, endX, startY, endY):
+        self.drawPath.moveTo(startX, startY)
+        self.drawPath.lineTo(endX, endY)
+        self.drawPathItem.setPath(self.drawPath)
+
+        self.MaskDisplay.DrawLine(startX, endX, startY, endY, self.DrawCursorSize, self.active_draw_type)
+        self.MaskChanged = True
+        self.MaskUnsaved = True
+        if auto_mask_update:
+            self.RedrawMask()
+
     def sceneEventFilter(self, event):
         if event.type() == 156 and event.button() == 1:#QtCore.QEvent.MouseButtonPress:
             self.last_x = event.pos().x()
             self.last_y = event.pos().y()
+            self.DrawLine(self.last_x, self.last_x+0.00001, self.last_y, self.last_y)
             return True
         if event.type() == 155:# Mouse Move
             self.DrawCursor.setPos(event.pos())
             pos_x = event.pos().x()
             pos_y = event.pos().y()
-            self.drawPath.moveTo(self.last_x, self.last_y)
-            self.drawPath.lineTo(pos_x, pos_y)
-            self.drawPathItem.setPath(self.drawPath)
-
-            self.MaskDisplay.DrawLine(pos_x, self.last_x, pos_y, self.last_y, self.DrawCursorSize, self.active_draw_type)
+            self.DrawLine(pos_x, self.last_x, pos_y, self.last_y)
             self.last_x = pos_x
             self.last_y = pos_y
-            self.MaskChanged = True
-            self.MaskUnsaved = True
-            if auto_mask_update:
-                self.RedrawMask()
             return True
         if event.type() == 161:# Mouse Hover
             self.DrawCursor.setPos(event.pos())
