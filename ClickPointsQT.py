@@ -70,11 +70,6 @@ if outputpath != None and not os.path.exists(outputpath):
 
 max_image_size = 2**12
 
-type_counts = [0] * len(types)
-active_type = 0
-
-active_draw_type = 1
-
 w = 1.
 b = 7
 r2 = 10
@@ -128,6 +123,13 @@ class BigImageDisplay():
         self.min = 0
         self.max = 255
 
+        self.eventFilters = []
+
+    def AddEventFilter(self, filter):
+        self.eventFilters.append(filter)
+        for pixmap in self.pixMapItems:
+            pixmap.installSceneEventFilter(filter)
+
     def UpdatePixmapCount(self):
         # Create new subimages if needed
         for i in range(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
@@ -142,7 +144,8 @@ class BigImageDisplay():
 
             new_pixmap.setAcceptHoverEvents(True)
 
-            new_pixmap.installSceneEventFilter(self.window.scene_event_filter)
+            for filter in self.eventFilters:
+                new_pixmap.installSceneEventFilter(filter)
 
         # Hide images which are not needed
         for i in range(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
@@ -280,7 +283,7 @@ class BigPaintableImageDisplay():
             pixmap = QPixmap(qimage)
             self.pixMapItems[i].setPixmap(pixmap)
 
-    def DrawLine(self, x1, x2, y1, y2, size):
+    def DrawLine(self, x1, x2, y1, y2, size, type):
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
@@ -290,13 +293,13 @@ class BigPaintableImageDisplay():
                         y + 1) * max_image_size:
                         draw = self.DrawImages[i]
                         draw.line((x1 - x * max_image_size, y1 - y * max_image_size, x2 - x * max_image_size,
-                                   y2 - y * max_image_size), fill=draw_types[active_draw_type][0], width=size + 1)
+                                   y2 - y * max_image_size), fill=draw_types[type][0], width=size + 1)
                         draw.ellipse((x1 - x * max_image_size - size // 2, y1 - y * max_image_size - size // 2,
                                       x1 - x * max_image_size + size // 2, y1 - y * max_image_size + size // 2),
-                                     fill=draw_types[active_draw_type][0])
+                                     fill=draw_types[type][0])
         draw = ImageDraw.Draw(self.full_image)
-        draw.line((x1, y1, x2, y2), fill=draw_types[active_draw_type][0], width=size + 1)
-        draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=draw_types[active_draw_type][0])
+        draw.line((x1, y1, x2, y2), fill=draw_types[type][0], width=size + 1)
+        draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=draw_types[type][0])
 
     def GetColor(self, x1, y1):
         if x1 > 0 and y1 > 0 and x1 < self.full_image.size[0] and y1 < self.full_image.size[1]:
@@ -305,6 +308,7 @@ class BigPaintableImageDisplay():
 
     def setOpacity(self, opacity):
         self.opacity = opacity
+        print( self.opacity)
         for pixmap in self.pixMapItems:
             pixmap.setOpacity(opacity)
 
@@ -313,13 +317,15 @@ class BigPaintableImageDisplay():
 
 class MyMarkerItem(QGraphicsPathItem):
     def __init__(self, x, y, parent, window, point_type, start_id=None):
-        global type_counts, types, point_display_type
+        global types, point_display_type
 
         QGraphicsPathItem.__init__(self, parent)
-        self.UpdatePath()
-
+        self.parent = parent
         self.type = point_type
         self.window = window
+
+        self.UpdatePath()
+
         if len(self.window.counter):
             self.window.counter[self.type].AddCount(1)
 
@@ -419,12 +425,12 @@ class MyMarkerItem(QGraphicsPathItem):
     def OnRemove(self):
         self.window.counter[self.type].AddCount(-1)
         if self.partner and self.partner.rectObj:
-            self.window.local_scene.removeItem(self.partner.rectObj)
+            self.window.view.scene.removeItem(self.partner.rectObj)
             self.partner.rectObj = None
             self.partner.partner = None
         if self.rectObj:
             self.partner.partner = None
-            self.window.local_scene.removeItem(self.rectObj)
+            self.window.view.scene.removeItem(self.rectObj)
 
     def UpdateRect(self):
         x, y = self.pos().x(), self.pos().y()
@@ -461,11 +467,12 @@ class MyMarkerItem(QGraphicsPathItem):
             return
         if tracking:
             self.SetTrackActive(True)
-        pos = self.window.origin.mapFromItem(self, event.pos())
+        pos = self.parent.mapFromItem(self, event.pos())
         self.setPos(pos.x(), pos.y())
         if tracking:
             self.UpdateLine()
-        self.window.Crosshair.MoveCrosshair(pos.x(), pos.y())
+        if self.UseCrosshair:
+            self.window.Crosshair.MoveCrosshair(pos.x(), pos.y())
         if self.partner:
             if self.rectObj:
                 self.UpdateRect()
@@ -505,23 +512,23 @@ class MyMarkerItem(QGraphicsPathItem):
         super(QGraphicsPathItem, self).setScale(scale)
 
 class Crosshair():
-    def __init__(self, parent, scene, window):
+    def __init__(self, parent, view, image):
         self.parent = parent
-        self.scene = scene
-        self.window = window
-        self.origin = window.origin
+        self.view = view
+        self.image = image
 
-        self.a = self.window.im[-102:-1, 0:101].copy()
-        self.b = disk(50) * 255
-        self.c = np.concatenate((self.a, self.b[:, :, None]), axis=2)
-        self.CrosshairX = array2qimage(self.c)
-        self.d = rgb_view(self.CrosshairX)
+        self.RGB = np.zeros((101, 101, 3))
+        self.Alpha = disk(50) * 255
+        self.Image = np.concatenate((self.RGB, self.Alpha[:, :, None]), axis=2)
+        self.CrosshairQImage = array2qimage(self.Image)
+        self.CrosshairQImageView = rgb_view(self.CrosshairQImage)
 
-        self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairX), self.origin)
-        self.d[:, :, 0] = 255
+        self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairQImage), self.parent)
+        self.CrosshairQImageView[:, :, 0] = 255
         self.Crosshair.setOffset(-50, -50)
+        self.Crosshair.setPos(150, 150)
         self.Crosshair.setZValue(30)
-        self.Crosshair.setScale(3)
+        self.Crosshair.setVisible(False)
 
         self.pathCrosshair = QPainterPath()
         self.pathCrosshair.addEllipse(-50, -50, 100, 100)
@@ -536,49 +543,38 @@ class Crosshair():
         self.pathCrosshair2.addRect(-w, r2, w * 2, -b)
 
         self.CrosshairPathItem = QGraphicsPathItem(self.pathCrosshair, self.Crosshair)
-        self.CrosshairPathItem.setBrush(QBrush(QColor(0, 0, 0, 0)))
-        self.CrosshairPathItem.setPen(QPen(QColor(*types[0][1]), 5))
-
         self.CrosshairPathItem2 = QGraphicsPathItem(self.pathCrosshair2, self.Crosshair)
-        self.CrosshairPathItem2.setBrush(QBrush(QColor(0, 0, 0, 0)))
-        self.CrosshairPathItem2.setPen(QPen(QColor(*types[0][1]), 5))
-
-        self.Crosshair.setScale(0)
 
     def MoveCrosshair(self, x, y):
-        self.d[:, :, :] = 0
+        y = int(y)
+        x = int(x)
+        self.CrosshairQImageView[:, :, :] = self.SaveSlice(self.image.image, [[y-50,y+50+1],[x-50,x+50+1],[0,3]])
         self.Crosshair.setPos(x, y)
-        x, y = int(x), int(y)
-        h, w = self.window.im.shape[:2]
-        y1 = y - 50
-        y1b = 0
-        x1 = x - 50
-        x1b = 0
-        y2 = y + 50 + 1
-        y2b = 101
-        x2 = x + 50 + 1
-        x2b = 101
-        if x2 > 0 and y2 > 0 and x1 < w and y1 < h:
-            if y1 < 0:
-                y1b = -y1
-                y1 = 0
-            if x1 < 0:
-                x1b = -x1
-                x1 = 0
-            if y2 >= h:
-                y2 = h - 1
-                y2b = y2 - y1 + y1b
-            if x2 >= w:
-                x2 = w - 1
-                x2b = x2 - x1 + x1b
-            self.d[y1b:y2b, x1b:x2b, :] = self.window.im[y1:y2, x1:x2, :]
-        self.Crosshair.setPixmap(QPixmap(self.CrosshairX))
+        self.Crosshair.setPixmap(QPixmap(self.CrosshairQImage))
+
+    def SaveSlice(self, source, slices):
+        shape = []
+        slices1 = []
+        slices2 = []
+        empty = False
+        for length, slice_border in zip(source.shape, slices):
+            slice_border = map(int,slice_border)
+            shape.append(slice_border[1]-slice_border[0])
+            if slice_border[1] < 0:
+                empty = True
+            slices1.append(slice(max(slice_border[0], 0),min(slice_border[1], length)))
+            slices2.append(slice(-min(slice_border[0], 0),min(length-slice_border[1], 0) if min(length-slice_border[1], 0) != 0 else shape[-1]))
+        new_slice = np.zeros(shape)
+        if empty:
+            return new_slice
+        new_slice[slices2[0], slices2[1], slices2[2]] = source[slices1[0], slices1[1], slices1[2]]
+        return new_slice
 
     def Hide(self):
-        self.Crosshair.setScale(0)
+        self.Crosshair.setVisible(False)
 
     def Show(self, type):
-        self.Crosshair.setScale(2 / self.window.view.getOriginScale())
+        self.Crosshair.setVisible(True)
         self.CrosshairPathItem2.setPen(QPen(QColor(*types[type][1]), 1))
         self.CrosshairPathItem.setPen(QPen(QColor(*types[type][1]), 3))
 
@@ -844,7 +840,7 @@ class SliderBox(QGraphicsRectItem):
         self.updateConv()
         QApplication.restoreOverrideCursor()
 
-    def onImageChange(self):
+    def LoadImageEvent(self):
         self.hist.setPath(QPainterPath())
         self.conv.setPath(QPainterPath())
 
@@ -856,165 +852,46 @@ class SliderBox(QGraphicsRectItem):
         pass
 
 class GraphicsItemEventFilter(QGraphicsItem):
-    def __init__(self, parent, window):
+    def __init__(self, parent, commandObject):
         super(GraphicsItemEventFilter, self).__init__(parent)
-        self.window = window
-        self.last_x = 0
-        self.last_y = 0
+        self.commandObject = commandObject
+        self.active = False
     def paint(self, *args):
         pass
     def boundingRect(self):
         return QRectF(0,0,0,0)
     def sceneEventFilter(self, object, event):
-        if event.type() == 156:#QtCore.QEvent.MouseButtonPress:
-            if event.button() == 1:
-                if not self.window.DrawMode:
-                    self.window.points.append(MyMarkerItem(event.pos().x(), event.pos().y(), self.window.MarkerParent, self.window, active_type))
-                    self.window.points[-1].setScale(1/self.window.view.getOriginScale())
-                    return True
-                else:
-                    self.last_x = event.pos().x()
-                    self.last_y = event.pos().y()
-                    return True
-        if event.type() == 155:# Mouse Move
-            if self.window.DrawMode:
-                pos_x = event.pos().x()
-                pos_y = event.pos().y()
-                self.window.drawPath.moveTo(self.last_x, self.last_y)
-                self.window.drawPath.lineTo(pos_x, pos_y)
-                self.window.MaskChanged = True
-                self.window.MaskUnsaved = True
+        if not self.active:
+            return False
+        return self.commandObject.sceneEventFilter(event)
 
-                self.window.MaskDisplay.DrawLine(pos_x, self.last_x, pos_y, self.last_y, self.window.DrawCursorSize)
-                self.last_x = pos_x
-                self.last_y = pos_y
-                self.window.drawPathItem.setPath(self.window.drawPath)
-                self.window.DrawCursor.setPos(event.pos())
-                if auto_mask_update:
-                    self.window.RedrawMask()
-                return True
-        if event.type() == 161:# Mouse Hover
-            self.window.DrawCursor.setPos(event.pos())
-            color = self.window.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
-            if color is not None:
-                self.window.color_under_cursor = color
-        return False
-
-class DrawImage(QMainWindow):
-
-    def zoomEvent(self, scale, pos):
-        for point in self.points:
-            point.setScale(1/self.view.getOriginScale())
-
-    def __init__(self, parent=None):
-        super(QMainWindow, self).__init__(parent)
-        self.setWindowTitle('Select Window')
-
-        self.view = QExtendedGraphicsView()
-        self.view.zoomEvent = self.zoomEvent
-        self.setCentralWidget(self.view)
-        self.local_scene = self.view.scene
-        self.origin = self.view.origin
-
-        self.scene_event_filter = GraphicsItemEventFilter(self.origin, self)
-
+class MarkerHandler:
+    def __init__(self, window, parent, parentHud, view, ImageDisplay):
+        self.view = view
         self.points = []
-
-        self.mask_opacity = 0
-        self.last_maskname = None
-        self.last_logname = None
-        self.color_under_cursor = None
-
-        self.local_images = []
-        self.pixMapItems = []
-        self.ImageDisplay = BigImageDisplay(self.origin, self)
-        self.MaskDisplay = BigPaintableImageDisplay(self.origin)
-
         self.counter = []
+        self.active_type = 0
 
-        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.origin)
+        self.last_logname = None
+        self.PointsUnsaved = False
+        self.active = False
+
+        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), parent)
         self.MarkerParent.setZValue(10)
 
-        self.MediaHandler = MediaHandler(join(srcpath, filename))
-        self.UpdateImage()
+        self.scene_event_filter = GraphicsItemEventFilter(parent, self)
+        ImageDisplay.AddEventFilter(self.scene_event_filter)
 
-        if len(types):
-            self.Crosshair = Crosshair(self.MarkerParent, self.local_scene, self)
+        self.Crosshair = Crosshair(parent, view, ImageDisplay)
 
-            self.counter = [MyCounter(self.view.hud, self, i) for i in range(len(types))]
-            self.counter[active_type].SetToActiveColor()
+        self.counter = [MyCounter(parentHud, self, i) for i in range(len(types))]
+        self.counter[self.active_type].SetToActiveColor()
 
-        self.DrawCursorSize = 10
-        self.drawPathItem = QGraphicsPathItem(self.MarkerParent)
-        self.drawPathItem.setBrush(QBrush(QColor(255, 255, 255)))
-
-        self.drawPath = self.drawPathItem.path()
-        self.drawPathItem.setPath(self.drawPath)
-        self.drawPathItem.setZValue(10)
-
-        self.DrawCursorPath = QPainterPath()
-        self.DrawCursorPath.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
-                                       self.DrawCursorSize)
-
-        self.DrawCursor = QGraphicsPathItem(self.DrawCursorPath, self.MarkerParent)
-        self.DrawCursor.setBrush(QBrush(QColor(0, 0, 0, 0)))
-        self.DrawCursor.setPen(QPen(QColor(0, 0, 255)))
-        self.DrawCursor.setScale(0)
-
-        self.UpdateDrawCursorSize()
-        self.DrawMode = False
-        if len(types):
-            self.SetDrawMode(False)
-        else:
-            self.SetDrawMode(True)
-            self.mask_opacity = 0.5
-            self.MaskDisplay.setOpacity(self.mask_opacity)
-        self.MaskChanged = False
-        self.MaskUnsaved = False
-        self.PointsUnsaved = False
-
-        self.HelpText = HelpText(self)
-
-        self.slider = SliderBox(self.view.hud_lowerRight, self.ImageDisplay)
-        self.slider.setPos(-140, -140)
-
-    def UpdateImage(self):
-        self.MaskChanged = False
-
-        filepath, filename = self.MediaHandler.getCurrentFilename()
+    def LoadImageEvent(self, filename):
         base_filename = os.path.splitext(filename)[0]
-        self.current_maskname = os.path.join(outputpath, base_filename + maskname_tag)
         self.current_logname = os.path.join(outputpath, base_filename + logname_tag)
 
-        self.setWindowTitle(filename)
-
-        self.LoadImage(filename)
-        self.LoadMask(self.current_maskname)
         self.LoadLog(self.current_logname)
-
-    def LoadImage(self, filename):
-        self.im = self.MediaHandler.getCurrentImg()
-        self.ImageDisplay.SetImage(self.im)
-
-    def LoadMask(self, maskname):
-        self.current_maskname = maskname
-        mask_valid = False
-        print(maskname)
-        if os.path.exists(maskname):
-            print("Load Mask")
-            try:
-                self.image_mask_full = Image.open(maskname)
-                print(self.image_mask_full)
-                mask_valid = True
-            except:
-                mask_valid = False
-                print("ERROR: Can't read mask file")
-            print("...done")
-        if mask_valid == False:
-            self.image_mask_full = Image.new('L', (self.im.shape[1],self.im.shape[0]))
-        self.MaskUnsaved = False
-
-        self.MaskDisplay.SetImage(self.image_mask_full)
 
     def LoadLog(self, logname):
         self.current_logname = logname
@@ -1060,25 +937,13 @@ class DrawImage(QMainWindow):
         print("...done")
         self.PointsUnsaved = False
 
-    def UpdateDrawCursorSize(self):
-        global active_draw_type
-        pen = QPen(QColor(*draw_types[active_draw_type][1]), self.DrawCursorSize)
-        pen.setCapStyle(32)
-        self.drawPathItem.setPen(pen)
-        self.DrawCursorPath = QPainterPath()
-        self.DrawCursorPath.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
-                                       self.DrawCursorSize)
-
-        self.DrawCursor.setPen(QPen(QColor(*draw_types[active_draw_type][1])))
-        self.DrawCursor.setPath(self.DrawCursorPath)
-
     def RemovePoint(self, point):
         point.OnRemove()
         self.points.remove(point)
-        self.local_scene.removeItem(point)
+        self.view.scene.removeItem(point)
         self.PointsUnsaved = True
 
-    def SaveMaskAndPoints(self):
+    def SavePoints(self):
         if self.PointsUnsaved:
             if len(self.points) == 0:
                 if os.path.exists(self.current_logname):
@@ -1088,50 +953,245 @@ class DrawImage(QMainWindow):
                 with open(self.current_logname, 'w') as fp:
                     for line in data:
                         fp.write(line)
-            print(self.current_logname, " saved")
+            print(self.current_logname+" saved")
             self.PointsUnsaved = False
 
+    def SetActiveMarkerType(self, new_type):
+        self.counter[self.active_type].SetToInactiveColor()
+        self.active_type = new_type
+        self.counter[self.active_type].SetToActiveColor()
+
+    def zoomEvent(self, scale, pos):
+        for point in self.points:
+            point.setScale(1/self.view.getOriginScale())
+        self.Crosshair.Crosshair.setScale(1 / self.view.getOriginScale())
+
+    def setActive(self, active):
+        self.scene_event_filter.active = active
+        self.active = active
+        for point in self.points:
+            point.SetActive(active)
+        if active:
+            self.view.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+
+    def toggleMarkerShape(self):
+        global point_display_type
+        point_display_type += 1
+        if point_display_type >= len(point_display_types):
+            point_display_type = 0
+        for point in self.points:
+            point.UpdatePath()
+
+    def sceneEventFilter(self, event):
+        if event.type() == 156 and event.button() == 1:#QtCore.QEvent.MouseButtonPress:
+            self.points.append(MyMarkerItem(event.pos().x(), event.pos().y(), self.MarkerParent, self, self.active_type))
+            self.points[-1].setScale(1/self.view.getOriginScale())
+            return True
+        return False
+
+class MaskHandler:
+    def __init__(self, window, parent, parentHud, view, ImageDisplay):
+        self.view = view
+        self.ImageDisplay = ImageDisplay
+        self.MaskDisplay = BigPaintableImageDisplay(parent)
+        self.DrawCursorSize = 10
+        self.drawPathItem = QGraphicsPathItem(parent)
+        self.drawPathItem.setBrush(QBrush(QColor(255, 255, 255)))
+
+        self.active_draw_type = 1
+
+        self.mask_opacity = 0
+        self.last_maskname = None
+        self.color_under_cursor = None
+
+        self.scene_event_filter = GraphicsItemEventFilter(parent, self)
+        ImageDisplay.AddEventFilter(self.scene_event_filter)
+
+        self.drawPath = self.drawPathItem.path()
+        self.drawPathItem.setPath(self.drawPath)
+        self.drawPathItem.setZValue(10)
+
+        self.DrawCursor = QGraphicsPathItem( parent)
+        self.DrawCursor.setPos(10,10)
+        self.DrawCursor.setZValue(10)
+        self.DrawCursor.setVisible(False)
+        self.UpdateDrawCursorSize()
+
+        self.UpdateDrawCursorSize()
+        self.DrawMode = False
+
+        self.MaskChanged = False
+        self.MaskUnsaved = False
+        self.active = False
+
+    def LoadImageEvent(self, filename):
+        self.MaskChanged = False
+        self.drawPath = QPainterPath()
+        self.drawPathItem.setPath(self.drawPath)
+        base_filename = os.path.splitext(filename)[0]
+        self.current_maskname = os.path.join(outputpath, base_filename + maskname_tag)
+        self.LoadMask(self.current_maskname)
+
+    def LoadMask(self, maskname):
+        self.current_maskname = maskname
+        mask_valid = False
+        print(maskname)
+        if os.path.exists(maskname):
+            print("Load Mask")
+            try:
+                self.image_mask_full = Image.open(maskname)
+                print(self.image_mask_full)
+                mask_valid = True
+            except:
+                mask_valid = False
+                print("ERROR: Can't read mask file")
+            print("...done")
+        if not mask_valid:
+            self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1],self.ImageDisplay.image.shape[0]))
+        self.MaskUnsaved = False
+
+        self.MaskDisplay.SetImage(self.image_mask_full)
+
+    def UpdateDrawCursorSize(self):
+        pen = QPen(QColor(*draw_types[self.active_draw_type][1]), self.DrawCursorSize)
+        pen.setCapStyle(32)
+        self.drawPathItem.setPen(pen)
+        DrawCursorPath = QPainterPath()
+        DrawCursorPath.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
+                                       self.DrawCursorSize)
+
+        self.DrawCursor.setPen(QPen(QColor(*draw_types[self.active_draw_type][1])))
+        self.DrawCursor.setPath(DrawCursorPath)
+
+    def SaveMask(self):
         if self.MaskUnsaved:
             self.MaskDisplay.save(self.current_maskname)
-            print(self.current_maskname, " saved")
+            print(self.current_maskname+" saved")
             self.MaskUnsaved = False
 
-    def SetDrawMode(self, doset):
-        if doset is False:
-            self.DrawMode = False
-            self.DrawCursor.setScale(0)
+    def RedrawMask(self):
+        self.MaskDisplay.UpdateImage()
+        self.drawPath = QPainterPath()
+        self.drawPathItem.setPath(self.drawPath)
+        self.MaskChanged = False
 
-            for point in self.points:
-                point.SetActive(True)
-            self.view.setCursor(QCursor(QtCore.Qt.ArrowCursor))
-        else:
-            self.DrawMode = True
-            self.DrawCursor.setScale(1)
-
-            for point in self.points:
-                point.SetActive(False)
+    def setActive(self, active):
+        self.scene_event_filter.active = active
+        self.active = active
+        self.DrawCursor.setVisible(active)
+        if active:
             self.view.setCursor(QCursor(QtCore.Qt.BlankCursor))
+
+    def changeOpacity(self, value):
+        self.mask_opacity += value
+        if self.mask_opacity >= 1:
+            self.mask_opacity = 1
+        if self.mask_opacity < 0:
+            self.mask_opacity = 0
+        self.MaskDisplay.setOpacity(self.mask_opacity)
+
+    def SetActiveDrawType(self, value):
+        self.active_draw_type = value
+        self.RedrawMask()
+        print("Changed Draw type", self.active_draw_type)
+        self.UpdateDrawCursorSize()
+
+    def PickColor(self):
+        global draw_types
+        for index, type in enumerate(draw_types):
+            if type[0] == self.color_under_cursor:
+                self.SetActiveDrawType(index)
+                break
+
+    def changeCursorSize(self, value):
+        self.DrawCursorSize += value
+        if self.DrawCursorSize < 1:
+            self.DrawCursorSize = 1
+        self.UpdateDrawCursorSize()
+        if self.MaskChanged:
+            self.RedrawMask()
+
+    def sceneEventFilter(self, event):
+        if event.type() == 156 and event.button() == 1:#QtCore.QEvent.MouseButtonPress:
+            self.last_x = event.pos().x()
+            self.last_y = event.pos().y()
+            return True
+        if event.type() == 155:# Mouse Move
+            self.DrawCursor.setPos(event.pos())
+            pos_x = event.pos().x()
+            pos_y = event.pos().y()
+            self.drawPath.moveTo(self.last_x, self.last_y)
+            self.drawPath.lineTo(pos_x, pos_y)
+            self.drawPathItem.setPath(self.drawPath)
+
+            self.MaskDisplay.DrawLine(pos_x, self.last_x, pos_y, self.last_y, self.DrawCursorSize, self.active_draw_type)
+            self.last_x = pos_x
+            self.last_y = pos_y
+            self.MaskChanged = True
+            self.MaskUnsaved = True
+            if auto_mask_update:
+                self.RedrawMask()
+            return True
+        if event.type() == 161:# Mouse Hover
+            self.DrawCursor.setPos(event.pos())
+            color = self.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
+            if color is not None:
+                self.color_under_cursor = color
+        return False
+
+class DrawImage(QMainWindow):
+
+    def zoomEvent(self, scale, pos):
+        self.MarkerHandler.zoomEvent(scale, pos)
+
+    def __init__(self, parent=None):
+        super(QMainWindow, self).__init__(parent)
+        self.setWindowTitle('Select Window')
+
+        self.view = QExtendedGraphicsView()
+        self.view.zoomEvent = self.zoomEvent
+        self.setCentralWidget(self.view)
+        self.local_scene = self.view.scene
+        self.origin = self.view.origin
+
+        self.ImageDisplay = BigImageDisplay(self.origin, self)
+
+        self.MarkerHandler = MarkerHandler(self, self.view.origin, self.view.hud, self.view, self.ImageDisplay)
+        self.MarkerHandler.setActive(True)
+        self.MaskHandler = MaskHandler(self, self.view.origin, self.view.hud, self.view, self.ImageDisplay)
+
+        self.MediaHandler = MediaHandler(join(srcpath, filename))
+
+        self.HelpText = HelpText(self)
+
+        self.slider = SliderBox(self.view.hud_lowerRight, self.ImageDisplay)
+        self.slider.setPos(-140, -140)
+
+        self.UpdateImage()
+
+    def UpdateImage(self):
+        filename = self.MediaHandler.getCurrentFilename()[1]
+
+        self.setWindowTitle(filename)
+
+        self.LoadImage()
+        self.MarkerHandler.LoadImageEvent(filename)
+        self.MaskHandler.LoadImageEvent(filename)
+        self.slider.LoadImageEvent()
+
+    def LoadImage(self):
+        self.ImageDisplay.SetImage(self.MediaHandler.getCurrentImg())
+
+    def SaveMaskAndPoints(self):
+        self.MarkerHandler.SavePoints()
+        self.MaskHandler.SaveMask()
 
     def JumpFrames(self, amount):
         QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-        last_maskname = self.current_maskname
-        last_logname = self.current_logname
         self.SaveMaskAndPoints()
-        self.drawPath = QPainterPath()
-        self.drawPathItem.setPath(self.drawPath)
-
         if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos() + amount):
             self.UpdateImage()
-            self.last_maskname = last_maskname
-            self.last_logname = last_logname
-        self.slider.onImageChange()
         QApplication.restoreOverrideCursor()
-
-    def SetActiveMarkerType(self, new_type):
-        global active_type
-        self.counter[active_type].SetToInactiveColor()
-        active_type = new_type
-        self.counter[active_type].SetToActiveColor()
 
     def keyPressEvent(self, event):
         global active_type, point_display_type, active_draw_type
@@ -1141,6 +1201,11 @@ class DrawImage(QMainWindow):
         if event.key() == QtCore.Qt.Key_F1:
             #@key F1: toggle help window
             self.HelpText.ShowHelpText()
+
+        if event.key() == QtCore.Qt.Key_F:
+            #@key F: fit image to view
+            self.view.fitInView()
+
 
         numberkey = event.key() - 49
 
@@ -1170,75 +1235,48 @@ class DrawImage(QMainWindow):
                     self.RedrawMask()
 
         #@key ---- Marker ----
-        if self.DrawMode is False and 0 <= numberkey < len(types):
+        if self.MarkerHandler.active and 0 <= numberkey < len(types):
             #@key 0-9: change marker type
-            self.SetActiveMarkerType(numberkey)
+            self.MarkerHandler.SetActiveMarkerType(numberkey)
 
         if event.key() == QtCore.Qt.Key_T:
             #@key T: toggle marker shape
-            point_display_type += 1
-            if point_display_type >= len(point_display_types):
-                point_display_type = 0
-            for point in self.points:
-                point.UpdatePath()
+            self.MarkerHandler.toggleMarkerShape()
 
         #@key ---- Painting ----
         if event.key() == QtCore.Qt.Key_P:
             #@key P: toogle brush mode
             if len(types):
-                self.SetDrawMode(self.DrawMode is False)
-                self.RedrawMask()
+                self.MarkerHandler.setActive(not self.MarkerHandler.active)
+                self.MaskHandler.setActive(not self.MaskHandler.active)
+                #self.SetDrawMode(self.DrawMode is False)
+                #self.RedrawMask()
 
-        if self.DrawMode is True and 0 <= numberkey < len(draw_types):
+        if self.MaskHandler.active and 0 <= numberkey < len(draw_types):
             #@key 0-9: change brush type
-            active_draw_type = numberkey
-            self.RedrawMask()
-            print("Changed Draw type", active_draw_type)
-            self.UpdateDrawCursorSize()
+            self.MaskHandler.SetActiveDrawType(numberkey)
 
         if event.key() == QtCore.Qt.Key_K:
             #@key K: pick color of brush
-            for index,type in enumerate(draw_types):
-                if type[0] == self.color_under_cursor:
-                    active_draw_type = index
-                    break
-            self.RedrawMask()
-            print("Changed Draw type", active_draw_type)
-            self.UpdateDrawCursorSize()
-            self.color_under_cursor
+            self.MaskHandler.PickColor()
 
         if event.key() == QtCore.Qt.Key_Plus:
             #@key +: increase brush radius
-            self.DrawCursorSize += 1
-            self.UpdateDrawCursorSize()
-            if self.MaskChanged:
-                self.RedrawMask()
+            self.MaskHandler.changeCursorSize(+1)
         if event.key() == QtCore.Qt.Key_Minus:
             #@key -: decrease brush radius
-            self.DrawCursorSize -= 1
-            self.UpdateDrawCursorSize()
-            if self.MaskChanged:
-                self.RedrawMask()
+            self.MaskHandler.changeCursorSize(-1)
         if event.key() == QtCore.Qt.Key_O:
             #@key O: increase mask transparency
-            self.mask_opacity += 0.1
-            if self.mask_opacity >= 1:
-                self.mask_opacity = 1
-            self.MaskDisplay.setOpacity(self.mask_opacity)
+            self.MaskHandler.changeOpacity(+0.1)
 
         if event.key() == QtCore.Qt.Key_I:
             #@key I: decrease mask transparency
-            self.mask_opacity -= 0.1
-            if self.mask_opacity <= 0:
-                self.mask_opacity = 0
-            self.MaskDisplay.setOpacity(self.mask_opacity)
+            self.MaskHandler.changeOpacity(-0.1)
 
         if event.key() == QtCore.Qt.Key_M:
             #@key M: redraw the mask
-            self.RedrawMask()
-        if event.key() == QtCore.Qt.Key_F:
-            #@key F: fit image to view
-            self.view.fitInView()
+            self.MaskHandler.RedrawMask()
 
         #@key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left:
@@ -1290,13 +1328,6 @@ class DrawImage(QMainWindow):
             self.ImageDisplay.Change()
             self.slider.updateHist(self.ImageDisplay.hist)
             QApplication.restoreOverrideCursor()
-
-    def RedrawMask(self):
-        self.MaskDisplay.UpdateImage()
-        self.drawPath = QPainterPath()
-        self.drawPathItem.setPath(self.drawPath)
-        self.MaskChanged = False
-
 
 for addon in addons:
     with open(addon + ".py") as f:
