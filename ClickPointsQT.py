@@ -70,6 +70,8 @@ if outputpath != None and not os.path.exists(outputpath):
 
 max_image_size = 2**12
 
+modules = []
+
 w = 1.
 b = 7
 r2 = 10
@@ -593,11 +595,10 @@ class MyCounter(QGraphicsRectItem):
         self.font = QFont()
         self.font.setPointSize(14)
 
-        self.text = QGraphicsSimpleTextItem(self.parent)
+        self.text = QGraphicsSimpleTextItem(self)
         self.text.setText(types[self.type][0] + " %d" % 0)
         self.text.setFont(self.font)
         self.text.setBrush(QBrush(QColor(*types[self.type][1])))
-        self.text.setPos(10, 10 + 25 * self.type)
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
@@ -635,8 +636,79 @@ class MyCounter(QGraphicsRectItem):
             self.setBrush(QBrush(QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
+        global modules
         if event.button() == 1:
+            if not self.window.active:
+                for module in modules:
+                    if module != self.window:
+                        module.setActive(False)
+                self.window.setActive(True)
             self.window.SetActiveMarkerType(self.type)
+
+class MyCounter2(QGraphicsRectItem):
+    def __init__(self, parent, window, point_type):
+        QGraphicsRectItem.__init__(self, parent)
+        self.parent = parent
+        self.window = window
+        self.type = point_type
+        self.count = 0
+
+        self.setAcceptHoverEvents(True)
+        self.active = False
+
+        self.font = QFont()
+        self.font.setPointSize(14)
+
+        self.label_text = "Color %d" % (point_type+1)
+        if len(draw_types[self.type]) == 3:
+            self.label_text = draw_types[self.type][2]
+
+        self.text = QGraphicsSimpleTextItem(self)
+        self.text.setText(self.label_text)
+        self.text.setFont(self.font)
+        self.text.setBrush(QBrush(QColor(*draw_types[self.type][1])))
+        self.text.setZValue(10)
+
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setPos(-110, 10 + 25 * self.type)
+        self.setZValue(9)
+
+        count = 0
+        self.AddCount(count)
+
+    def AddCount(self, new_count):
+        self.count += new_count
+        self.text.setText(self.label_text)
+        rect = self.text.boundingRect()
+        rect.setX(-5)
+        rect.setWidth(rect.width() + 5)
+        self.setRect(rect)
+        self.setPos(-rect.width()-5, 10 + 25 * self.type)
+
+    def SetToActiveColor(self):
+        self.active = True
+        self.setBrush(QBrush(QColor(255, 255, 255, 128)))
+
+    def SetToInactiveColor(self):
+        self.active = False
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+
+    def hoverEnterEvent(self, event):
+        if self.active is False:
+            self.setBrush(QBrush(QColor(128, 128, 128, 128)))
+
+    def hoverLeaveEvent(self, event):
+        if self.active is False:
+            self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+
+    def mousePressEvent(self, event):
+        if event.button() == 1:
+            if not self.window.active:
+                for module in modules:
+                    if module != self.window:
+                        module.setActive(False)
+                self.window.setActive(True)
+            self.window.SetActiveDrawType(self.type)
 
 class HelpText(QGraphicsRectItem):
     def __init__(self, window):
@@ -885,7 +957,6 @@ class MarkerHandler:
         self.Crosshair = Crosshair(parent, view, ImageDisplay)
 
         self.counter = [MyCounter(parentHud, self, i) for i in range(len(types))]
-        self.counter[self.active_type].SetToActiveColor()
 
     def LoadImageEvent(self, filename):
         base_filename = os.path.splitext(filename)[0]
@@ -973,6 +1044,9 @@ class MarkerHandler:
             point.SetActive(active)
         if active:
             self.view.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+            self.counter[self.active_type].SetToActiveColor()
+        else:
+            self.counter[self.active_type].SetToInactiveColor()
 
     def toggleMarkerShape(self):
         global point_display_type
@@ -1016,6 +1090,8 @@ class MaskHandler:
         self.DrawCursor.setZValue(10)
         self.DrawCursor.setVisible(False)
         self.UpdateDrawCursorSize()
+
+        self.counter = [MyCounter2(parentHud, self, i) for i in range(len(draw_types))]
 
         self.UpdateDrawCursorSize()
         self.DrawMode = False
@@ -1081,6 +1157,9 @@ class MaskHandler:
         self.DrawCursor.setVisible(active)
         if active:
             self.view.setCursor(QCursor(QtCore.Qt.BlankCursor))
+            self.counter[self.active_draw_type].SetToActiveColor()
+        else:
+            self.counter[self.active_draw_type].SetToInactiveColor()
 
     def changeOpacity(self, value):
         self.mask_opacity += value
@@ -1091,7 +1170,9 @@ class MaskHandler:
         self.MaskDisplay.setOpacity(self.mask_opacity)
 
     def SetActiveDrawType(self, value):
+        self.counter[self.active_draw_type].SetToInactiveColor()
         self.active_draw_type = value
+        self.counter[self.active_draw_type].SetToActiveColor()
         self.RedrawMask()
         print("Changed Draw type", self.active_draw_type)
         self.UpdateDrawCursorSize()
@@ -1145,6 +1226,7 @@ class DrawImage(QMainWindow):
         self.MarkerHandler.zoomEvent(scale, pos)
 
     def __init__(self, parent=None):
+        global modules
         super(QMainWindow, self).__init__(parent)
         self.setWindowTitle('Select Window')
 
@@ -1157,8 +1239,14 @@ class DrawImage(QMainWindow):
         self.ImageDisplay = BigImageDisplay(self.origin, self)
 
         self.MarkerHandler = MarkerHandler(self, self.view.origin, self.view.hud, self.view, self.ImageDisplay)
+        modules.append(self.MarkerHandler)
         self.MarkerHandler.setActive(True)
-        self.MaskHandler = MaskHandler(self, self.view.origin, self.view.hud, self.view, self.ImageDisplay)
+        if len(draw_types):
+            self.MaskHandler = MaskHandler(self, self.view.origin, self.view.hud_upperRight, self.view, self.ImageDisplay)
+            modules.append(self.MaskHandler)
+        else:
+            self.MaskHandler = None
+
 
         self.MediaHandler = MediaHandler(join(srcpath, filename))
 
