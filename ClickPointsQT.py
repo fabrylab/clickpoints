@@ -577,12 +577,16 @@ class Crosshair():
         self.CrosshairPathItem.setPen(QPen(QColor(*types[type][1]), 3))
 
 
-class MyCounter():
+class MyCounter(QGraphicsRectItem):
     def __init__(self, parent, window, point_type):
-        self.parent = window.view.hud
+        QGraphicsRectItem.__init__(self, parent)
+        self.parent = parent
         self.window = window
         self.type = point_type
         self.count = 0
+
+        self.setAcceptHoverEvents(True)
+        self.active = False
 
         self.font = QFont()
         self.font.setPointSize(14)
@@ -594,10 +598,9 @@ class MyCounter():
         self.text.setPos(10, 10 + 25 * self.type)
         self.text.setZValue(10)
 
-        self.rect = QGraphicsRectItem(self.parent)
-        self.rect.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.rect.setPos(10, 10 + 25 * self.type)
-        self.rect.setZValue(9)
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setPos(10, 10 + 25 * self.type)
+        self.setZValue(9)
 
         count = 0
         for point in self.window.points:
@@ -611,13 +614,27 @@ class MyCounter():
         rect = self.text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
-        self.rect.setRect(rect)
+        self.setRect(rect)
 
     def SetToActiveColor(self):
-        self.rect.setBrush(QBrush(QColor(255, 255, 255, 128)))
+        self.active = True
+        self.setBrush(QBrush(QColor(255, 255, 255, 128)))
 
     def SetToInactiveColor(self):
-        self.rect.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.active = False
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+
+    def hoverEnterEvent(self, event):
+        if self.active is False:
+            self.setBrush(QBrush(QColor(128, 128, 128, 128)))
+
+    def hoverLeaveEvent(self, event):
+        if self.active is False:
+            self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+
+    def mousePressEvent(self, event):
+        if event.button() == 1:
+            self.window.SetActiveMarkerType(self.type)
 
 class HelpText(QGraphicsRectItem):
     def __init__(self, window):
@@ -918,7 +935,7 @@ class DrawImage(QMainWindow):
         if len(types):
             self.Crosshair = Crosshair(self.MarkerParent, self.local_scene, self)
 
-            self.counter = [MyCounter(self.local_scene, self, i) for i in range(len(types))]
+            self.counter = [MyCounter(self.view.hud, self, i) for i in range(len(types))]
             self.counter[active_type].SetToActiveColor()
 
         self.DrawCursorSize = 10
@@ -1104,6 +1121,12 @@ class DrawImage(QMainWindow):
         self.slider.onImageChange()
         QApplication.restoreOverrideCursor()
 
+    def SetActiveMarkerType(self, new_type):
+        global active_type
+        self.counter[active_type].SetToInactiveColor()
+        active_type = new_type
+        self.counter[active_type].SetToActiveColor()
+
     def keyPressEvent(self, event):
         global active_type, point_display_type, active_draw_type
         sys.stdout.flush()
@@ -1143,9 +1166,7 @@ class DrawImage(QMainWindow):
         #@key ---- Marker ----
         if self.DrawMode is False and 0 <= numberkey < len(types):
             #@key 0-9: change marker type
-            self.counter[active_type].SetToInactiveColor()
-            active_type = numberkey
-            self.counter[active_type].SetToActiveColor()
+            self.SetActiveMarkerType(numberkey)
 
         if event.key() == QtCore.Qt.Key_T:
             #@key T: toggle marker shape
