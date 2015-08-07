@@ -1223,7 +1223,8 @@ class MaskHandler:
 class DrawImage(QMainWindow):
 
     def zoomEvent(self, scale, pos):
-        self.MarkerHandler.zoomEvent(scale, pos)
+        if self.MarkerHandler is not None:
+            self.MarkerHandler.zoomEvent(scale, pos)
 
     def __init__(self, parent=None):
         global modules
@@ -1238,15 +1239,19 @@ class DrawImage(QMainWindow):
 
         self.ImageDisplay = BigImageDisplay(self.origin, self)
 
-        self.MarkerHandler = MarkerHandler(self, self.view.origin, self.view.hud, self.view, self.ImageDisplay)
-        modules.append(self.MarkerHandler)
-        self.MarkerHandler.setActive(True)
+        if len(types):
+            self.MarkerHandler = MarkerHandler(self, self.view.origin, self.view.hud, self.view, self.ImageDisplay)
+            modules.append(self.MarkerHandler)
+        else:
+            self.MarkerHandler = None
         if len(draw_types):
             self.MaskHandler = MaskHandler(self, self.view.origin, self.view.hud_upperRight, self.view, self.ImageDisplay)
             modules.append(self.MaskHandler)
+            if len(types) == 0:
+                self.MaskHandler.changeOpacity(0.5)
         else:
             self.MaskHandler = None
-
+        modules[0].setActive(True)
 
         self.MediaHandler = MediaHandler(join(srcpath, filename))
 
@@ -1263,16 +1268,20 @@ class DrawImage(QMainWindow):
         self.setWindowTitle(filename)
 
         self.LoadImage()
-        self.MarkerHandler.LoadImageEvent(filename)
-        self.MaskHandler.LoadImageEvent(filename)
+        if self.MarkerHandler:
+            self.MarkerHandler.LoadImageEvent(filename)
+        if self.MaskHandler:
+            self.MaskHandler.LoadImageEvent(filename)
         self.slider.LoadImageEvent()
 
     def LoadImage(self):
         self.ImageDisplay.SetImage(self.MediaHandler.getCurrentImg())
 
     def SaveMaskAndPoints(self):
-        self.MarkerHandler.SavePoints()
-        self.MaskHandler.SaveMask()
+        if self.MarkerHandler is not None:
+            self.MarkerHandler.SavePoints()
+        if self.MaskHandler is not None:
+            self.MaskHandler.SaveMask()
 
     def JumpFrames(self, amount):
         QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
@@ -1323,48 +1332,48 @@ class DrawImage(QMainWindow):
                     self.RedrawMask()
 
         #@key ---- Marker ----
-        if self.MarkerHandler.active and 0 <= numberkey < len(types):
-            #@key 0-9: change marker type
-            self.MarkerHandler.SetActiveMarkerType(numberkey)
+        if self.MarkerHandler is not None:
+            if self.MarkerHandler.active and 0 <= numberkey < len(types):
+                #@key 0-9: change marker type
+                self.MarkerHandler.SetActiveMarkerType(numberkey)
 
-        if event.key() == QtCore.Qt.Key_T:
-            #@key T: toggle marker shape
-            self.MarkerHandler.toggleMarkerShape()
+            if event.key() == QtCore.Qt.Key_T:
+                #@key T: toggle marker shape
+                self.MarkerHandler.toggleMarkerShape()
 
         #@key ---- Painting ----
         if event.key() == QtCore.Qt.Key_P:
             #@key P: toogle brush mode
-            if len(types):
+            if self.MarkerHandler is not None and self.MaskHandler is not None:
                 self.MarkerHandler.setActive(not self.MarkerHandler.active)
                 self.MaskHandler.setActive(not self.MaskHandler.active)
-                #self.SetDrawMode(self.DrawMode is False)
-                #self.RedrawMask()
 
-        if self.MaskHandler.active and 0 <= numberkey < len(draw_types):
-            #@key 0-9: change brush type
-            self.MaskHandler.SetActiveDrawType(numberkey)
+        if self.MaskHandler is not None:
+            if self.MaskHandler.active and 0 <= numberkey < len(draw_types):
+                #@key 0-9: change brush type
+                self.MaskHandler.SetActiveDrawType(numberkey)
 
-        if event.key() == QtCore.Qt.Key_K:
-            #@key K: pick color of brush
-            self.MaskHandler.PickColor()
+            if event.key() == QtCore.Qt.Key_K:
+                #@key K: pick color of brush
+                self.MaskHandler.PickColor()
 
-        if event.key() == QtCore.Qt.Key_Plus:
-            #@key +: increase brush radius
-            self.MaskHandler.changeCursorSize(+1)
-        if event.key() == QtCore.Qt.Key_Minus:
-            #@key -: decrease brush radius
-            self.MaskHandler.changeCursorSize(-1)
-        if event.key() == QtCore.Qt.Key_O:
-            #@key O: increase mask transparency
-            self.MaskHandler.changeOpacity(+0.1)
+            if event.key() == QtCore.Qt.Key_Plus:
+                #@key +: increase brush radius
+                self.MaskHandler.changeCursorSize(+1)
+            if event.key() == QtCore.Qt.Key_Minus:
+                #@key -: decrease brush radius
+                self.MaskHandler.changeCursorSize(-1)
+            if event.key() == QtCore.Qt.Key_O:
+                #@key O: increase mask transparency
+                self.MaskHandler.changeOpacity(+0.1)
 
-        if event.key() == QtCore.Qt.Key_I:
-            #@key I: decrease mask transparency
-            self.MaskHandler.changeOpacity(-0.1)
+            if event.key() == QtCore.Qt.Key_I:
+                #@key I: decrease mask transparency
+                self.MaskHandler.changeOpacity(-0.1)
 
-        if event.key() == QtCore.Qt.Key_M:
-            #@key M: redraw the mask
-            self.MaskHandler.RedrawMask()
+            if event.key() == QtCore.Qt.Key_M:
+                #@key M: redraw the mask
+                self.MaskHandler.RedrawMask()
 
         #@key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left:
