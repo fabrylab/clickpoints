@@ -104,6 +104,9 @@ def disk(radius):
                 disk[y,x] = True
     return disk
 
+def PosToArray(pos):
+    return np.array([pos.x(), pos.y()])
+
 class BigImageDisplay():
     def __init__(self, origin, window):
         self.number_of_imagesX = 0
@@ -350,17 +353,19 @@ class MyMarkerItem(QGraphicsPathItem):
         self.rectObj = None
         self.partner_id = partner_id
         if types[self.type][2] == 1 or types[self.type][2] == 2:
-            for point in self.window.points:
-                if point.type == self.type and (self.partner_id is None or point.id == self.partner_id):
-                    if point.partner is None:
-                        self.partner_id = point.id
-                        point.partner_id = self.id
-                        self.partner = point
-                        point.partner = self
-                        self.UseCrosshair = False
-                        self.partner.UseCrosshair = False
+            if self.partner_id is not None:
+                for point in self.window.points:
+                    if point.id == self.partner_id:
+                        self.ConnectToPartner(point)
                         break
-
+            if self.partner_id is None:
+                possible_partners = []
+                for point in self.window.points:
+                    if point.type == self.type and point.partner is None:
+                        possible_partners.append([point, np.linalg.norm(PosToArray(self.pos())-PosToArray(point.pos()))])
+                if len(possible_partners):
+                    possible_partners.sort(key=lambda x: x[1])
+                    self.ConnectToPartner(possible_partners[0][0])
         if self.partner:
             if types[self.type][2] == 1:
                 self.rectObj = QGraphicsRectItem(self.imgItem)
@@ -379,6 +384,14 @@ class MyMarkerItem(QGraphicsPathItem):
             self.path = QPainterPath()
             self.path.moveTo(x, y)
         self.active = True
+
+    def ConnectToPartner(self, point):
+        self.partner_id = point.id
+        point.partner_id = self.id
+        self.partner = point
+        point.partner = self
+        self.UseCrosshair = False
+        self.partner.UseCrosshair = False
 
     def setInvalidNewPoint(self):
         self.addPoint(self.pos().x(), self.pos().y(), -1)
