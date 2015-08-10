@@ -1,6 +1,7 @@
 from __future__ import division
 import sys
 import os
+import re
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
@@ -119,7 +120,11 @@ def Serialize(value):
 
 
 def DeSerialize(string):
-    return eval(string.strip())
+    array = []
+    matches = re.findall(r"\[\s*\'([^']*?)\',\s*\[\s*([\d.]*)\s*,\s*([\d.]*)\s*,\s*([\d.]*)\s*\]\s*,\s*([\d.]*)\s*\]", string)
+    for match in matches:
+        array.append([match[0], map(float,match[1:4]), int(match[4])])
+    return array
 
 
 class BigImageDisplay:
