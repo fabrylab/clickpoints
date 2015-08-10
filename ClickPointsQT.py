@@ -109,6 +109,19 @@ def PosToArray(pos):
     return np.array([pos.x(), pos.y()])
 
 
+def Serialize(value):
+    if type(value) == type(""):
+        return "'"+value+"'"
+    if type(value) != type([]):
+        return str(value)
+    elements = map(Serialize, value)
+    return "["+",".join(elements)+"]"
+
+
+def DeSerialize(string):
+    return eval(string.strip())
+
+
 class BigImageDisplay:
     def __init__(self, origin, window):
         self.number_of_imagesX = 0
@@ -989,6 +1002,7 @@ class GraphicsItemEventFilter(QGraphicsItem):
 class MarkerHandler:
     def __init__(self, parent, parent_hud, view, image_display):
         self.view = view
+        self.parent_hud = parent_hud
         self.points = []
         self.counter = []
         self.active_type = 0
@@ -1007,7 +1021,13 @@ class MarkerHandler:
 
         self.Crosshair = Crosshair(parent, view, image_display)
 
-        self.counter = [MyCounter(parent_hud, self, i) for i in range(len(types))]
+        self.counter = [] #[MyCounter(parent_hud, self, i) for i in range(len(types))]
+        self.UpdateCounter()
+
+    def UpdateCounter(self):
+        for counter in self.counter:
+            self.view.scene.removeItem(counter)
+        self.counter = [MyCounter(self.parent_hud, self, i) for i in range(len(types))]
 
     def LoadImageEvent(self, filename):
         if self.current_logname is not None:
@@ -1018,6 +1038,7 @@ class MarkerHandler:
         self.LoadLog(self.current_logname)
 
     def LoadLog(self, logname):
+        global types
         print("Loading " + logname)
         if not tracking:
             while len(self.points):
@@ -1028,7 +1049,17 @@ class MarkerHandler:
                     point.setInvalidNewPoint()
             with open(logname) as fp:
                 for index, line in enumerate(fp.readlines()):
-                    line = line.strip().split(" ")
+                    line = line.strip()
+                    if line[:7] == "#@types":
+                        try:
+                            types = DeSerialize(line[7:])
+                            self.UpdateCounter()
+                        except:
+                            print("ERROR: Type specification in %s broken, use types from config instead" % logname)
+                        continue
+                    if line[0] == '#':
+                        continue
+                    line = line.split(" ")
                     x = float(line[0])
                     y = float(line[1])
                     marker_type = int(line[2])
@@ -1079,6 +1110,7 @@ class MarkerHandler:
                     point.pos().x(), point.pos().y(), point.type, point.active, point.id, point.partner_id)
                     for point in self.points if point.active]
                 with open(self.current_logname, 'w') as fp:
+                    fp.write("#@types "+Serialize(types)+"\n")
                     for line in data:
                         fp.write(line)
             print(self.current_logname + " saved")
