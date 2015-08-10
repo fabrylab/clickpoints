@@ -961,6 +961,7 @@ class MarkerHandler:
         self.counter = []
         self.active_type = 0
 
+        self.current_logname = None
         self.last_logname = None
         self.PointsUnsaved = False
         self.active = False
@@ -976,14 +977,15 @@ class MarkerHandler:
         self.counter = [MyCounter(parentHud, self, i) for i in range(len(types))]
 
     def LoadImageEvent(self, filename):
+        if self.current_logname is not None:
+            self.last_logname = self.current_logname
         base_filename = os.path.splitext(filename)[0]
         self.current_logname = os.path.join(outputpath, base_filename + logname_tag)
 
         self.LoadLog(self.current_logname)
 
     def LoadLog(self, logname):
-        self.current_logname = logname
-        print(logname)
+        print("Loading "+logname)
         if not tracking:
             while len(self.points):
                 self.RemovePoint(self.points[0])
@@ -1095,6 +1097,7 @@ class MaskHandler:
         self.active_draw_type = 1
 
         self.mask_opacity = 0
+        self.current_maskname = None
         self.last_maskname = None
         self.color_under_cursor = None
 
@@ -1121,6 +1124,8 @@ class MaskHandler:
         self.active = False
 
     def LoadImageEvent(self, filename):
+        if self.current_maskname is not None:
+            self.last_maskname = self.current_maskname
         self.MaskChanged = False
         self.drawPath = QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
@@ -1129,14 +1134,12 @@ class MaskHandler:
         self.LoadMask(self.current_maskname)
 
     def LoadMask(self, maskname):
-        self.current_maskname = maskname
         mask_valid = False
-        print(maskname)
+        print("Loading "+maskname)
         if os.path.exists(maskname):
             print("Load Mask")
             try:
                 self.image_mask_full = Image.open(maskname)
-                print(self.image_mask_full)
                 mask_valid = True
             except:
                 mask_valid = False
@@ -1336,24 +1339,21 @@ class DrawImage(QMainWindow):
 
         if event.key() == QtCore.Qt.Key_L:
             #@key L: load marker and mask from last image
-            if self.last_logname:
+            if (self.MarkerHandler and self.MarkerHandler.last_logname) or \
+                (self.MaskHandler and self.MaskHandler.last_maskname):
                 # saveguard/confirmation with MessageBox
                 reply = QMessageBox.question(None, 'Warning', 'Load Mask & Points of last Image?', QMessageBox.Yes,
                                              QMessageBox.No)
                 if reply == QMessageBox.Yes:
                     print('Loading last mask & points ...')
                     # load mask and log of last image
-                    current_maskname = self.current_maskname
-                    current_logname = self.current_logname
-                    self.LoadMask(self.last_maskname)
-                    self.LoadLog(self.last_logname)
-                    self.current_maskname = current_maskname
-                    self.current_logname = current_logname
-                    # force save of mask and log
-                    self.MaskUnsaved = True
-                    self.PointsUnsaved = True
-                    # refresh display
-                    self.RedrawMask()
+                    if self.MarkerHandler:
+                        self.MarkerHandler.LoadLog(self.MarkerHandler.last_logname)
+                        self.MarkerHandler.PointsUnsaved = True
+                    if self.MaskHandler:
+                        self.MaskHandler.LoadMask(self.MaskHandler.last_maskname)
+                        self.MaskHandler.MaskUnsaved = True
+                        self.MaskHandler.RedrawMask()
 
         #@key ---- Marker ----
         if self.MarkerHandler is not None:
