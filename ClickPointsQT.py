@@ -318,7 +318,7 @@ class BigPaintableImageDisplay():
         self.full_image.save(filename)
 
 class MyMarkerItem(QGraphicsPathItem):
-    def __init__(self, x, y, parent, window, point_type, start_id=None):
+    def __init__(self, x, y, parent, window, point_type, start_id=None, partner_id = None):
         global types, point_display_type
 
         QGraphicsPathItem.__init__(self, parent)
@@ -348,11 +348,13 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.partner = None
         self.rectObj = None
+        self.partner_id = partner_id
         if types[self.type][2] == 1 or types[self.type][2] == 2:
             for point in self.window.points:
-                if point.type == self.type and (start_id is None or point.id == self.id):
+                if point.type == self.type and (self.partner_id is None or point.id == self.partner_id):
                     if point.partner is None:
-                        self.id = point.id
+                        self.partner_id = point.id
+                        point.partner_id = self.id
                         self.partner = point
                         point.partner = self
                         self.UseCrosshair = False
@@ -993,6 +995,9 @@ class MarkerHandler:
                     if type == -1 or active == 0:
                         continue
                     id = line[4]
+                    partner_id = None
+                    if len(line) >= 6:
+                        partner_id = line[5]
                     found = False
                     if tracking is True:
                         for point in self.points:
@@ -1001,7 +1006,7 @@ class MarkerHandler:
                                 found = True
                                 break
                     if not found:
-                        self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, type, id))
+                        self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, type, id, partner_id))
                         self.points[-1].setScale(1/self.view.getOriginScale())
                         self.points[-1].setActive(active)
         else:
@@ -1022,7 +1027,7 @@ class MarkerHandler:
                 if os.path.exists(self.current_logname):
                     os.remove(self.current_logname)
             else:
-                data = ["%f %f %d %d %s\n" % (point.pos().x(), point.pos().y(), point.type, point.active, point.id) for point in self.points if point.active]
+                data = ["%f %f %d %d %s %s\n" % (point.pos().x(), point.pos().y(), point.type, point.active, point.id, point.partner_id) for point in self.points if point.active]
                 with open(self.current_logname, 'w') as fp:
                     for line in data:
                         fp.write(line)
