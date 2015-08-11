@@ -408,7 +408,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.window.PointsUnsaved = True
         self.setAcceptHoverEvents(True)
         if tracking is True:
-            self.track = {self.window.MediaHandler.getCurrentPos(): [x, y, point_type]}
+            self.track = {self.window.frame_number: [x, y, point_type]}
             self.pathItem = QGraphicsPathItem(self.imgItem)
             self.path = QPainterPath()
             self.path.moveTo(x, y)
@@ -426,7 +426,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.addPoint(self.pos().x(), self.pos().y(), -1)
 
     def UpdateLine(self):
-        self.track[self.window.MediaHandler.getCurrentPos()][:2] = [self.pos().x(), self.pos().y()]
+        self.track[self.window.frame_number][:2] = [self.pos().x(), self.pos().y()]
         self.path = QPainterPath()
         frames = sorted(self.track.keys())
         last_active = False
@@ -438,7 +438,7 @@ class MyMarkerItem(QGraphicsPathItem):
                     self.path.lineTo(x, y)
                 else:
                     self.path.moveTo(x, y)
-                if frame != self.window.MediaHandler.getCurrentPos():
+                if frame != self.window.frame_number:
                     self.path.addEllipse(x - .5 * circle_width, y - .5 * circle_width, circle_width, circle_width)
                 self.path.moveTo(x, y)
             last_active = marker_type != -1
@@ -449,18 +449,18 @@ class MyMarkerItem(QGraphicsPathItem):
             self.active = False
             self.setOpacity(0.5)
             self.pathItem.setOpacity(0.25)
-            self.track[self.window.MediaHandler.getCurrentPos()][2] = -1
+            self.track[self.window.frame_number][2] = -1
         else:
             self.active = True
             self.setOpacity(1)
             self.pathItem.setOpacity(0.5)
-            self.track[self.window.MediaHandler.getCurrentPos()][2] = self.type
+            self.track[self.window.frame_number][2] = self.type
 
     def addPoint(self, x, y, marker_type):
         if marker_type == -1:
             x, y = self.pos().x(), self.pos().y()
         self.setPos(x, y)
-        self.track[self.window.MediaHandler.getCurrentPos()] = [x, y, marker_type]
+        self.track[self.window.frame_number] = [x, y, marker_type]
         if marker_type == -1:
             self.SetTrackActive(False)
         else:
@@ -1017,6 +1017,7 @@ class MarkerHandler:
         self.last_logname = None
         self.PointsUnsaved = False
         self.active = False
+        self.frame_number = None
 
         self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), parent)
         self.MarkerParent.setZValue(10)
@@ -1034,9 +1035,10 @@ class MarkerHandler:
             self.view.scene.removeItem(counter)
         self.counter = [MyCounter(self.parent_hud, self, i) for i in range(len(types))]
 
-    def LoadImageEvent(self, filename):
+    def LoadImageEvent(self, filename, framenumber):
         if self.current_logname is not None:
             self.last_logname = self.current_logname
+        self.frame_number = framenumber
         base_filename = os.path.splitext(filename)[0]
         self.current_logname = os.path.join(outputpath, base_filename + logname_tag)
 
@@ -1369,12 +1371,13 @@ class DrawImage(QMainWindow):
 
     def UpdateImage(self):
         filename = self.MediaHandler.getCurrentFilename()[1]
+        frame_number = self.MediaHandler.getCurrentPos()
 
         self.setWindowTitle(filename)
 
         self.LoadImage()
         if self.MarkerHandler:
-            self.MarkerHandler.LoadImageEvent(filename)
+            self.MarkerHandler.LoadImageEvent(filename, frame_number)
         if self.MaskHandler:
             self.MaskHandler.LoadImageEvent(filename)
         self.slider.LoadImageEvent()
