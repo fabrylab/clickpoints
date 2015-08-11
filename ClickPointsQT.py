@@ -1084,6 +1084,9 @@ class MarkerHandler:
                     x = float(line[0])
                     y = float(line[1])
                     marker_type = int(line[2])
+                    if marker_type not in types.keys():
+                        np.random.seed(marker_type)
+                        types[marker_type] = ["id%d"%marker_type, np.random.randint(0, 255, 3), 0]
                     if len(line) == 3:
                         if index >= len(self.points):
                             self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, marker_type))
