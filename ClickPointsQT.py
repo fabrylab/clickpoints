@@ -27,6 +27,10 @@ from qimage2ndarray import array2qimage, rgb_view
 from mediahandler import MediaHandler
 import uuid
 
+TYPE_Normal = 0
+TYPE_Rect = 1
+TYPE_Line = 2
+
 # parameter and path setup
 # default settings
 use_filedia = True
