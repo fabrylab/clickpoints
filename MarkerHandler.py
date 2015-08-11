@@ -48,21 +48,7 @@ point_display_types = [path1, path2, path3]
 point_display_type = 0
 
 
-def Serialize(value):
-    if type(value) == type(""):
-        return "'"+value+"'"
-    if type(value) == type({}):
-        string = "{"
-        for key in value:
-            string += str(key)+": "+Serialize(value[key])+", "
-        return string[:-2]+"}"
-    if type(value) != type([]):
-        return str(value)
-    elements = map(Serialize, value)
-    return "["+",".join(elements)+"]"
-
-
-def DeSerialize(string):
+def ReadTypeDict(string):
     dictionary = {}
     matches = re.findall(r"(\d*):\s*\[\s*\'([^']*?)\',\s*\[\s*([\d.]*)\s*,\s*([\d.]*)\s*,\s*([\d.]*)\s*\]\s*,\s*([\d.]*)\s*\]", string)
     for match in matches:
@@ -485,7 +471,7 @@ class MarkerHandler:
                         type_string = line[7:].strip()
                         if type_string[0] == "{":
                             try:
-                                types = DeSerialize(line[7:])
+                                types = ReadTypeDict(line[7:])
                             except:
                                 print("ERROR: Type specification in %s broken, use types from config instead" % logname)
                             continue
@@ -550,7 +536,7 @@ class MarkerHandler:
                     point.pos().x(), point.pos().y(), point.type, point.active, point.id, point.partner_id)
                     for point in self.points if point.active]
                 with open(self.current_logname, 'w') as fp:
-                    fp.write("#@types "+Serialize(types)+"\n")
+                    fp.write("#@types "+str(types)+"\n")
                     for line in data:
                         fp.write(line)
             print(self.current_logname + " saved")
