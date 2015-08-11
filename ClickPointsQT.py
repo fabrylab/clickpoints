@@ -1126,6 +1126,10 @@ class MarkerHandler:
             for index in range(0, len(self.points)):
                 self.points[index].setInvalidNewPoint()
         print("...done")
+        if self.active:
+            if self.active_type not in types.keys():
+                self.active_type = types.keys()[0]
+            self.SetActiveMarkerType(self.active_type)
         self.PointsUnsaved = False
 
     def RemovePoint(self, point):
