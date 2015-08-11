@@ -115,6 +115,11 @@ def PosToArray(pos):
 def Serialize(value):
     if type(value) == type(""):
         return "'"+value+"'"
+    if type(value) == type({}):
+        string = "{"
+        for key in value:
+            string += str(key)+": "+Serialize(value[key])+", "
+        return string[:-2]+"}"
     if type(value) != type([]):
         return str(value)
     elements = map(Serialize, value)
@@ -122,11 +127,11 @@ def Serialize(value):
 
 
 def DeSerialize(string):
-    array = []
-    matches = re.findall(r"\[\s*\'([^']*?)\',\s*\[\s*([\d.]*)\s*,\s*([\d.]*)\s*,\s*([\d.]*)\s*\]\s*,\s*([\d.]*)\s*\]", string)
+    dictionary = {}
+    matches = re.findall(r"(\d*):\s*\[\s*\'([^']*?)\',\s*\[\s*([\d.]*)\s*,\s*([\d.]*)\s*,\s*([\d.]*)\s*\]\s*,\s*([\d.]*)\s*\]", string)
     for match in matches:
-        array.append([match[0], map(float,match[1:4]), int(match[4])])
-    return array
+        dictionary[int(match[0])] = [match[1], map(float,match[2:5]), int(match[5])]
+    return dictionary
 
 
 class BigImageDisplay:
@@ -1065,12 +1070,14 @@ class MarkerHandler:
                 for index, line in enumerate(fp.readlines()):
                     line = line.strip()
                     if line[:7] == "#@types":
-                        try:
-                            types = DeSerialize(line[7:])
-                            self.UpdateCounter()
-                        except:
-                            print("ERROR: Type specification in %s broken, use types from config instead" % logname)
-                        continue
+                        type_string = line[7:].strip()
+                        if type_string[0] == "{":
+                            try:
+                                types = DeSerialize(line[7:])
+                                self.UpdateCounter()
+                            except:
+                                print("ERROR: Type specification in %s broken, use types from config instead" % logname)
+                            continue
                     if line[0] == '#':
                         continue
                     line = line.split(" ")
