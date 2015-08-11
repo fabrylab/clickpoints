@@ -1436,7 +1436,7 @@ class ClickPointsWindow(QMainWindow):
 
         # @key ---- Marker ----
         if self.MarkerHandler is not None:
-            if self.MarkerHandler.active and 0 <= numberkey < len(types):
+            if self.MarkerHandler.active and 0 <= numberkey < len(types) and event.modifiers() != Qt.KeypadModifier:
                 # @key 0-9: change marker type
                 self.MarkerHandler.SetActiveMarkerType(numberkey)
 
@@ -1452,7 +1452,7 @@ class ClickPointsWindow(QMainWindow):
                 self.MaskHandler.setActive(not self.MaskHandler.active)
 
         if self.MaskHandler is not None:
-            if self.MaskHandler.active and 0 <= numberkey < len(draw_types):
+            if self.MaskHandler.active and 0 <= numberkey < len(draw_types) and event.modifiers() != Qt.KeypadModifier:
                 # @key 0-9: change brush type
                 self.MaskHandler.SetActiveDrawType(numberkey)
 
