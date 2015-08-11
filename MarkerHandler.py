@@ -347,10 +347,10 @@ class Crosshair:
 
 
 class MyCounter(QGraphicsRectItem):
-    def __init__(self, parent, window, point_type):
+    def __init__(self, parent, MarkerHandler, point_type):
         QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
-        self.window = window
+        self.MarkerHandler = MarkerHandler
         self.type = point_type
         self.count = 0
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
@@ -372,7 +372,7 @@ class MyCounter(QGraphicsRectItem):
         self.setZValue(9)
 
         count = 0
-        for point in self.window.points:
+        for point in self.MarkerHandler.points:
             if point.type == self.type:
                 count += 1
         self.AddCount(count)
@@ -402,21 +402,21 @@ class MyCounter(QGraphicsRectItem):
             self.setBrush(QBrush(QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
-        global modules
         if event.button() == 1:
-            if not self.window.active:
-                for module in modules:
-                    if module != self.window:
+            if not self.MarkerHandler.active:
+                for module in self.MarkerHandler.modules:
+                    if module != self.MarkerHandler:
                         module.setActive(False)
-                self.window.setActive(True)
-            self.window.SetActiveMarkerType(self.type)
+                self.MarkerHandler.setActive(True)
+            self.MarkerHandler.SetActiveMarkerType(self.type)
 
 
 
 class MarkerHandler:
-    def __init__(self, parent, parent_hud, view, image_display, outputpath):
+    def __init__(self, parent, parent_hud, view, image_display, outputpath, modules):
         self.view = view
         self.parent_hud = parent_hud
+        self.modules = modules
         self.points = []
         self.counter = []
         self.active_type = 0
