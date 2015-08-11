@@ -124,10 +124,10 @@ class BigPaintableImageDisplay:
 
 
 class MyCounter2(QGraphicsRectItem):
-    def __init__(self, parent, window, point_type):
+    def __init__(self, parent, MaskHandler, point_type):
         QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
-        self.window = window
+        self.MaskHandler = MaskHandler
         self.type = point_type
         self.count = 0
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
@@ -182,20 +182,21 @@ class MyCounter2(QGraphicsRectItem):
 
     def mousePressEvent(self, event):
         if event.button() == 1:
-            if not self.window.active:
-                for module in modules:
-                    if module != self.window:
+            if not self.MaskHandler.active:
+                for module in self.MaskHandler.modules:
+                    if module != self.MaskHandler:
                         module.setActive(False)
-                self.window.setActive(True)
-            self.window.SetActiveDrawType(self.type)
+                self.MaskHandler.setActive(True)
+            self.MaskHandler.SetActiveDrawType(self.type)
 
 
 class MaskHandler:
-    def __init__(self, parent, parent_hud, view, image_display, outputpath):
+    def __init__(self, parent, parent_hud, view, image_display, outputpath, modules):
         self.view = view
         self.parent_hud = parent_hud
         self.ImageDisplay = image_display
         self.outputpath = outputpath
+        self.modules = modules
         self.MaskDisplay = BigPaintableImageDisplay(parent)
         self.DrawCursorSize = 10
         self.drawPathItem = QGraphicsPathItem(parent)

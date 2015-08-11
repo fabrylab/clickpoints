@@ -28,8 +28,6 @@ from ConfigLoad import *
 
 LoadConfig()
 
-modules = []
-
 
 class ClickPointsWindow(QMainWindow):
     def zoomEvent(self, scale, pos):
@@ -37,7 +35,6 @@ class ClickPointsWindow(QMainWindow):
             self.MarkerHandler.zoomEvent(scale, pos)
 
     def __init__(self, parent=None):
-        global modules
         super(QMainWindow, self).__init__(parent)
         self.setWindowTitle('Select Window')
 
@@ -49,19 +46,20 @@ class ClickPointsWindow(QMainWindow):
 
         self.ImageDisplay = BigImageDisplay(self.origin, self)
 
+        self.modules = []
         if len(types):
-            self.MarkerHandler = MarkerHandler(self.view.origin, self.view.hud, self.view, self.ImageDisplay, outputpath)
-            modules.append(self.MarkerHandler)
+            self.MarkerHandler = MarkerHandler(self.view.origin, self.view.hud, self.view, self.ImageDisplay, outputpath, self.modules)
+            self.modules.append(self.MarkerHandler)
         else:
             self.MarkerHandler = None
         if len(draw_types):
-            self.MaskHandler = MaskHandler(self.view.origin, self.view.hud_upperRight, self.view, self.ImageDisplay, outputpath)
-            modules.append(self.MaskHandler)
+            self.MaskHandler = MaskHandler(self.view.origin, self.view.hud_upperRight, self.view, self.ImageDisplay, outputpath, self.modules)
+            self.modules.append(self.MaskHandler)
             if len(types) == 0:
                 self.MaskHandler.changeOpacity(0.5)
         else:
             self.MaskHandler = None
-        modules[0].setActive(True)
+        self.modules[0].setActive(True)
 
         self.MediaHandler = MediaHandler(join(srcpath, filename))
 
