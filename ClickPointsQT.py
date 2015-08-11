@@ -479,6 +479,12 @@ class MyMarkerItem(QGraphicsPathItem):
             self.SetTrackActive(True)
             self.setOpacity(1)
         self.UpdateLine()
+        if self.partner:
+            if self.rectObj:
+                self.UpdateRect()
+            else:
+                self.partner.UpdateRect()
+                self.partner.setPos(self.partner.pos())
 
     def OnRemove(self):
         self.marker_handler.counter[self.type].AddCount(-1)
@@ -1055,7 +1061,6 @@ class MarkerHandler:
         for counter in self.counter:
             self.view.scene.removeItem(self.counter[counter])
         self.counter = {i: MyCounter(self.parent_hud, self, i) for i in types.keys()}
-        print(self.counter)
 
     def LoadImageEvent(self, filename, framenumber):
         if self.current_logname is not None:
