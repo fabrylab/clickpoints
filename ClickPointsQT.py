@@ -347,20 +347,20 @@ class BigPaintableImageDisplay:
 
 
 class MyMarkerItem(QGraphicsPathItem):
-    def __init__(self, x, y, parent, window, point_type, start_id=None, partner_id=None):
+    def __init__(self, x, y, parent, marker_handler, point_type, start_id=None, partner_id=None):
         global types, point_display_type
 
         QGraphicsPathItem.__init__(self, parent)
         self.parent = parent
         self.type = point_type
-        self.window = window
+        self.marker_handler = marker_handler
 
         self.scale_value = None
 
         self.UpdatePath()
 
-        if len(self.window.counter):
-            self.window.counter[self.type].AddCount(1)
+        if len(self.marker_handler.counter):
+            self.marker_handler.counter[self.type].AddCount(1)
 
         self.setBrush(QBrush(QColor(*types[self.type][1])))
         self.setPen(QPen(QColor(0, 0, 0, 0)))
@@ -382,13 +382,13 @@ class MyMarkerItem(QGraphicsPathItem):
         self.partner_id = partner_id
         if types[self.type][2] == 1 or types[self.type][2] == 2:
             if self.partner_id is not None:
-                for point in self.window.points:
+                for point in self.marker_handler.points:
                     if point.id == self.partner_id:
                         self.ConnectToPartner(point)
                         break
             if self.partner_id is None:
                 possible_partners = []
-                for point in self.window.points:
+                for point in self.marker_handler.points:
                     if point.type == self.type and point.partner is None:
                         possible_partners.append(
                             [point, np.linalg.norm(PosToArray(self.pos()) - PosToArray(point.pos()))])
@@ -405,10 +405,10 @@ class MyMarkerItem(QGraphicsPathItem):
                 self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2))
                 self.UpdateRect()
 
-        self.window.PointsUnsaved = True
+        self.marker_handler.PointsUnsaved = True
         self.setAcceptHoverEvents(True)
         if tracking is True:
-            self.track = {self.window.frame_number: [x, y, point_type]}
+            self.track = {self.marker_handler.frame_number: [x, y, point_type]}
             self.pathItem = QGraphicsPathItem(self.imgItem)
             self.path = QPainterPath()
             self.path.moveTo(x, y)
@@ -426,7 +426,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.addPoint(self.pos().x(), self.pos().y(), -1)
 
     def UpdateLine(self):
-        self.track[self.window.frame_number][:2] = [self.pos().x(), self.pos().y()]
+        self.track[self.marker_handler.frame_number][:2] = [self.pos().x(), self.pos().y()]
         self.path = QPainterPath()
         frames = sorted(self.track.keys())
         last_active = False
@@ -438,7 +438,7 @@ class MyMarkerItem(QGraphicsPathItem):
                     self.path.lineTo(x, y)
                 else:
                     self.path.moveTo(x, y)
-                if frame != self.window.frame_number:
+                if frame != self.marker_handler.frame_number:
                     self.path.addEllipse(x - .5 * circle_width, y - .5 * circle_width, circle_width, circle_width)
                 self.path.moveTo(x, y)
             last_active = marker_type != -1
@@ -449,18 +449,18 @@ class MyMarkerItem(QGraphicsPathItem):
             self.active = False
             self.setOpacity(0.5)
             self.pathItem.setOpacity(0.25)
-            self.track[self.window.frame_number][2] = -1
+            self.track[self.marker_handler.frame_number][2] = -1
         else:
             self.active = True
             self.setOpacity(1)
             self.pathItem.setOpacity(0.5)
-            self.track[self.window.frame_number][2] = self.type
+            self.track[self.marker_handler.frame_number][2] = self.type
 
     def addPoint(self, x, y, marker_type):
         if marker_type == -1:
             x, y = self.pos().x(), self.pos().y()
         self.setPos(x, y)
-        self.track[self.window.frame_number] = [x, y, marker_type]
+        self.track[self.marker_handler.frame_number] = [x, y, marker_type]
         if marker_type == -1:
             self.SetTrackActive(False)
         else:
@@ -469,14 +469,14 @@ class MyMarkerItem(QGraphicsPathItem):
         self.UpdateLine()
 
     def OnRemove(self):
-        self.window.counter[self.type].AddCount(-1)
+        self.marker_handler.counter[self.type].AddCount(-1)
         if self.partner and self.partner.rectObj:
-            self.window.view.scene.removeItem(self.partner.rectObj)
+            self.marker_handler.view.scene.removeItem(self.partner.rectObj)
             self.partner.rectObj = None
             self.partner.partner = None
         if self.rectObj:
             self.partner.partner = None
-            self.window.view.scene.removeItem(self.rectObj)
+            self.marker_handler.view.scene.removeItem(self.rectObj)
 
     def UpdateRect(self):
         x, y = self.pos().x(), self.pos().y()
@@ -490,22 +490,22 @@ class MyMarkerItem(QGraphicsPathItem):
         if event.button() == 2:
             if tracking is True:
                 self.SetTrackActive(self.active is False)
-                self.window.PointsUnsaved = True  #
+                self.marker_handler.PointsUnsaved = True  #
                 self.UpdateLine()
                 valid_frame_found = False
                 for frame in self.track:
                     if self.track[frame][2] != -1:
                         valid_frame_found = True
                 if not valid_frame_found:
-                    self.window.RemovePoint(self)
+                    self.marker_handler.RemovePoint(self)
             else:
-                self.window.RemovePoint(self)
+                self.marker_handler.RemovePoint(self)
         if event.button() == 1:
             self.dragged = True
             self.setCursor(QCursor(QtCore.Qt.BlankCursor))
             if self.UseCrosshair:
-                self.window.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
-                self.window.Crosshair.Show(self.type)
+                self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+                self.marker_handler.Crosshair.Show(self.type)
             pass
 
     def mouseMoveEvent(self, event):
@@ -518,7 +518,7 @@ class MyMarkerItem(QGraphicsPathItem):
         if tracking:
             self.UpdateLine()
         if self.UseCrosshair:
-            self.window.Crosshair.MoveCrosshair(pos.x(), pos.y())
+            self.marker_handler.Crosshair.MoveCrosshair(pos.x(), pos.y())
         if self.partner:
             if self.rectObj:
                 self.UpdateRect()
@@ -530,10 +530,10 @@ class MyMarkerItem(QGraphicsPathItem):
         if not self.dragged:
             return
         if event.button() == 1:
-            self.window.PointsUnsaved = True
+            self.marker_handler.PointsUnsaved = True
             self.dragged = False
             self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
-            self.window.Crosshair.Hide()
+            self.marker_handler.Crosshair.Hide()
             pass
 
     def SetActive(self, active):
@@ -1328,7 +1328,7 @@ class MaskHandler:
         return False
 
 
-class DrawImage(QMainWindow):
+class ClickPointsWindow(QMainWindow):
     def zoomEvent(self, scale, pos):
         if self.MarkerHandler is not None:
             self.MarkerHandler.zoomEvent(scale, pos)
@@ -1547,6 +1547,6 @@ if __name__ == '__main__':
     if outputpath is None:
         outputpath = srcpath
 
-    window = DrawImage()
+    window = ClickPointsWindow()
     window.show()
     app.exec_()
