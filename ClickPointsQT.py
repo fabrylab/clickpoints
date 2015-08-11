@@ -664,7 +664,7 @@ class MyCounter(QGraphicsRectItem):
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.setPos(10, 10 + 25 * self.type)
+        self.setPos(10, 10 + 25 * types.keys().index(self.type))
         self.setZValue(9)
 
         count = 0
@@ -675,7 +675,7 @@ class MyCounter(QGraphicsRectItem):
 
     def AddCount(self, new_count):
         self.count += new_count
-        self.text.setText(types[self.type][0] + " %d" % self.count)
+        self.text.setText(str(self.type+1)+": "+types[self.type][0] + " %d" % self.count)
         rect = self.text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
@@ -1044,8 +1044,9 @@ class MarkerHandler:
 
     def UpdateCounter(self):
         for counter in self.counter:
-            self.view.scene.removeItem(counter)
-        self.counter = [MyCounter(self.parent_hud, self, i) for i in range(len(types))]
+            self.view.scene.removeItem(self.counter[counter])
+        self.counter = {i: MyCounter(self.parent_hud, self, i) for i in types.keys()}
+        print(self.counter)
 
     def LoadImageEvent(self, filename, framenumber):
         if self.current_logname is not None:
@@ -1074,7 +1075,6 @@ class MarkerHandler:
                         if type_string[0] == "{":
                             try:
                                 types = DeSerialize(line[7:])
-                                self.UpdateCounter()
                             except:
                                 print("ERROR: Type specification in %s broken, use types from config instead" % logname)
                             continue
@@ -1112,6 +1112,7 @@ class MarkerHandler:
                         self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, marker_type, marker_id, partner_id))
                         self.points[-1].setScale(1 / self.scale)
                         self.points[-1].setActive(active)
+                self.UpdateCounter()
         else:
             for index in range(0, len(self.points)):
                 self.points[index].setInvalidNewPoint()
@@ -1141,6 +1142,8 @@ class MarkerHandler:
             self.PointsUnsaved = False
 
     def SetActiveMarkerType(self, new_type):
+        if new_type not in self.counter.keys():
+            return
         self.counter[self.active_type].SetToInactiveColor()
         self.active_type = new_type
         self.counter[self.active_type].SetToActiveColor()
@@ -1467,7 +1470,7 @@ class ClickPointsWindow(QMainWindow):
 
         # @key ---- Marker ----
         if self.MarkerHandler is not None:
-            if self.MarkerHandler.active and 0 <= numberkey < len(types) and event.modifiers() != Qt.KeypadModifier:
+            if self.MarkerHandler.active and 0 <= numberkey < 9 and event.modifiers() != Qt.KeypadModifier:
                 # @key 0-9: change marker type
                 self.MarkerHandler.SetActiveMarkerType(numberkey)
 
