@@ -723,7 +723,7 @@ class MyCounter2(QGraphicsRectItem):
         self.font = QFont()
         self.font.setPointSize(14)
 
-        self.label_text = "Color %d" % (point_type + 1)
+        self.label_text = "%d: Color %s" % (point_type + 1, chr(ord('A')+point_type))
         if len(draw_types[self.type]) == 3:
             self.label_text = draw_types[self.type][2]
 
