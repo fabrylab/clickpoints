@@ -68,6 +68,8 @@ if srcpath is None:
 if outputpath is not None and not os.path.exists(outputpath):
     os.makedirs(outputpath)  # recursive path creation
 
+draw_types = sorted(draw_types, key=lambda x: x[0])
+
 max_image_size = 2 ** 12
 
 modules = []
@@ -265,8 +267,6 @@ class BigPaintableImageDisplay:
 
         self.opacity = 0
         self.colormap = [QColor(i, i, i).rgba() for i in range(256)]
-        for drawtype in draw_types:
-            self.colormap[drawtype[0]] = QColor(*drawtype[1]).rgba()
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
@@ -287,6 +287,8 @@ class BigPaintableImageDisplay:
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
+        for drawtype in draw_types:
+            self.colormap[drawtype[0]] = QColor(*drawtype[1]).rgba()
         self.number_of_imagesX = int(np.ceil(image.size[0] / max_image_size))
         self.number_of_imagesY = int(np.ceil(image.size[1] / max_image_size))
         self.UpdatePixmapCount()
@@ -343,6 +345,11 @@ class BigPaintableImageDisplay:
             pixmap.setOpacity(opacity)
 
     def save(self, filename):
+        lut = np.zeros(3*256, np.uint8)
+        for draw_type in draw_types:
+            index = draw_type[0]
+            lut[index*3:(index+1)*3] = draw_type[1]
+        self.full_image.putpalette(lut)
         self.full_image.save(filename)
 
 
@@ -1165,6 +1172,7 @@ class MarkerHandler:
 class MaskHandler:
     def __init__(self, parent, parent_hud, view, image_display):
         self.view = view
+        self.parent_hud = parent_hud
         self.ImageDisplay = image_display
         self.MaskDisplay = BigPaintableImageDisplay(parent)
         self.DrawCursorSize = 10
@@ -1194,14 +1202,18 @@ class MaskHandler:
         self.DrawCursor.setVisible(False)
         self.UpdateDrawCursorSize()
 
-        self.counter = [MyCounter2(parent_hud, self, i) for i in range(len(draw_types))]
-
-        self.UpdateDrawCursorSize()
         self.DrawMode = False
-
         self.MaskChanged = False
         self.MaskUnsaved = False
         self.active = False
+
+        self.counter = []
+        self.UpdateCounter()
+
+    def UpdateCounter(self):
+        for counter in self.counter:
+            self.view.scene.removeItem(counter)
+        self.counter = [MyCounter2(self.parent_hud, self, i) for i in range(len(draw_types))]
 
     def LoadImageEvent(self, filename):
         if self.current_maskname is not None:
@@ -1214,6 +1226,7 @@ class MaskHandler:
         self.LoadMask(self.current_maskname)
 
     def LoadMask(self, maskname):
+        global draw_types
         mask_valid = False
         print("Loading " + maskname)
         if os.path.exists(maskname):
@@ -1228,6 +1241,14 @@ class MaskHandler:
         if not mask_valid:
             self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
         self.MaskUnsaved = False
+        if self.image_mask_full.mode == 'P':
+            a = np.array(map(ord,self.image_mask_full.palette.getdata()[1])).reshape(256,3)
+            new_draw_types = []
+            for index,color in enumerate(a):
+                if index == 0 or sum(color) != 0:
+                    new_draw_types.append([index, color])
+            draw_types = new_draw_types
+            self.UpdateCounter()
 
         self.MaskDisplay.SetImage(self.image_mask_full)
 
