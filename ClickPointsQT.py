@@ -1126,9 +1126,9 @@ class MarkerHandler:
             for index in range(0, len(self.points)):
                 self.points[index].setInvalidNewPoint()
         print("...done")
+        if self.active_type not in types.keys():
+            self.active_type = types.keys()[0]
         if self.active:
-            if self.active_type not in types.keys():
-                self.active_type = types.keys()[0]
             self.SetActiveMarkerType(self.active_type)
         self.PointsUnsaved = False
 
@@ -1275,6 +1275,10 @@ class MaskHandler:
                     new_draw_types.append([index, color])
             draw_types = new_draw_types
             self.UpdateCounter()
+        if self.active_draw_type >= len(draw_types):
+            self.active_draw_type = 0
+        if self.active:
+            self.SetActiveDrawType(self.active_draw_type)
 
         self.MaskDisplay.SetImage(self.image_mask_full)
 
