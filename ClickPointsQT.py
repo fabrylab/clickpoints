@@ -784,8 +784,9 @@ class HelpText(QGraphicsRectItem):
         self.help_text = QGraphicsSimpleTextItem(self)
         self.help_text.setFont(QFont("", 11))
         self.help_text.setPos(0, 10)
+        self.help_text.setBrush(QBrush(QColor(255, 255, 255)))
 
-        self.setBrush(QBrush(QColor(255, 255, 255, 255 - 32)))
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
         self.setPos(100, 100)
         self.setZValue(19)
 
@@ -840,9 +841,11 @@ class MySlider(QGraphicsRectItem):
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setFont(QFont("", 11))
         self.text.setPos(0, -23)
+        self.text.setBrush(QBrush(QColor("white")))
 
         self.sliderMiddel = QGraphicsRectItem(self)
         self.sliderMiddel.setRect(QRectF(0, 0, 100, 1))
+        self.sliderMiddel.setPen(QPen(QColor("white")))
 
         path = QPainterPath()
         path.addEllipse(-5, -5, 10, 10)
@@ -890,12 +893,18 @@ class BoxGrabber(QGraphicsRectItem):
         self.setRect(QRectF(0, 0, width, 10))
         self.setPos(parent.rect().x(), 0)
 
-        self.setBrush(QBrush(QColor(255, 255, 255, 255 - 32)))
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
 
         path = QPainterPath()
-        path.addRect(QRectF(5, 3, width - 10, 1))
-        path.addRect(QRectF(5, 6, width - 10, 1))
-        QGraphicsPathItem(path, self)
+        path.moveTo(5,3)
+        path.lineTo(width - 5, 3)
+        path.moveTo(5,6)
+        path.lineTo(width - 5, 6)
+        #path.addRect(QRectF(5, 3, width - 10, 1))
+        #path.addRect(QRectF(5, 6, width - 10, 1))
+        pathItem = QGraphicsPathItem(path, self)
+        pathItem.setPen(QPen(QColor(255, 255, 255)))
+        pathItem.setBrush(QBrush(QColor(255, 255, 255)))
 
         self.dragged = False
         self.drag_offset = None
@@ -921,13 +930,13 @@ class SliderBox(QGraphicsRectItem):
         self.image = image
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
-        self.setBrush(QBrush(QColor(255, 255, 255, 255 - 32)))
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
         self.setPos(100, 100)
         self.setZValue(19)
 
         self.hist = QGraphicsPathItem(self)
         self.hist.setPen(QPen(QColor(0, 0, 0, 0)))
-        self.hist.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.hist.setBrush(QBrush(QColor(255, 255, 255, 128)))
         self.hist.setPos(0, 110)
 
         self.conv = QGraphicsPathItem(self)
