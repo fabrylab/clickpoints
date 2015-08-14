@@ -13,7 +13,8 @@ except ImportError:
 
 import numpy as np
 
-from PIL import Image, ImageDraw, ImageQt
+from PIL import Image, ImageDraw
+import ImageQt
 from qimage2ndarray import array2qimage
 
 from Tools import *
