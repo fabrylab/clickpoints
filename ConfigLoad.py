@@ -17,6 +17,7 @@ import os
 from qimage2ndarray import array2qimage, rgb_view
 
 from Tools import *
+from regexpfilefilter import *
 
 TYPE_Normal = 0
 TYPE_Rect = 1
@@ -30,6 +31,8 @@ filename = None
 outputpath = None
 logname_tag = '_pos.txt'
 maskname_tag = '_mask.png'
+
+filterparam={}
 
 # marker types
 types = {0: ["juveniles", [255, 0, 0], TYPE_Normal],
@@ -51,6 +54,7 @@ def LoadConfig():
     global srcpath, filename, outputpath
     global logname_tag, maskname_tag
     global types, draw_types, addons, max_image_size
+    global filterparam
     # overwrite defaults with personal cfg if available
     config_filename = 'cp_cfg.txt'
     if len(sys.argv) >= 2:
