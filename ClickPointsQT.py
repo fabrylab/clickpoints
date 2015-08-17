@@ -61,7 +61,7 @@ class ClickPointsWindow(QMainWindow):
             self.MaskHandler = None
         self.modules[0].setActive(True)
 
-        self.MediaHandler = MediaHandler(join(srcpath, filename))
+        self.MediaHandler = MediaHandler(join(srcpath, filename),filterparam=filterparam)
 
         self.HelpText = HelpText(self, __file__)
 
