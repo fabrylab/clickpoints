@@ -275,8 +275,8 @@ class SliderBox(QGraphicsRectItem):
         QApplication.restoreOverrideCursor()
 
     def LoadImageEvent(self, filename="", frame_number=0):
-        self.hist.setPath(QPainterPath())
-        self.conv.setPath(QPainterPath())
+        if self.image.preview_rect is not None:
+            self.updateHist(self.image.hist)
 
     def mousePressEvent(self, event):
         pass
