@@ -91,7 +91,7 @@ class HelpText(QGraphicsRectItem):
 
 
 class MySlider(QGraphicsRectItem):
-    def __init__(self, parent, name="", max_value=100, min_value=0):
+    def __init__(self, parent, name="", start_value=None, max_value=100, min_value=0):
         QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
@@ -121,6 +121,9 @@ class MySlider(QGraphicsRectItem):
         self.dragged = False
 
         self.value = (self.maxValue + self.minValue) * 0.5
+        if start_value != None:
+            self.value = start_value
+        self.start_value = self.value
         self.setValue(self.value)
 
     def mousePressEvent(self, event):
@@ -135,11 +138,15 @@ class MySlider(QGraphicsRectItem):
             if x > 100: x = 100
             self.setValue(x / 100. * self.maxValue + self.minValue)
 
-    def setValue(self, value):
+    def reset(self):
+        self.setValue(self.start_value, True)
+
+    def setValue(self, value, noCall=False):
         self.value = value
         self.text.setText(self.name + ": " + self.format % value)
         self.slideMarker.setPos((value - self.minValue) * 100 / self.maxValue, 0)
-        self.valueChanged(value)
+        if not noCall:
+            self.valueChanged(value)
 
     def valueChanged(self, value):
         pass

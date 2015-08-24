@@ -153,6 +153,11 @@ class BigImageDisplay:
             self.UpdatePreviewImage()
             self.Change()
 
+    def ResetPreview(self):
+        self.preview_pixMapItem.setPixmap(QPixmap())
+        self.preview_slice = None
+        self.preview_rect = None
+
     def PreviewRect(self):
         self.preview_rect = self.window.view.GetExtend()
         self.UpdatePreviewImage()
@@ -231,9 +236,8 @@ class SliderBox(QGraphicsRectItem):
         start = [1, 255, 0]
         formats = ["%.2f", "%d", "%d"]
         for i, name in enumerate(["Gamma", "Max", "Min"]):
-            slider = MySlider(self, name, max_value=min_max[i][1], min_value=min_max[i][0])
+            slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0])
             slider.format = formats[i]
-            slider.setValue(start[i])
             slider.setPos(5, 40 + i * 30)
             slider.valueChanged = functions[i]
             self.sliders.append(slider)
@@ -279,12 +283,12 @@ class SliderBox(QGraphicsRectItem):
             self.updateHist(self.image.hist)
 
     def mousePressEvent(self, event):
-        pass
-
-    def mousePressEvent(self, event):
-        pass
-
-    def mousePressEvent(self, event):
+        if event.button() == 2:
+            for slider in self.sliders:
+                slider.reset()
+            self.image.ResetPreview()
+            self.hist.setPath(QPainterPath())
+            self.conv.setPath(QPainterPath())
         pass
 
     def keyPressEvent(self, event):
