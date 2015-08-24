@@ -22,35 +22,43 @@ from mediahandler import MediaHandler
 
 from MaskHandler import MaskHandler
 from MarkerHandler import MarkerHandler
+from PyViewer import Viewer
 
 from Tools import *
 from ConfigLoad import *
 
 LoadConfig()
 
-used_modules = [MarkerHandler, MaskHandler, SliderBox, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud"]
+used_modules = [MarkerHandler, MaskHandler, SliderBox, Viewer, HelpText]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud"]
 
-class ClickPointsWindow(QMainWindow):
+class ClickPointsWindow(QWidget):
     def zoomEvent(self, scale, pos):
         for module in self.modules:
             if "zoomEvent" in dir(module):
                 module.zoomEvent(scale, pos)
 
     def __init__(self, parent=None):
-        super(QMainWindow, self).__init__(parent)
+        super(QWidget, self).__init__(parent)
         self.setWindowTitle('Select Window')
 
-        self.view = QExtendedGraphicsView()
+        self.layout = QtGui.QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.layout)
+
+        ## view/scene setup
+        self.view = QExtendedGraphicsView(self)
         self.view.zoomEvent = self.zoomEvent
-        self.setCentralWidget(self.view)
         self.local_scene = self.view.scene
         self.origin = self.view.origin
+        self.layout.addWidget(self.view)
 
         self.ImageDisplay = BigImageDisplay(self.origin, self)
 
+        self.MediaHandler = MediaHandler(join(srcpath, filename), filterparam=filterparam)
+
         self.modules = []
-        arg_dict = {"window": self, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": outputpath, "modules": self.modules, "file": __file__}
+        arg_dict = {"window": self, "layout": self.layout, "MediaHandler": self.MediaHandler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": outputpath, "modules": self.modules, "file": __file__}
         for mod, hud in zip(used_modules, used_huds):
             allowed = True
             if "can_create_module" in dir(mod):
@@ -68,7 +76,6 @@ class ClickPointsWindow(QMainWindow):
         for module in self.modules:
             if "setActive" in dir(module) and module.setActive(True, True):
                 break
-        self.MediaHandler = MediaHandler(join(srcpath, filename), filterparam=filterparam)
 
         self.UpdateImage()
 
@@ -96,6 +103,9 @@ class ClickPointsWindow(QMainWindow):
         self.save()
         if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos() + amount):
             self.UpdateImage()
+        for module in self.modules:
+            if "FrameChangeEvent" in dir(module):
+                module.FrameChangeEvent()
         QApplication.restoreOverrideCursor()
 
     def keyPressEvent(self, event):
@@ -107,6 +117,13 @@ class ClickPointsWindow(QMainWindow):
         if event.key() == QtCore.Qt.Key_F:
             # @key F: fit image to view
             self.view.fitInView()
+
+        # @key W: fullscreen toggle
+        if event.key() == QtCore.Qt.Key_W:
+            if self.isFullScreen():
+                self.setWindowState(Qt.WindowMaximized)
+            else:
+                self.setWindowState(Qt.WindowFullScreen)
 
         if event.key() == QtCore.Qt.Key_S:
             # @key S: save marker and mask
