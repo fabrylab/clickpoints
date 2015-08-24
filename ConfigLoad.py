@@ -91,6 +91,8 @@ class BigImageDisplay:
         self.preview_qimage = None
         self.preview_qimageView = None
 
+        self.preview_rect = None
+
         self.gamma = 1
         self.min = 0
         self.max = 255
@@ -147,9 +149,16 @@ class BigImageDisplay:
                 self.pixMapItems[i].setOffset(start_x, start_y)
         self.preview_pixMapItem.setPixmap(QPixmap())
         self.preview_slice = None
+        if self.preview_rect is not None:
+            self.UpdatePreviewImage()
+            self.Change()
 
     def PreviewRect(self):
-        start_x, start_y, end_x, end_y = self.window.view.GetExtend()
+        self.preview_rect = self.window.view.GetExtend()
+        self.UpdatePreviewImage()
+
+    def UpdatePreviewImage(self):
+        start_x, start_y, end_x, end_y = self.preview_rect
         if start_x < 0: start_x = 0
         if start_y < 0: start_y = 0
         if end_x > self.image.shape[1]: end_x = self.image.shape[1]
