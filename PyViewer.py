@@ -15,7 +15,7 @@ from PyQt4.QtCore import *
 from qimage2ndarray import array2qimage, rgb_view
 
 import mediahandler as mh
-#import annotationhandler as ah
+import annotationhandler as ah
 
 
 class Viewer():
@@ -181,10 +181,10 @@ class Viewer():
         # @key R: rotate by 90deg
         if event.key() == QtCore.Qt.Key_R:
             self.view.rotate(90)
-        # @key Space: RUN/PAUSE
+        # @key Space: run/pause
         if event.key() == QtCore.Qt.Key_Space:
             self.pbPlay.toggle()
-        # @key A: ANNOTATION
+        # @key A: add/edit annotation
         if event.key() == QtCore.Qt.Key_A:
             self.w = ah.AnnotationHandler(self.m.getCurrentFilename(nr=self.m.currentPos-1))
             self.w.show()
