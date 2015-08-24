@@ -25,9 +25,11 @@ def disk(radius):
 def PosToArray(pos):
     return np.array([pos.x(), pos.y()])
 
+def rotate_list(l,n):
+    return l[n:] + l[:n]
 
 class HelpText(QGraphicsRectItem):
-    def __init__(self, window, file):
+    def __init__(self, window, file, modules=[]):
         QGraphicsRectItem.__init__(self, window.view.hud)
 
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
@@ -41,7 +43,11 @@ class HelpText(QGraphicsRectItem):
         self.setPos(100, 100)
         self.setZValue(19)
 
+        self.text = ""
         self.UpdateText(file)
+        for mod in modules:
+            self.UpdateText(mod.file())
+        self.DisplayText()
         BoxGrabber(self)
         self.setVisible(False)
 
@@ -53,13 +59,16 @@ class HelpText(QGraphicsRectItem):
 
     def UpdateText(self, file):
         import re
-        text = ""
+        if file[-4:] == ".pyc":
+            file = file[:-4]+".py"
         with open(file) as fp:
             for line in fp.readlines():
                 m = re.match(r'\w*# @key (.*)$', line.strip())
                 if m:
-                    text += m.groups()[0].replace(":", ":\t", 1) + "\n"
-        self.help_text.setText(text[:-1])
+                    self.text += m.groups()[0].replace(":", ":\t", 1) + "\n"
+
+    def DisplayText(self):
+        self.help_text.setText(self.text[:-1])
         rect = self.help_text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
@@ -74,6 +83,11 @@ class HelpText(QGraphicsRectItem):
 
     def mouseReleaseEvent(self, event):
         pass
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_F1:
+            # @key F1: toggle help window
+            self.ShowHelpText()
 
 
 class MySlider(QGraphicsRectItem):

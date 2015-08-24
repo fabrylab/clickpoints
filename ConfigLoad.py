@@ -196,14 +196,14 @@ class BigImageDisplay:
 
 
 class SliderBox(QGraphicsRectItem):
-    def __init__(self, parent, image):
-        QGraphicsRectItem.__init__(self, parent)
+    def __init__(self, parent_hud, image_display):
+        QGraphicsRectItem.__init__(self, parent_hud)
 
-        self.image = image
+        self.image = image_display
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.setPos(100, 100)
+        self.setPos(-140, -140)
         self.setZValue(19)
 
         self.hist = QGraphicsPathItem(self)
@@ -265,7 +265,7 @@ class SliderBox(QGraphicsRectItem):
         self.updateConv()
         QApplication.restoreOverrideCursor()
 
-    def LoadImageEvent(self):
+    def LoadImageEvent(self, filename="", frame_number=0):
         self.hist.setPath(QPainterPath())
         self.conv.setPath(QPainterPath())
 
@@ -277,3 +277,18 @@ class SliderBox(QGraphicsRectItem):
 
     def mousePressEvent(self, event):
         pass
+
+    def keyPressEvent(self, event):
+
+        # @key ---- Gamma/Brightness Adjustment ---
+        if event.key() == Qt.Key_Space:
+            # @key Space: update rect
+            QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+            self.image.PreviewRect()
+            self.image.Change()
+            self.updateHist(self.image.hist)
+            QApplication.restoreOverrideCursor()
+
+    @staticmethod
+    def file():
+        return __file__

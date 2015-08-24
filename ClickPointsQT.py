@@ -28,11 +28,14 @@ from ConfigLoad import *
 
 LoadConfig()
 
+used_modules = [MarkerHandler, MaskHandler, SliderBox, HelpText]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud"]
 
 class ClickPointsWindow(QMainWindow):
     def zoomEvent(self, scale, pos):
-        if self.MarkerHandler is not None:
-            self.MarkerHandler.zoomEvent(scale, pos)
+        for module in self.modules:
+            if "zoomEvent" in dir(module):
+                module.zoomEvent(scale, pos)
 
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
@@ -47,26 +50,25 @@ class ClickPointsWindow(QMainWindow):
         self.ImageDisplay = BigImageDisplay(self.origin, self)
 
         self.modules = []
-        if len(types):
-            self.MarkerHandler = MarkerHandler(self.view.origin, self.view.hud, self.view, self.ImageDisplay, outputpath, self.modules)
-            self.modules.append(self.MarkerHandler)
-        else:
-            self.MarkerHandler = None
-        if len(draw_types):
-            self.MaskHandler = MaskHandler(self.view.origin, self.view.hud_upperRight, self.view, self.ImageDisplay, outputpath, self.modules)
-            self.modules.append(self.MaskHandler)
-            if len(types) == 0:
-                self.MaskHandler.changeOpacity(0.5)
-        else:
-            self.MaskHandler = None
-        self.modules[0].setActive(True)
-
-        self.MediaHandler = MediaHandler(join(srcpath, filename),filterparam=filterparam)
-
-        self.HelpText = HelpText(self, __file__)
-
-        self.slider = SliderBox(self.view.hud_lowerRight, self.ImageDisplay)
-        self.slider.setPos(-140, -140)
+        arg_dict = {"window": self, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": outputpath, "modules": self.modules, "file": __file__}
+        for mod, hud in zip(used_modules, used_huds):
+            allowed = True
+            if "can_create_module" in dir(mod):
+                allowed = mod.can_create_module()
+            if allowed:
+                # Get a list of the arguments the function tages
+                arg_name_list = mod.__init__.func_code.co_varnames[:mod.__init__.func_code.co_argcount]
+                # Set the proper hud argument
+                arg_dict["parent_hud"] = eval("self.view."+hud)
+                # Filter out only the arguments the function wants
+                arg_dict2 = {k: v for k, v in arg_dict.items() if k in arg_name_list}
+                # Initialize the module
+                self.modules.append(mod(**arg_dict2))
+        # Find next module, which can be activated
+        for module in self.modules:
+            if "setActive" in dir(module) and module.setActive(True, True):
+                break
+        self.MediaHandler = MediaHandler(join(srcpath, filename), filterparam=filterparam)
 
         self.UpdateImage()
 
@@ -77,107 +79,73 @@ class ClickPointsWindow(QMainWindow):
         self.setWindowTitle(filename)
 
         self.LoadImage()
-        if self.MarkerHandler:
-            self.MarkerHandler.LoadImageEvent(filename, frame_number)
-        if self.MaskHandler:
-            self.MaskHandler.LoadImageEvent(filename)
-        self.slider.LoadImageEvent()
+        for module in self.modules:
+            if "LoadImageEvent" in dir(module):
+                module.LoadImageEvent(filename, frame_number)
 
     def LoadImage(self):
         self.ImageDisplay.SetImage(self.MediaHandler.getCurrentImg())
 
-    def SaveMaskAndPoints(self):
-        if self.MarkerHandler is not None:
-            self.MarkerHandler.SavePoints()
-        if self.MaskHandler is not None:
-            self.MaskHandler.SaveMask()
+    def save(self):
+        for module in self.modules:
+            if "save" in dir(module):
+                module.save()
 
     def JumpFrames(self, amount):
         QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-        self.SaveMaskAndPoints()
+        self.save()
         if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos() + amount):
             self.UpdateImage()
         QApplication.restoreOverrideCursor()
 
     def keyPressEvent(self, event):
-        sys.stdout.flush()
+
+        for module in self.modules:
+            module.keyPressEvent(event)
 
         # @key ---- General ----
-        if event.key() == QtCore.Qt.Key_F1:
-            # @key F1: toggle help window
-            self.HelpText.ShowHelpText()
-
         if event.key() == QtCore.Qt.Key_F:
             # @key F: fit image to view
             self.view.fitInView()
 
-        numberkey = event.key() - 49
-
         if event.key() == QtCore.Qt.Key_S:
             # @key S: save marker and mask
-            self.SaveMaskAndPoints()
+            self.save()
 
         if event.key() == QtCore.Qt.Key_L:
             # @key L: load marker and mask from last image
-            if (self.MarkerHandler and self.MarkerHandler.last_logname) or \
-                    (self.MaskHandler and self.MaskHandler.last_maskname):
+            last_available = False
+            for module in self.modules:
+                if "canLoadLast" in dir(module) and module.canLoadLast():
+                    last_available = True
+                    break
+            if last_available:
                 # saveguard/confirmation with MessageBox
-                reply = QMessageBox.question(None, 'Warning', 'Load Mask & Points of last Image?', QMessageBox.Yes,
+                reply = QMessageBox.question(None, 'Warning', 'Load data of last Image?', QMessageBox.Yes,
                                              QMessageBox.No)
                 if reply == QMessageBox.Yes:
-                    print('Loading last mask & points ...')
-                    # load mask and log of last image
-                    if self.MarkerHandler:
-                        self.MarkerHandler.LoadLog(self.MarkerHandler.last_logname)
-                        self.MarkerHandler.PointsUnsaved = True
-                    if self.MaskHandler:
-                        self.MaskHandler.LoadMask(self.MaskHandler.last_maskname)
-                        self.MaskHandler.MaskUnsaved = True
-                        self.MaskHandler.RedrawMask()
+                    print('Loading data of last image ...')
+                    for module in self.modules:
+                        if "loadLast" in dir(module):
+                            module.loadLast()
 
-        # @key ---- Marker ----
-        if self.MarkerHandler is not None:
-            if self.MarkerHandler.active and 0 <= numberkey < 9 and event.modifiers() != Qt.KeypadModifier:
-                # @key 0-9: change marker type
-                self.MarkerHandler.SetActiveMarkerType(numberkey)
-
-            if event.key() == QtCore.Qt.Key_T:
-                # @key T: toggle marker shape
-                self.MarkerHandler.toggleMarkerShape()
-
-        # @key ---- Painting ----
+        # @key ---- Modules ----
         if event.key() == QtCore.Qt.Key_P:
-            # @key P: toogle brush mode
-            if self.MarkerHandler is not None and self.MaskHandler is not None:
-                self.MarkerHandler.setActive(not self.MarkerHandler.active)
-                self.MaskHandler.setActive(not self.MaskHandler.active)
-
-        if self.MaskHandler is not None:
-            if self.MaskHandler.active and 0 <= numberkey < len(draw_types) and event.modifiers() != Qt.KeypadModifier:
-                # @key 0-9: change brush type
-                self.MaskHandler.SetActiveDrawType(numberkey)
-
-            if event.key() == QtCore.Qt.Key_K:
-                # @key K: pick color of brush
-                self.MaskHandler.PickColor()
-
-            if event.key() == QtCore.Qt.Key_Plus:
-                # @key +: increase brush radius
-                self.MaskHandler.changeCursorSize(+1)
-            if event.key() == QtCore.Qt.Key_Minus:
-                # @key -: decrease brush radius
-                self.MaskHandler.changeCursorSize(-1)
-            if event.key() == QtCore.Qt.Key_O:
-                # @key O: increase mask transparency
-                self.MaskHandler.changeOpacity(+0.1)
-
-            if event.key() == QtCore.Qt.Key_I:
-                # @key I: decrease mask transparency
-                self.MaskHandler.changeOpacity(-0.1)
-
-            if event.key() == QtCore.Qt.Key_M:
-                # @key M: redraw the mask
-                self.MaskHandler.RedrawMask()
+            # @key P: change active module
+            # Find active module
+            index = -1
+            for cur_index, module in enumerate(self.modules):
+                if "active" in dir(module) and module.active:
+                    index = cur_index
+            # Deactivate current module
+            if index != -1:
+                self.modules[index].setActive(False)
+            else:
+                index = 0
+            # Find next module, which can be activated
+            for cur_index in rotate_list(range(len(self.modules)), index+1):
+                if "setActive" in dir(self.modules[cur_index]) and self.modules[cur_index].setActive(True):
+                    break
 
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left:
@@ -188,48 +156,16 @@ class ClickPointsWindow(QMainWindow):
             self.JumpFrames(+1)
 
         # JUMP keys
-        if event.key() == Qt.Key_2 and event.modifiers() == Qt.KeypadModifier:
-            # @key Numpad 2: Jump -1 frame
-            self.JumpFrames(-1)
-            print('-1')
-        if event.key() == Qt.Key_3 and event.modifiers() == Qt.KeypadModifier:
-            # @key Numpad 3: Jump +1 frame
-            self.JumpFrames(+1)
-            print('+1')
-        if event.key() == Qt.Key_5 and event.modifiers() == Qt.KeypadModifier:
-            # @key Numpad 5: Jump -10 frame
-            self.JumpFrames(-10)
-            print('-10')
-        if event.key() == Qt.Key_6 and event.modifiers() == Qt.KeypadModifier:
-            # @key Numpad 6: Jump +10 frame
-            self.JumpFrames(+10)
-            print('+10')
-        if event.key() == Qt.Key_8 and event.modifiers() == Qt.KeypadModifier:
-            # @key Numpad 8: Jump -100 frame
-            self.JumpFrames(-100)
-            print('-100')
-        if event.key() == Qt.Key_9 and event.modifiers() == Qt.KeypadModifier:
-            # @key Numpad 9: Jump +100 frame
-            self.JumpFrames(+100)
-            print('+100')
-        if event.key() == Qt.Key_Slash and event.modifiers() == Qt.KeypadModifier:
-            # @key Numpad /: Jump -1000 frame
-            self.JumpFrames(-1000)
-            print('-1000')
-        if event.key() == Qt.Key_Asterisk and event.modifiers() == Qt.KeypadModifier:
-            # @key Numpad *: Jump +1000 frame
-            self.JumpFrames(+1000)
-            print('+1000')
-
-        # @key ---- Gamma/Brightness Adjustment ---
-        if event.key() == Qt.Key_Space:
-            # @key Space: update rect
-            QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-            self.ImageDisplay.PreviewRect()
-            self.ImageDisplay.Change()
-            self.slider.updateHist(self.ImageDisplay.hist)
-            QApplication.restoreOverrideCursor()
-
+        # @key Numpad 2,3: Jump -/+ 1 frame
+        # @key Numpad 5,6: Jump -/+ 10 frames
+        # @key Numpad 8,9: Jump -/+ 100 frames
+        # @key Numpad /,*: Jump -/+ 100 frames
+        keys = [Qt.Key_2, Qt.Key_3, Qt.Key_5, Qt.Key_6, Qt.Key_8, Qt.Key_9, Qt.Key_Slash, Qt.Key_Asterisk]
+        jumps = [     -1,       +1,      -10,      +10,     -100,     +100,        -1000,           +1000]
+        for key, jump in zip(keys, jumps):
+            if event.key() == key and event.modifiers() == Qt.KeypadModifier:
+                self.JumpFrames(jump)
+                print(jump)
 
 for addon in addons:
     with open(addon + ".py") as f:
