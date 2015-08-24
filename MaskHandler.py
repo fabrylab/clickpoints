@@ -116,10 +116,10 @@ class BigPaintableImageDisplay:
             pixmap.setOpacity(opacity)
 
     def save(self, filename):
-        lut = np.zeros(3*256, np.uint8)
+        lut = np.zeros(3 * 256, np.uint8)
         for draw_type in draw_types:
             index = draw_type[0]
-            lut[index*3:(index+1)*3] = draw_type[1]
+            lut[index * 3:(index + 1) * 3] = draw_type[1]
         self.full_image.putpalette(lut)
         self.full_image.save(filename)
 
@@ -139,7 +139,7 @@ class MyCounter2(QGraphicsRectItem):
         self.font = QFont()
         self.font.setPointSize(14)
 
-        self.label_text = "%d: Color %s" % (point_type + 1, chr(ord('A')+point_type))
+        self.label_text = "%d: Color %s" % (point_type + 1, chr(ord('A') + point_type))
         if len(draw_types[self.type]) == 3:
             self.label_text = draw_types[self.type][2]
 
@@ -239,7 +239,7 @@ class MaskHandler:
             self.view.scene.removeItem(counter)
         self.counter = [MyCounter2(self.parent_hud, self, i) for i in range(len(draw_types))]
 
-    def LoadImageEvent(self, filename):
+    def LoadImageEvent(self, filename, frame_number):
         if self.current_maskname is not None:
             self.last_maskname = self.current_maskname
         self.MaskChanged = False
@@ -266,9 +266,9 @@ class MaskHandler:
             self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
         self.MaskUnsaved = False
         if self.image_mask_full.mode == 'P':
-            a = np.array(map(ord,self.image_mask_full.palette.getdata()[1])).reshape(256,3)
+            a = np.array(map(ord, self.image_mask_full.palette.getdata()[1])).reshape(256, 3)
             new_draw_types = []
-            for index,color in enumerate(a):
+            for index, color in enumerate(a):
                 if index == 0 or sum(color) != 0:
                     new_draw_types.append([index, color])
             draw_types = new_draw_types
@@ -286,12 +286,12 @@ class MaskHandler:
         self.drawPathItem.setPen(pen)
         draw_cursor_path = QPainterPath()
         draw_cursor_path.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
-                                  self.DrawCursorSize)
+                                    self.DrawCursorSize)
 
         self.DrawCursor.setPen(QPen(QColor(*draw_types[self.active_draw_type][1])))
         self.DrawCursor.setPath(draw_cursor_path)
 
-    def SaveMask(self):
+    def save(self):
         if self.MaskUnsaved:
             self.MaskDisplay.save(self.current_maskname)
             print(self.current_maskname + " saved")
@@ -303,7 +303,7 @@ class MaskHandler:
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
 
-    def setActive(self, active):
+    def setActive(self, active, first_time=False):
         self.scene_event_filter.active = active
         self.active = active
         self.DrawCursor.setVisible(active)
@@ -312,6 +312,9 @@ class MaskHandler:
             self.counter[self.active_draw_type].SetToActiveColor()
         else:
             self.counter[self.active_draw_type].SetToInactiveColor()
+        if first_time:
+            self.changeOpacity(0.5)
+        return True
 
     def changeOpacity(self, value):
         self.mask_opacity += value
@@ -375,3 +378,48 @@ class MaskHandler:
             if color is not None:
                 self.color_under_cursor = color
         return False
+
+    def keyPressEvent(self, event):
+        numberkey = event.key() - 49
+        # @key ---- Painting ----
+        if self.active and 0 <= numberkey < len(draw_types) and event.modifiers() != Qt.KeypadModifier:
+            # @key 0-9: change brush type
+            self.SetActiveDrawType(numberkey)
+
+        if event.key() == QtCore.Qt.Key_K:
+            # @key K: pick color of brush
+            self.PickColor()
+
+        if event.key() == QtCore.Qt.Key_Plus:
+            # @key +: increase brush radius
+            self.changeCursorSize(+1)
+        if event.key() == QtCore.Qt.Key_Minus:
+            # @key -: decrease brush radius
+            self.changeCursorSize(-1)
+        if event.key() == QtCore.Qt.Key_O:
+            # @key O: increase mask transparency
+            self.changeOpacity(+0.1)
+
+        if event.key() == QtCore.Qt.Key_I:
+            # @key I: decrease mask transparency
+            self.changeOpacity(-0.1)
+
+        if event.key() == QtCore.Qt.Key_M:
+            # @key M: redraw the mask
+            self.RedrawMask()
+
+    def loadLast(self):
+        self.LoadMask(self.last_maskname)
+        self.MaskUnsaved = True
+        self.RedrawMask()
+
+    def canLoadLast(self):
+        return self.last_maskname != None
+
+    @staticmethod
+    def file():
+        return __file__
+
+    @staticmethod
+    def can_create_module():
+        return len(draw_types) > 0

@@ -259,6 +259,7 @@ class MyMarkerItem(QGraphicsPathItem):
         else:
             self.setAcceptedMouseButtons(Qt.MouseButtons(0))
             self.unsetCursor()
+        return True
 
     def UpdatePath(self):
         self.setPath(point_display_types[point_display_type])
@@ -526,7 +527,7 @@ class MarkerHandler:
         self.view.scene.removeItem(point)
         self.PointsUnsaved = True
 
-    def SavePoints(self):
+    def save(self):
         if self.PointsUnsaved:
             if len(self.points) == 0:
                 if os.path.exists(self.current_logname):
@@ -555,7 +556,7 @@ class MarkerHandler:
             point.setScale(1 / scale)
         self.Crosshair.Crosshair.setScale(1 / scale)
 
-    def setActive(self, active):
+    def setActive(self, active, first_time=False):
         self.scene_event_filter.active = active
         self.active = active
         for point in self.points:
@@ -565,6 +566,7 @@ class MarkerHandler:
             self.counter[self.active_type].SetToActiveColor()
         else:
             self.counter[self.active_type].SetToInactiveColor()
+        return True
 
     def toggleMarkerShape(self):
         global point_display_type
@@ -581,4 +583,33 @@ class MarkerHandler:
             self.points[-1].setScale(1 / self.scale)
             return True
         return False
+
+    def keyPressEvent(self, event):
+
+        numberkey = event.key() - 49
+
+        # @key ---- Marker ----
+        if self.active and 0 <= numberkey < 9 and event.modifiers() != Qt.KeypadModifier:
+            # @key 0-9: change marker type
+            self.SetActiveMarkerType(numberkey)
+
+        if event.key() == QtCore.Qt.Key_T:
+            # @key T: toggle marker shape
+            self.toggleMarkerShape()
+
+    def loadLast(self):
+        self.LoadLog(self.last_logname)
+        self.PointsUnsaved = True
+
+    def canLoadLast(self):
+        return self.last_logname != None
+
+    @staticmethod
+    def file():
+        return __file__
+
+    @staticmethod
+    def can_create_module():
+        return len(types) > 0
+
 
