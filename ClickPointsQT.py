@@ -47,7 +47,7 @@ class ClickPointsWindow(QWidget):
         self.setLayout(self.layout)
 
         ## view/scene setup
-        self.view = QExtendedGraphicsView(self)
+        self.view = QExtendedGraphicsView()
         self.view.zoomEvent = self.zoomEvent
         self.local_scene = self.view.scene
         self.origin = self.view.origin
