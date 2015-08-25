@@ -19,7 +19,7 @@ import annotationhandler as ah
 
 
 class Viewer():
-    def __init__(self, window, parent=None, MediaHandler=None, layout=None):
+    def __init__(self, window, parent=None, MediaHandler=None, layout=None, outputpath=None):
         self.window = window
         if MediaHandler is None:
             self.m = mh.MediaHandler(path,rettype='qpixmap')
@@ -33,6 +33,8 @@ class Viewer():
             self.fps = 1
             self.skip = 0
             self.lastskip=0
+
+        self.outputpath=outputpath
 
         self.layout = layout
 
@@ -186,7 +188,7 @@ class Viewer():
             self.pbPlay.toggle()
         # @key A: add/edit annotation
         if event.key() == QtCore.Qt.Key_A:
-            self.w = ah.AnnotationHandler(self.m.getCurrentFilename(nr=self.m.currentPos-1))
+            self.w = ah.AnnotationHandler(self.m.getCurrentFilename(nr=self.m.currentPos),outputpath=self.outputpath)
             self.w.show()
 
     @staticmethod
