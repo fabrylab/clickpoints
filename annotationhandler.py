@@ -10,12 +10,13 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 class AnnotationHandler(QWidget):
-    def __init__(self,filename):
+    def __init__(self,filename,outputpath=''):
         QWidget.__init__(self)
 
         # default settings and parameters
         self.defsuffix='_annot.txt'
         self.reffilename=filename
+        self.outputpath=outputpath
 
         try:
             name,ext=os.path.splitext(filename[1])
@@ -53,13 +54,28 @@ class AnnotationHandler(QWidget):
         self.layout.addWidget(self.pteAnnotation,2,0,5,2)
 
         #TODO: check for existing file and read if available
+        if (self.outputpath==''):
+            f=QFile(os.path.join(self.reffilename[0],self.annotfilename))
+            print os.path.join(self.reffilename[0],self.annotfilename)
+        else:
+            f=QFile(os.path.join(self.outputpath,self.annotfilename))
+
+        if f.exists():
+            f.open(QFile.ReadWrite)
+            inS = QTextStream(f)
+            string=inS.readAll()
+            self.pteAnnotation.setPlainText(string)
+
 
 
     def saveAnnotation(self):
         print "SAVE"
         #TODO: error handling
-        f=QFile(os.path.join(self.reffilename[0],self.annotfilename))
-        print os.path.join(self.reffilename[0],self.annotfilename)
+        if (self.outputpath==''):
+            f=QFile(os.path.join(self.reffilename[0],self.annotfilename))
+            print os.path.join(self.reffilename[0],self.annotfilename)
+        else:
+            f=QFile(os.path.join(self.outputpath,self.annotfilename))
         f.open(QFile.ReadWrite)
         if not f.isOpen():
             print "WARNING - cant open file"
