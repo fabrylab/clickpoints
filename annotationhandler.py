@@ -143,8 +143,15 @@ class AnnotationHandler(QWidget):
         self.lbRating = QLabel(self)
         self.lbRating.setText('Rating:')
         self.layout.addWidget(self.lbRating,4,2)
-        self.leRating = QLineEdit(self)
-        self.leRating.setText('uninit')
+        self.leRating = QComboBox(self)
+        self.leRating.insertItem(0,'0 - none')
+        self.leRating.insertItem(1,'1 - bad')
+        self.leRating.insertItem(2,'2')
+        self.leRating.insertItem(3,'3')
+        self.leRating.insertItem(4,'4')
+        self.leRating.insertItem(5,'5 - good')
+        self.leRating.setCurrentIndex(0)
+        self.leRating.setInsertPolicy(QComboBox.NoInsert)
         self.layout.addWidget(self.leRating,4,3)
 
         self.pbConfirm = QPushButton(self)
@@ -190,7 +197,7 @@ class AnnotationHandler(QWidget):
         self.leSystem.setText(self.results['system'])
         self.leCamera.setText(self.results['camera'])
         self.leTag.setText(self.results['tags'])
-        self.leRating.setText(self.results['rating'])
+        self.leRating.setCurrentIndex(int(self.results['rating']))
 
         # update comment
         self.pteAnnotation.setPlainText(self.comment)
@@ -223,7 +230,7 @@ class AnnotationHandler(QWidget):
 
             # update with gui changes
             self.results['tags']=self.leTag.text()
-            self.results['rating']=self.leRating.text()
+            self.results['rating']=self.leRating.currentIndex()
 
             #write to file
             out = QTextStream(f)
