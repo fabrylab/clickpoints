@@ -16,6 +16,7 @@ from qimage2ndarray import array2qimage, rgb_view
 
 import mediahandler as mh
 import annotationhandler as ah
+import annotationoverview as ao
 
 
 class Viewer():
@@ -190,7 +191,10 @@ class Viewer():
         if event.key() == QtCore.Qt.Key_A:
             self.w = ah.AnnotationHandler(self.m.getCurrentFilename(nr=self.m.currentPos),outputpath=self.outputpath)
             self.w.show()
-
+        # @key Y: show annotation overview
+        if event.key() == QtCore.Qt.Key_Y:
+            self.y = ao.AnnotationOverview(self.window,self.m,outputpath=self.outputpath)
+            self.y.show()
     @staticmethod
     def file():
         return __file__
