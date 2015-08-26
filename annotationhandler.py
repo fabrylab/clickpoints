@@ -65,6 +65,7 @@ class AnnotationHandler(QWidget):
             inS = QTextStream(f)
             string=inS.readAll()
             self.pteAnnotation.setPlainText(string)
+            f.close()
 
 
 
