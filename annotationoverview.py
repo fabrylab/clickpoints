@@ -10,6 +10,8 @@ from PyQt4.QtCore import *
 import glob
 from natsort import natsorted
 
+from annotationhandler import *
+
 class AnnotationOverview(QWidget):
     def __init__(self,window,mediahandler,outputpath=''):
         QWidget.__init__(self)
@@ -27,45 +29,70 @@ class AnnotationOverview(QWidget):
 
 
         # widget layout and ellements
-        self.setMinimumWidth(550)
+        self.setMinimumWidth(700)
         self.setMinimumHeight(300)
         self.setWindowTitle('Annotations')
         self.layout = QGridLayout(self)
 
         self.table= QTableWidget(self)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setColumnCount(2)
+        self.table.setColumnCount(6)
         self.table.setRowCount(0)
-        self.table.setHorizontalHeaderLabels(QStringList(['Date','Comment']))
-        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setHorizontalHeaderLabels(QStringList(['Date','Tag','Comment','R','System','Cam']))
+        #self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setResizeMode(2,QHeaderView.Stretch)
         self.table.verticalHeader().hide()
         self.layout.addWidget(self.table)
 
         self.table.doubleClicked.connect(self.JumpToAnnotation)
 
         for i,file in enumerate(self.filelist):
-            # extract date
-            path,fname=os.path.split(file)
-            date = fname[0:15]
+            # read annotation file
+            results,comment=ReadAnnotation(file)
 
-            #extract content
-            f=QFile(file)
-            f.open(QFile.ReadWrite)
-            inS = QTextStream(f)
-            comment=inS.readAll()
-            f.close()
+            # backward compatibility for old files
+            if results['timestamp']=='':
+                path,fname=os.path.split(file)
+                results['timestamp'] = fname[0:15]
+            if comment=='' and results['tags']=='':
+                f=QFile(file)
+                f.open(QFile.ReadWrite)
+                inS = QTextStream(f)
+                comment=inS.readAll()
+                f.close()
 
 
             # populate table
             ti = QTableWidgetItem()
-            ti.setText(date)
+            ti.setText(results['timestamp'])
             self.table.insertRow(self.table.rowCount())
             self.table.setItem(i,0,ti)
 
             ti = QTableWidgetItem()
-            ti.setText(comment)
+            ti.setText(str(results['tags']))
             self.table.insertRow(self.table.rowCount())
             self.table.setItem(i,1,ti)
+
+            ti = QTableWidgetItem()
+            ti.setText(comment)
+            self.table.insertRow(self.table.rowCount())
+            self.table.setItem(i,2,ti)
+
+            ti = QTableWidgetItem()
+            ti.setText(str(results['rating']))
+            self.table.insertRow(self.table.rowCount())
+            self.table.setItem(i,3,ti)
+
+            ti = QTableWidgetItem()
+            ti.setText(str(results['system']))
+            self.table.insertRow(self.table.rowCount())
+            self.table.setItem(i,4,ti)
+
+            ti = QTableWidgetItem()
+            ti.setText(str(results['camera']))
+            self.table.insertRow(self.table.rowCount())
+            self.table.setItem(i,5,ti)
 
 
         # fit column to context
