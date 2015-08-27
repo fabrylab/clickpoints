@@ -185,11 +185,12 @@ class AnnotationHandler(QWidget):
             match = self.regFromFName.match(fname)
             if not match:
                 print 'warning - no match for regexp'
-            re_dict = match.groupdict()
+            else:
+                re_dict = match.groupdict()
 
-            # update results
-            self.results=UpdateDictwith(self.results,re_dict)
-            print self.results
+                # update results
+                self.results=UpdateDictwith(self.results,re_dict)
+                print self.results
 
         # update gui
         # update meta
@@ -223,10 +224,11 @@ class AnnotationHandler(QWidget):
             match = self.regFromFName.match(fname)
             if not match:
                 print 'warning - no match for regexp'
-            re_dict = match.groupdict()
+            else:
+                re_dict = match.groupdict()
 
-            # update results
-            self.results=UpdateDictwith(self.results,re_dict)
+                # update results
+                self.results=UpdateDictwith(self.results,re_dict)
 
             # update with gui changes
             self.results['tags']=self.leTag.text()
