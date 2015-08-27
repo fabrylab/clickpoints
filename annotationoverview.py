@@ -23,7 +23,7 @@ class AnnotationOverview(QWidget):
         self.mh=mediahandler
 
         # get list of files
-        input = self.outputpath + '*' + self.defsuffix
+        input = os.path.join(self.outputpath, '*' + self.defsuffix)
         self.filelist = natsorted(glob.glob(input))
         print self.filelist
 
