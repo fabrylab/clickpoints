@@ -28,44 +28,34 @@ def ReadAnnotation(filename):
                         'tags':'',
                         'rating':0
                         })
-    comment=''
+    result_types = dict(timestamp='str', system='str', camera='str', tags='list', rating='int')
+    comment = ""
 
-    f=QFile(filename)
-    if f.exists():
-        f.open(QFile.ReadWrite)
-        inS = QTextStream(f)
+    with open(filename, 'r') as fp:
         # get key value pairs
-        while not inS.atEnd():
-            line = inS.readLine()
-            #skip data header
-            if line.startsWith('[data]'):
-                pass
-            #extract key value pairs
-            if line.contains('='):
-                slist=line.split(QRegExp('\\=|,')) # split on = or ,
+        section = ""
 
-                # support cvs lists
-                if len(slist)==2:
-                    tmp=str(slist[1])
-                elif len(slist)>2:
-                    tmp=[]
-                    for elem in slist[1:]:
-                        tmp.append(str(elem))
-                else:
-                    tmp=''
+        for line_raw in fp.readlines():
+            line = line_raw.strip()
+            if len(line) > 0 and line[0] == '[' and line[-1] == ']':
+                section = line[1:-1]
+                continue
+            if section == "data":
+                #extract key value pairs
+                if line.find('=') != -1:
+                    key, value = line.split("=")
 
-                results[str(slist[0])]=tmp
-            if line.startsWith('[comment]'):
-                # end of header
-                break
+                    if key in result_types.keys():
+                        if result_types[key] == 'list':
+                            value = [elem.strip() for elem in value.split(",")]
+                        if result_types[key] == 'int':
+                            value = int(value)
 
-        # get comment section
-        while not inS.atEnd():
-            comment=str(inS.readAll())
-        # close file handle
-        f.close()
+                    results[key]=value
+            if section == "comment":
+                comment += line_raw
 
-        return results,comment
+    return results,comment
 
 class AnnotationHandler(QWidget):
     def __init__(self,filename,outputpath=''):
@@ -197,7 +187,7 @@ class AnnotationHandler(QWidget):
         self.leTStamp.setText(self.results['timestamp'])
         self.leSystem.setText(self.results['system'])
         self.leCamera.setText(self.results['camera'])
-        self.leTag.setText(self.results['tags'])
+        self.leTag.setText(", ".join(self.results['tags']))
         self.leRating.setCurrentIndex(int(self.results['rating']))
 
         # update comment
