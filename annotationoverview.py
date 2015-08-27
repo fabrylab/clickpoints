@@ -70,7 +70,7 @@ class AnnotationOverview(QWidget):
             self.table.setItem(i,0,ti)
 
             ti = QTableWidgetItem()
-            ti.setText(str(results['tags']))
+            ti.setText(", ".join(results['tags']))
             self.table.insertRow(self.table.rowCount())
             self.table.setItem(i,1,ti)
 
