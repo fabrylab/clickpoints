@@ -18,6 +18,7 @@ import mediahandler as mh
 import annotationhandler as ah
 import annotationoverview as ao
 
+from Tools import MyMultiSlider
 
 class Viewer():
     def __init__(self, window, parent=None, MediaHandler=None, layout=None, outputpath=None):
@@ -56,6 +57,7 @@ class Viewer():
         self.lbCFrame.setAlignment(Qt.AlignVCenter)
         self.layoutCtrl.addWidget(self.lbCFrame, 0, 1)
 
+        """
         self.frameSlider = QtGui.QSlider()
         self.frameSlider.setOrientation(Qt.Horizontal)
         if self.m.dtype == 'video':
@@ -64,6 +66,14 @@ class Viewer():
             self.frameSlider.sliderPressed.connect(self.hfPressSlider)
         else:
             self.frameSlider.sliderReleased.connect(self.hfReleaseSlider)
+        self.frameSlider.setMinimum(0)
+        self.frameSlider.setMaximum(self.m.totalNr - 1)
+        self.frameSlider.setValue(self.m.currentPos)
+        self.fsl_update = True
+        self.layoutCtrl.addWidget(self.frameSlider, 0, 2)
+        """
+        self.frameSlider = MyMultiSlider()
+        self.frameSlider.sliderReleased = self.hfReleaseSlider
         self.frameSlider.setMinimum(0)
         self.frameSlider.setMaximum(self.m.totalNr - 1)
         self.frameSlider.setValue(self.m.currentPos)
@@ -193,7 +203,7 @@ class Viewer():
             self.w.show()
         # @key Y: show annotation overview
         if event.key() == QtCore.Qt.Key_Y:
-            self.y = ao.AnnotationOverview(self.window,self.m,outputpath=self.outputpath)
+            self.y = ao.AnnotationOverview(self.window,self.m,outputpath=self.outputpath,frameSlider=self.frameSlider)
             self.y.show()
     @staticmethod
     def file():
