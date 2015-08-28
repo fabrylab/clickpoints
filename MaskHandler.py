@@ -17,16 +17,10 @@ from PIL import Image, ImageDraw
 import ImageQt
 from qimage2ndarray import array2qimage
 
-from Tools import *
-from ConfigLoad import *
-
-LoadConfig()
-
-draw_types = sorted(draw_types, key=lambda x: x[0])
-
+from Tools import GraphicsItemEventFilter
 
 class BigPaintableImageDisplay:
-    def __init__(self, origin):
+    def __init__(self, origin, max_image_size=2**12, config=None):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
@@ -35,6 +29,8 @@ class BigPaintableImageDisplay:
         self.images = []
         self.DrawImages = []
         self.qimages = []
+        self.max_image_size = max_image_size
+        self.config = config
 
         self.opacity = 0
         self.colormap = [QColor(i, i, i).rgba() for i in range(256)]
@@ -58,20 +54,20 @@ class BigPaintableImageDisplay:
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
-        for drawtype in draw_types:
+        for drawtype in self.config.draw_types:
             self.colormap[drawtype[0]] = QColor(*drawtype[1]).rgba()
-        self.number_of_imagesX = int(np.ceil(image.size[0] / max_image_size))
-        self.number_of_imagesY = int(np.ceil(image.size[1] / max_image_size))
+        self.number_of_imagesX = int(np.ceil(image.size[0] / self.max_image_size))
+        self.number_of_imagesY = int(np.ceil(image.size[1] / self.max_image_size))
         self.UpdatePixmapCount()
         self.full_image = image
 
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
-                start_x = x * max_image_size
-                start_y = y * max_image_size
-                end_x = min([(x + 1) * max_image_size, image.size[0]])
-                end_y = min([(y + 1) * max_image_size, image.size[1]])
+                start_x = x * self.max_image_size
+                start_y = y * self.max_image_size
+                end_x = min([(x + 1) * self.max_image_size, image.size[0]])
+                end_y = min([(y + 1) * self.max_image_size, image.size[1]])
 
                 self.images[i] = image.crop((start_x, start_y, end_x, end_y))
                 self.DrawImages[i] = ImageDraw.Draw(self.images[i])
@@ -90,19 +86,19 @@ class BigPaintableImageDisplay:
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
-                if x * max_image_size < x1 < (x + 1) * max_image_size or x * max_image_size < x2 < (
-                            x + 1) * max_image_size:
-                    if y * max_image_size < y1 < (y + 1) * max_image_size or y * max_image_size < y2 < (
-                                y + 1) * max_image_size:
+                if x * self.max_image_size < x1 < (x + 1) * self.max_image_size or x * self.max_image_size < x2 < (
+                            x + 1) * self.max_image_size:
+                    if y * self.max_image_size < y1 < (y + 1) * self.max_image_size or y * self.max_image_size < y2 < (
+                                y + 1) * self.max_image_size:
                         draw = self.DrawImages[i]
-                        draw.line((x1 - x * max_image_size, y1 - y * max_image_size, x2 - x * max_image_size,
-                                   y2 - y * max_image_size), fill=draw_types[line_type][0], width=size + 1)
-                        draw.ellipse((x1 - x * max_image_size - size // 2, y1 - y * max_image_size - size // 2,
-                                      x1 - x * max_image_size + size // 2, y1 - y * max_image_size + size // 2),
-                                     fill=draw_types[line_type][0])
+                        draw.line((x1 - x * self.max_image_size, y1 - y * self.max_image_size, x2 - x * self.max_image_size,
+                                   y2 - y * self.max_image_size), fill=self.config.draw_types[line_type][0], width=size + 1)
+                        draw.ellipse((x1 - x * self.max_image_size - size // 2, y1 - y * self.max_image_size - size // 2,
+                                      x1 - x * self.max_image_size + size // 2, y1 - y * self.max_image_size + size // 2),
+                                     fill=self.config.draw_types[line_type][0])
         draw = ImageDraw.Draw(self.full_image)
-        draw.line((x1, y1, x2, y2), fill=draw_types[line_type][0], width=size + 1)
-        draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=draw_types[line_type][0])
+        draw.line((x1, y1, x2, y2), fill=self.config.draw_types[line_type][0], width=size + 1)
+        draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=self.config.draw_types[line_type][0])
 
     def GetColor(self, x1, y1):
         if 0 < x1 < self.full_image.size[0] and 0 < y1 < self.full_image.size[1]:
@@ -140,13 +136,13 @@ class MyCounter2(QGraphicsRectItem):
         self.font.setPointSize(14)
 
         self.label_text = "%d: Color %s" % (point_type + 1, chr(ord('A') + point_type))
-        if len(draw_types[self.type]) == 3:
-            self.label_text = draw_types[self.type][2]
+        if len(self.MaskHandler.config.draw_types[self.type]) == 3:
+            self.label_text = self.MaskHandler.config.draw_types[self.type][2]
 
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setText(self.label_text)
         self.text.setFont(self.font)
-        self.text.setBrush(QBrush(QColor(*draw_types[self.type][1])))
+        self.text.setBrush(QBrush(QColor(*self.MaskHandler.config.draw_types[self.type][1])))
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
@@ -192,13 +188,13 @@ class MyCounter2(QGraphicsRectItem):
 
 
 class MaskHandler:
-    def __init__(self, parent, parent_hud, view, image_display, outputpath, modules):
+    def __init__(self, parent, parent_hud, view, image_display, config, modules):
         self.view = view
         self.parent_hud = parent_hud
         self.ImageDisplay = image_display
-        self.outputpath = outputpath
+        self.config = config
         self.modules = modules
-        self.MaskDisplay = BigPaintableImageDisplay(parent)
+        self.MaskDisplay = BigPaintableImageDisplay(parent, config=config)
         self.DrawCursorSize = 10
         self.drawPathItem = QGraphicsPathItem(parent)
         self.drawPathItem.setBrush(QBrush(QColor(255, 255, 255)))
@@ -237,7 +233,7 @@ class MaskHandler:
     def UpdateCounter(self):
         for counter in self.counter:
             self.view.scene.removeItem(counter)
-        self.counter = [MyCounter2(self.parent_hud, self, i) for i in range(len(draw_types))]
+        self.counter = [MyCounter2(self.parent_hud, self, i) for i in range(len(self.config.draw_types))]
 
     def LoadImageEvent(self, filename, frame_number):
         if self.current_maskname is not None:
@@ -246,7 +242,7 @@ class MaskHandler:
         self.drawPath = QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
         base_filename = os.path.splitext(filename)[0]
-        self.current_maskname = os.path.join(self.outputpath, base_filename + maskname_tag)
+        self.current_maskname = os.path.join(self.config.outputpath, base_filename + self.config.maskname_tag)
         self.LoadMask(self.current_maskname)
 
     def LoadMask(self, maskname):
@@ -271,9 +267,9 @@ class MaskHandler:
             for index, color in enumerate(a):
                 if index == 0 or sum(color) != 0:
                     new_draw_types.append([index, color])
-            draw_types = new_draw_types
+            self.config.draw_types = new_draw_types
             self.UpdateCounter()
-        if self.active_draw_type >= len(draw_types):
+        if self.active_draw_type >= len(self.config.draw_types):
             self.active_draw_type = 0
         if self.active:
             self.SetActiveDrawType(self.active_draw_type)
@@ -281,14 +277,14 @@ class MaskHandler:
         self.MaskDisplay.SetImage(self.image_mask_full)
 
     def UpdateDrawCursorSize(self):
-        pen = QPen(QColor(*draw_types[self.active_draw_type][1]), self.DrawCursorSize)
+        pen = QPen(QColor(*self.config.draw_types[self.active_draw_type][1]), self.DrawCursorSize)
         pen.setCapStyle(32)
         self.drawPathItem.setPen(pen)
         draw_cursor_path = QPainterPath()
         draw_cursor_path.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
                                     self.DrawCursorSize)
 
-        self.DrawCursor.setPen(QPen(QColor(*draw_types[self.active_draw_type][1])))
+        self.DrawCursor.setPen(QPen(QColor(*self.config.draw_types[self.active_draw_type][1])))
         self.DrawCursor.setPath(draw_cursor_path)
 
     def save(self):
@@ -355,7 +351,7 @@ class MaskHandler:
         self.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.DrawCursorSize, self.active_draw_type)
         self.MaskChanged = True
         self.MaskUnsaved = True
-        if auto_mask_update:
+        if self.config.auto_mask_update:
             self.RedrawMask()
 
     def sceneEventFilter(self, event):
@@ -382,7 +378,7 @@ class MaskHandler:
     def keyPressEvent(self, event):
         numberkey = event.key() - 49
         # @key ---- Painting ----
-        if self.active and 0 <= numberkey < len(draw_types) and event.modifiers() != Qt.KeypadModifier:
+        if self.active and 0 <= numberkey < len(self.config.draw_types) and event.modifiers() != Qt.KeypadModifier:
             # @key 0-9: change brush type
             self.SetActiveDrawType(numberkey)
 
@@ -421,5 +417,5 @@ class MaskHandler:
         return __file__
 
     @staticmethod
-    def can_create_module():
-        return len(draw_types) > 0
+    def can_create_module(config):
+        return len(config.draw_types) > 0
