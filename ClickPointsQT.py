@@ -99,14 +99,7 @@ class ClickPointsWindow(QWidget):
                 module.save()
 
     def JumpFrames(self, amount):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-        self.save()
-        if self.MediaHandler.setCurrentPos(self.MediaHandler.getCurrentPos() + amount):
-            self.UpdateImage()
-        for module in self.modules:
-            if "FrameChangeEvent" in dir(module):
-                module.FrameChangeEvent()
-        QApplication.restoreOverrideCursor()
+        self.JumpToFrame(self.MediaHandler.getCurrentPos() + amount)
 
     # jump absolute
     def JumpToFrame(self, targetid):
