@@ -183,7 +183,7 @@ class MyMultiSliderGrabber(QGraphicsPathItem):
 
 
 class MyMultiSlider(QGraphicsView):
-    def __init__(self, parent=None, name="", start_value=None, max_value=100, min_value=0):
+    def __init__(self, max_value=100, min_value=0):
         QGraphicsView.__init__(self)
 
         self.setMaximumHeight(30)
@@ -204,52 +204,51 @@ class MyMultiSlider(QGraphicsView):
         gradient.setColorAt(1, QColor(128,128,128))
         self.slider_line.setBrush(QBrush(gradient))
 
-        self.slider_line2 = QGraphicsRectItem(None, self.scene)
-        self.slider_line2.setPen(QPen(QColor("black")))
-        self.slider_line2.setPos(0,-2.5)
+        self.slider_line_active = QGraphicsRectItem(None, self.scene)
+        self.slider_line_active.setPen(QPen(QColor("black")))
+        self.slider_line_active.setPos(0,-2.5)
         gradient = QLinearGradient(QPointF(0, 0), QPointF(0, 5))
         gradient.setColorAt(0, QColor(128,128,128))
         gradient.setColorAt(1, QColor(200,200,200))
-        self.slider_line2.setBrush(QBrush(gradient))
+        self.slider_line_active.setBrush(QBrush(gradient))
 
         path = QPainterPath()
         path.moveTo(-4, +12)
         path.lineTo( 0,  +2.5)
         path.lineTo(+4, +12)
         path.lineTo(-4, +12)
-        self.slideMarker2 = MyMultiSliderGrabber(self)
-        self.slideMarker2.setPath(path)
+        self.slider_start = MyMultiSliderGrabber(self)
+        self.slider_start.setPath(path)
         gradient = QLinearGradient(QPointF(0, 12), QPointF(0, 2.5))
         gradient.setColorAt(0, QColor(255,0,0))
         gradient.setColorAt(1, QColor(128,0,0))
-        self.slideMarker2.setBrush(QBrush(gradient))
-        self.slideMarker2.value = 0
+        self.slider_start.setBrush(QBrush(gradient))
+        self.slider_start.value = 0
 
         path = QPainterPath()
         path.moveTo(-4,-12)
         path.lineTo( 0, -2.5)
         path.lineTo(+4,-12)
         path.lineTo(-4,-12)
-        self.slideMarker3 = MyMultiSliderGrabber(self)
-        self.slideMarker3.setPath(path)
+        self.slider_end = MyMultiSliderGrabber(self)
+        self.slider_end.setPath(path)
         gradient = QLinearGradient(QPointF(0, -12), QPointF(0, -2.5))
         gradient.setColorAt(0, QColor(255,0,0))
         gradient.setColorAt(1, QColor(128,0,0))
-        self.slideMarker3.setBrush(QBrush(gradient))
-        self.slideMarker3.value = 100
+        self.slider_end.setBrush(QBrush(gradient))
+        self.slider_end.value = 100
 
         path = QPainterPath()
         path.addRect(-2.5, -7, 5, 14)
-        self.slideMarker = MyMultiSliderGrabber(self)
-        self.slideMarker.setPath(path)
+        self.slider_position = MyMultiSliderGrabber(self)
+        self.slider_position.setPath(path)
         gradient = QLinearGradient(QPointF(0, -7), QPointF(0, 14))
         gradient.setColorAt(0, QColor(255,0,0))
         gradient.setColorAt(1, QColor(128,0,0))
-        self.slideMarker.setBrush(QBrush(gradient))
-        self.slideMarker.value = 0
+        self.slider_position.setBrush(QBrush(gradient))
+        self.slider_position.value = 0
 
-        self.length = 0
-        self.slider_value = 0
+        self.length = 1
 
         self.tick_marker = []
 
@@ -263,11 +262,11 @@ class MyMultiSlider(QGraphicsView):
     def resizeEvent(self, event):
         self.length = self.size().width()-20
         self.slider_line.setRect(0, 0, self.length, 5)
-        self.slider_line2.setRect(self.ValueToPixel(self.slideMarker2.value), 0, self.ValueToPixel(self.slideMarker3.value)-self.ValueToPixel(self.slideMarker2.value), 5)
+        self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
         self.ensureVisible(self.slider_line)
         for tick in self.tick_marker:
             tick.setPos(self.ValueToPixel(tick.value), 0)
-        for marker in [self.slideMarker, self.slideMarker2, self.slideMarker3]:
+        for marker in [self.slider_position, self.slider_start, self.slider_end]:
             marker.setPos(self.ValueToPixel(marker.value), 0)
             marker.setRange(0, self.length)
 
@@ -276,11 +275,11 @@ class MyMultiSlider(QGraphicsView):
 
     def setMaximum(self, value):
         self.max_value = value
-        self.slideMarker3.value = value
+        self.slider_end.value = value
 
     def setValue(self, value):
-        self.slider_value = value
-        self.slideMarker.setPos(self.ValueToPixel(self.slider_value), 0)
+        self.slider_position.value = value
+        self.slider_position.setPos(self.ValueToPixel(self.slider_position.value), 0)
 
     def PixelToValue(self, pixel):
         return int(pixel/self.length*(self.max_value-self.min_value)+self.min_value)
@@ -289,19 +288,30 @@ class MyMultiSlider(QGraphicsView):
         return (value-self.min_value)/(self.max_value-self.min_value)*self.length
 
     def markerPosChanged(self, x, marker):
-        if marker == self.slideMarker:
-            self.slideMarker.value = self.PixelToValue(x)
-            self.slider_value = self.PixelToValue(x)
+        if marker == self.slider_position:
+            self.slider_position.value = self.PixelToValue(x)
             self.sliderMoved()
-        if marker == self.slideMarker2:
-            self.slideMarker2.value = self.PixelToValue(x)
-            self.slider_line2.setRect(self.ValueToPixel(self.slideMarker2.value), 0, self.ValueToPixel(self.slideMarker3.value)-self.ValueToPixel(self.slideMarker2.value), 5)
-        if marker == self.slideMarker3:
-            self.slideMarker3.value = self.PixelToValue(x)
-            self.slider_line2.setRect(self.ValueToPixel(self.slideMarker2.value), 0, self.ValueToPixel(self.slideMarker3.value)-self.ValueToPixel(self.slideMarker2.value), 5)
+        if marker == self.slider_start:
+            self.slider_start.value = self.PixelToValue(x)
+            if self.slider_start.value > self.slider_end.value:
+                self.slider_end.value = self.slider_start.value
+                self.slider_end.setPos(self.ValueToPixel(self.slider_end.value), 0)
+            self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
+        if marker == self.slider_end:
+            self.slider_end.value = self.PixelToValue(x)
+            if self.slider_start.value > self.slider_end.value:
+                self.slider_start.value = self.slider_end.value
+                self.slider_start.setPos(self.ValueToPixel(self.slider_start.value), 0)
+            self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
 
     def value(self):
-        return self.slider_value
+        return self.slider_position.value
+
+    def startValue(self):
+        return self.slider_start.value
+
+    def endValue(self):
+        return self.slider_start.value
 
     @staticmethod
     def sliderPressed():
@@ -314,69 +324,7 @@ class MyMultiSlider(QGraphicsView):
     @staticmethod
     def sliderReleased():
         pass
-        """
-        self.parent = parent
-        self.name = name
-        self.maxValue = max_value
-        self.minValue = min_value
-        self.format = "%.2f"
 
-        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
-        self.setPen(QPen(QColor(255, 255, 255, 0)))
-
-        self.text = QGraphicsSimpleTextItem(self)
-        self.text.setFont(QFont("", 11))
-        self.text.setPos(0, -23)
-        self.text.setBrush(QBrush(QColor("white")))
-
-        self.sliderMiddel = QGraphicsRectItem(self)
-        self.sliderMiddel.setRect(QRectF(0, 0, 100, 1))
-        self.sliderMiddel.setPen(QPen(QColor("white")))
-
-        path = QPainterPath()
-        path.addEllipse(-5, -5, 10, 10)
-        self.slideMarker = MyMultiSliderGrabber(self)
-        self.slideMarker.setPath(path)
-        self.slideMarker.setBrush(QBrush(QColor(255, 0, 0, 255)))
-
-        self.setRect(QRectF(-5, -5, 110, 10))
-        self.dragged = False
-
-        self.value = (self.maxValue + self.minValue) * 0.5
-        if start_value != None:
-            self.value = start_value
-        self.start_value = self.value
-        #self.setValue(self.value)
-        """
-    """
-    def mousePressEvent(self, event):
-        if event.button() == 1:
-            self.dragged = True
-
-    def mouseMoveEvent(self, event):
-        if self.dragged:
-            pos = event.pos()
-            x = pos.x()
-            if x < 0: x = 0
-            if x > 100: x = 100
-            self.setValue(x / 100. * self.maxValue + self.minValue)
-
-    def reset(self):
-        self.setValue(self.start_value, True)
-
-    def setValue(self, value, noCall=False):
-        self.value = value
-        self.text.setText(self.name + ": " + self.format % value)
-        self.slideMarker.setPos((value - self.minValue) * 100 / self.maxValue, 0)
-        if not noCall:
-            self.valueChanged(value)
-
-    def valueChanged(self, value):
-        pass
-
-    def mouseReleaseEvent(self, event):
-        self.dragged = False
-    """
 class BoxGrabber(QGraphicsRectItem):
     def __init__(self, parent):
         QGraphicsRectItem.__init__(self, parent)
