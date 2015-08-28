@@ -13,7 +13,7 @@ from natsort import natsorted
 from annotationhandler import *
 
 class AnnotationOverview(QWidget):
-    def __init__(self,window,mediahandler,outputpath=''):
+    def __init__(self,window,mediahandler,outputpath='',frameSlider=None):
         QWidget.__init__(self)
 
         # default settings and parameters
@@ -21,6 +21,7 @@ class AnnotationOverview(QWidget):
         self.outputpath=outputpath
         self.window=window
         self.mh=mediahandler
+        self.frameSlider = frameSlider
 
         # get list of files
         input = os.path.join(self.outputpath, '*' + self.defsuffix)
@@ -93,6 +94,15 @@ class AnnotationOverview(QWidget):
             ti.setText(str(results['camera']))
             self.table.insertRow(self.table.rowCount())
             self.table.setItem(i,5,ti)
+
+            jtidx=None
+            for i,file in enumerate(self.mh.filelist):
+                path,fname=os.path.split(file)
+                if fname[0:15]==results['timestamp']:
+                    jtidx=i
+                    break
+            if jtidx != None:
+                self.frameSlider.addTickMarker(jtidx)
 
 
         # fit column to context
