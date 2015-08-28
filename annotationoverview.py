@@ -11,6 +11,7 @@ import glob
 from natsort import natsorted
 
 from annotationhandler import *
+from ConfigLoad import *
 
 class AnnotationOverview(QWidget):
     def __init__(self,window,mediahandler,outputpath='',frameSlider=None):
@@ -29,7 +30,7 @@ class AnnotationOverview(QWidget):
         input = os.path.join(self.outputpath, '*' + self.defsuffix)
         self.filelist = natsorted(glob.glob(input))
 
-        # widget layout and ellements
+        # widget layout and elements
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
         self.setWindowTitle('Annotations')
@@ -63,11 +64,10 @@ class AnnotationOverview(QWidget):
             self.table.setItem(i,4,QTableWidgetItem(results['system']))
             self.table.setItem(i,5,QTableWidgetItem(results['camera']))
             self.table.setItem(i,6,QTableWidgetItem(basename))
-            print(basename)
 
             try:
                 index = self.frame_list.index(basename)
-            except:
+            except ValueError:
                 pass
             else:
                 self.frameSlider.addTickMarker(index)
@@ -75,19 +75,18 @@ class AnnotationOverview(QWidget):
         # fit column to context
         self.table.resizeColumnToContents(0)
 
-        logname_tag = "_pos.txt"
-        input = os.path.join(self.outputpath, '*' + logname_tag)
-        marker_filelist = natsorted(glob.glob(input))
+        # add marker in timeline for marker and masks
+        marker_filelist = glob.glob(os.path.join(self.outputpath, '*' + logname_tag))
+        marker_filelist.extend(glob.glob(os.path.join(self.outputpath, '*' + maskname_tag)))
         for file in marker_filelist:
             filename = os.path.split(file)[1]
             basename = filename[:-len(logname_tag)]
             try:
                 index = self.frame_list.index(basename)
-            except:
+            except ValueError:
                 pass
             else:
-                print index
-                self.frameSlider.addTickMarker(index, QColor("green"))
+                self.frameSlider.addTickMarker(index, QColor("green"), 7)
 
     def JumpToAnnotation(self,idx):
         # get file basename
@@ -96,8 +95,8 @@ class AnnotationOverview(QWidget):
         # find match in file list
         try:
             index = self.frame_list.index(basename)
-        except:
-            print 'no matching file found for '+basename
+        except ValueError:
+            print('no matching file found for '+basename)
         else:
             self.window.JumpToFrame(index)
 
