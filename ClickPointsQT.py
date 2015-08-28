@@ -25,9 +25,10 @@ from MarkerHandler import MarkerHandler
 from PyViewer import Viewer
 
 from Tools import *
-from ConfigLoad import *
+from ConfigLoad import LoadConfig
+from ToolsForClickPoints import SliderBox, BigImageDisplay
 
-LoadConfig()
+config = LoadConfig()
 
 used_modules = [MarkerHandler, MaskHandler, SliderBox, Viewer, HelpText]
 used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud"]
@@ -55,14 +56,14 @@ class ClickPointsWindow(QWidget):
 
         self.ImageDisplay = BigImageDisplay(self.origin, self)
 
-        self.MediaHandler = MediaHandler(join(srcpath, filename), filterparam=filterparam)
+        self.MediaHandler = MediaHandler(join(config.srcpath, config.filename), filterparam=config.filterparam)
 
         self.modules = []
-        arg_dict = {"window": self, "layout": self.layout, "MediaHandler": self.MediaHandler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": outputpath, "modules": self.modules, "file": __file__}
+        arg_dict = {"window": self, "layout": self.layout, "MediaHandler": self.MediaHandler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__}
         for mod, hud in zip(used_modules, used_huds):
             allowed = True
             if "can_create_module" in dir(mod):
-                allowed = mod.can_create_module()
+                allowed = mod.can_create_module(config)
             if allowed:
                 # Get a list of the arguments the function tages
                 arg_name_list = mod.__init__.func_code.co_varnames[:mod.__init__.func_code.co_argcount]
@@ -187,23 +188,25 @@ class ClickPointsWindow(QWidget):
             if event.key() == key and event.modifiers() == Qt.KeypadModifier:
                 self.JumpFrames(jump)
                 print(jump)
-
-for addon in addons:
+print "config", config
+for addon in config.addons:
     with open(addon + ".py") as f:
         code = compile(f.read(), addon + ".py", 'exec')
         exec(code)
 
+print "config", config
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    if use_filedia is True or filename is None:
-        tmp = QFileDialog.getOpenFileName(None, "Choose Image", srcpath)
-        srcpath = os.path.split(str(tmp))[0]
-        filename = os.path.split(str(tmp))[-1]
-        print(srcpath)
-        print(filename)
-    if outputpath is None:
-        outputpath = srcpath
+    if config.use_filedia is True or config.filename is None:
+        tmp = QFileDialog.getOpenFileName(None, "Choose Image", config.srcpath)
+        config.srcpath = os.path.split(str(tmp))[0]
+        config.filename = os.path.split(str(tmp))[-1]
+        print(config.srcpath)
+        print(config.filename)
+    if config.outputpath is None:
+        config.outputpath = config.srcpath
 
     window = ClickPointsWindow()
     window.show()

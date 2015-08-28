@@ -18,10 +18,7 @@ from qimage2ndarray import array2qimage, rgb_view
 
 import uuid
 
-from Tools import *
-from ConfigLoad import *
-
-LoadConfig()
+from Tools import GraphicsItemEventFilter, disk, PosToArray
 
 w = 1.
 b = 7
@@ -117,7 +114,7 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.marker_handler.PointsUnsaved = True
         self.setAcceptHoverEvents(True)
-        if tracking is True:
+        if self.marker_handler.config.tracking is True:
             self.track = {self.marker_handler.frame_number: [x, y, point_type]}
             self.pathItem = QGraphicsPathItem(self.imgItem)
             self.path = QPainterPath()
@@ -204,7 +201,7 @@ class MyMarkerItem(QGraphicsPathItem):
 
     def mousePressEvent(self, event):
         if event.button() == 2:
-            if tracking is True:
+            if self.marker_handler.config.tracking is True:
                 self.SetTrackActive(self.active is False)
                 self.marker_handler.PointsUnsaved = True  #
                 self.UpdateLine()
@@ -269,7 +266,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.scale_value = scale
         if self.rectObj:
             self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2 * scale))
-        if tracking is True:
+        if self.marker_handler.config.tracking is True:
             self.pathItem.setPen(QPen(QColor(*types[self.type][1]), 2 * scale))
             self.UpdateLine()
         super(QGraphicsPathItem, self).setScale(scale)
@@ -363,13 +360,13 @@ class MyCounter(QGraphicsRectItem):
         self.font.setPointSize(14)
 
         self.text = QGraphicsSimpleTextItem(self)
-        self.text.setText(types[self.type][0] + " %d" % 0)
+        self.text.setText(self.MarkerHandler.config.types[self.type][0] + " %d" % 0)
         self.text.setFont(self.font)
-        self.text.setBrush(QBrush(QColor(*types[self.type][1])))
+        self.text.setBrush(QBrush(QColor(*self.MarkerHandler.config.types[self.type][1])))
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.setPos(10, 10 + 25 * types.keys().index(self.type))
+        self.setPos(10, 10 + 25 * self.MarkerHandler.config.types.keys().index(self.type))
         self.setZValue(9)
 
         count = 0
@@ -380,7 +377,7 @@ class MyCounter(QGraphicsRectItem):
 
     def AddCount(self, new_count):
         self.count += new_count
-        self.text.setText(str(self.type+1)+": "+types[self.type][0] + " %d" % self.count)
+        self.text.setText(str(self.type+1)+": "+self.MarkerHandler.config.types[self.type][0] + " %d" % self.count)
         rect = self.text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
@@ -414,7 +411,7 @@ class MyCounter(QGraphicsRectItem):
 
 
 class MarkerHandler:
-    def __init__(self, parent, parent_hud, view, image_display, outputpath, modules):
+    def __init__(self, parent, parent_hud, view, image_display, config, modules):
         self.view = view
         self.parent_hud = parent_hud
         self.modules = modules
@@ -422,7 +419,7 @@ class MarkerHandler:
         self.counter = []
         self.active_type = 0
         self.scale = 1
-        self.outputpath = outputpath
+        self.config = config
 
         self.current_logname = None
         self.last_logname = None
@@ -444,25 +441,26 @@ class MarkerHandler:
     def UpdateCounter(self):
         for counter in self.counter:
             self.view.scene.removeItem(self.counter[counter])
-        self.counter = {i: MyCounter(self.parent_hud, self, i) for i in types.keys()}
+        self.counter = {i: MyCounter(self.parent_hud, self, i) for i in self.config.types.keys()}
 
     def LoadImageEvent(self, filename, framenumber):
         if self.current_logname is not None:
             self.last_logname = self.current_logname
         self.frame_number = framenumber
         base_filename = os.path.splitext(filename)[0]
-        self.current_logname = os.path.join(self.outputpath, base_filename + logname_tag)
+        print self.config["outputpath"]
+        self.current_logname = os.path.join(self.config.outputpath, base_filename + self.config.logname_tag)
 
         self.LoadLog(self.current_logname)
 
     def LoadLog(self, logname):
         global types
         print("Loading " + logname)
-        if not tracking:
+        if not self.config.tracking:
             while len(self.points):
                 self.RemovePoint(self.points[0])
         if os.path.exists(logname):
-            if tracking:
+            if self.config.tracking:
                 for point in self.points:
                     point.setInvalidNewPoint()
             with open(logname) as fp:
@@ -500,7 +498,7 @@ class MarkerHandler:
                     if len(line) >= 6:
                         partner_id = line[5]
                     found = False
-                    if tracking is True:
+                    if self.config.tracking is True:
                         for point in self.points:
                             if point.id == marker_id:
                                 point.addPoint(x, y, marker_type)
@@ -609,7 +607,7 @@ class MarkerHandler:
         return __file__
 
     @staticmethod
-    def can_create_module():
-        return len(types) > 0
+    def can_create_module(config):
+        return len(config.types) > 0
 
 
