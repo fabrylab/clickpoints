@@ -252,9 +252,9 @@ class MyMultiSlider(QGraphicsView):
 
         self.tick_marker = []
 
-    def addTickMarker(self, pos):
+    def addTickMarker(self, pos, color=QColor("red")):
         tick_marker = QGraphicsLineItem(0, -2.5, 0, -10, None, self.scene)
-        tick_marker.setPen(QPen(QColor("red")))
+        tick_marker.setPen(QPen(color))
         tick_marker.value = pos
         tick_marker.setPos(self.ValueToPixel(pos), 0)
         self.tick_marker.append(tick_marker)

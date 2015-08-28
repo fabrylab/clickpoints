@@ -55,6 +55,14 @@ def ReadAnnotation(filename):
             if section == "comment":
                 comment += line_raw
 
+    # backward compatibility for old files
+    if results['timestamp']=='':
+        path, fname = os.path.split(filename)
+        results['timestamp'] = fname[0:15]
+    if comment=='' and results['tags']=='':
+        with open(filename, 'r') as fp:
+            comment = fp.read()
+
     return results,comment
 
 class AnnotationHandler(QWidget):
@@ -91,73 +99,48 @@ class AnnotationHandler(QWidget):
         self.setWindowTitle(self.reffilename[1])
         self.layout = QGridLayout(self)
 
-        self.lbAName = QLabel(self)
-        self.lbAName.setText('AFile Name:')
-        self.layout.addWidget(self.lbAName,0,0)
-        self.leAName = QLineEdit(self)
-        self.leAName.setText(self.annotfilename)
+        self.layout.addWidget(QLabel('AFile Name:'),0,0)
+        self.leAName = QLineEdit(self.annotfilename, self)
         self.leAName.setEnabled(False)
         self.layout.addWidget(self.leAName,0,1,1,3)
 
-        self.lbTStamp = QLabel(self)
-        self.lbTStamp.setText('Time:')
-        self.layout.addWidget(self.lbTStamp,1,0)
-        self.leTStamp = QLineEdit(self)
-        self.leTStamp.setText('uninit')
+        self.layout.addWidget(QLabel('Time:', self),1,0)
+        self.leTStamp = QLineEdit('uninit', self)
         self.leTStamp.setEnabled(False)
         self.layout.addWidget(self.leTStamp,1,1)
 
-        self.lbSystem = QLabel(self)
-        self.lbSystem.setText('System:')
-        self.layout.addWidget(self.lbSystem,3,0)
-        self.leSystem = QLineEdit(self)
-        self.leSystem.setText('uninit')
+        self.layout.addWidget(QLabel('System:', self),3,0)
+        self.leSystem = QLineEdit('uninit', self)
         self.leSystem.setEnabled(False)
         self.layout.addWidget(self.leSystem,3,1)
 
-        self.lbCamera = QLabel(self)
-        self.lbCamera.setText('Camera:')
-        self.layout.addWidget(self.lbCamera,3,2)
-        self.leCamera = QLineEdit(self)
-        self.leCamera.setText('uninit')
+        self.layout.addWidget(QLabel('Camera:', self),3,2)
+        self.leCamera = QLineEdit('uninit', self)
         self.leCamera.setEnabled(False)
         self.layout.addWidget(self.leCamera,3,3)
 
-        self.lbTag = QLabel(self)
-        self.lbTag.setText('Tag:')
-        self.layout.addWidget(self.lbTag,4,0)
-        self.leTag = QLineEdit(self)
-        self.leTag.setText('uninit')
+        self.layout.addWidget(QLabel('Tag:', self),4,0)
+        self.leTag = QLineEdit('uninit', self)
         self.layout.addWidget(self.leTag,4,1)
 
-        self.lbRating = QLabel(self)
-        self.lbRating.setText('Rating:')
-        self.layout.addWidget(self.lbRating,4,2)
+        self.layout.addWidget(QLabel('Rating:', self),4,2)
         self.leRating = QComboBox(self)
-        self.leRating.insertItem(0,'0 - none')
-        self.leRating.insertItem(1,'1 - bad')
-        self.leRating.insertItem(2,'2')
-        self.leRating.insertItem(3,'3')
-        self.leRating.insertItem(4,'4')
-        self.leRating.insertItem(5,'5 - good')
-        self.leRating.setCurrentIndex(0)
+        for index, name in enumerate(['0 - none', '1 - bad', '2', '3', '4', '5 - good']):
+            self.leRating.insertItem(index, name)
         self.leRating.setInsertPolicy(QComboBox.NoInsert)
         self.layout.addWidget(self.leRating,4,3)
 
-        self.pbConfirm = QPushButton(self)
-        self.pbConfirm.setText('C&onfirm')
+        self.pbConfirm = QPushButton('C&onfirm', self)
         self.pbConfirm.pressed.connect(self.saveAnnotation)
         self.layout.addWidget(self.pbConfirm,0,4)
 
-        self.pbDiscard = QPushButton(self)
-        self.pbDiscard.setText('&Discard')
+        self.pbDiscard = QPushButton('&Discard', self)
         self.pbDiscard.pressed.connect(self.discardAnnotation)
         self.layout.addWidget(self.pbDiscard,1,4)
 
         self.pteAnnotation = QPlainTextEdit(self)
         self.pteAnnotation.setFocus()
         self.layout.addWidget(self.pteAnnotation,5,0,5,4)
-
 
         if (self.outputpath==''):
             fname=os.path.join(self.reffilename[0],self.annotfilename)
@@ -192,9 +175,6 @@ class AnnotationHandler(QWidget):
 
         # update comment
         self.pteAnnotation.setPlainText(self.comment)
-
-
-
 
     def saveAnnotation(self):
         print "SAVE"
