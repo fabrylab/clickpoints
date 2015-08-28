@@ -311,7 +311,7 @@ class MyMultiSlider(QGraphicsView):
         return self.slider_start.value
 
     def endValue(self):
-        return self.slider_start.value
+        return self.slider_end.value
 
     @staticmethod
     def sliderPressed():

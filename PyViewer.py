@@ -162,9 +162,12 @@ class Viewer():
 
     def updateFrame(self, nr=-1):
         if nr != -1:
-            self.window.JumpFrames(nr-self.m.currentPos)
+            self.window.JumpToFrame(nr)
         else:
-            self.window.JumpFrames(1+self.skip)
+            if self.m.currentPos < self.frameSlider.startValue() or self.m.currentPos > self.frameSlider.endValue():
+                self.window.JumpToFrame(self.frameSlider.startValue())
+            else:
+                self.window.JumpFrames(1+self.skip)
 
     def FrameChangeEvent(self):
         if self.m.valid:
