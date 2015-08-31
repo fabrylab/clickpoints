@@ -55,12 +55,13 @@ def ReadTypeDict(string):
 
 class MyMarkerItem(QGraphicsPathItem):
     def __init__(self, x, y, parent, marker_handler, point_type, start_id=None, partner_id=None):
-        global types, point_display_type
+        global point_display_type
 
         QGraphicsPathItem.__init__(self, parent)
         self.parent = parent
         self.type = point_type
         self.marker_handler = marker_handler
+        self.config = self.marker_handler.config
 
         self.scale_value = None
 
@@ -69,7 +70,7 @@ class MyMarkerItem(QGraphicsPathItem):
         if len(self.marker_handler.counter):
             self.marker_handler.counter[self.type].AddCount(1)
 
-        self.setBrush(QBrush(QColor(*types[self.type][1])))
+        self.setBrush(QBrush(QColor(*self.config.types[self.type][1])))
         self.setPen(QPen(QColor(0, 0, 0, 0)))
 
         self.setPos(x, y)
@@ -87,7 +88,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.partner = None
         self.rectObj = None
         self.partner_id = partner_id
-        if types[self.type][2] == 1 or types[self.type][2] == 2:
+        if self.config.types[self.type][2] == 1 or self.config.types[self.type][2] == 2:
             if self.partner_id is not None:
                 for point in self.marker_handler.points:
                     if point.id == self.partner_id:
@@ -103,13 +104,13 @@ class MyMarkerItem(QGraphicsPathItem):
                     possible_partners.sort(key=lambda x: x[1])
                     self.ConnectToPartner(possible_partners[0][0])
         if self.partner:
-            if types[self.type][2] == 1:
+            if self.config.types[self.type][2] == 1:
                 self.rectObj = QGraphicsRectItem(self.imgItem)
-                self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2))
+                self.rectObj.setPen(QPen(QColor(*self.config.types[self.type][1]), 2))
                 self.UpdateRect()
-            if types[self.type][2] == 2:
+            if self.config.types[self.type][2] == 2:
                 self.rectObj = QGraphicsLineItem(self.imgItem)
-                self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2))
+                self.rectObj.setPen(QPen(QColor(*self.config.types[self.type][1]), 2))
                 self.UpdateRect()
 
         self.marker_handler.PointsUnsaved = True
@@ -194,9 +195,9 @@ class MyMarkerItem(QGraphicsPathItem):
     def UpdateRect(self):
         x, y = self.pos().x(), self.pos().y()
         x2, y2 = self.partner.pos().x(), self.partner.pos().y()
-        if types[self.type][2] == 1:
+        if self.config.types[self.type][2] == 1:
             self.rectObj.setRect(x, y, x2 - x, y2 - y)
-        if types[self.type][2] == 2:
+        if self.config.types[self.type][2] == 2:
             self.rectObj.setLine(x, y, x2, y2)
 
     def mousePressEvent(self, event):
