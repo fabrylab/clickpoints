@@ -578,9 +578,16 @@ class MarkerHandler:
 
     def sceneEventFilter(self, event):
         if event.type() == 156 and event.button() == 1:  # QtCore.QEvent.MouseButtonPress:
-            self.points.append(
-                MyMarkerItem(event.pos().x(), event.pos().y(), self.MarkerParent, self, self.active_type))
-            self.points[-1].setScale(1 / self.scale)
+            points = [point for point in self.points if point.type == self.active_type]
+            if self.config.tracking and self.config.tracking_connect_nearest and len(points) and not event.modifiers() & Qt.ControlModifier:
+                distances = [np.linalg.norm(PosToArray(point.pos()-event.pos())) for point in points]
+                index = np.argmin(distances)
+                points[index].addPoint(event.pos().x(), event.pos().y(), points[index].type)
+                self.PointsUnsaved = True
+            else:
+                self.points.append(
+                    MyMarkerItem(event.pos().x(), event.pos().y(), self.MarkerParent, self, self.active_type))
+                self.points[-1].setScale(1 / self.scale)
             return True
         return False
 
