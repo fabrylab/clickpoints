@@ -8,7 +8,8 @@ TYPE_Line = 2
 
 use_filedia = True
 auto_mask_update = True
-tracking = False
+tracking = True
+tracking_connect_nearest = False
 srcpath = None
 filename = None
 outputpath = None
@@ -45,7 +46,7 @@ class dotdict(dict):
     __delattr__= dict.__delitem__
 
 def LoadConfig():
-    global use_filedia, auto_mask_update, tracking
+    global use_filedia, auto_mask_update, tracking, tracking_connect_nearest
     global srcpath, filename, outputpath
     global logname_tag, maskname_tag
     global types, draw_types, addons, max_image_size
