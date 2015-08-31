@@ -36,21 +36,13 @@ addons = []
 
 max_image_size = 2 ** 12
 
+# enables .access on dicts
 class dotdict(dict):
-    def __init__(self, dictionary):
-        self.dict = dictionary
-    def __getattribute__(self, key):
-        if key == "dict" or key not in self.dict.keys():
-            return dict.__getattribute__(self, key)
-        return self.dict[key]
-    def __setattr__(self, key, value):
-        if key == "dict" or key not in self.dict.keys():
-            return dict.__setattr__(self, key, value)
-        self.dict[key] = value
-    def __getitem__(self, key):
-        return self.dict[key]
-    def __str__(self):
-        return str(self.dict)
+    """dot.notation access to dictionary attributes"""
+    def __getattr__(self, attr):
+        return self.get(attr)
+    __setattr__= dict.__setitem__
+    __delattr__= dict.__delitem__
 
 def LoadConfig():
     global use_filedia, auto_mask_update, tracking
