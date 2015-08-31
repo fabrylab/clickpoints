@@ -287,7 +287,7 @@ class Crosshair:
         self.CrosshairQImageView = rgb_view(self.CrosshairQImage)
 
         self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairQImage), self.parent)
-        self.CrosshairQImageView[:, :, 0] = 255
+        #self.CrosshairQImageView[:, :, 0] = 255
         self.Crosshair.setOffset(-50, -50)
         self.Crosshair.setPos(150, 150)
         self.Crosshair.setZValue(30)
@@ -334,7 +334,7 @@ class Crosshair:
         new_slice = np.zeros(shape)
         if empty:
             return new_slice
-        new_slice[slices2[0], slices2[1], slices2[2]] = source[slices1[0], slices1[1], slices1[2]]
+        new_slice[slices2[0], slices2[1], :] = source[slices1[0], slices1[1], :]
         return new_slice
 
     def Hide(self):
@@ -554,7 +554,11 @@ class MarkerHandler:
         self.scale = scale
         for point in self.points:
             point.setScale(1 / scale)
-        self.Crosshair.Crosshair.setScale(1 / scale)
+        print(scale)
+        if scale < 4:
+            self.Crosshair.Crosshair.setScale(1 / scale)
+        else:
+            self.Crosshair.Crosshair.setScale(0)
 
     def setActive(self, active, first_time=False):
         self.scene_event_filter.active = active
