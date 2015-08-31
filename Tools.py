@@ -281,6 +281,16 @@ class MyMultiSlider(QGraphicsView):
         self.slider_position.value = value
         self.slider_position.setPos(self.ValueToPixel(self.slider_position.value), 0)
 
+    def setStartValue(self, value):
+        self.slider_start.value = value
+        self.slider_start.setPos(self.ValueToPixel(self.slider_start.value), 0)
+
+    def setEndValue(self, value):
+        if value < 0:
+            value = self.max_value-value
+        self.slider_end.value = value
+        self.slider_end.setPos(self.ValueToPixel(self.slider_end.value), 0)
+
     def PixelToValue(self, pixel):
         return int(pixel/self.length*(self.max_value-self.min_value)+self.min_value)
 

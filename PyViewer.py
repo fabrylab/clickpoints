@@ -21,7 +21,7 @@ import annotationoverview as ao
 from Tools import MyMultiSlider
 
 class Viewer():
-    def __init__(self, window, parent=None, MediaHandler=None, layout=None, outputpath=None):
+    def __init__(self, window, parent=None, MediaHandler=None, layout=None, outputpath=None, config=None):
         self.window = window
         if MediaHandler is None:
             self.m = mh.MediaHandler(path,rettype='qpixmap')
@@ -37,6 +37,7 @@ class Viewer():
             self.lastskip=0
 
         self.outputpath=outputpath
+        self.config = config
 
         self.layout = layout
 
@@ -57,26 +58,15 @@ class Viewer():
         self.lbCFrame.setAlignment(Qt.AlignVCenter)
         self.layoutCtrl.addWidget(self.lbCFrame, 0, 1)
 
-        """
-        self.frameSlider = QtGui.QSlider()
-        self.frameSlider.setOrientation(Qt.Horizontal)
-        if self.m.dtype == 'video':
-            self.frameSlider.sliderReleased.connect(
-                self.hfReleaseSlider)  # might be better for movies
-            self.frameSlider.sliderPressed.connect(self.hfPressSlider)
-        else:
-            self.frameSlider.sliderReleased.connect(self.hfReleaseSlider)
-        self.frameSlider.setMinimum(0)
-        self.frameSlider.setMaximum(self.m.totalNr - 1)
-        self.frameSlider.setValue(self.m.currentPos)
-        self.fsl_update = True
-        self.layoutCtrl.addWidget(self.frameSlider, 0, 2)
-        """
         self.frameSlider = MyMultiSlider()
         self.frameSlider.sliderReleased = self.hfReleaseSlider
         self.frameSlider.setMinimum(0)
         self.frameSlider.setMaximum(self.m.totalNr - 1)
         self.frameSlider.setValue(self.m.currentPos)
+        if self.config.play_start != None:
+            self.frameSlider.setStartValue(self.config.play_start)
+        if self.config.play_end != None:
+            self.frameSlider.setEndValue(self.config.play_end)
         self.fsl_update = True
         self.layoutCtrl.addWidget(self.frameSlider, 0, 2)
 
@@ -113,7 +103,7 @@ class Viewer():
         self.tUpdate = QtCore.QTimer()
         self.tUpdate.timeout.connect(self.htUpdate)
 
-        self.hpbPlay(False)
+        self.hpbPlay(self.config.playing)
 
         # init with first frame
         if self.m.rettype=='img':
@@ -164,7 +154,7 @@ class Viewer():
         if nr != -1:
             self.window.JumpToFrame(nr)
         else:
-            if self.m.currentPos < self.frameSlider.startValue() or self.m.currentPos > self.frameSlider.endValue():
+            if self.m.currentPos < self.frameSlider.startValue() or self.m.currentPos >= self.frameSlider.endValue():
                 self.window.JumpToFrame(self.frameSlider.startValue())
             else:
                 self.window.JumpFrames(1+self.skip)
