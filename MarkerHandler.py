@@ -514,8 +514,8 @@ class MarkerHandler:
             for index in range(0, len(self.points)):
                 self.points[index].setInvalidNewPoint()
         print("...done")
-        if self.active_type not in types.keys():
-            self.active_type = types.keys()[0]
+        if self.active_type not in self.config.types.keys():
+            self.active_type = self.config.types.keys()[0]
         if self.active:
             self.SetActiveMarkerType(self.active_type)
         self.PointsUnsaved = False
