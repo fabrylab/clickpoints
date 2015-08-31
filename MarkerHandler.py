@@ -537,7 +537,7 @@ class MarkerHandler:
                     point.pos().x(), point.pos().y(), point.type, point.active, point.id, point.partner_id)
                     for point in self.points if point.active]
                 with open(self.current_logname, 'w') as fp:
-                    fp.write("#@types "+str(types)+"\n")
+                    fp.write("#@types "+str(self.config.types)+"\n")
                     for line in data:
                         fp.write(line)
             print(self.current_logname + " saved")
