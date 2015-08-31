@@ -71,4 +71,15 @@ def LoadConfig():
 
     draw_types = sorted(draw_types, key=lambda x: x[0])
 
+    # get global variables from command line
+    for arg in sys.argv[2:]:
+        if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
+            key, value = arg[1:].split("=")
+            if key in globals():
+                globals()[key] = value
+            else:
+                print("WARNING: unknown command line argument "+arg)
+        else:
+            print("WARNING: unknown command line argument "+arg)
+
     return dotdict(globals())
