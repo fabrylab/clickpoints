@@ -266,9 +266,9 @@ class MyMarkerItem(QGraphicsPathItem):
     def setScale(self, scale):
         self.scale_value = scale
         if self.rectObj:
-            self.rectObj.setPen(QPen(QColor(*types[self.type][1]), 2 * scale))
+            self.rectObj.setPen(QPen(QColor(*self.config.types[self.type][1]), 2 * scale))
         if self.marker_handler.config.tracking is True:
-            self.pathItem.setPen(QPen(QColor(*types[self.type][1]), 2 * scale))
+            self.pathItem.setPen(QPen(QColor(*self.config.types[self.type][1]), 2 * scale))
             self.UpdateLine()
         super(QGraphicsPathItem, self).setScale(scale)
 
