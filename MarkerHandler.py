@@ -225,11 +225,11 @@ class MyMarkerItem(QGraphicsPathItem):
     def mouseMoveEvent(self, event):
         if not self.dragged:
             return
-        if tracking:
+        if self.config.tracking:
             self.SetTrackActive(True)
         pos = self.parent.mapFromItem(self, event.pos())
         self.setPos(pos.x(), pos.y())
-        if tracking:
+        if self.config.tracking:
             self.UpdateLine()
         if self.UseCrosshair:
             self.marker_handler.Crosshair.MoveCrosshair(pos.x(), pos.y())
@@ -274,10 +274,11 @@ class MyMarkerItem(QGraphicsPathItem):
 
 
 class Crosshair:
-    def __init__(self, parent, view, image):
+    def __init__(self, parent, view, image, config):
         self.parent = parent
         self.view = view
         self.image = image
+        self.config = config
 
         self.RGB = np.zeros((101, 101, 3))
         self.Alpha = disk(50) * 255
@@ -341,8 +342,8 @@ class Crosshair:
 
     def Show(self, marker_type):
         self.Crosshair.setVisible(True)
-        self.CrosshairPathItem2.setPen(QPen(QColor(*types[marker_type][1]), 1))
-        self.CrosshairPathItem.setPen(QPen(QColor(*types[marker_type][1]), 3))
+        self.CrosshairPathItem2.setPen(QPen(QColor(*self.config.types[marker_type][1]), 1))
+        self.CrosshairPathItem.setPen(QPen(QColor(*self.config.types[marker_type][1]), 3))
 
 
 class MyCounter(QGraphicsRectItem):
@@ -434,7 +435,7 @@ class MarkerHandler:
         self.scene_event_filter = GraphicsItemEventFilter(parent, self)
         image_display.AddEventFilter(self.scene_event_filter)
 
-        self.Crosshair = Crosshair(parent, view, image_display)
+        self.Crosshair = Crosshair(parent, view, image_display, config)
 
         self.counter = []
         self.UpdateCounter()
