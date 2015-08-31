@@ -76,7 +76,12 @@ def LoadConfig():
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=")
             if key in globals():
-                globals()[key] = value
+                print(globals()[key])
+                print(type(globals()[key]))
+                if type(globals()[key]) is not type(None):
+                    value = type(globals()[key])(value)
+                globals()[key] = type(globals()[key])(value)
+
             else:
                 print("WARNING: unknown command line argument "+arg)
         else:
