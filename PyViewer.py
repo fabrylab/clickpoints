@@ -186,7 +186,7 @@ class Viewer():
             self.hide = not self.hide
         # @key R: rotate by 90deg
         if event.key() == QtCore.Qt.Key_R:
-            self.view.rotate(90)
+            self.window.view.rotate(90)
         # @key Space: run/pause
         if event.key() == QtCore.Qt.Key_Space:
             self.pbPlay.toggle()
