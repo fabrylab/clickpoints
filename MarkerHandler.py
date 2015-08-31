@@ -273,28 +273,30 @@ class MyMarkerItem(QGraphicsPathItem):
         super(QGraphicsPathItem, self).setScale(scale)
 
 
-class Crosshair:
+class Crosshair(QGraphicsPathItem):
     def __init__(self, parent, view, image, config):
+        QGraphicsPathItem.__init__(self, parent)
         self.parent = parent
         self.view = view
         self.image = image
         self.config = config
+        self.radius = 50
 
-        self.RGB = np.zeros((101, 101, 3))
-        self.Alpha = disk(50) * 255
+        self.RGB = np.zeros((self.radius*2+1, self.radius*2+1, 3))
+        self.Alpha = disk(self.radius) * 255
         self.Image = np.concatenate((self.RGB, self.Alpha[:, :, None]), axis=2)
         self.CrosshairQImage = array2qimage(self.Image)
         self.CrosshairQImageView = rgb_view(self.CrosshairQImage)
 
-        self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairQImage), self.parent)
-        #self.CrosshairQImageView[:, :, 0] = 255
-        self.Crosshair.setOffset(-50, -50)
-        self.Crosshair.setPos(150, 150)
-        self.Crosshair.setZValue(30)
-        self.Crosshair.setVisible(False)
+        self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairQImage), self)
+        self.Crosshair.setOffset(-self.radius, -self.radius)
+        self.setPos(self.radius*3, self.radius*3)
+        self.Crosshair.setZValue(-5)
+        self.setZValue(30)
+        self.setVisible(False)
 
         self.pathCrosshair = QPainterPath()
-        self.pathCrosshair.addEllipse(-50, -50, 100, 100)
+        self.pathCrosshair.addEllipse(-self.radius, -self.radius, self.radius*2, self.radius*2)
 
         w = 0.333 * 0.5
         b = 40
@@ -305,15 +307,39 @@ class Crosshair:
         self.pathCrosshair2.addRect(-w, -r2, w * 2, b)
         self.pathCrosshair2.addRect(-w, r2, w * 2, -b)
 
-        self.CrosshairPathItem = QGraphicsPathItem(self.pathCrosshair, self.Crosshair)
-        self.CrosshairPathItem2 = QGraphicsPathItem(self.pathCrosshair2, self.Crosshair)
+        self.CrosshairPathItem = QGraphicsPathItem(self.pathCrosshair, self)
+        #self.setPath(self.pathCrosshair)
+        self.CrosshairPathItem2 = QGraphicsPathItem(self.pathCrosshair2, self)
+
+    def setScale(self, value):
+        QGraphicsPathItem.setScale(self, value)
+        if not self.SetZoom(value):
+            QGraphicsPathItem.setScale(self, 0)
+        return True
+
+    def SetZoom(self, new_radius):
+        self.radius = int(new_radius*50/3)
+        if self.radius <= 10:
+            return False
+        self.RGB = np.zeros((self.radius*2+1, self.radius*2+1, 3))
+        self.Alpha = disk(self.radius) * 255
+        self.Image = np.concatenate((self.RGB, self.Alpha[:, :, None]), axis=2)
+        self.CrosshairQImage = array2qimage(self.Image)
+        self.CrosshairQImageView = rgb_view(self.CrosshairQImage)
+        self.Crosshair.setPixmap(QPixmap(self.CrosshairQImage))
+        self.Crosshair.setScale(1/self.radius*50)
+        self.Crosshair.setOffset(-self.radius-0.5, -self.radius-0.5)
+        self.MoveCrosshair(self.pos().x(), self.pos().y())
+        return True
 
     def MoveCrosshair(self, x, y):
         y = int(y)
         x = int(x)
+        self.setPos(x, y)
+        if self.scale() == 0:
+            return
         self.CrosshairQImageView[:, :, :] = self.SaveSlice(self.image.image,
-                                                           [[y - 50, y + 50 + 1], [x - 50, x + 50 + 1], [0, 3]])
-        self.Crosshair.setPos(x, y)
+                                                           [[y - self.radius, y + self.radius + 1], [x - self.radius, x + self.radius + 1], [0, 3]])
         self.Crosshair.setPixmap(QPixmap(self.CrosshairQImage))
 
     @staticmethod
@@ -338,10 +364,10 @@ class Crosshair:
         return new_slice
 
     def Hide(self):
-        self.Crosshair.setVisible(False)
+        self.setVisible(False)
 
     def Show(self, marker_type):
-        self.Crosshair.setVisible(True)
+        self.setVisible(True)
         self.CrosshairPathItem2.setPen(QPen(QColor(*self.config.types[marker_type][1]), 1))
         self.CrosshairPathItem.setPen(QPen(QColor(*self.config.types[marker_type][1]), 3))
 
@@ -554,11 +580,7 @@ class MarkerHandler:
         self.scale = scale
         for point in self.points:
             point.setScale(1 / scale)
-        print(scale)
-        if scale < 4:
-            self.Crosshair.Crosshair.setScale(1 / scale)
-        else:
-            self.Crosshair.Crosshair.setScale(0)
+        self.Crosshair.setScale(1 / scale)
 
     def setActive(self, active, first_time=False):
         self.scene_event_filter.active = active
