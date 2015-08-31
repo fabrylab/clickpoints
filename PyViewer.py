@@ -64,9 +64,20 @@ class Viewer():
         self.frameSlider.setMaximum(self.m.totalNr - 1)
         self.frameSlider.setValue(self.m.currentPos)
         if self.config.play_start != None:
-            self.frameSlider.setStartValue(self.config.play_start)
+            # if >1 its a frame nr if < 1 its a fraction
+            if self.config.play_start >= 1:
+                self.frameSlider.setStartValue(self.config.play_start)
+                print self.config.play_start
+            else:
+                self.frameSlider.setStartValue(int(self.m.totalNr*self.config.play_start))
+                print int(self.m.totalNr*self.config.play_start)
         if self.config.play_end != None:
-            self.frameSlider.setEndValue(self.config.play_end)
+            if self.config.play_end > 1:
+                self.frameSlider.setEndValue(self.config.play_end)
+                print self.config.play_end
+            else:
+                self.frameSlider.setEndValue(int(self.m.totalNr*self.config.play_end))
+                print int(self.m.totalNr*self.config.play_end)
         self.fsl_update = True
         self.layoutCtrl.addWidget(self.frameSlider, 0, 2)
 

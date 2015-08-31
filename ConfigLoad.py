@@ -18,7 +18,7 @@ maskname_tag = '_mask.png'
 filterparam={}
 
 play_start = 0
-play_end   = -1
+play_end   = 1
 playing = False
 
 # marker types
