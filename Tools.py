@@ -223,6 +223,7 @@ class MyMultiSlider(QGraphicsView):
         gradient.setColorAt(0, QColor(255,0,0))
         gradient.setColorAt(1, QColor(128,0,0))
         self.slider_start.setBrush(QBrush(gradient))
+        self.slider_start.setZValue(10)
         self.slider_start.value = 0
 
         path = QPainterPath()
@@ -236,6 +237,7 @@ class MyMultiSlider(QGraphicsView):
         gradient.setColorAt(0, QColor(255,0,0))
         gradient.setColorAt(1, QColor(128,0,0))
         self.slider_end.setBrush(QBrush(gradient))
+        self.slider_end.setZValue(10)
         self.slider_end.value = 100
 
         path = QPainterPath()
@@ -246,6 +248,7 @@ class MyMultiSlider(QGraphicsView):
         gradient.setColorAt(0, QColor(255,0,0))
         gradient.setColorAt(1, QColor(128,0,0))
         self.slider_position.setBrush(QBrush(gradient))
+        self.slider_position.setZValue(10)
         self.slider_position.value = 0
 
         self.length = 1
@@ -253,7 +256,7 @@ class MyMultiSlider(QGraphicsView):
         self.tick_marker = []
 
     def addTickMarker(self, pos, color=QColor("red"), height=10):
-        tick_marker = QGraphicsLineItem(0, -2.5, 0, -height, None, self.scene)
+        tick_marker = QGraphicsLineItem(0, -3.5, 0, -height, None, self.scene)
         tick_marker.setPen(QPen(color))
         tick_marker.value = pos
         tick_marker.setPos(self.ValueToPixel(pos), 0)
