@@ -190,7 +190,7 @@ class MyMultiSlider(QGraphicsView):
 
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
-        self.scene.setBackgroundBrush(QColor(240, 240, 240))
+        self.scene.setBackgroundBrush(self.palette().color(QPalette.Background))
         self.setStyleSheet("border: 0px")
 
         self.max_value = max_value
