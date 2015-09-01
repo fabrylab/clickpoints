@@ -244,8 +244,8 @@ class SliderBox(QGraphicsRectItem):
     def keyPressEvent(self, event):
 
         # @key ---- Gamma/Brightness Adjustment ---
-        if event.key() == Qt.Key_Space:
-            # @key Space: update rect
+        if event.key() == Qt.Key_G:
+            # @key G: update rect
             QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
             self.image.PreviewRect()
             self.image.Change()
