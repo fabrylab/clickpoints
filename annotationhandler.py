@@ -66,11 +66,10 @@ def ReadAnnotation(filename):
     return results,comment
 
 class AnnotationHandler(QWidget):
-    def __init__(self,filename,outputpath=''):
+    def __init__(self,filename,outputpath='',modules=[],config=None):
         QWidget.__init__(self)
 
         # default settings and parameters
-        self.defsuffix='_annot.txt'
         self.reffilename=filename
         self.outputpath=outputpath
         # init default values
@@ -81,6 +80,7 @@ class AnnotationHandler(QWidget):
                         'rating':0
                         })
         self.comment=''
+        self.modules = modules
 
         # regexp
         self.regFromFNameString=r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
@@ -91,7 +91,12 @@ class AnnotationHandler(QWidget):
         except:
             name=filename[1]
 
-        self.annotfilename= name + self.defsuffix
+        self.annotfilename = name + self.config.annotation_tag
+
+        if (self.outputpath==''):
+            fname=os.path.join(self.reffilename[0],self.annotfilename)
+        else:
+            fname=os.path.join(self.outputpath,self.annotfilename)
 
         # widget layout and ellements
         self.setMinimumWidth(650)
@@ -138,14 +143,14 @@ class AnnotationHandler(QWidget):
         self.pbDiscard.pressed.connect(self.discardAnnotation)
         self.layout.addWidget(self.pbDiscard,1,4)
 
+        if os.path.exists(fname):
+            self.pbRemove = QPushButton('&Remove', self)
+            self.pbRemove.pressed.connect(self.removeAnnotation)
+            self.layout.addWidget(self.pbRemove,2,4)
+
         self.pteAnnotation = QPlainTextEdit(self)
         self.pteAnnotation.setFocus()
         self.layout.addWidget(self.pteAnnotation,5,0,5,4)
-
-        if (self.outputpath==''):
-            fname=os.path.join(self.reffilename[0],self.annotfilename)
-        else:
-            fname=os.path.join(self.outputpath,self.annotfilename)
 
         f = QFile(fname)
         # read values from exisiting file
@@ -218,6 +223,22 @@ class AnnotationHandler(QWidget):
 
             f.close()
             self.close()
+
+            for module in self.modules:
+                if "AnnotationAdded" in dir(module):
+                    module.AnnotationAdded()
+
+    def removeAnnotation(self):
+        if (self.outputpath==''):
+            f=os.path.join(self.reffilename[0],self.annotfilename)
+            print os.path.join(self.reffilename[0],self.annotfilename)
+        else:
+            f=os.path.join(self.outputpath,self.annotfilename)
+        os.remove(f)
+        for module in self.modules:
+            if "AnnotationRemoved" in dir(module):
+                module.AnnotationRemoved()
+        self.close()
 
     def discardAnnotation(self):
         print "DISCARD"

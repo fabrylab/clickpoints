@@ -1,5 +1,6 @@
 import sys
 import os
+import glob
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 try:
@@ -21,7 +22,7 @@ import annotationoverview as ao
 from Tools import MyMultiSlider
 
 class Viewer():
-    def __init__(self, window, parent=None, MediaHandler=None, layout=None, outputpath=None, config=None):
+    def __init__(self, window, parent=None, MediaHandler=None, layout=None, outputpath=None, config=None, modules=[]):
         self.window = window
         if MediaHandler is None:
             self.m = mh.MediaHandler(path,rettype='qpixmap')
@@ -40,6 +41,7 @@ class Viewer():
         self.config = config
 
         self.layout = layout
+        self.modules = modules
 
         ## control elemnts
         self.layoutCtrl = QtGui.QGridLayout()
@@ -133,6 +135,32 @@ class Viewer():
         self.realFPStime.start()
         self.nextframedone = False
 
+        self.frame_list = [os.path.split(file)[1][:-4] for file in self.m.filelist]
+
+        # add marker in timeline for marker and masks
+        marker_filelist = glob.glob(os.path.join(self.outputpath, '*' + config.logname_tag))
+        marker_filelist.extend(glob.glob(os.path.join(self.outputpath, '*' + config.maskname_tag)))
+        for file in marker_filelist:
+            filename = os.path.split(file)[1]
+            basename = filename[:-len(config.logname_tag)]
+            try:
+                index = self.frame_list.index(basename)
+            except ValueError:
+                pass
+            else:
+                self.frameSlider.addTickMarker(index, type=1)
+
+        marker_filelist = glob.glob(os.path.join(self.outputpath, '*' + config.annotation_tag))
+        for file in marker_filelist:
+            filename = os.path.split(file)[1]
+            basename = filename[:-len(config.annotation_tag)]
+            try:
+                index = self.frame_list.index(basename)
+            except ValueError:
+                pass
+            else:
+                self.frameSlider.addTickMarker(index, type=0)
+
     def hsbSkip(self):
         self.skip = self.sbSkip.value()
 
@@ -183,6 +211,18 @@ class Viewer():
             # stop timer
             self.pbPlay.setChecked(False)
 
+    def MarkerPointsAdded(self):
+        self.frameSlider.addTickMarker(self.m.currentPos, type=1)
+
+    def MarkerPointsRemoved(self):
+        self.frameSlider.removeTickMarker(self.m.currentPos, type=1)
+
+    def AnnotationAdded(self):
+        self.frameSlider.addTickMarker(self.m.currentPos, type=0)
+
+    def AnnotationRemoved(self):
+        self.frameSlider.removeTickMarker(self.m.currentPos, type=0)
+
     def keyPressEvent(self, event):
         # @key H: hide control elements
         if event.key() == QtCore.Qt.Key_H:
@@ -200,11 +240,11 @@ class Viewer():
             self.pbPlay.toggle()
         # @key A: add/edit annotation
         if event.key() == QtCore.Qt.Key_A:
-            self.w = ah.AnnotationHandler(self.m.getCurrentFilename(nr=self.m.currentPos),outputpath=self.outputpath)
+            self.w = ah.AnnotationHandler(self.m.getCurrentFilename(nr=self.m.currentPos),outputpath=self.outputpath, modules=self.modules, config=self.config)
             self.w.show()
         # @key Y: show annotation overview
         if event.key() == QtCore.Qt.Key_Y:
-            self.y = ao.AnnotationOverview(self.window,self.m,outputpath=self.outputpath,frameSlider=self.frameSlider)
+            self.y = ao.AnnotationOverview(self.window,self.m,outputpath=self.outputpath,frameSlider=self.frameSlider, config=self.config)
             self.y.show()
     @staticmethod
     def file():

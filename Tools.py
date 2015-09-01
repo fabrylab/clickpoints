@@ -187,6 +187,7 @@ class MyMultiSlider(QGraphicsView):
         QGraphicsView.__init__(self)
 
         self.setMaximumHeight(30)
+        #self.setRenderHint(QtGui.QPainter.Antialiasing)
 
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
@@ -241,7 +242,7 @@ class MyMultiSlider(QGraphicsView):
         self.slider_end.value = 100
 
         path = QPainterPath()
-        path.addRect(-2.5, -7, 5, 14)
+        path.addRect(-2, -7, 5, 14)
         self.slider_position = MyMultiSliderGrabber(self)
         self.slider_position.setPath(path)
         gradient = QLinearGradient(QPointF(0, -7), QPointF(0, 14))
@@ -253,25 +254,47 @@ class MyMultiSlider(QGraphicsView):
 
         self.length = 1
 
-        self.tick_marker = []
+        self.tick_marker = {}
 
-    def addTickMarker(self, pos, color=QColor("red"), height=10):
-        tick_marker = QGraphicsLineItem(0, -3.5, 0, -height, None, self.scene)
+    def addTickMarker(self, pos, type=0, color=QColor("red"), height=12):
+        if type == 1:
+            color = QColor("green")
+            height = 8
+        key = str(pos)+" "+str(type)
+        if key in self.tick_marker:
+            tick_marker = self.tick_marker[key]
+        else:
+            tick_marker = QGraphicsRectItem(0.0, -3.5, self.ValueToPixel(1), -height, None, self.scene)
         tick_marker.setPen(QPen(color))
+        tick_marker.setBrush(QBrush(color))
         tick_marker.value = pos
+        tick_marker.type = type
+        tick_marker.height = height
+        tick_marker.setZValue(1+type)
         tick_marker.setPos(self.ValueToPixel(pos), 0)
-        self.tick_marker.append(tick_marker)
+        self.tick_marker[key] = tick_marker
+        self.repaint()
+
+    def removeTickMarker(self, pos, type=0):
+        key = str(pos)+" "+str(type)
+        if key in self.tick_marker:
+            tick_marker = self.tick_marker[key]
+            self.scene.removeItem(tick_marker)
+            del self.tick_marker[key]
+            self.repaint()
 
     def resizeEvent(self, event):
         self.length = self.size().width()-20
         self.slider_line.setRect(0, 0, self.length, 5)
         self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
         self.ensureVisible(self.slider_line)
-        for tick in self.tick_marker:
+        for key, tick in self.tick_marker.items():
             tick.setPos(self.ValueToPixel(tick.value), 0)
+            tick.setRect(0.0, -3.5, self.ValueToPixel(1), -tick.height)
         for marker in [self.slider_position, self.slider_start, self.slider_end]:
             marker.setPos(self.ValueToPixel(marker.value), 0)
             marker.setRange(0, self.length)
+        self.repaint()
 
     def setMinimum(self, value):
         self.min_value = value
