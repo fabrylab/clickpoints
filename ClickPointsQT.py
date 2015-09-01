@@ -190,8 +190,7 @@ class ClickPointsWindow(QWidget):
         # @key Numpad 8,9: Jump -/+ 100 frames
         # @key Numpad /,*: Jump -/+ 100 frames
         keys = [Qt.Key_2, Qt.Key_3, Qt.Key_5, Qt.Key_6, Qt.Key_8, Qt.Key_9, Qt.Key_Slash, Qt.Key_Asterisk]
-        jumps = [     -1,       +1,      -10,      +10,     -100,     +100,        -1000,           +1000]
-        for key, jump in zip(keys, jumps):
+        for key, jump in zip(keys, config.jumps):
             if event.key() == key and event.modifiers() == Qt.KeypadModifier:
                 self.JumpFrames(jump)
                 print(jump)

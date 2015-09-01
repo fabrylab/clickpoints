@@ -25,6 +25,8 @@ playing = False
 rotation = 0
 rotation_steps = 90
 
+jumps = (-1, +1, -24, +24, -100, +100, -1000, +1000)
+
 # marker types
 types = {0: ["juveniles", [255, 0, 0], TYPE_Normal],
          1: ["adults", [0, 204, 0], TYPE_Rect],
@@ -50,7 +52,7 @@ class dotdict(dict):
 
 def LoadConfig():
     global use_filedia, auto_mask_update, tracking, tracking_connect_nearest
-    global srcpath, filename, outputpath
+    global srcpath, filename, outputpath, jumps
     global logname_tag, maskname_tag
     global types, draw_types, addons, max_image_size
     global filterparam
