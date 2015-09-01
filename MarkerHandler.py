@@ -552,6 +552,10 @@ class MarkerHandler:
         self.points.remove(point)
         self.view.scene.removeItem(point)
         self.PointsUnsaved = True
+        if len(self.points) == 0:
+            for module in self.modules:
+                if "MarkerPointsRemoved" in dir(module):
+                    module.MarkerPointsRemoved()
 
     def save(self):
         if self.PointsUnsaved:
@@ -604,6 +608,10 @@ class MarkerHandler:
 
     def sceneEventFilter(self, event):
         if event.type() == 156 and event.button() == 1:  # QtCore.QEvent.MouseButtonPress:
+            if len(self.points) >= 0:
+                for module in self.modules:
+                    if "MarkerPointsAdded" in dir(module):
+                        module.MarkerPointsAdded()
             points = [point for point in self.points if point.type == self.active_type]
             if self.config.tracking and self.config.tracking_connect_nearest and len(points) and not event.modifiers() & Qt.ControlModifier:
                 distances = [np.linalg.norm(PosToArray(point.pos()-event.pos())) for point in points]

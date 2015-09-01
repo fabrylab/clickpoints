@@ -14,20 +14,20 @@ from annotationhandler import *
 from ConfigLoad import *
 
 class AnnotationOverview(QWidget):
-    def __init__(self,window,mediahandler,outputpath='',frameSlider=None):
+    def __init__(self,window,mediahandler,outputpath='',frameSlider=None, config=None):
         QWidget.__init__(self)
 
         # default settings and parameters
-        self.defsuffix='_annot.txt'
         self.outputpath=outputpath
         self.window=window
         self.mh=mediahandler
         self.frameSlider = frameSlider
+        self.config = config
 
         self.frame_list = [os.path.split(file)[1][:-4] for file in self.mh.filelist]
 
         # get list of files
-        input = os.path.join(self.outputpath, '*' + self.defsuffix)
+        input = os.path.join(self.outputpath, '*' + self.config.annotation_tag)
         self.filelist = natsorted(glob.glob(input))
 
         # widget layout and elements
@@ -53,7 +53,7 @@ class AnnotationOverview(QWidget):
 
             # get file basename
             filename = os.path.split(file)[1]
-            basename = filename[:-len(self.defsuffix)]
+            basename = filename[:-len(self.config.annotation_tag)]
 
             # populate table
             self.table.insertRow(self.table.rowCount())
@@ -65,28 +65,8 @@ class AnnotationOverview(QWidget):
             self.table.setItem(i,5,QTableWidgetItem(results['camera']))
             self.table.setItem(i,6,QTableWidgetItem(basename))
 
-            try:
-                index = self.frame_list.index(basename)
-            except ValueError:
-                pass
-            else:
-                self.frameSlider.addTickMarker(index)
-
         # fit column to context
         self.table.resizeColumnToContents(0)
-
-        # add marker in timeline for marker and masks
-        marker_filelist = glob.glob(os.path.join(self.outputpath, '*' + logname_tag))
-        marker_filelist.extend(glob.glob(os.path.join(self.outputpath, '*' + maskname_tag)))
-        for file in marker_filelist:
-            filename = os.path.split(file)[1]
-            basename = filename[:-len(logname_tag)]
-            try:
-                index = self.frame_list.index(basename)
-            except ValueError:
-                pass
-            else:
-                self.frameSlider.addTickMarker(index, QColor("green"), 7)
 
     def JumpToAnnotation(self,idx):
         # get file basename
