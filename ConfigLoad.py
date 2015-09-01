@@ -22,6 +22,9 @@ play_start = 0.0
 play_end   = 1.0
 playing = False
 
+rotation = 0
+rotation_steps = 90
+
 # marker types
 types = {0: ["juveniles", [255, 0, 0], TYPE_Normal],
          1: ["adults", [0, 204, 0], TYPE_Rect],
@@ -51,7 +54,7 @@ def LoadConfig():
     global logname_tag, maskname_tag
     global types, draw_types, addons, max_image_size
     global filterparam
-    global play_start, play_end
+    global play_start, play_end, playing, rotation, rotation_steps
     # overwrite defaults with personal cfg if available
     config_filename = 'cp_cfg.txt'
     if len(sys.argv) >= 2:
