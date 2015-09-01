@@ -15,6 +15,7 @@ filename = None
 outputpath = None
 logname_tag = '_pos.txt'
 maskname_tag = '_mask.png'
+annotation_tag = '_annot.txt'
 
 filterparam={}
 
