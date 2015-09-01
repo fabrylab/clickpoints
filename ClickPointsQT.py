@@ -80,6 +80,9 @@ class ClickPointsWindow(QWidget):
 
         self.UpdateImage()
 
+        if config.rotation != 0:
+            self.view.rotate(config.rotation)
+
     def UpdateImage(self):
         filename = self.MediaHandler.getCurrentFilename()[1]
         frame_number = self.MediaHandler.getCurrentPos()
@@ -129,6 +132,10 @@ class ClickPointsWindow(QWidget):
                 self.setWindowState(Qt.WindowMaximized)
             else:
                 self.setWindowState(Qt.WindowFullScreen)
+
+        # @key R: rotate the image
+        if event.key() == QtCore.Qt.Key_R:
+            self.view.rotate(config.rotation_steps)
 
         if event.key() == QtCore.Qt.Key_S:
             # @key S: save marker and mask

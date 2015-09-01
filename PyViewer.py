@@ -195,9 +195,6 @@ class Viewer():
                     widget.setHidden(False)
                 self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
             self.hide = not self.hide
-        # @key R: rotate by 90deg
-        if event.key() == QtCore.Qt.Key_R:
-            self.window.view.rotate(90)
         # @key Space: run/pause
         if event.key() == QtCore.Qt.Key_Space:
             self.pbPlay.toggle()
