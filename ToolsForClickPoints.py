@@ -18,7 +18,7 @@ from Tools import MySlider, BoxGrabber
 from ConfigLoad import *
 
 class BigImageDisplay:
-    def __init__(self, origin, window):
+    def __init__(self, origin, window, config):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
@@ -27,6 +27,7 @@ class BigImageDisplay:
         self.ImageSlices = []
         self.origin = origin
         self.window = window
+        self.config = config
 
         self.image = None
         self.hist = None
@@ -106,7 +107,7 @@ class BigImageDisplay:
         self.preview_rect = None
 
     def PreviewRect(self):
-        self.preview_rect = self.window.view.GetExtend()
+        self.preview_rect = self.window.view.GetExtend(True)
         self.UpdatePreviewImage()
 
     def UpdatePreviewImage(self):
@@ -115,8 +116,10 @@ class BigImageDisplay:
         if start_y < 0: start_y = 0
         if end_x > self.image.shape[1]: end_x = self.image.shape[1]
         if end_y > self.image.shape[0]: end_y = self.image.shape[0]
-        if end_x > start_x + max_image_size: end_x = start_x + max_image_size
-        if end_y > start_y + max_image_size: end_y = start_y + max_image_size
+        if end_x < start_x: end_x = start_x+1
+        if end_y < start_y: end_y = start_y+1
+        if end_x > start_x + self.config.max_image_size: end_x = start_x + self.config.max_image_size
+        if end_y > start_y + self.config.max_image_size: end_y = start_y + self.config.max_image_size
         self.preview_slice = self.image[start_y:end_y, start_x:end_x, :]
         self.preview_qimage = array2qimage(self.image[start_y:end_y, start_x:end_x, :])
         self.preview_qimageView = rgb_view(self.preview_qimage)

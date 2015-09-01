@@ -54,7 +54,7 @@ class ClickPointsWindow(QWidget):
         self.origin = self.view.origin
         self.layout.addWidget(self.view)
 
-        self.ImageDisplay = BigImageDisplay(self.origin, self)
+        self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
         self.MediaHandler = MediaHandler(join(config.srcpath, config.filename), filterparam=config.filterparam)
 
