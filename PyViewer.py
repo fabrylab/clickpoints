@@ -2,48 +2,32 @@ import sys
 import os
 import glob
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
-try:
-    from PyQt4 import QtOpenGL
-    from OpenGL import GL
-    gotopengl=True
-except ImportError:
-    pass
-
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-from qimage2ndarray import array2qimage, rgb_view
-
-import mediahandler as mh
 
 from Tools import MyMultiSlider
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
-class Viewer():
-    def __init__(self, window, MediaHandler=None, layout=None, outputpath=None, config=None, modules=[]):
+
+class Viewer:
+    def __init__(self, window, media_handler, layout, outputpath, config, modules):
         self.window = window
-        if MediaHandler is None:
-            self.m = mh.MediaHandler(path,rettype='qpixmap')
-        else:
-            self.m = MediaHandler
+        self.m = media_handler
         if self.m.dtype == 'video':
             self.fps = self.m.fps
-            self.skip = 0
-            self.lastskip=0
         else:
             self.fps = 1
-            self.skip = 0
-            self.lastskip=0
+        self.skip = 0
 
-        self.outputpath=outputpath
+        self.outputpath = outputpath
         self.config = config
 
         self.layout = layout
         self.modules = modules
 
-        ## control elemnts
+        # control elements
         self.layoutCtrl = QtGui.QGridLayout()
         self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
         self.layout.addLayout(self.layoutCtrl)
@@ -65,21 +49,21 @@ class Viewer():
         self.frameSlider.setMinimum(0)
         self.frameSlider.setMaximum(self.m.totalNr - 1)
         self.frameSlider.setValue(self.m.currentPos)
-        if self.config.play_start != None:
+        if self.config.play_start is not None:
             # if >1 its a frame nr if < 1 its a fraction
             if self.config.play_start >= 1:
                 self.frameSlider.setStartValue(self.config.play_start)
-                print self.config.play_start
+                print(self.config.play_start)
             else:
                 self.frameSlider.setStartValue(int(self.m.totalNr*self.config.play_start))
-                print int(self.m.totalNr*self.config.play_start)
-        if self.config.play_end != None:
+                print(int(self.m.totalNr*self.config.play_start))
+        if self.config.play_end is not None:
             if self.config.play_end > 1:
                 self.frameSlider.setEndValue(self.config.play_end)
-                print self.config.play_end
+                print(self.config.play_end)
             else:
                 self.frameSlider.setEndValue(int(self.m.totalNr*self.config.play_end))
-                print int(self.m.totalNr*self.config.play_end)
+                print(int(self.m.totalNr*self.config.play_end))
         self.fsl_update = True
         self.layoutCtrl.addWidget(self.frameSlider, 0, 2)
 
@@ -104,13 +88,13 @@ class Viewer():
         self.layoutCtrl.addWidget(self.sbSkip, 1, 1)
 
         # widget list for control
-        self.ctrlwidgets = [self.pbPlay,
-                            self.frameSlider,
-                            self.lbCFrame,
-                            self.lbTFrame,
-                            self.sbFPS,
-                            self.sbSkip
-                            ]
+        self.control_widgets = [self.pbPlay,
+                                self.frameSlider,
+                                self.lbCFrame,
+                                self.lbTFrame,
+                                self.sbFPS,
+                                self.sbSkip
+                                ]
 
         # video replay
         self.tUpdate = QtCore.QTimer()
@@ -118,29 +102,17 @@ class Viewer():
 
         self.hpbPlay(self.config.playing)
 
-        # init with first frame
-        if self.m.rettype=='img':
-            self.frame = self.m.getImgNr(self.m.currentPos)
-            self.qframe = array2qimage(self.frame)
-            self.frameshape = self.frame.shape
-            self.qframeView = rgb_view(self.qframe)
-            self.inpixmap = QtGui.QPixmap.fromImage(self.qframe)
-            self.pixitem = QtGui.QGraphicsPixmapItem(self.inpixmap)
-        elif self.m.rettype == 'qpixmap':
-            self.pixitem = QtGui.QGraphicsPixmapItem(self.m.getImgNr(self.m.currentPos))
-
         self.hide = True
 
-        self.realFPStime = QtCore.QTime()
-        self.realFPStime.start()
-        self.nextframedone = False
+        self.real_fps_time = QtCore.QTime()
+        self.real_fps_time.start()
 
         self.frame_list = [os.path.split(file)[1][:-4] for file in self.m.filelist]
 
-        # add marker in timeline for marker and masks
-        marker_filelist = glob.glob(os.path.join(self.outputpath, '*' + config.logname_tag))
-        marker_filelist.extend(glob.glob(os.path.join(self.outputpath, '*' + config.maskname_tag)))
-        for file in marker_filelist:
+        # add marker in time line for marker and masks
+        marker_file_list = glob.glob(os.path.join(self.outputpath, '*' + config.logname_tag))
+        marker_file_list.extend(glob.glob(os.path.join(self.outputpath, '*' + config.maskname_tag)))
+        for file in marker_file_list:
             filename = os.path.split(file)[1]
             basename = filename[:-len(config.logname_tag)]
             try:
@@ -150,8 +122,8 @@ class Viewer():
             else:
                 self.frameSlider.addTickMarker(index, type=1)
 
-        marker_filelist = glob.glob(os.path.join(self.outputpath, '*' + config.annotation_tag))
-        for file in marker_filelist:
+        marker_file_list = glob.glob(os.path.join(self.outputpath, '*' + config.annotation_tag))
+        for file in marker_file_list:
             filename = os.path.split(file)[1]
             basename = filename[:-len(config.annotation_tag)]
             try:
@@ -204,9 +176,9 @@ class Viewer():
                 self.frameSlider.setValue(self.m.currentPos)
                 self.lbCFrame.setText('%d' % self.m.currentPos)
 
-            delta_t =  self.realFPStime.elapsed() - 1000/self.fps
-            print "%d ms, jitter %d" % (self.realFPStime.elapsed(),delta_t)
-            self.realFPStime.restart()
+            delta_t = self.real_fps_time.elapsed() - 1000/self.fps
+            print("%d ms, jitter %d" % (self.real_fps_time.elapsed(), delta_t))
+            self.real_fps_time.restart()
         else:
             # stop timer
             self.pbPlay.setChecked(False)
@@ -227,11 +199,11 @@ class Viewer():
         # @key H: hide control elements
         if event.key() == QtCore.Qt.Key_H:
             if self.hide:
-                for widget in self.ctrlwidgets:
+                for widget in self.control_widgets:
                     widget.setHidden(True)
                 self.layoutCtrl.setContentsMargins(0, 0, 0, 0)
             else:
-                for widget in self.ctrlwidgets:
+                for widget in self.control_widgets:
                     widget.setHidden(False)
                 self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
             self.hide = not self.hide

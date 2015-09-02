@@ -19,6 +19,7 @@ from qimage2ndarray import array2qimage
 
 from Tools import GraphicsItemEventFilter
 
+
 class BigPaintableImageDisplay:
     def __init__(self, origin, max_image_size=2**12, config=None):
         self.number_of_imagesX = 0
@@ -113,7 +114,7 @@ class BigPaintableImageDisplay:
 
     def save(self, filename):
         lut = np.zeros(3 * 256, np.uint8)
-        for draw_type in draw_types:
+        for draw_type in self.config.draw_types:
             index = draw_type[0]
             lut[index * 3:(index + 1) * 3] = draw_type[1]
         self.full_image.putpalette(lut)
@@ -121,10 +122,10 @@ class BigPaintableImageDisplay:
 
 
 class MyCounter2(QGraphicsRectItem):
-    def __init__(self, parent, MaskHandler, point_type):
+    def __init__(self, parent, mask_handler, point_type):
         QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
-        self.MaskHandler = MaskHandler
+        self.mask_handler = mask_handler
         self.type = point_type
         self.count = 0
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
@@ -136,13 +137,13 @@ class MyCounter2(QGraphicsRectItem):
         self.font.setPointSize(14)
 
         self.label_text = "%d: Color %s" % (point_type + 1, chr(ord('A') + point_type))
-        if len(self.MaskHandler.config.draw_types[self.type]) == 3:
-            self.label_text = self.MaskHandler.config.draw_types[self.type][2]
+        if len(self.mask_handler.config.draw_types[self.type]) == 3:
+            self.label_text = self.mask_handler.config.draw_types[self.type][2]
 
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setText(self.label_text)
         self.text.setFont(self.font)
-        self.text.setBrush(QBrush(QColor(*self.MaskHandler.config.draw_types[self.type][1])))
+        self.text.setBrush(QBrush(QColor(*self.mask_handler.config.draw_types[self.type][1])))
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
@@ -179,12 +180,12 @@ class MyCounter2(QGraphicsRectItem):
 
     def mousePressEvent(self, event):
         if event.button() == 1:
-            if not self.MaskHandler.active:
-                for module in self.MaskHandler.modules:
-                    if module != self.MaskHandler:
+            if not self.mask_handler.active:
+                for module in self.mask_handler.modules:
+                    if module != self.mask_handler:
                         module.setActive(False)
-                self.MaskHandler.setActive(True)
-            self.MaskHandler.SetActiveDrawType(self.type)
+                self.mask_handler.setActive(True)
+            self.mask_handler.SetActiveDrawType(self.type)
 
 
 class MaskHandler:
@@ -246,7 +247,6 @@ class MaskHandler:
         self.LoadMask(self.current_maskname)
 
     def LoadMask(self, maskname):
-        global draw_types
         mask_valid = False
         print("Loading " + maskname)
         if os.path.exists(maskname):
@@ -410,7 +410,7 @@ class MaskHandler:
         self.RedrawMask()
 
     def canLoadLast(self):
-        return self.last_maskname != None
+        return self.last_maskname is not None
 
     @staticmethod
     def file():
