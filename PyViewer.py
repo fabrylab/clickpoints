@@ -215,10 +215,10 @@ class Viewer():
     def MarkerPointsRemoved(self):
         self.frameSlider.removeTickMarker(self.m.currentPos, type=1)
 
-    def AnnotationAdded(self):
+    def AnnotationAdded(self, *args):
         self.frameSlider.addTickMarker(self.m.currentPos, type=0)
 
-    def AnnotationRemoved(self):
+    def AnnotationRemoved(self, *args):
         self.frameSlider.removeTickMarker(self.m.currentPos, type=0)
 
     def keyPressEvent(self, event):

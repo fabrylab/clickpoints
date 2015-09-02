@@ -88,11 +88,12 @@ class AnnotationEditor(QWidget):
         self.regFromFName = re.compile(self.regFromFNameString)
 
         try:
-            name,ext=os.path.splitext(filename[1])
+            basename,ext=os.path.splitext(filename[1])
         except:
-            name=filename[1]
+            basename=filename[1]
+        self.basename = basename
 
-        self.annotfilename = name + self.config.annotation_tag
+        self.annotfilename = basename + self.config.annotation_tag
 
         if (self.outputpath==''):
             fname=os.path.join(self.reffilename[0],self.annotfilename)
@@ -131,8 +132,8 @@ class AnnotationEditor(QWidget):
 
         self.layout.addWidget(QLabel('Rating:', self),4,2)
         self.leRating = QComboBox(self)
-        for index, name in enumerate(['0 - none', '1 - bad', '2', '3', '4', '5 - good']):
-            self.leRating.insertItem(index, name)
+        for index, basename in enumerate(['0 - none', '1 - bad', '2', '3', '4', '5 - good']):
+            self.leRating.insertItem(index, basename)
         self.leRating.setInsertPolicy(QComboBox.NoInsert)
         self.layout.addWidget(self.leRating,4,3)
 
@@ -169,7 +170,6 @@ class AnnotationEditor(QWidget):
 
                 # update results
                 self.results=UpdateDictwith(self.results,re_dict)
-                print self.results
 
         # update gui
         # update meta
@@ -185,10 +185,12 @@ class AnnotationEditor(QWidget):
     def saveAnnotation(self):
         print "SAVE"
         if (self.outputpath==''):
-            f=QFile(os.path.join(self.reffilename[0],self.annotfilename))
-            print os.path.join(self.reffilename[0],self.annotfilename)
+            filename = os.path.join(self.reffilename[0],self.annotfilename)
+            f=QFile(filename)
+            print filename
         else:
-            f=QFile(os.path.join(self.outputpath,self.annotfilename))
+            filename = os.path.join(self.outputpath,self.annotfilename)
+            f=QFile(filename)
         f.open(QFile.Truncate | QFile.ReadWrite)
 
         if not f.isOpen():
@@ -219,13 +221,15 @@ class AnnotationEditor(QWidget):
                 out << "%s=%s\n" % (field,self.results.get(field))
 
             # # write data
+            comment = self.pteAnnotation.toPlainText()
             out << '\n[comment]\n'
-            out << self.pteAnnotation.toPlainText()
+            out << comment
 
             f.close()
             self.close()
 
-            BroadCastEvent(self.modules, "AnnotationAdded")
+            results, comment = ReadAnnotation(filename)
+            BroadCastEvent(self.modules, "AnnotationAdded", self.basename, results, comment)
 
     def removeAnnotation(self):
         if (self.outputpath==''):
@@ -234,7 +238,7 @@ class AnnotationEditor(QWidget):
         else:
             f=os.path.join(self.outputpath,self.annotfilename)
         os.remove(f)
-        BroadCastEvent(self.modules, "AnnotationRemoved")
+        BroadCastEvent(self.modules, "AnnotationRemoved", self.basename)
 
         self.close()
 
@@ -272,14 +276,7 @@ class AnnotationOverview(QWidget):
             comment = self.annotations[basename]["comment"]
 
             # populate table
-            self.table.insertRow(self.table.rowCount())
-            self.table.setItem(i,0,QTableWidgetItem(data['timestamp']))
-            self.table.setItem(i,1,QTableWidgetItem(", ".join(data['tags'])))
-            self.table.setItem(i,2,QTableWidgetItem(comment))
-            self.table.setItem(i,3,QTableWidgetItem(str(data['rating'])))
-            self.table.setItem(i,4,QTableWidgetItem(data['system']))
-            self.table.setItem(i,5,QTableWidgetItem(data['camera']))
-            self.table.setItem(i,6,QTableWidgetItem(basename))
+            self.UpdateRow(i, basename, data, comment)
 
         # fit column to context
         self.table.resizeColumnToContents(0)
@@ -296,6 +293,36 @@ class AnnotationOverview(QWidget):
             print('no matching file found for '+basename)
         else:
             self.window.JumpToFrame(index)
+
+    def UpdateRow(self, row, basename, data, comment, sortIfNew=False):
+        new = False
+        if self.table.rowCount() <= row:
+            self.table.insertRow(self.table.rowCount())
+            for j in range(7):
+                self.table.setItem(row,j,QTableWidgetItem())
+            new = True
+        print data
+        print comment
+        print basename
+        texts = [data['timestamp'], ", ".join(data['tags']), comment, str(data['rating']), data['system'], data['camera'], basename]
+        for index, text in enumerate(texts):
+            self.table.item(row, index).setText(text)
+        if new and sortIfNew:
+            self.table.sortByColumn(0, Qt.AscendingOrder)
+
+    def AnnotationAdded(self, basename, data, comment):
+        row = self.table.rowCount()
+        for i in range(self.table.rowCount()):
+            if self.table.item(i, 6).text() == basename:
+                row = i
+                break
+        self.UpdateRow(row, basename, data, comment, sortIfNew=True)
+
+    def AnnotationRemoved(self, basename):
+        for i in range(self.table.rowCount()):
+            if self.table.item(i, 6).text() == basename:
+                self.table.removeRow(i)
+                break
 
 class AnnotationHandler:
     def __init__(self, window, MediaHandler, modules, config=None):
@@ -328,13 +355,23 @@ class AnnotationHandler:
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
 
+    def AnnotationAdded(self, basename, data, comment):
+        self.annoations[basename] = dict(data=data, comment=comment)
+        if self.AnnotationOverviewWindow:
+            self.AnnotationOverviewWindow.AnnotationAdded(basename, data, comment)
+
+    def AnnotationRemoved(self, basename):
+        del self.annoations[basename]
+        if self.AnnotationOverviewWindow:
+            self.AnnotationOverviewWindow.AnnotationRemoved(basename)
+
     def getAnnotations(self):
         return self.annoations
 
     def keyPressEvent(self, event):
         # @key A: add/edit annotation
         if event.key() == Qt.Key_A:
-            self.AnnotationEditorWindow = AnnotationEditor(self.mediahandler.getCurrentFilename(nr=self.mediahandler.currentPos),outputpath=self.outputpath, modules=self.modules, config=self.config)
+            self.AnnotationEditorWindow = AnnotationEditor(self.mediahandler.getCurrentFilename(),outputpath=self.outputpath, modules=self.modules, config=self.config)
             self.AnnotationEditorWindow.show()
         # @key Y: show annotation overview
         if event.key() == Qt.Key_Y:
