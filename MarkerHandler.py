@@ -47,9 +47,10 @@ point_display_type = 0
 
 def ReadTypeDict(string):
     dictionary = {}
-    matches = re.findall(r"(\d*):\s*\[\s*\'([^']*?)\',\s*\[\s*([\d.]*)\s*,\s*([\d.]*)\s*,\s*([\d.]*)\s*\]\s*,\s*([\d.]*)\s*\]", string)
+    matches = re.findall(
+        r"(\d*):\s*\[\s*\'([^']*?)\',\s*\[\s*([\d.]*)\s*,\s*([\d.]*)\s*,\s*([\d.]*)\s*\]\s*,\s*([\d.]*)\s*\]", string)
     for match in matches:
-        dictionary[int(match[0])] = [match[1], map(float,match[2:5]), int(match[5])]
+        dictionary[int(match[0])] = [match[1], map(float, match[2:5]), int(match[5])]
     return dictionary
 
 
@@ -63,7 +64,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.marker_handler = marker_handler
         self.config = self.marker_handler.config
 
-        self.scale_value = None
+        self.scale_value = 1
 
         self.UpdatePath()
 
@@ -282,7 +283,7 @@ class Crosshair(QGraphicsPathItem):
         self.config = config
         self.radius = 50
 
-        self.RGB = np.zeros((self.radius*2+1, self.radius*2+1, 3))
+        self.RGB = np.zeros((self.radius * 2 + 1, self.radius * 2 + 1, 3))
         self.Alpha = disk(self.radius) * 255
         self.Image = np.concatenate((self.RGB, self.Alpha[:, :, None]), axis=2)
         self.CrosshairQImage = array2qimage(self.Image)
@@ -290,13 +291,13 @@ class Crosshair(QGraphicsPathItem):
 
         self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairQImage), self)
         self.Crosshair.setOffset(-self.radius, -self.radius)
-        self.setPos(self.radius*3, self.radius*3)
+        self.setPos(self.radius * 3, self.radius * 3)
         self.Crosshair.setZValue(-5)
         self.setZValue(30)
         self.setVisible(False)
 
         self.pathCrosshair = QPainterPath()
-        self.pathCrosshair.addEllipse(-self.radius, -self.radius, self.radius*2, self.radius*2)
+        self.pathCrosshair.addEllipse(-self.radius, -self.radius, self.radius * 2, self.radius * 2)
 
         w = 0.333 * 0.5
         b = 40
@@ -308,7 +309,7 @@ class Crosshair(QGraphicsPathItem):
         self.pathCrosshair2.addRect(-w, r2, w * 2, -b)
 
         self.CrosshairPathItem = QGraphicsPathItem(self.pathCrosshair, self)
-        #self.setPath(self.pathCrosshair)
+        # self.setPath(self.pathCrosshair)
         self.CrosshairPathItem2 = QGraphicsPathItem(self.pathCrosshair2, self)
 
     def setScale(self, value):
@@ -318,17 +319,17 @@ class Crosshair(QGraphicsPathItem):
         return True
 
     def SetZoom(self, new_radius):
-        self.radius = int(new_radius*50/3)
+        self.radius = int(new_radius * 50 / 3)
         if self.radius <= 10:
             return False
-        self.RGB = np.zeros((self.radius*2+1, self.radius*2+1, 3))
+        self.RGB = np.zeros((self.radius * 2 + 1, self.radius * 2 + 1, 3))
         self.Alpha = disk(self.radius) * 255
         self.Image = np.concatenate((self.RGB, self.Alpha[:, :, None]), axis=2)
         self.CrosshairQImage = array2qimage(self.Image)
         self.CrosshairQImageView = rgb_view(self.CrosshairQImage)
         self.Crosshair.setPixmap(QPixmap(self.CrosshairQImage))
-        self.Crosshair.setScale(1/self.radius*50)
-        self.Crosshair.setOffset(-self.radius-0.5, -self.radius-0.5)
+        self.Crosshair.setScale(1 / self.radius * 50)
+        self.Crosshair.setOffset(-self.radius - 0.5, -self.radius - 0.5)
         self.MoveCrosshair(self.pos().x(), self.pos().y())
         return True
 
@@ -339,7 +340,8 @@ class Crosshair(QGraphicsPathItem):
         if self.scale() == 0:
             return
         self.CrosshairQImageView[:, :, :] = self.SaveSlice(self.image.image,
-                                                           [[y - self.radius, y + self.radius + 1], [x - self.radius, x + self.radius + 1], [0, 3]])
+                                                           [[y - self.radius, y + self.radius + 1],
+                                                            [x - self.radius, x + self.radius + 1], [0, 3]])
         self.Crosshair.setPixmap(QPixmap(self.CrosshairQImage))
 
     @staticmethod
@@ -373,10 +375,10 @@ class Crosshair(QGraphicsPathItem):
 
 
 class MyCounter(QGraphicsRectItem):
-    def __init__(self, parent, MarkerHandler, point_type):
+    def __init__(self, parent, marker_handler, point_type):
         QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
-        self.MarkerHandler = MarkerHandler
+        self.marker_handler = marker_handler
         self.type = point_type
         self.count = 0
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
@@ -388,24 +390,25 @@ class MyCounter(QGraphicsRectItem):
         self.font.setPointSize(14)
 
         self.text = QGraphicsSimpleTextItem(self)
-        self.text.setText(self.MarkerHandler.config.types[self.type][0] + " %d" % 0)
+        self.text.setText(self.marker_handler.config.types[self.type][0] + " %d" % 0)
         self.text.setFont(self.font)
-        self.text.setBrush(QBrush(QColor(*self.MarkerHandler.config.types[self.type][1])))
+        self.text.setBrush(QBrush(QColor(*self.marker_handler.config.types[self.type][1])))
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.setPos(10, 10 + 25 * self.MarkerHandler.config.types.keys().index(self.type))
+        self.setPos(10, 10 + 25 * self.marker_handler.config.types.keys().index(self.type))
         self.setZValue(9)
 
         count = 0
-        for point in self.MarkerHandler.points:
+        for point in self.marker_handler.points:
             if point.type == self.type:
                 count += 1
         self.AddCount(count)
 
     def AddCount(self, new_count):
         self.count += new_count
-        self.text.setText(str(self.type+1)+": "+self.MarkerHandler.config.types[self.type][0] + " %d" % self.count)
+        self.text.setText(
+            str(self.type + 1) + ": " + self.marker_handler.config.types[self.type][0] + " %d" % self.count)
         rect = self.text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
@@ -429,13 +432,12 @@ class MyCounter(QGraphicsRectItem):
 
     def mousePressEvent(self, event):
         if event.button() == 1:
-            if not self.MarkerHandler.active:
-                for module in self.MarkerHandler.modules:
-                    if module != self.MarkerHandler:
+            if not self.marker_handler.active:
+                for module in self.marker_handler.modules:
+                    if module != self.marker_handler:
                         module.setActive(False)
-                self.MarkerHandler.setActive(True)
-            self.MarkerHandler.SetActiveMarkerType(self.type)
-
+                self.marker_handler.setActive(True)
+            self.marker_handler.SetActiveMarkerType(self.type)
 
 
 class MarkerHandler:
@@ -476,7 +478,7 @@ class MarkerHandler:
             self.last_logname = self.current_logname
         self.frame_number = framenumber
         base_filename = os.path.splitext(filename)[0]
-        print self.config["outputpath"]
+        self.config["outputpath"]
         self.current_logname = os.path.join(self.config.outputpath, base_filename + self.config.logname_tag)
 
         self.LoadLog(self.current_logname)
@@ -486,7 +488,7 @@ class MarkerHandler:
         print("Loading " + logname)
         if not self.config.tracking:
             while len(self.points):
-                self.RemovePoint(self.points[0], noNotice=True)
+                self.RemovePoint(self.points[0], no_notice=True)
         if os.path.exists(logname):
             if self.config.tracking:
                 for point in self.points:
@@ -510,7 +512,7 @@ class MarkerHandler:
                     marker_type = int(line[2])
                     if marker_type not in types.keys():
                         np.random.seed(marker_type)
-                        types[marker_type] = ["id%d"%marker_type, np.random.randint(0, 255, 3), 0]
+                        types[marker_type] = ["id%d" % marker_type, np.random.randint(0, 255, 3), 0]
                     if len(line) == 3:
                         if index >= len(self.points):
                             self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, marker_type))
@@ -533,7 +535,8 @@ class MarkerHandler:
                                 found = True
                                 break
                     if not found:
-                        self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, marker_type, marker_id, partner_id))
+                        self.points.append(
+                            MyMarkerItem(x, y, self.MarkerParent, self, marker_type, marker_id, partner_id))
                         self.points[-1].setScale(1 / self.scale)
                         self.points[-1].setActive(active)
                 self.UpdateCounter()
@@ -547,12 +550,12 @@ class MarkerHandler:
             self.SetActiveMarkerType(self.active_type)
         self.PointsUnsaved = False
 
-    def RemovePoint(self, point, noNotice=False):
+    def RemovePoint(self, point, no_notice=False):
         point.OnRemove()
         self.points.remove(point)
         self.view.scene.removeItem(point)
         self.PointsUnsaved = True
-        if len(self.points) == 0 and noNotice == False:
+        if len(self.points) == 0 and no_notice is False:
             BroadCastEvent(self.modules, "MarkerPointsRemoved")
 
     def save(self):
@@ -563,9 +566,9 @@ class MarkerHandler:
             else:
                 data = ["%f %f %d %d %s %s\n" % (
                     point.pos().x(), point.pos().y(), point.type, point.active, point.id, point.partner_id)
-                    for point in self.points if point.active]
+                        for point in self.points if point.active]
                 with open(self.current_logname, 'w') as fp:
-                    fp.write("#@types "+str(self.config.types)+"\n")
+                    fp.write("#@types " + str(self.config.types) + "\n")
                     for line in data:
                         fp.write(line)
             print(self.current_logname + " saved")
@@ -609,8 +612,9 @@ class MarkerHandler:
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
             points = [point for point in self.points if point.type == self.active_type]
-            if self.config.tracking and self.config.tracking_connect_nearest and len(points) and not event.modifiers() & Qt.ControlModifier:
-                distances = [np.linalg.norm(PosToArray(point.pos()-event.pos())) for point in points]
+            if self.config.tracking and self.config.tracking_connect_nearest and len(
+                    points) and not event.modifiers() & Qt.ControlModifier:
+                distances = [np.linalg.norm(PosToArray(point.pos() - event.pos())) for point in points]
                 index = np.argmin(distances)
                 points[index].addPoint(event.pos().x(), event.pos().y(), points[index].type)
                 self.PointsUnsaved = True
@@ -639,7 +643,7 @@ class MarkerHandler:
         self.PointsUnsaved = True
 
     def canLoadLast(self):
-        return self.last_logname != None
+        return self.last_logname is not None
 
     @staticmethod
     def file():
@@ -648,5 +652,3 @@ class MarkerHandler:
     @staticmethod
     def can_create_module(config):
         return len(config.types) > 0
-
-

@@ -57,10 +57,10 @@ class ClickPointsWindow(QWidget):
 
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
-        self.MediaHandler = MediaHandler(join(config.srcpath, config.filename), filterparam=config.filterparam)
+        self.media_handler = MediaHandler(join(config.srcpath, config.filename), filterparam=config.filterparam)
 
         self.modules = []
-        arg_dict = {"window": self, "layout": self.layout, "MediaHandler": self.MediaHandler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__}
+        arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__}
         for mod, hud in zip(used_modules, used_huds):
             allowed = True
             if "can_create_module" in dir(mod):
@@ -73,6 +73,7 @@ class ClickPointsWindow(QWidget):
                 # Filter out only the arguments the function wants
                 arg_dict2 = {k: v for k, v in arg_dict.items() if k in arg_name_list}
                 # Initialize the module
+                print mod
                 self.modules.append(mod(**arg_dict2))
         # Find next module, which can be activated
         for module in self.modules:
@@ -85,8 +86,8 @@ class ClickPointsWindow(QWidget):
             self.view.rotate(config.rotation)
 
     def UpdateImage(self):
-        filename = self.MediaHandler.getCurrentFilename()[1]
-        frame_number = self.MediaHandler.getCurrentPos()
+        filename = self.media_handler.getCurrentFilename()[1]
+        frame_number = self.media_handler.getCurrentPos()
 
         self.setWindowTitle(filename)
 
@@ -94,19 +95,19 @@ class ClickPointsWindow(QWidget):
         BroadCastEvent(self.modules, "LoadImageEvent", filename, frame_number)
 
     def LoadImage(self):
-        self.ImageDisplay.SetImage(self.MediaHandler.getCurrentImg())
+        self.ImageDisplay.SetImage(self.media_handler.getCurrentImg())
 
     def save(self):
         BroadCastEvent(self.modules, "save")
 
     def JumpFrames(self, amount):
-        self.JumpToFrame(self.MediaHandler.getCurrentPos() + amount)
+        self.JumpToFrame(self.media_handler.getCurrentPos() + amount)
 
     # jump absolute
     def JumpToFrame(self, targetid):
         QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
         self.save()
-        if self.MediaHandler.setCurrentPos(targetid):
+        if self.media_handler.setCurrentPos(targetid):
             self.UpdateImage()
         for module in self.modules:
             if "FrameChangeEvent" in dir(module):

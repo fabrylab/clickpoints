@@ -21,10 +21,10 @@ annotation_tag = '_annot.txt'
 
 filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
 
-filterparam={}
+filterparam = {}
 
 play_start = 0.0
-play_end   = 1.0
+play_end = 1.0
 playing = False
 
 rotation = 0
@@ -47,13 +47,15 @@ addons = []
 
 max_image_size = 2 ** 12
 
+
 # enables .access on dicts
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
     def __getattr__(self, attr):
         return self.get(attr)
-    __setattr__= dict.__setitem__
-    __delattr__= dict.__delitem__
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
 
 def LoadConfig():
     global use_filedia, auto_mask_update, tracking, tracking_connect_nearest
@@ -84,9 +86,7 @@ def LoadConfig():
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=")
             if key in globals():
-                print(globals()[key])
-                print(type(globals()[key]))
-                if type(globals()[key]) is not type(None):
+                if isinstance(globals()[key], type(None)):
                     value = type(globals()[key])(value)
                 globals()[key] = type(globals()[key])(value)
 
