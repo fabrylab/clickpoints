@@ -486,7 +486,7 @@ class MarkerHandler:
         print("Loading " + logname)
         if not self.config.tracking:
             while len(self.points):
-                self.RemovePoint(self.points[0])
+                self.RemovePoint(self.points[0], noNotice=True)
         if os.path.exists(logname):
             if self.config.tracking:
                 for point in self.points:
@@ -547,12 +547,12 @@ class MarkerHandler:
             self.SetActiveMarkerType(self.active_type)
         self.PointsUnsaved = False
 
-    def RemovePoint(self, point):
+    def RemovePoint(self, point, noNotice=False):
         point.OnRemove()
         self.points.remove(point)
         self.view.scene.removeItem(point)
         self.PointsUnsaved = True
-        if len(self.points) == 0:
+        if len(self.points) == 0 and noNotice == False:
             BroadCastEvent(self.modules, "MarkerPointsRemoved")
 
     def save(self):
