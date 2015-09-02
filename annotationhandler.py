@@ -81,6 +81,7 @@ class AnnotationHandler(QWidget):
                         })
         self.comment=''
         self.modules = modules
+        self.config = config
 
         # regexp
         self.regFromFNameString=r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
