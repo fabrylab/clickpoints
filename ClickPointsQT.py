@@ -192,13 +192,11 @@ class ClickPointsWindow(QWidget):
             if event.key() == key and event.modifiers() == Qt.KeypadModifier:
                 self.JumpFrames(jump)
                 print(jump)
-print "config", config
+
 for addon in config.addons:
     with open(addon + ".py") as f:
         code = compile(f.read(), addon + ".py", 'exec')
         exec(code)
-
-print "config", config
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
