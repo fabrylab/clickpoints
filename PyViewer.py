@@ -7,7 +7,7 @@ try:
     from PyQt4 import QtOpenGL
     from OpenGL import GL
     gotopengl=True
-except:
+except ImportError:
     pass
 
 from PyQt4 import QtGui, QtCore
@@ -19,8 +19,10 @@ import mediahandler as mh
 
 from Tools import MyMultiSlider
 
+icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
+
 class Viewer():
-    def __init__(self, window, parent=None, MediaHandler=None, layout=None, outputpath=None, config=None, modules=[]):
+    def __init__(self, window, MediaHandler=None, layout=None, outputpath=None, config=None, modules=[]):
         self.window = window
         if MediaHandler is None:
             self.m = mh.MediaHandler(path,rettype='qpixmap')
@@ -182,10 +184,10 @@ class Viewer():
     def hpbPlay(self, state):
         if state:
             self.tUpdate.start(1000 / self.fps)
-            self.pbPlay.setIcon(QIcon("./icons/media-playback-pause.png"))
+            self.pbPlay.setIcon(QIcon(os.path.join(icon_path, "media-playback-pause.png")))
         else:
             self.tUpdate.stop()
-            self.pbPlay.setIcon(QIcon("./icons/media-playback-start.png"))
+            self.pbPlay.setIcon(QIcon(os.path.join(icon_path, "media-playback-start.png")))
 
     def updateFrame(self, nr=-1):
         if nr != -1:
