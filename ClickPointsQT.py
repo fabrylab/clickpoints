@@ -113,6 +113,9 @@ class ClickPointsWindow(QWidget):
                 module.FrameChangeEvent()
         QApplication.restoreOverrideCursor()
 
+    def closeEvent(self, QCloseEvent):
+        BroadCastEvent(self.modules, "closeEvent", QCloseEvent)
+
     def keyPressEvent(self, event):
 
         for module in self.modules:

@@ -325,6 +325,9 @@ class AnnotationHandler:
             basename = filename[:-len(self.config.annotation_tag)]
             self.annoations[basename] = dict(data=results, comment=comment)
 
+        self.AnnotationEditorWindow = None
+        self.AnnotationOverviewWindow = None
+
     def getAnnotations(self):
         return self.annoations
 
@@ -337,6 +340,12 @@ class AnnotationHandler:
         if event.key() == Qt.Key_Y:
             self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.annoations, self.frame_list)
             self.AnnotationOverviewWindow.show()
+
+    def closeEvent(self, event):
+        if self.AnnotationEditorWindow:
+            self.AnnotationEditorWindow.close()
+        if self.AnnotationOverviewWindow:
+            self.AnnotationOverviewWindow.close()
 
     @staticmethod
     def file():
