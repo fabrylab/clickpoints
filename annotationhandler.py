@@ -84,7 +84,7 @@ class AnnotationHandler(QWidget):
         self.config = config
 
         # regexp
-        self.regFromFNameString=r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
+        self.regFromFNameString=self.config.filename_data_regex
         self.regFromFName = re.compile(self.regFromFNameString)
 
         try:
