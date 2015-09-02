@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw
 import ImageQt
 from qimage2ndarray import array2qimage
 
-from Tools import GraphicsItemEventFilter
+from Tools import GraphicsItemEventFilter, BroadCastEvent
 
 
 class BigPaintableImageDisplay:
@@ -226,6 +226,7 @@ class MaskHandler:
         self.DrawMode = False
         self.MaskChanged = False
         self.MaskUnsaved = False
+        self.MaskEmpty = False
         self.active = False
 
         self.counter = []
@@ -258,8 +259,10 @@ class MaskHandler:
                 mask_valid = False
                 print("ERROR: Can't read mask file")
             print("...done")
+        self.MaskEmpty = False
         if not mask_valid:
             self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
+            self.MaskEmpty = True
         self.MaskUnsaved = False
         if self.image_mask_full.mode == 'P':
             a = np.array(map(ord, self.image_mask_full.palette.getdata()[1])).reshape(256, 3)
@@ -353,6 +356,9 @@ class MaskHandler:
         self.MaskUnsaved = True
         if self.config.auto_mask_update:
             self.RedrawMask()
+        if self.MaskEmpty:
+            self.MaskEmpty = False
+            BroadCastEvent(self.modules, "MaskAdded")
 
     def sceneEventFilter(self, event):
         if event.type() == 156 and event.button() == 1:  # Left Mouse ButtonPress
