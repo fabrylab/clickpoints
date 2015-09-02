@@ -23,6 +23,7 @@ from mediahandler import MediaHandler
 from MaskHandler import MaskHandler
 from MarkerHandler import MarkerHandler
 from PyViewer import Viewer
+from annotationhandler import AnnotationHandler
 
 from Tools import *
 from ConfigLoad import LoadConfig
@@ -30,8 +31,8 @@ from ToolsForClickPoints import SliderBox, BigImageDisplay
 
 config = LoadConfig()
 
-used_modules = [MarkerHandler, MaskHandler, SliderBox, Viewer, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud"]
+used_modules = [MarkerHandler, MaskHandler, SliderBox, Viewer, AnnotationHandler, HelpText]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud"]
 
 class ClickPointsWindow(QWidget):
     def zoomEvent(self, scale, pos):

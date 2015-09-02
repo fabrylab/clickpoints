@@ -16,8 +16,6 @@ from PyQt4.QtCore import *
 from qimage2ndarray import array2qimage, rgb_view
 
 import mediahandler as mh
-import annotationhandler as ah
-import annotationoverview as ao
 
 from Tools import MyMultiSlider
 
@@ -238,14 +236,16 @@ class Viewer():
         # @key Space: run/pause
         if event.key() == QtCore.Qt.Key_Space:
             self.pbPlay.toggle()
+        """
         # @key A: add/edit annotation
         if event.key() == QtCore.Qt.Key_A:
-            self.w = ah.AnnotationHandler(self.m.getCurrentFilename(nr=self.m.currentPos),outputpath=self.outputpath, modules=self.modules, config=self.config)
+            self.w = ah.AnnotationEditor(self.m.getCurrentFilename(nr=self.m.currentPos),outputpath=self.outputpath, modules=self.modules, config=self.config)
             self.w.show()
         # @key Y: show annotation overview
         if event.key() == QtCore.Qt.Key_Y:
             self.y = ao.AnnotationOverview(self.window,self.m,outputpath=self.outputpath,frameSlider=self.frameSlider, config=self.config)
             self.y.show()
+        """
     @staticmethod
     def file():
         return __file__
