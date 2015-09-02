@@ -18,7 +18,7 @@ from qimage2ndarray import array2qimage, rgb_view
 
 import uuid
 
-from Tools import GraphicsItemEventFilter, disk, PosToArray
+from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
 
 w = 1.
 b = 7
@@ -553,9 +553,7 @@ class MarkerHandler:
         self.view.scene.removeItem(point)
         self.PointsUnsaved = True
         if len(self.points) == 0:
-            for module in self.modules:
-                if "MarkerPointsRemoved" in dir(module):
-                    module.MarkerPointsRemoved()
+            BroadCastEvent(self.modules, "MarkerPointsRemoved")
 
     def save(self):
         if self.PointsUnsaved:
@@ -609,9 +607,7 @@ class MarkerHandler:
     def sceneEventFilter(self, event):
         if event.type() == 156 and event.button() == 1:  # QtCore.QEvent.MouseButtonPress:
             if len(self.points) >= 0:
-                for module in self.modules:
-                    if "MarkerPointsAdded" in dir(module):
-                        module.MarkerPointsAdded()
+                BroadCastEvent(self.modules, "MarkerPointsAdded")
             points = [point for point in self.points if point.type == self.active_type]
             if self.config.tracking and self.config.tracking_connect_nearest and len(points) and not event.modifiers() & Qt.ControlModifier:
                 distances = [np.linalg.norm(PosToArray(point.pos()-event.pos())) for point in points]

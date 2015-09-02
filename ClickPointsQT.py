@@ -91,17 +91,13 @@ class ClickPointsWindow(QWidget):
         self.setWindowTitle(filename)
 
         self.LoadImage()
-        for module in self.modules:
-            if "LoadImageEvent" in dir(module):
-                module.LoadImageEvent(filename, frame_number)
+        BroadCastEvent(self.modules, "LoadImageEvent", filename, frame_number)
 
     def LoadImage(self):
         self.ImageDisplay.SetImage(self.MediaHandler.getCurrentImg())
 
     def save(self):
-        for module in self.modules:
-            if "save" in dir(module):
-                module.save()
+        BroadCastEvent(self.modules, "save")
 
     def JumpFrames(self, amount):
         self.JumpToFrame(self.MediaHandler.getCurrentPos() + amount)
@@ -155,9 +151,7 @@ class ClickPointsWindow(QWidget):
                                              QMessageBox.No)
                 if reply == QMessageBox.Yes:
                     print('Loading data of last image ...')
-                    for module in self.modules:
-                        if "loadLast" in dir(module):
-                            module.loadLast()
+                    BroadCastEvent(self.modules, "loadLast")
 
         # @key ---- Modules ----
         if event.key() == QtCore.Qt.Key_P:
