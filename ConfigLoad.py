@@ -17,6 +17,8 @@ logname_tag = '_pos.txt'
 maskname_tag = '_mask.png'
 annotation_tag = '_annot.txt'
 
+filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
+
 filterparam={}
 
 play_start = 0.0
