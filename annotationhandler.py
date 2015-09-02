@@ -7,10 +7,9 @@ from __future__ import division
 # default
 import os
 import re
+import glob
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-
-from Tools import *
 
 # util
 def UpdateDictwith(x, y):
@@ -65,7 +64,7 @@ def ReadAnnotation(filename):
 
     return results,comment
 
-class AnnotationHandler(QWidget):
+class AnnotationEditor(QWidget):
     def __init__(self,filename,outputpath='',modules=[],config=None):
         QWidget.__init__(self)
 
@@ -245,3 +244,102 @@ class AnnotationHandler(QWidget):
         print "DISCARD"
         self.close()
 
+class AnnotationOverview(QWidget):
+    def __init__(self,window,annotations,frame_list):
+        QWidget.__init__(self)
+
+        # widget layout and elements
+        self.setMinimumWidth(700)
+        self.setMinimumHeight(300)
+        self.setWindowTitle('Annotations')
+        self.layout = QGridLayout(self)
+        self.annotations = annotations
+        self.window = window
+        self.frame_list = frame_list
+
+        self.table= QTableWidget(0, 7, self)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setHorizontalHeaderLabels(QStringList(['Date','Tag','Comment','R','System','Cam','file']))
+        self.table.hideColumn(6)
+        self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setResizeMode(2,QHeaderView.Stretch)
+        self.table.verticalHeader().hide()
+        self.layout.addWidget(self.table)
+
+        self.table.doubleClicked.connect(self.JumpToAnnotation)
+
+        for i,basename in enumerate(self.annotations):
+            # read annotation file
+            data = self.annotations[basename]["data"]
+            comment = self.annotations[basename]["comment"]
+
+            # populate table
+            self.table.insertRow(self.table.rowCount())
+            self.table.setItem(i,0,QTableWidgetItem(data['timestamp']))
+            self.table.setItem(i,1,QTableWidgetItem(", ".join(data['tags'])))
+            self.table.setItem(i,2,QTableWidgetItem(comment))
+            self.table.setItem(i,3,QTableWidgetItem(str(data['rating'])))
+            self.table.setItem(i,4,QTableWidgetItem(data['system']))
+            self.table.setItem(i,5,QTableWidgetItem(data['camera']))
+            self.table.setItem(i,6,QTableWidgetItem(basename))
+
+        # fit column to context
+        self.table.resizeColumnToContents(0)
+        self.table.sortByColumn(0, Qt.AscendingOrder)
+
+    def JumpToAnnotation(self,idx):
+        # get file basename
+        basename = self.table.item(idx.row(),6).text()
+
+        # find match in file list
+        try:
+            index = self.frame_list.index(basename)
+        except ValueError:
+            print('no matching file found for '+basename)
+        else:
+            self.window.JumpToFrame(index)
+
+class AnnotationHandler:
+    def __init__(self, window, MediaHandler, modules, config=None):
+        self.config = config
+
+        # default settings and parameters
+        self.outputpath=config.outputpath
+        self.window=window
+        self.mediahandler=MediaHandler
+        self.config = config
+        self.modules = modules
+
+        self.frame_list = [os.path.split(file)[1][:-4] for file in self.mediahandler.filelist]
+
+        # get list of files
+        input = os.path.join(self.outputpath, '*' + self.config.annotation_tag)
+        self.filelist = glob.glob(input)
+
+        self.annoations = {}
+
+        for i,file in enumerate(self.filelist):
+            # read annotation file
+            results, comment = ReadAnnotation(file)
+
+            # get file basename
+            filename = os.path.split(file)[1]
+            basename = filename[:-len(self.config.annotation_tag)]
+            self.annoations[basename] = dict(data=results, comment=comment)
+
+    def getAnnotations(self):
+        return self.annoations
+
+    def keyPressEvent(self, event):
+        # @key A: add/edit annotation
+        if event.key() == Qt.Key_A:
+            self.AnnotationEditorWindow = AnnotationEditor(self.mediahandler.getCurrentFilename(nr=self.mediahandler.currentPos),outputpath=self.outputpath, modules=self.modules, config=self.config)
+            self.AnnotationEditorWindow.show()
+        # @key Y: show annotation overview
+        if event.key() == Qt.Key_Y:
+            self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.annoations, self.frame_list)
+            self.AnnotationOverviewWindow.show()
+
+    @staticmethod
+    def file():
+        return __file__
