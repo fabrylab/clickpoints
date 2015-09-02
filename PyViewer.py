@@ -111,10 +111,20 @@ class Viewer:
 
         # add marker in time line for marker and masks
         marker_file_list = glob.glob(os.path.join(self.outputpath, '*' + config.logname_tag))
-        marker_file_list.extend(glob.glob(os.path.join(self.outputpath, '*' + config.maskname_tag)))
         for file in marker_file_list:
             filename = os.path.split(file)[1]
             basename = filename[:-len(config.logname_tag)]
+            try:
+                index = self.frame_list.index(basename)
+            except ValueError:
+                pass
+            else:
+                self.frameSlider.addTickMarker(index, type=1)
+
+        marker_file_list = glob.glob(os.path.join(self.outputpath, '*' + config.maskname_tag))
+        for file in marker_file_list:
+            filename = os.path.split(file)[1]
+            basename = filename[:-len(config.maskname_tag)]
             try:
                 index = self.frame_list.index(basename)
             except ValueError:
@@ -182,6 +192,9 @@ class Viewer:
         else:
             # stop timer
             self.pbPlay.setChecked(False)
+
+    def MaskAdded(self):
+        self.frameSlider.addTickMarker(self.m.currentPos, type=1)
 
     def MarkerPointsAdded(self):
         self.frameSlider.addTickMarker(self.m.currentPos, type=1)
