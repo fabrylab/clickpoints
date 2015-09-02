@@ -10,6 +10,7 @@ import re
 import glob
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
+from Tools import BroadCastEvent
 
 # util
 def UpdateDictwith(x, y):
@@ -224,9 +225,7 @@ class AnnotationEditor(QWidget):
             f.close()
             self.close()
 
-            for module in self.modules:
-                if "AnnotationAdded" in dir(module):
-                    module.AnnotationAdded()
+            BroadCastEvent(self.modules, "AnnotationAdded")
 
     def removeAnnotation(self):
         if (self.outputpath==''):
@@ -235,9 +234,8 @@ class AnnotationEditor(QWidget):
         else:
             f=os.path.join(self.outputpath,self.annotfilename)
         os.remove(f)
-        for module in self.modules:
-            if "AnnotationRemoved" in dir(module):
-                module.AnnotationRemoved()
+        BroadCastEvent(self.modules, "AnnotationRemoved")
+
         self.close()
 
     def discardAnnotation(self):

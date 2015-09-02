@@ -28,6 +28,11 @@ def PosToArray(pos):
 def rotate_list(l,n):
     return l[n:] + l[:n]
 
+def BroadCastEvent(modules, function, *args, **kwargs):
+    for module in modules:
+         if function in dir(module):
+                eval("module."+function+"(*args, **kwargs)")
+
 class HelpText(QGraphicsRectItem):
     def __init__(self, window, file, modules=[]):
         QGraphicsRectItem.__init__(self, window.view.hud)
