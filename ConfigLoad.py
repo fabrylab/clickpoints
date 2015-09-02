@@ -2,6 +2,8 @@ from __future__ import division
 import sys
 import os
 
+start_globals = globals().copy()
+
 TYPE_Normal = 0
 TYPE_Rect = 1
 TYPE_Line = 2
@@ -93,4 +95,8 @@ def LoadConfig():
         else:
             print("WARNING: unknown command line argument "+arg)
 
-    return dotdict(globals())
+    config = {}
+    for key in globals():
+        if key not in start_globals.keys():
+            config[key] = globals()[key]
+    return dotdict(config)
