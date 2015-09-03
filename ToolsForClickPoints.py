@@ -161,8 +161,9 @@ class BigImageDisplay:
 
 
 class SliderBox(QGraphicsRectItem):
-    def __init__(self, parent_hud, image_display):
+    def __init__(self, parent_hud, image_display, config):
         QGraphicsRectItem.__init__(self, parent_hud)
+        self.config = config
 
         self.image = image_display
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
@@ -196,6 +197,11 @@ class SliderBox(QGraphicsRectItem):
         self.setRect(QRectF(0, 0, 110, 110))
         BoxGrabber(self)
         self.dragged = False
+
+        self.hidden = False
+        if self.config.gamma_corretion_hide:
+            self.setVisible(False)
+            self.hidden = True
 
     def updateHist(self, hist):
         histpath = QPainterPath()
@@ -252,6 +258,11 @@ class SliderBox(QGraphicsRectItem):
             self.image.Change()
             self.updateHist(self.image.hist)
             QApplication.restoreOverrideCursor()
+
+        if event.key() == Qt.Key_F2:
+            # @key F2: hide/show gamma correction box
+            self.setVisible(self.hidden)
+            self.hidden = not self.hidden
 
     @staticmethod
     def file():
