@@ -86,7 +86,9 @@ def LoadConfig():
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=")
             if key in globals():
-                if not isinstance(globals()[key], type("")):
+                if isinstance(globals()[key], type(True)):
+                    value = type(True)(value)
+                elif not isinstance(globals()[key], type("")):
                     value = json.loads(value)
                 globals()[key] = value
 
