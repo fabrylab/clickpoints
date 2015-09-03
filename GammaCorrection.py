@@ -81,7 +81,7 @@ class GammaCorrection(QGraphicsRectItem):
         QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
-        QIcon.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
         self.image.Change(min_brightness=value)
         self.updateConv()
         QApplication.restoreOverrideCursor()
