@@ -1,0 +1,1 @@
+C:\Users\Richard\Anaconda\python.exe J:\Repositories\ClickPointsProject\clickpoints\ClickPointsQT.py -srcpath=%1 -filename="" -draw_types=[] -timeline_hide=True -fps=25 -types=[] -gamma_corretion_hide=True
