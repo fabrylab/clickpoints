@@ -7,7 +7,7 @@ try:
 except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem
-    from PyQt4.QtCore import QRectF
+    from PyQt4.QtCore import QRectF, Qt
 
 from Tools import MySlider, BoxGrabber
 
