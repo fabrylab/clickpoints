@@ -2,9 +2,14 @@ import sys
 import os
 import glob
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+try:
+    from PyQt5 import QtGui, QtCore
+    from PyQt5.QtWidgets import QIcon
+    from PyQt5.QtCore import Qt
+except ImportError:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4.QtGui import QIcon
+    from PyQt4.QtCore import Qt
 
 from Tools import MyMultiSlider
 

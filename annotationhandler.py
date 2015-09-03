@@ -6,9 +6,11 @@ import glob
 try:
     from PyQt5 import QtGui, QtCore
     from PyQt5.QtWidgets import QWidget
+    from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QWidget
+    from PyQt4.QtCore import Qt
 
 from Tools import BroadCastEvent
 
