@@ -14,9 +14,6 @@ import numpy as np
 
 from qimage2ndarray import array2qimage, rgb_view
 
-from Tools import MySlider, BoxGrabber
-from ConfigLoad import *
-
 class BigImageDisplay:
     def __init__(self, origin, window, config):
         self.number_of_imagesX = 0
@@ -78,18 +75,18 @@ class BigImageDisplay:
     def SetImage(self, image):
         if len(image.shape) == 2:
             image = image.reshape((image.shape[0], image.shape[1], 1))
-        self.number_of_imagesX = int(np.ceil(image.shape[1] / max_image_size))
-        self.number_of_imagesY = int(np.ceil(image.shape[0] / max_image_size))
+        self.number_of_imagesX = int(np.ceil(image.shape[1] / self.config.max_image_size))
+        self.number_of_imagesY = int(np.ceil(image.shape[0] / self.config.max_image_size))
         self.UpdatePixmapCount()
         self.image = image
 
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
-                start_x = x * max_image_size
-                start_y = y * max_image_size
-                end_x = min([(x + 1) * max_image_size, image.shape[1]])
-                end_y = min([(y + 1) * max_image_size, image.shape[0]])
+                start_x = x * self.config.max_image_size
+                start_y = y * self.config.max_image_size
+                end_x = min([(x + 1) * self.config.max_image_size, image.shape[1]])
+                end_y = min([(y + 1) * self.config.max_image_size, image.shape[0]])
                 self.ImageSlices[i] = image[start_y:end_y, start_x:end_x, :]
                 self.QImages[i] = array2qimage(image[start_y:end_y, start_x:end_x, :])
                 self.QImageViews[i] = rgb_view(self.QImages[i])
@@ -159,111 +156,3 @@ class BigImageDisplay:
         self.window.view.scene.update()
         self.conversion = conversion
 
-
-class SliderBox(QGraphicsRectItem):
-    def __init__(self, parent_hud, image_display, config):
-        QGraphicsRectItem.__init__(self, parent_hud)
-        self.config = config
-
-        self.image = image_display
-        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
-
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.setPos(-140, -140)
-        self.setZValue(19)
-
-        self.hist = QGraphicsPathItem(self)
-        self.hist.setPen(QPen(QColor(0, 0, 0, 0)))
-        self.hist.setBrush(QBrush(QColor(255, 255, 255, 128)))
-        self.hist.setPos(0, 110)
-
-        self.conv = QGraphicsPathItem(self)
-        self.conv.setPen(QPen(QColor(255, 0, 0, 128), 2))
-        self.conv.setBrush(QBrush(QColor(0, 0, 0, 0)))
-        self.conv.setPos(0, 110)
-
-        self.sliders = []
-        functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
-        min_max = [[0, 2], [0, 255], [0, 255]]
-        start = [1, 255, 0]
-        formats = ["%.2f", "%d", "%d"]
-        for i, name in enumerate(["Gamma", "Max", "Min"]):
-            slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0])
-            slider.format = formats[i]
-            slider.setPos(5, 40 + i * 30)
-            slider.valueChanged = functions[i]
-            self.sliders.append(slider)
-
-        self.setRect(QRectF(0, 0, 110, 110))
-        BoxGrabber(self)
-        self.dragged = False
-
-        self.hidden = False
-        if self.config.gamma_corretion_hide:
-            self.setVisible(False)
-            self.hidden = True
-
-    def updateHist(self, hist):
-        histpath = QPainterPath()
-        w = 100 / 256.
-        for i, h in enumerate(hist[0]):
-            histpath.addRect(i * w + 5, 0, w, -h * 100 / max(hist[0]))
-        self.hist.setPath(histpath)
-
-    def updateConv(self):
-        convpath = QPainterPath()
-        w = 100 / 256.
-        for i, h in enumerate(self.image.conversion):
-            convpath.lineTo(i * w + 5, -h * 98 / 255.)
-        self.conv.setPath(convpath)
-
-    def updateGamma(self, value):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-        self.image.Change(gamma=value)
-        self.updateConv()
-        QApplication.restoreOverrideCursor()
-
-    def updateBrightnes(self, value):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-        self.image.Change(max_brightness=value)
-        self.updateConv()
-        QApplication.restoreOverrideCursor()
-
-    def updateContrast(self, value):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-        self.image.Change(min_brightness=value)
-        self.updateConv()
-        QApplication.restoreOverrideCursor()
-
-    def LoadImageEvent(self, filename="", frame_number=0):
-        if self.image.preview_rect is not None:
-            self.updateHist(self.image.hist)
-
-    def mousePressEvent(self, event):
-        if event.button() == 2:
-            for slider in self.sliders:
-                slider.reset()
-            self.image.ResetPreview()
-            self.hist.setPath(QPainterPath())
-            self.conv.setPath(QPainterPath())
-        pass
-
-    def keyPressEvent(self, event):
-
-        # @key ---- Gamma/Brightness Adjustment ---
-        if event.key() == Qt.Key_G:
-            # @key G: update rect
-            QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-            self.image.PreviewRect()
-            self.image.Change()
-            self.updateHist(self.image.hist)
-            QApplication.restoreOverrideCursor()
-
-        if event.key() == Qt.Key_F2:
-            # @key F2: hide/show gamma correction box
-            self.setVisible(self.hidden)
-            self.hidden = not self.hidden
-
-    @staticmethod
-    def file():
-        return __file__
