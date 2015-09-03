@@ -3,13 +3,10 @@ import os
 
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtGui import *
-    from PyQt5.QtCore import *
-    from PyQt5.QtWidgets import *
+    from PyQt5.QtWidgets import QGraphicsRectItem, QColor, QGraphicsPathItem, QBrush, QPen, QPainterPath, QCursor, QFont, QGraphicsSimpleTextItem, QGraphicsPixmapItem, QImage, QPixmap
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import *
-    from PyQt4.QtCore import *
+    from PyQt4.QtGui import QGraphicsRectItem, QColor, QGraphicsPathItem, QBrush, QPen, QPainterPath, QCursor, QFont, QGraphicsSimpleTextItem, QGraphicsPixmapItem, QImage, QPixmap
 
 import numpy as np
 

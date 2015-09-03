@@ -1,17 +1,16 @@
-# handler class to assist in data annotation
-# a)save notes in txt format, use reference img/frame as file name
-# b)FUTURE save note in SQL database
-#
-
 from __future__ import division
-# default
 import os
 import re
 import glob
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-from Tools import BroadCastEvent
 
+try:
+    from PyQt5 import QtGui, QtCore
+    from PyQt5.QtWidgets import QWidget
+except ImportError:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4.QtGui import QWidget
+
+from Tools import BroadCastEvent
 
 # util
 def UpdateDictWith(x, y):
