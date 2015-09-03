@@ -23,6 +23,7 @@ class Viewer:
 
         self.outputpath = outputpath
         self.config = config
+        self.media_handler = media_handler
 
         self.layout = layout
         self.modules = modules
@@ -107,7 +108,7 @@ class Viewer:
         self.real_fps_time = QtCore.QTime()
         self.real_fps_time.start()
 
-        self.frame_list = [os.path.split(file)[1][:-4] for file in self.m.filelist]
+        self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
         # add marker in time line for marker and masks
         marker_file_list = glob.glob(os.path.join(self.outputpath, '*' + config.logname_tag))
