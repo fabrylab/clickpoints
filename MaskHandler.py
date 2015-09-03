@@ -4,9 +4,11 @@ import os
 try:
     from PyQt5 import QtGui, QtCore
     from PyQt5.QtWidgets import QGraphicsRectItem, QColor, QGraphicsPathItem, QBrush, QPen, QPainterPath, QCursor, QFont, QGraphicsSimpleTextItem, QGraphicsPixmapItem, QImage, QPixmap
+    from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QGraphicsRectItem, QColor, QGraphicsPathItem, QBrush, QPen, QPainterPath, QCursor, QFont, QGraphicsSimpleTextItem, QGraphicsPixmapItem, QImage, QPixmap
+    from PyQt4.QtCore import Qt
 
 import numpy as np
 
@@ -327,8 +329,7 @@ class MaskHandler:
         self.UpdateDrawCursorSize()
 
     def PickColor(self):
-        global draw_types
-        for index, draw_type in enumerate(draw_types):
+        for index, draw_type in enumerate(self.config.draw_types):
             if draw_type[0] == self.color_under_cursor:
                 self.SetActiveDrawType(index)
                 break

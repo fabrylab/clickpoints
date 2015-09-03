@@ -2,37 +2,36 @@ from __future__ import division
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QApplication, QCursor
+    from PyQt5.QtWidgets import QWidget, QApplication, QCursor, QFileDialog, QCursor
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QApplication, QCursor
+    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor
     from PyQt4.QtCore import Qt
-
-from QExtendedGraphicsView import QExtendedGraphicsView
-
-from os.path import join
-
-from mediahandler import MediaHandler
 
 from MaskHandler import MaskHandler
 from MarkerHandler import MarkerHandler
 from PyViewer import Viewer
 from annotationhandler import AnnotationHandler
 
-from Tools import HelpText, BroadCastEvent
+from Tools import HelpText, BroadCastEvent, rotate_list
 from ConfigLoad import LoadConfig
 from ToolsForClickPoints import BigImageDisplay
 from GammaCorrection import GammaCorrection
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
+from QExtendedGraphicsView import QExtendedGraphicsView
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
+from mediahandler import MediaHandler
 
 config = LoadConfig()
 
 used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Viewer, AnnotationHandler, HelpText]
 used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud"]
+
 
 class ClickPointsWindow(QWidget):
     def zoomEvent(self, scale, pos):
@@ -48,7 +47,7 @@ class ClickPointsWindow(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
-        ## view/scene setup
+        # view/scene setup
         self.view = QExtendedGraphicsView()
         self.view.zoomEvent = self.zoomEvent
         self.local_scene = self.view.scene
@@ -57,7 +56,7 @@ class ClickPointsWindow(QWidget):
 
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
-        self.media_handler = MediaHandler(join(config.srcpath, config.filename), filterparam=config.filterparam)
+        self.media_handler = MediaHandler(os.path.join(config.srcpath, config.filename), filterparam=config.filterparam)
 
         self.modules = []
         arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__}
@@ -73,7 +72,6 @@ class ClickPointsWindow(QWidget):
                 # Filter out only the arguments the function wants
                 arg_dict2 = {k: v for k, v in arg_dict.items() if k in arg_name_list}
                 # Initialize the module
-                print mod
                 self.modules.append(mod(**arg_dict2))
         # Find next module, which can be activated
         for module in self.modules:
@@ -176,7 +174,7 @@ class ClickPointsWindow(QWidget):
                     break
 
         # @key ---- Frame jumps ----
-        if self.view.painted == True:
+        if self.view.painted is True:
             if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:
                 # @key Left: previous image
                 self.JumpFrames(-1)

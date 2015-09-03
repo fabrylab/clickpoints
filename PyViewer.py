@@ -239,14 +239,11 @@ class Viewer:
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left and event.modifiers() & Qt.ControlModifier:
             # @key Left: previous image
-
             tick = self.frameSlider.getNextTick(self.media_handler.currentPos, back=True)
-            print self.media_handler.currentPos, tick
             self.window.JumpToFrame(tick)
         if event.key() == QtCore.Qt.Key_Right and event.modifiers() & Qt.ControlModifier:
             # @key Right: next image
             tick = self.frameSlider.getNextTick(self.media_handler.currentPos)
-            print self.media_handler.currentPos, tick
             self.window.JumpToFrame(tick)
 
     @staticmethod
