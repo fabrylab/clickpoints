@@ -176,23 +176,24 @@ class ClickPointsWindow(QWidget):
                     break
 
         # @key ---- Frame jumps ----
-        if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:
-            # @key Left: previous image
-            self.JumpFrames(-1)
-        if event.key() == QtCore.Qt.Key_Right and not event.modifiers() & Qt.ControlModifier:
-            # @key Right: next image
-            self.JumpFrames(+1)
+        if self.view.painted == True:
+            if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:
+                # @key Left: previous image
+                self.JumpFrames(-1)
+            if event.key() == QtCore.Qt.Key_Right and not event.modifiers() & Qt.ControlModifier:
+                # @key Right: next image
+                self.JumpFrames(+1)
 
-        # JUMP keys
-        # @key Numpad 2,3: Jump -/+ 1 frame
-        # @key Numpad 5,6: Jump -/+ 10 frames
-        # @key Numpad 8,9: Jump -/+ 100 frames
-        # @key Numpad /,*: Jump -/+ 100 frames
-        keys = [Qt.Key_2, Qt.Key_3, Qt.Key_5, Qt.Key_6, Qt.Key_8, Qt.Key_9, Qt.Key_Slash, Qt.Key_Asterisk]
-        for key, jump in zip(keys, config.jumps):
-            if event.key() == key and event.modifiers() == Qt.KeypadModifier:
-                self.JumpFrames(jump)
-                print(jump)
+            # JUMP keys
+            # @key Numpad 2,3: Jump -/+ 1 frame
+            # @key Numpad 5,6: Jump -/+ 10 frames
+            # @key Numpad 8,9: Jump -/+ 100 frames
+            # @key Numpad /,*: Jump -/+ 100 frames
+            keys = [Qt.Key_2, Qt.Key_3, Qt.Key_5, Qt.Key_6, Qt.Key_8, Qt.Key_9, Qt.Key_Slash, Qt.Key_Asterisk]
+            for key, jump in zip(keys, config.jumps):
+                if event.key() == key and event.modifiers() == Qt.KeypadModifier:
+                    self.JumpFrames(jump)
+                    print(jump)
 
 for addon in config.addons:
     with open(addon + ".py") as f:

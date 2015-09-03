@@ -100,6 +100,7 @@ class BigImageDisplay:
         if self.preview_rect is not None:
             self.UpdatePreviewImage()
             self.Change()
+        self.window.view.painted = False
 
     def ResetPreview(self):
         self.preview_pixMapItem.setPixmap(QPixmap())
