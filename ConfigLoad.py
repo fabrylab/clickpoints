@@ -1,6 +1,7 @@
 from __future__ import division
 import sys
 import os
+import json
 
 start_globals = globals().copy()
 
@@ -85,9 +86,9 @@ def LoadConfig():
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=")
             if key in globals():
-                if isinstance(globals()[key], type(None)):
-                    value = type(globals()[key])(value)
-                globals()[key] = type(globals()[key])(value)
+                if not isinstance(globals()[key], type("")):
+                    value = json.loads(value)
+                globals()[key] = value
 
             else:
                 print("WARNING: unknown command line argument "+arg)
