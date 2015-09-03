@@ -15,17 +15,19 @@ class Viewer:
     def __init__(self, window, media_handler, layout, outputpath, config, modules):
         self.window = window
         self.media_handler = media_handler
-        if self.media_handler.dtype == 'video':
-            self.fps = self.media_handler.fps
-        else:
-            self.fps = 1
-        self.skip = 0
-
         self.outputpath = outputpath
         self.config = config
 
         self.layout = layout
         self.modules = modules
+
+        if self.media_handler.dtype == 'video':
+            self.fps = self.media_handler.fps
+        else:
+            self.fps = 1
+        if self.config.fps != 0:
+            self.fps = self.config.fps
+        self.skip = 0
 
         # control elements
         self.layoutCtrl = QtGui.QGridLayout()
