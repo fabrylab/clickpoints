@@ -262,12 +262,12 @@ class MyMultiSlider(QGraphicsView):
         self.tick_marker = {}
 
     def addTickMarker(self, pos, type=0, color=QColor("red"), height=12):
+        print "AddTick at", pos, type
         if type == 1:
             color = QColor("green")
             height = 8
-        key = str(pos)+" "+str(type)
-        if key in self.tick_marker:
-            tick_marker = self.tick_marker[key]
+        if pos in self.tick_marker and type in self.tick_marker[pos]:
+            tick_marker = self.tick_marker[pos][type]
         else:
             tick_marker = QGraphicsRectItem(0.0, -3.5, self.ValueToPixel(1), -height, None, self.scene)
         tick_marker.setPen(QPen(color))
@@ -277,25 +277,42 @@ class MyMultiSlider(QGraphicsView):
         tick_marker.height = height
         tick_marker.setZValue(1+type)
         tick_marker.setPos(self.ValueToPixel(pos), 0)
-        self.tick_marker[key] = tick_marker
+        if pos not in self.tick_marker:
+            self.tick_marker[pos] = {}
+        self.tick_marker[pos][type] = tick_marker
         self.repaint()
 
     def removeTickMarker(self, pos, type=0):
-        key = str(pos)+" "+str(type)
-        if key in self.tick_marker:
-            tick_marker = self.tick_marker[key]
+        if pos in self.tick_marker and type in self.tick_marker[pos]:
+            tick_marker = self.tick_marker[pos][type]
             self.scene.removeItem(tick_marker)
-            del self.tick_marker[key]
+            del self.tick_marker[pos][type]
+            if self.tick_marker[pos] == {}:
+                del self.tick_marker[pos]
             self.repaint()
+
+    def getNextTick(self, pos, back=False):
+        if back is False:
+            my_range = range(pos+1,self.max_value,+1)
+        else:
+            my_range = range(pos-1,self.min_value,-1)
+        search_marked = True
+        if pos in self.tick_marker and my_range[0] in self.tick_marker:
+            search_marked = False
+        for i in my_range:
+            if (i in self.tick_marker) == search_marked:
+                return i
+        return my_range[-1]
 
     def resizeEvent(self, event):
         self.length = self.size().width()-20
         self.slider_line.setRect(0, 0, self.length, 5)
         self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
         self.ensureVisible(self.slider_line)
-        for key, tick in self.tick_marker.items():
-            tick.setPos(self.ValueToPixel(tick.value), 0)
-            tick.setRect(0.0, -3.5, self.ValueToPixel(1), -tick.height)
+        for pos, ticks in self.tick_marker.items():
+            for type, tick in ticks.items():
+                tick.setPos(self.ValueToPixel(pos), 0)
+                tick.setRect(0.0, -3.5, self.ValueToPixel(1), -tick.height)
         for marker in [self.slider_position, self.slider_start, self.slider_end]:
             marker.setPos(self.ValueToPixel(marker.value), 0)
             marker.setRange(0, self.length)

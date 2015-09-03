@@ -14,16 +14,15 @@ icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 class Viewer:
     def __init__(self, window, media_handler, layout, outputpath, config, modules):
         self.window = window
-        self.m = media_handler
-        if self.m.dtype == 'video':
-            self.fps = self.m.fps
+        self.media_handler = media_handler
+        if self.media_handler.dtype == 'video':
+            self.fps = self.media_handler.fps
         else:
             self.fps = 1
         self.skip = 0
 
         self.outputpath = outputpath
         self.config = config
-        self.media_handler = media_handler
 
         self.layout = layout
         self.modules = modules
@@ -40,7 +39,7 @@ class Viewer:
         self.layoutCtrl.addWidget(self.pbPlay, 0, 0)
 
         self.lbCFrame = QtGui.QLabel()
-        self.lbCFrame.setText('%d' % self.m.currentPos)
+        self.lbCFrame.setText('%d' % self.media_handler.currentPos)
         self.lbCFrame.setMinimumWidth(40)
         self.lbCFrame.setAlignment(Qt.AlignVCenter)
         self.layoutCtrl.addWidget(self.lbCFrame, 0, 1)
@@ -48,28 +47,28 @@ class Viewer:
         self.frameSlider = MyMultiSlider()
         self.frameSlider.sliderReleased = self.hfReleaseSlider
         self.frameSlider.setMinimum(0)
-        self.frameSlider.setMaximum(self.m.totalNr - 1)
-        self.frameSlider.setValue(self.m.currentPos)
+        self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
+        self.frameSlider.setValue(self.media_handler.currentPos)
         if self.config.play_start is not None:
             # if >1 its a frame nr if < 1 its a fraction
             if self.config.play_start >= 1:
                 self.frameSlider.setStartValue(self.config.play_start)
                 print(self.config.play_start)
             else:
-                self.frameSlider.setStartValue(int(self.m.totalNr*self.config.play_start))
-                print(int(self.m.totalNr*self.config.play_start))
+                self.frameSlider.setStartValue(int(self.media_handler.totalNr*self.config.play_start))
+                print(int(self.media_handler.totalNr*self.config.play_start))
         if self.config.play_end is not None:
             if self.config.play_end > 1:
                 self.frameSlider.setEndValue(self.config.play_end)
                 print(self.config.play_end)
             else:
-                self.frameSlider.setEndValue(int(self.m.totalNr*self.config.play_end))
-                print(int(self.m.totalNr*self.config.play_end))
+                self.frameSlider.setEndValue(int(self.media_handler.totalNr*self.config.play_end))
+                print(int(self.media_handler.totalNr*self.config.play_end))
         self.fsl_update = True
         self.layoutCtrl.addWidget(self.frameSlider, 0, 2)
 
         self.lbTFrame = QtGui.QLabel()
-        self.lbTFrame.setText("%d" % (self.m.totalNr - 1))
+        self.lbTFrame.setText("%d" % (self.media_handler.totalNr - 1))
         self.lbTFrame.setMinimumWidth(40)
         self.lbTFrame.setAlignment(Qt.AlignVCenter)
         self.layoutCtrl.addWidget(self.lbTFrame, 0, 4)
@@ -176,16 +175,16 @@ class Viewer:
         if nr != -1:
             self.window.JumpToFrame(nr)
         else:
-            if self.m.currentPos < self.frameSlider.startValue() or self.m.currentPos >= self.frameSlider.endValue():
+            if self.media_handler.currentPos < self.frameSlider.startValue() or self.media_handler.currentPos >= self.frameSlider.endValue():
                 self.window.JumpToFrame(self.frameSlider.startValue())
             else:
                 self.window.JumpFrames(1+self.skip)
 
     def FrameChangeEvent(self):
-        if self.m.valid:
+        if self.media_handler.valid:
             if self.fsl_update:
-                self.frameSlider.setValue(self.m.currentPos)
-                self.lbCFrame.setText('%d' % self.m.currentPos)
+                self.frameSlider.setValue(self.media_handler.currentPos)
+                self.lbCFrame.setText('%d' % self.media_handler.currentPos)
 
             delta_t = self.real_fps_time.elapsed() - 1000/self.fps
             print("%d ms, jitter %d" % (self.real_fps_time.elapsed(), delta_t))
@@ -195,19 +194,19 @@ class Viewer:
             self.pbPlay.setChecked(False)
 
     def MaskAdded(self):
-        self.frameSlider.addTickMarker(self.m.currentPos, type=1)
+        self.frameSlider.addTickMarker(self.media_handler.currentPos, type=1)
 
     def MarkerPointsAdded(self):
-        self.frameSlider.addTickMarker(self.m.currentPos, type=1)
+        self.frameSlider.addTickMarker(self.media_handler.currentPos, type=1)
 
     def MarkerPointsRemoved(self):
-        self.frameSlider.removeTickMarker(self.m.currentPos, type=1)
+        self.frameSlider.removeTickMarker(self.media_handler.currentPos, type=1)
 
     def AnnotationAdded(self, *args):
-        self.frameSlider.addTickMarker(self.m.currentPos, type=0)
+        self.frameSlider.addTickMarker(self.media_handler.currentPos, type=0)
 
     def AnnotationRemoved(self, *args):
-        self.frameSlider.removeTickMarker(self.m.currentPos, type=0)
+        self.frameSlider.removeTickMarker(self.media_handler.currentPos, type=0)
 
     def keyPressEvent(self, event):
         # @key H: hide control elements
@@ -224,6 +223,19 @@ class Viewer:
         # @key Space: run/pause
         if event.key() == QtCore.Qt.Key_Space:
             self.pbPlay.toggle()
+
+        # @key ---- Frame jumps ----
+        if event.key() == QtCore.Qt.Key_Left and event.modifiers() & Qt.ControlModifier:
+            # @key Left: previous image
+
+            tick = self.frameSlider.getNextTick(self.media_handler.currentPos, back=True)
+            print self.media_handler.currentPos, tick
+            self.window.JumpToFrame(tick)
+        if event.key() == QtCore.Qt.Key_Right and event.modifiers() & Qt.ControlModifier:
+            # @key Right: next image
+            tick = self.frameSlider.getNextTick(self.media_handler.currentPos)
+            print self.media_handler.currentPos, tick
+            self.window.JumpToFrame(tick)
 
     @staticmethod
     def file():

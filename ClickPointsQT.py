@@ -176,10 +176,10 @@ class ClickPointsWindow(QWidget):
                     break
 
         # @key ---- Frame jumps ----
-        if event.key() == QtCore.Qt.Key_Left:
+        if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:
             # @key Left: previous image
             self.JumpFrames(-1)
-        if event.key() == QtCore.Qt.Key_Right:
+        if event.key() == QtCore.Qt.Key_Right and not event.modifiers() & Qt.ControlModifier:
             # @key Right: next image
             self.JumpFrames(+1)
 
