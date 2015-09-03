@@ -262,7 +262,6 @@ class MyMultiSlider(QGraphicsView):
         self.tick_marker = {}
 
     def addTickMarker(self, pos, type=0, color=QColor("red"), height=12):
-        print "AddTick at", pos, type
         if type == 1:
             color = QColor("green")
             height = 8
@@ -326,16 +325,28 @@ class MyMultiSlider(QGraphicsView):
         self.slider_end.value = value
 
     def setValue(self, value):
+        if value < self.min_value:
+            value = self.min_value
+        if value >= self.max_value:
+            value = self.max_value
         self.slider_position.value = value
         self.slider_position.setPos(self.ValueToPixel(self.slider_position.value), 0)
 
     def setStartValue(self, value):
+        if value < self.min_value:
+            value = self.min_value
+        if value >= self.max_value:
+            value = self.max_value
         self.slider_start.value = value
         self.slider_start.setPos(self.ValueToPixel(self.slider_start.value), 0)
 
     def setEndValue(self, value):
         if value < 0:
             value = self.max_value-value
+        if value < self.min_value:
+            value = self.min_value
+        if value >= self.max_value:
+            value = self.max_value
         self.slider_end.value = value
         self.slider_end.setPos(self.ValueToPixel(self.slider_end.value), 0)
 
