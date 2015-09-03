@@ -383,6 +383,10 @@ class MyMultiSlider(QGraphicsView):
     def sliderReleased():
         pass
 
+    def keyPressEvent(self, event):
+        event.setAccepted(False)
+        return
+
 class BoxGrabber(QGraphicsRectItem):
     def __init__(self, parent):
         QGraphicsRectItem.__init__(self, parent)
