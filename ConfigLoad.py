@@ -26,6 +26,7 @@ filterparam = {}
 play_start = 0.0
 play_end = 1.0
 playing = False
+timeline_hide = False
 
 rotation = 0
 rotation_steps = 90
