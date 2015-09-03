@@ -209,6 +209,7 @@ class MyMultiSlider(QGraphicsView):
         gradient.setColorAt(0, QColor("black"))
         gradient.setColorAt(1, QColor(128,128,128))
         self.slider_line.setBrush(QBrush(gradient))
+        self.slider_line.mousePressEvent = self.SliderBarMousePressEvent
 
         self.slider_line_active = QGraphicsRectItem(None, self.scene)
         self.slider_line_active.setPen(QPen(QColor("black")))
@@ -260,6 +261,10 @@ class MyMultiSlider(QGraphicsView):
         self.length = 1
 
         self.tick_marker = {}
+
+    def SliderBarMousePressEvent(self, event):
+        self.setValue(self.PixelToValue(self.slider_line.mapToScene(event.pos()).x()))
+        self.sliderReleased()
 
     def addTickMarker(self, pos, type=0, color=QColor("red"), height=12):
         if type == 1:
