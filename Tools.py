@@ -2,13 +2,12 @@ from __future__ import division
 
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtGui import *
-    from PyQt5.QtCore import *
-    from PyQt5.QtWidgets import *
+    from PyQt5.QtWidgets import QGraphicsRectItem, QGraphicsPathItem, QGraphicsView, QColor, QGraphicsItem, QCursor, QBrush, QPen, QGraphicsSimpleTextItem, QFont, QPainterPath, QGraphicsScene, QPalette, QLinearGradient
+    from PyQt5.QtCore import QRectF, QPointF
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import *
-    from PyQt4.QtCore import *
+    from PyQt4.QtGui import QGraphicsRectItem, QGraphicsPathItem, QGraphicsView, QColor, QGraphicsItem, QCursor, QBrush, QPen, QGraphicsSimpleTextItem, QFont, QPainterPath, QGraphicsScene, QPalette, QLinearGradient
+    from PyQt4.QtCore import QRectF, QPointF
 
 import numpy as np
 

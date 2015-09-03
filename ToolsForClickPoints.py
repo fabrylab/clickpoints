@@ -2,13 +2,10 @@ from __future__ import division
 
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtGui import *
-    from PyQt5.QtCore import *
-    from PyQt5.QtWidgets import *
+    from PyQt5.QtWidgets import QGraphicsPixmapItem, QPixmap
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import *
-    from PyQt4.QtCore import *
+    from PyQt4.QtGui import QGraphicsPixmapItem, QPixmap
 
 import numpy as np
 

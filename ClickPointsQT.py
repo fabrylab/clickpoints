@@ -6,13 +6,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtGui import *
-    from PyQt5.QtCore import *
-    from PyQt5.QtWidgets import *
+    from PyQt5.QtWidgets import QWidget, QApplication
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import *
-    from PyQt4.QtCore import *
+    from PyQt4.QtGui import QWidget, QApplication
 
 from QExtendedGraphicsView import QExtendedGraphicsView
 
@@ -25,7 +22,7 @@ from MarkerHandler import MarkerHandler
 from PyViewer import Viewer
 from annotationhandler import AnnotationHandler
 
-from Tools import *
+from Tools import HelpText, BroadCastEvent
 from ConfigLoad import LoadConfig
 from ToolsForClickPoints import BigImageDisplay
 from GammaCorrection import GammaCorrection
