@@ -140,6 +140,10 @@ class ClickPointsWindow(QWidget):
             # @key S: save marker and mask
             self.save()
 
+        if event.key() == QtCore.Qt.Key_Escape:
+            # @key Escape: close window
+            self.close()
+
         if event.key() == QtCore.Qt.Key_L:
             # @key L: load marker and mask from last image
             last_available = False
