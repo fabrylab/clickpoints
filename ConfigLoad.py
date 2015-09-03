@@ -29,6 +29,8 @@ playing = False
 timeline_hide = False
 fps = 0
 
+gamma_corretion_hide = False
+
 rotation = 0
 rotation_steps = 90
 
