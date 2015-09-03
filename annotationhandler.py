@@ -5,14 +5,15 @@ import glob
 
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget
+    from PyQt5.QtWidgets import QWidget, QTextStream, QGridLayout
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget
-    from PyQt4.QtCore import Qt
+    from PyQt4.QtGui import QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem
+    from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
 
 from Tools import BroadCastEvent
+
 
 # util
 def UpdateDictWith(x, y):
@@ -331,7 +332,7 @@ class AnnotationHandler:
         self.config = config
         self.modules = modules
 
-        self.frame_list = self.media_handler.getImgList(extension=False, path=False)#[os.path.split(file)[1][:-4] for file in self.media_handler.filelist]
+        self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
         # get list of files
         annotation_glob_string = os.path.join(self.outputpath, '*' + self.config.annotation_tag)

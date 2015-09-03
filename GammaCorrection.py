@@ -2,11 +2,11 @@ from __future__ import division
 
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem
+    from PyQt5.QtWidgets import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem, QApplication, QPainterPath, QIcon
     from PyQt5.QtCore import QRectF
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem
+    from PyQt4.QtGui import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem, QApplication, QPainterPath, QIcon
     from PyQt4.QtCore import QRectF, Qt
 
 from Tools import MySlider, BoxGrabber
@@ -81,7 +81,7 @@ class GammaCorrection(QGraphicsRectItem):
         QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        QIcon.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
         self.image.Change(min_brightness=value)
         self.updateConv()
         QApplication.restoreOverrideCursor()

@@ -125,7 +125,7 @@ class MySlider(QGraphicsRectItem):
         self.dragged = False
 
         self.value = (self.maxValue + self.minValue) * 0.5
-        if start_value != None:
+        if start_value is not None:
             self.value = start_value
         self.start_value = self.value
         self.setValue(self.value)
@@ -164,6 +164,7 @@ class MyMultiSliderGrabber(QGraphicsPathItem):
         self.parent = parent
         self.range = [0,100]
         self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        self.dragged = False
 
     def setRange(self, min, max):
         self.range = [min, max]
