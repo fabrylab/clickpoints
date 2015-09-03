@@ -181,10 +181,8 @@ class MyCounter2(QGraphicsRectItem):
     def mousePressEvent(self, event):
         if event.button() == 1:
             if not self.mask_handler.active:
-                for module in self.mask_handler.modules:
-                    if module != self.mask_handler:
-                        module.setActive(False)
-                self.mask_handler.setActive(True)
+                BroadCastEvent([module for module in self.mask_handler.modules if module != self.mask_handler], "setActiveModule", False)
+                self.mask_handler.setActiveModule(True)
             self.mask_handler.SetActiveDrawType(self.type)
 
 
@@ -302,7 +300,7 @@ class MaskHandler:
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
 
-    def setActive(self, active, first_time=False):
+    def setActiveModule(self, active, first_time=False):
         self.scene_event_filter.active = active
         self.active = active
         self.DrawCursor.setVisible(active)

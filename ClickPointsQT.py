@@ -77,7 +77,7 @@ class ClickPointsWindow(QWidget):
                 self.modules.append(mod(**arg_dict2))
         # Find next module, which can be activated
         for module in self.modules:
-            if "setActive" in dir(module) and module.setActive(True, True):
+            if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
                 break
 
         self.UpdateImage()
@@ -167,12 +167,12 @@ class ClickPointsWindow(QWidget):
                     index = cur_index
             # Deactivate current module
             if index != -1:
-                self.modules[index].setActive(False)
+                self.modules[index].setActiveModule(False)
             else:
                 index = 0
             # Find next module, which can be activated
             for cur_index in rotate_list(range(len(self.modules)), index+1):
-                if "setActive" in dir(self.modules[cur_index]) and self.modules[cur_index].setActive(True):
+                if "setActiveModule" in dir(self.modules[cur_index]) and self.modules[cur_index].setActiveModule(True):
                     break
 
         # @key ---- Frame jumps ----
