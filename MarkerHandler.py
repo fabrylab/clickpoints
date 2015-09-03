@@ -251,7 +251,7 @@ class MyMarkerItem(QGraphicsPathItem):
             self.marker_handler.Crosshair.Hide()
             pass
 
-    def SetActive(self, active):
+    def setActive(self, active):
         if active:
             self.setAcceptedMouseButtons(Qt.MouseButtons(3))
             self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
@@ -262,7 +262,7 @@ class MyMarkerItem(QGraphicsPathItem):
 
     def UpdatePath(self):
         self.setPath(point_display_types[point_display_type])
-        self.SetActive(point_display_type != len(point_display_types) - 1)
+        self.setActive(point_display_type != len(point_display_types) - 1)
 
     def setScale(self, scale):
         self.scale_value = scale
@@ -433,10 +433,8 @@ class MyCounter(QGraphicsRectItem):
     def mousePressEvent(self, event):
         if event.button() == 1:
             if not self.marker_handler.active:
-                for module in self.marker_handler.modules:
-                    if module != self.marker_handler:
-                        module.setActive(False)
-                self.marker_handler.setActive(True)
+                BroadCastEvent([module for module in self.marker_handler.modules if module != self.marker_handler], "setActiveModule", False)
+                self.marker_handler.setActiveModule(True)
             self.marker_handler.SetActiveMarkerType(self.type)
 
 
@@ -587,11 +585,11 @@ class MarkerHandler:
             point.setScale(1 / scale)
         self.Crosshair.setScale(1 / scale)
 
-    def setActive(self, active, first_time=False):
+    def setActiveModule(self, active, first_time=False):
         self.scene_event_filter.active = active
         self.active = active
         for point in self.points:
-            point.SetActive(active)
+            point.setActive(active)
         if active:
             self.view.setCursor(QCursor(QtCore.Qt.ArrowCursor))
             self.counter[self.active_type].SetToActiveColor()
