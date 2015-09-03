@@ -102,10 +102,12 @@ class Viewer:
 
         self.hpbPlay(self.config.playing)
 
-        self.hide = True
+        self.hidden = True
 
         self.real_fps_time = QtCore.QTime()
         self.real_fps_time.start()
+
+        self.HideInterface(self.config.timeline_hide)
 
         self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
@@ -208,18 +210,21 @@ class Viewer:
     def AnnotationRemoved(self, *args):
         self.frameSlider.removeTickMarker(self.media_handler.currentPos, type=0)
 
+    def HideInterface(self, hide):
+        self.hidden = hide
+        if hide:
+            for widget in self.control_widgets:
+                widget.setHidden(True)
+            self.layoutCtrl.setContentsMargins(0, 0, 0, 0)
+        else:
+            for widget in self.control_widgets:
+                widget.setHidden(False)
+            self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
+
     def keyPressEvent(self, event):
         # @key H: hide control elements
         if event.key() == QtCore.Qt.Key_H:
-            if self.hide:
-                for widget in self.control_widgets:
-                    widget.setHidden(True)
-                self.layoutCtrl.setContentsMargins(0, 0, 0, 0)
-            else:
-                for widget in self.control_widgets:
-                    widget.setHidden(False)
-                self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
-            self.hide = not self.hide
+            self.HideInterface(self.hidden == False)
         # @key Space: run/pause
         if event.key() == QtCore.Qt.Key_Space:
             self.pbPlay.toggle()
