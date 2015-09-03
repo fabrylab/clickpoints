@@ -330,7 +330,7 @@ class AnnotationHandler:
         self.config = config
         self.modules = modules
 
-        self.frame_list = [os.path.split(file)[1][:-4] for file in self.media_handler.filelist]
+        self.frame_list = self.media_handler.getImgList(extension=False, path=False)#[os.path.split(file)[1][:-4] for file in self.media_handler.filelist]
 
         # get list of files
         annotation_glob_string = os.path.join(self.outputpath, '*' + self.config.annotation_tag)
