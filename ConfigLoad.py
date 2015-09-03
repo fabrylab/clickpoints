@@ -8,13 +8,12 @@ TYPE_Normal = 0
 TYPE_Rect = 1
 TYPE_Line = 2
 
-use_filedia = True
 auto_mask_update = True
-tracking = True
+tracking = False
 tracking_connect_nearest = False
-srcpath = None
-filename = None
-outputpath = None
+srcpath = ""
+filename = ""
+outputpath = ""
 logname_tag = '_pos.txt'
 maskname_tag = '_mask.png'
 annotation_tag = '_annot.txt'
@@ -58,7 +57,7 @@ class dotdict(dict):
 
 
 def LoadConfig():
-    global use_filedia, auto_mask_update, tracking, tracking_connect_nearest
+    global auto_mask_update, tracking, tracking_connect_nearest
     global srcpath, filename, outputpath, jumps
     global logname_tag, maskname_tag
     global types, draw_types, addons, max_image_size
@@ -74,9 +73,9 @@ def LoadConfig():
             exec(code, globals())
 
     # parameter pre processing
-    if srcpath is None:
+    if srcpath is "":
         srcpath = os.getcwd()
-    if outputpath is not None and not os.path.exists(outputpath):
+    if outputpath is not "" and not os.path.exists(outputpath):
         os.makedirs(outputpath)  # recursive path creation
 
     draw_types = sorted(draw_types, key=lambda x: x[0])

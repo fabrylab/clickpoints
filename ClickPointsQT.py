@@ -202,7 +202,7 @@ for addon in config.addons:
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    if config.use_filedia is True or config.filename is None:
+    if config.srcpath is "":
         tmp = QFileDialog.getOpenFileName(None, "Choose Image", config.srcpath)
         config.srcpath = os.path.split(str(tmp))[0]
         config.filename = os.path.split(str(tmp))[-1]
