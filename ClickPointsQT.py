@@ -27,11 +27,12 @@ from annotationhandler import AnnotationHandler
 
 from Tools import *
 from ConfigLoad import LoadConfig
-from ToolsForClickPoints import SliderBox, BigImageDisplay
+from ToolsForClickPoints import BigImageDisplay
+from GammaCorrection import GammaCorrection
 
 config = LoadConfig()
 
-used_modules = [MarkerHandler, MaskHandler, SliderBox, Viewer, AnnotationHandler, HelpText]
+used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Viewer, AnnotationHandler, HelpText]
 used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud"]
 
 class ClickPointsWindow(QWidget):
