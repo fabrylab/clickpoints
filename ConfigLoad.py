@@ -76,7 +76,8 @@ def LoadConfig():
 
     # parameter pre processing
     if srcpath is "":
-        srcpath = os.getcwd()
+        pass
+        #srcpath = os.getcwd()
     if outputpath is not "" and not os.path.exists(outputpath):
         os.makedirs(outputpath)  # recursive path creation
 
