@@ -13,7 +13,11 @@ except ImportError:
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
 
 from Tools import BroadCastEvent
+from abc import abstractmethod
 
+#TODO conditional export based on config?
+from peewee import *
+from datetime import datetime
 
 # util
 def UpdateDictWith(x, y):
@@ -64,6 +68,17 @@ def ReadAnnotation(filename):
 
     return results, comment
 
+class SQLAnnotation(Model):
+        timestamp = DateTimeField()
+        system = CharField()
+        camera = CharField()
+        tags =  CharField()
+        rating = IntegerField()
+        reffilename = CharField()
+        comment = TextField()
+
+        class Meta:
+            database = None
 
 class AnnotationEditor(QWidget):
     def __init__(self, filename, outputpath, modules, config):
@@ -83,6 +98,46 @@ class AnnotationEditor(QWidget):
         self.modules = modules
         self.config = config
 
+        # check for sql or file mode
+        if self.config.sql_annotation==True:
+            print('SQL Mode enabled')
+
+            # init db connection
+            self.db = MySQLDatabase(self.config.sql_dbname,
+                                    host=self.config.sql_host,
+                                    port=self.config.sql_port,
+                                    user=self.config.sql_user,
+                                    passwd=self.config.sql_pwd)
+
+            self.db.connect()
+
+            if self.db.is_closed():
+                print("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
+                # TODO clean break?
+            else:
+                print("connection established")
+
+            # generate acess class
+
+            self.SQLAnnotation = SQLAnnotation
+            self.SQLAnnotation._meta.database=self.db
+
+
+            # init for sql
+            self.annotationExists = self.SQL_annotationExists
+            self.removeAnnotation = self.SQL_removeAnnotation
+            self.getAnnotation    = self.SQL_getAnnotation
+            self.saveAnnotation   = self.SQL_saveAnnotation
+
+        else:
+            print('local text mode enabled')
+
+            # init for txt
+            self.annotationExists = self.T_annotationExists
+            self.removeAnnotation = self.T_removeAnnotation
+            self.getAnnotation    = self.T_getAnnotation
+            self.saveAnnotation   = self.T_saveAnnotation
+
         # regexp
         self.regFromFNameString = self.config.filename_data_regex
         self.regFromFName = re.compile(self.regFromFNameString)
@@ -93,9 +148,9 @@ class AnnotationEditor(QWidget):
         self.annotfilename = basename + self.config.annotation_tag
 
         if self.outputpath == '':
-            fname = os.path.join(self.reffilename[0], self.annotfilename)
+            self.fname = os.path.join(self.reffilename[0], self.annotfilename)
         else:
-            fname = os.path.join(self.outputpath, self.annotfilename)
+            self.fname = os.path.join(self.outputpath, self.annotfilename)
 
         # widget layout and ellements
         self.setMinimumWidth(650)
@@ -142,7 +197,7 @@ class AnnotationEditor(QWidget):
         self.pbDiscard.pressed.connect(self.discardAnnotation)
         self.layout.addWidget(self.pbDiscard, 1, 4)
 
-        if os.path.exists(fname):
+        if self.annotationExists():
             self.pbRemove = QPushButton('&Remove', self)
             self.pbRemove.pressed.connect(self.removeAnnotation)
             self.layout.addWidget(self.pbRemove, 2, 4)
@@ -151,11 +206,9 @@ class AnnotationEditor(QWidget):
         self.pteAnnotation.setFocus()
         self.layout.addWidget(self.pteAnnotation, 5, 0, 5, 4)
 
-        f = QFile(fname)
-        # read values from exisiting file
-        if f.exists():
-            self.results, self.comment = ReadAnnotation(fname)
-        # extract values from filename
+
+        if self.annotationExists():
+            self.getAnnotation()
         else:
             # extract relevant values, store in dict
             fname, ext = os.path.splitext(self.reffilename[1])
@@ -179,7 +232,102 @@ class AnnotationEditor(QWidget):
         # update comment
         self.pteAnnotation.setPlainText(self.comment)
 
+    @abstractmethod
+    def annotationExists(self):
+        pass
+    @abstractmethod
+    def removeAnnotation(self):
+        pass
+    @abstractmethod
+    def getAnnotation(self):
+        pass
+    @abstractmethod
     def saveAnnotation(self):
+        pass
+
+    ##########################################################################################################
+    # mySQL storage version here
+    def SQL_saveAnnotation(self):
+        # extract relevant values, store in dict
+        fname, ext = os.path.splitext(self.reffilename[1])
+        match = self.regFromFName.match(fname)
+        if not match:
+            print('warning - no match for regexp')
+        else:
+            re_dict = match.groupdict()
+
+            # update results
+            self.results = UpdateDictWith(self.results, re_dict)
+
+        # update with gui changes
+        self.results['tags'] = self.leTag.text()
+        self.results['rating'] = self.leRating.currentIndex()
+
+        # check for empty timestamp
+        if not self.results['timestamp'] == '':
+            tstamp = datetime.strptime(self.results['timestamp'],'%Y%m%d-%H%M%S')
+        else:
+            tstamp = datetime(1970,1,1,0,0,0)
+
+        # check if entry exists
+        
+        # send to DB
+        sqlannotation=self.SQLAnnotation(
+                       timestamp = tstamp,
+                       system = self.results['system'],
+                       camera = self.results['camera'],
+                       tags = self.results['tags'],
+                       rating = self.results['rating'],
+                       comment = self.pteAnnotation.toPlainText(),
+                       reffilename=self.reffilename[1])
+        sqlannotation.save()
+
+        # close widget
+        self.close()
+
+        # TODO add query results
+        #results, comment = ReadAnnotation(filename)
+        #BroadCastEvent(self.modules, "AnnotationAdded", self.basename, results, comment)
+
+    def SQL_removeAnnotation(self):
+        try:
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
+            item.delete_instance()
+            return True
+        except DoesNotExist:
+            return False
+
+    def SQL_annotationExists(self):
+        # qerry db for matching reffilename
+        try:
+            self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
+            found = True
+        except DoesNotExist:
+            found = False
+        return found
+
+
+    def SQL_getAnnotation(self):
+
+        # qerry db for matching reffilename
+        try:
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
+            found = True
+            self.comment=item.comment
+            self.results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
+            self.results['system']=item.system
+            self.results['camera']=item.camera
+            self.results['tags']=item.tags
+            self.results['rating']=item.rating
+            self.results['reffilename']=item.reffilename
+
+        except DoesNotExist:
+            found = False
+        return found
+
+    ##########################################################################################################
+    # TEXT file storage version here
+    def T_saveAnnotation(self):
         print("SAVE")
         if self.outputpath == '':
             filename = os.path.join(self.reffilename[0], self.annotfilename)
@@ -228,7 +376,7 @@ class AnnotationEditor(QWidget):
             results, comment = ReadAnnotation(filename)
             BroadCastEvent(self.modules, "AnnotationAdded", self.basename, results, comment)
 
-    def removeAnnotation(self):
+    def T_removeAnnotation(self):
         if self.outputpath == '':
             f = os.path.join(self.reffilename[0], self.annotfilename)
             print(os.path.join(self.reffilename[0], self.annotfilename))
@@ -238,6 +386,18 @@ class AnnotationEditor(QWidget):
         BroadCastEvent(self.modules, "AnnotationRemoved", self.basename)
 
         self.close()
+
+    def T_annotationExists(self):
+        if os.path.exists(self.fname):
+            return True
+        else:
+            return False
+
+    def T_getAnnotation(self):
+        f = QFile(self.fname)
+        # read values from exisiting file
+        if f.exists():
+            self.results, self.comment = ReadAnnotation(self.fname)
 
     def discardAnnotation(self):
         print("DISCARD")
