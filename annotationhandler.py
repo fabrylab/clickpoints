@@ -293,6 +293,9 @@ class AnnotationEditor(QWidget):
         try:
             item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
             item.delete_instance()
+
+            #BroadCastEvent(self.modules, "AnnotationRemoved", self.basename)
+            self.close()
             return True
         except DoesNotExist:
             return False
