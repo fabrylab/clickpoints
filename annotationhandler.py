@@ -269,18 +269,44 @@ class AnnotationEditor(QWidget):
         else:
             tstamp = datetime(1970,1,1,0,0,0)
 
-        # check if entry exists
+
+        item=self.SQLAnnotation
+        try:
+            # load entry from db
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
+            print("entry found")
+            found=True
+        except DoesNotExist:
+            found=False
+
+        if found:
+            # update values and update db
+            item.timestamp = tstamp
+            item.system = self.results['system']
+            item.camera = self.results['camera']
+            item.tags = self.results['tags']
+            item.rating = self.results['rating']
+            item.comment = self.pteAnnotation.toPlainText()
+            item.reffilename=self.reffilename[1]
+
+            item.save()
+            print('update')
+        else:
+            item=self.SQLAnnotation(
+               timestamp = tstamp,
+               system = self.results['system'],
+               camera = self.results['camera'],
+               tags = self.results['tags'],
+               rating = self.results['rating'],
+               comment = self.pteAnnotation.toPlainText(),
+               reffilename=self.reffilename[1])
+            print('tags: ',item.tags)
+            print('found: ',found)
+
+            item.save()
+            print('save')
         
-        # send to DB
-        sqlannotation=self.SQLAnnotation(
-                       timestamp = tstamp,
-                       system = self.results['system'],
-                       camera = self.results['camera'],
-                       tags = self.results['tags'],
-                       rating = self.results['rating'],
-                       comment = self.pteAnnotation.toPlainText(),
-                       reffilename=self.reffilename[1])
-        sqlannotation.save()
+
 
         # close widget
         self.close()
