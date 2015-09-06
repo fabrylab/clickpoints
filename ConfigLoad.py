@@ -21,6 +21,15 @@ annotation_tag = '_annot.txt'
 
 filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
 
+
+sql_annotation=True
+sql_dbname='annotation'
+sql_host='131.188.117.100'
+sql_port=3306
+sql_user = 'clickpoints'
+sql_pwd = '123456'
+
+
 filterparam = {}
 
 play_start = 0.0
