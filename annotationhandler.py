@@ -317,7 +317,7 @@ class AnnotationEditor(QWidget):
             self.results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
             self.results['system']=item.system
             self.results['camera']=item.camera
-            self.results['tags']=item.tags
+            self.results['tags']=[elem.strip() for elem in item.tags.split(",")]
             self.results['rating']=item.rating
             self.results['reffilename']=item.reffilename
 
