@@ -220,6 +220,7 @@ class MyMarkerItem(QGraphicsPathItem):
                 self.marker_handler.RemovePoint(self)
         if event.button() == 1:
             self.dragged = True
+            self.drag_start_pos = event.pos()
             self.setCursor(QCursor(QtCore.Qt.BlankCursor))
             if self.UseCrosshair:
                 self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
@@ -231,7 +232,7 @@ class MyMarkerItem(QGraphicsPathItem):
             return
         if self.config.tracking:
             self.SetTrackActive(True)
-        pos = self.parent.mapFromItem(self, event.pos())
+        pos = self.parent.mapFromItem(self, event.pos()-self.drag_start_pos)
         self.setPos(pos.x(), pos.y())
         if self.config.tracking:
             self.UpdateLine()
