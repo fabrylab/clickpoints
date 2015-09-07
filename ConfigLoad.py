@@ -96,7 +96,8 @@ def LoadConfig():
         else:
             print("WARNING: unknown command line argument "+arg)
 
-    srcpath = os.path.join(srcpath, filename)
+    if not os.path.isfile(srcpath):
+        srcpath = os.path.join(srcpath, filename)
     del filename
     # parameter pre processing
     if outputpath is not "" and not os.path.exists(outputpath):
