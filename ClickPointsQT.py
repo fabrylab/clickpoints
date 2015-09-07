@@ -1,14 +1,15 @@
 from __future__ import division, print_function
 import sys
 import os
+import ctypes
 
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QApplication, QCursor, QFileDialog, QCursor
+    from PyQt5.QtWidgets import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor
+    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon
     from PyQt4.QtCore import Qt
 
 from MaskHandler import MaskHandler
@@ -32,6 +33,7 @@ config = LoadConfig()
 used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Viewer, AnnotationHandler, HelpText]
 used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud"]
 
+icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
 class ClickPointsWindow(QWidget):
     def zoomEvent(self, scale, pos):
@@ -42,6 +44,7 @@ class ClickPointsWindow(QWidget):
     def __init__(self, parent=None):
         super(QWidget, self).__init__(parent)
         self.setWindowTitle('Select Window')
+        self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
 
         self.layout = QtGui.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -203,6 +206,10 @@ for addon in config.addons:
         exec(code)
 
 if __name__ == '__main__':
+    if sys.platform[:3] == 'win':
+        myappid = 'fabrybiophysics.clickpoints' # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
     app = QApplication(sys.argv)
 
     if config.srcpath is "":
