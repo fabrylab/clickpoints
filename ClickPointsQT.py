@@ -56,7 +56,7 @@ class ClickPointsWindow(QWidget):
 
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
-        self.media_handler = MediaHandler(os.path.join(config.srcpath, config.filename), filterparam=config.filterparam)
+        self.media_handler = MediaHandler(config.srcpath, filterparam=config.filterparam)
 
         self.modules = []
         arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__}
@@ -206,13 +206,10 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     if config.srcpath is "":
-        tmp = QFileDialog.getOpenFileName(None, "Choose Image", config.srcpath)
-        config.srcpath = os.path.split(str(tmp))[0]
-        config.filename = os.path.split(str(tmp))[-1]
+        config.srcpath = str(QFileDialog.getOpenFileName(None, "Choose Image", os.getcwd()))
         print(config.srcpath)
-        print(config.filename)
     if config.outputpath is None:
-        config.outputpath = config.srcpath
+        config.outputpath = os.path.dirname(config.srcpath)
 
     window = ClickPointsWindow()
     window.show()

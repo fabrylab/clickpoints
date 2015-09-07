@@ -2,6 +2,10 @@ from __future__ import division, print_function
 import sys
 import os
 import json
+try:
+    from PyQt5.QtWidgets import QApplication, QFileDialog
+except ImportError:
+    from PyQt4.QtGui import QApplication, QFileDialog
 
 start_globals = globals().copy()
 
@@ -74,17 +78,8 @@ def LoadConfig():
             code = compile(f.read(), config_filename, 'exec')
             exec(code, globals())
 
-    # parameter pre processing
-    if srcpath is "":
-        pass
-        #srcpath = os.getcwd()
-    if outputpath is not "" and not os.path.exists(outputpath):
-        os.makedirs(outputpath)  # recursive path creation
-
-    draw_types = sorted(draw_types, key=lambda x: x[0])
-
     # get global variables from command line
-    for arg in sys.argv[2:]:
+    for arg in sys.argv[1:]:
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=")
             if key in globals():
@@ -98,6 +93,14 @@ def LoadConfig():
                 print("WARNING: unknown command line argument "+arg)
         else:
             print("WARNING: unknown command line argument "+arg)
+
+    srcpath = os.path.join(srcpath, filename)
+    del filename
+    # parameter pre processing
+    if outputpath is not "" and not os.path.exists(outputpath):
+        os.makedirs(outputpath)  # recursive path creation
+
+    draw_types = sorted(draw_types, key=lambda x: x[0])
 
     config = {}
     for key in globals():
