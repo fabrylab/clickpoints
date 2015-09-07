@@ -140,6 +140,10 @@ class MyMarkerItem(QGraphicsPathItem):
         last_active = False
         circle_width = self.scale_value * 10
         for frame in frames:
+            if self.config.tracking_show_trailing != -1 and frame < self.marker_handler.frame_number-self.config.tracking_show_trailing:
+                continue
+            if self.config.tracking_show_leading != -1 and frame > self.marker_handler.frame_number+self.config.tracking_show_leading:
+                continue
             x, y, marker_type = self.track[frame]
             if marker_type != -1:
                 if last_active:
