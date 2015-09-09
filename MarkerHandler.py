@@ -486,6 +486,11 @@ class MarkerHandler:
 
         self.LoadLog(self.current_logname)
 
+    def FolderChangeEvent(self):
+        while len(self.points):
+            self.RemovePoint(self.points[0], no_notice=True)
+        self.PointsUnsaved = False
+
     def LoadLog(self, logname):
         global types
         print("Loading " + logname)

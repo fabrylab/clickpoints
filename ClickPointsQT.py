@@ -21,6 +21,7 @@ from Tools import HelpText, BroadCastEvent, rotate_list
 from ConfigLoad import LoadConfig
 from ToolsForClickPoints import BigImageDisplay
 from GammaCorrection import GammaCorrection
+from FolderBrowser import FolderBrowser
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
 from QExtendedGraphicsView import QExtendedGraphicsView
@@ -30,8 +31,8 @@ from mediahandler import MediaHandler
 
 config = LoadConfig()
 
-used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Viewer, AnnotationHandler, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud"]
+used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Viewer, AnnotationHandler, FolderBrowser, HelpText]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud", "hud"]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
@@ -223,7 +224,10 @@ if __name__ == '__main__':
         config.srcpath = str(QFileDialog.getOpenFileName(None, "Choose Image", os.getcwd()))
         print(config.srcpath)
     if config.outputpath is "":
+        config.relative_outputpath = True
         config.outputpath = os.path.dirname(config.srcpath)
+    else:
+        config.relative_outputpath = False
 
     window = ClickPointsWindow()
     window.show()
