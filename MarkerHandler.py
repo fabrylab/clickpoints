@@ -234,6 +234,7 @@ class MyMarkerItem(QGraphicsPathItem):
             self.SetTrackActive(True)
         pos = self.parent.mapFromItem(self, event.pos()-self.drag_start_pos)
         self.setPos(pos.x(), pos.y())
+        self.marker_handler.PointsUnsaved = True
         if self.config.tracking:
             self.UpdateLine()
         if self.UseCrosshair:
