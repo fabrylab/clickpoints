@@ -21,7 +21,6 @@ class Viewer:
     def __init__(self, window, media_handler, layout, outputpath, config, modules):
         self.window = window
         self.media_handler = media_handler
-        self.outputpath = outputpath
         self.config = config
 
         self.layout = layout
@@ -117,13 +116,21 @@ class Viewer:
 
         self.HideInterface(self.config.timeline_hide)
 
+        self.FolderChangeEvent()
+
+    def FolderChangeEvent(self):
+        self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
+        self.lbTFrame.setText("%d" % (self.media_handler.totalNr - 1))
+
+        self.frameSlider.clearTickMarker()
+
         self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
         # add marker in time line for marker and masks
-        marker_file_list = glob.glob(os.path.join(self.outputpath, '*' + config.logname_tag))
+        marker_file_list = glob.glob(os.path.join(self.config.outputpath, '*' + self.config.logname_tag))
         for file in marker_file_list:
             filename = os.path.split(file)[1]
-            basename = filename[:-len(config.logname_tag)]
+            basename = filename[:-len(self.config.logname_tag)]
             try:
                 index = self.frame_list.index(basename)
             except ValueError:
@@ -131,10 +138,10 @@ class Viewer:
             else:
                 self.frameSlider.addTickMarker(index, type=1)
 
-        marker_file_list = glob.glob(os.path.join(self.outputpath, '*' + config.maskname_tag))
+        marker_file_list = glob.glob(os.path.join(self.config.outputpath, '*' + self.config.maskname_tag))
         for file in marker_file_list:
             filename = os.path.split(file)[1]
-            basename = filename[:-len(config.maskname_tag)]
+            basename = filename[:-len(self.config.maskname_tag)]
             try:
                 index = self.frame_list.index(basename)
             except ValueError:
@@ -142,10 +149,10 @@ class Viewer:
             else:
                 self.frameSlider.addTickMarker(index, type=1)
 
-        marker_file_list = glob.glob(os.path.join(self.outputpath, '*' + config.annotation_tag))
+        marker_file_list = glob.glob(os.path.join(self.config.outputpath, '*' + self.config.annotation_tag))
         for file in marker_file_list:
             filename = os.path.split(file)[1]
-            basename = filename[:-len(config.annotation_tag)]
+            basename = filename[:-len(self.config.annotation_tag)]
             try:
                 index = self.frame_list.index(basename)
             except ValueError:
