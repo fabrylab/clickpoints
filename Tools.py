@@ -295,6 +295,13 @@ class MyMultiSlider(QGraphicsView):
                 del self.tick_marker[pos]
             self.repaint()
 
+    def clearTickMarker(self):
+        for pos, ticks in self.tick_marker.items():
+            for type, tick in ticks.items():
+                self.scene.removeItem(tick)
+        self.tick_marker = {}
+        self.repaint()
+
     def getNextTick(self, pos, back=False):
         if back is False:
             my_range = range(pos+1,self.max_value,+1)

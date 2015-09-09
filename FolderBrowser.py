@@ -32,7 +32,8 @@ class FolderBrowser:
         self.window.save()
         if self.config.relative_outputpath:
             self.config.outputpath = os.path.dirname(self.folder_list[self.index])
-        self.media_handler.__init__(self.folder_list[self.index], filterparam=self.config.filterparam)
+        self.config.srcpath = self.folder_list[self.index]
+        self.media_handler.__init__(self.config.srcpath, filterparam=self.config.filterparam)
         BroadCastEvent(self.modules, "FolderChangeEvent")
         self.window.JumpToFrame(0)
         self.window.setWindowTitle(self.folder_list[self.index])
