@@ -83,7 +83,7 @@ def LoadConfig():
     # get global variables from command line
     for arg in sys.argv[1:]:
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
-            key, value = arg[1:].split("=")
+            key, value = arg[1:].split("=", 1)
             if key in globals():
                 if isinstance(globals()[key], type(True)):
                     value = type(True)(value)
