@@ -189,6 +189,13 @@ class ClickPointsWindow(QWidget):
                 # @key Right: next image
                 self.JumpFrames(+1)
 
+            if event.key() == QtCore.Qt.Key_Home:
+                # @key Home: jump to beginning
+                self.JumpToFrame(0)
+            if event.key() == QtCore.Qt.Key_End:
+                # @key End: jump to end
+                self.JumpToFrame(self.media_handler.totalNr-1)
+
             # JUMP keys
             # @key Numpad 2,3: Jump -/+ 1 frame
             # @key Numpad 5,6: Jump -/+ 10 frames
