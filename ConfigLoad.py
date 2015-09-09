@@ -52,6 +52,7 @@ draw_types = [[0, (0, 0, 0)],
 # possible addons
 addons = []
 folder_list = []
+launch_scripts = []
 
 max_image_size = 2 ** 12
 

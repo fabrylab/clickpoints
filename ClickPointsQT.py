@@ -22,6 +22,7 @@ from ConfigLoad import LoadConfig
 from ToolsForClickPoints import BigImageDisplay
 from GammaCorrection import GammaCorrection
 from FolderBrowser import FolderBrowser
+from ScriptLauncher import ScriptLauncher
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
 from QExtendedGraphicsView import QExtendedGraphicsView
@@ -31,8 +32,8 @@ from mediahandler import MediaHandler
 
 config = LoadConfig()
 
-used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Viewer, AnnotationHandler, FolderBrowser, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud", "hud"]
+used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Viewer, AnnotationHandler, FolderBrowser, ScriptLauncher, HelpText]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud", "hud", "hud"]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
@@ -107,14 +108,15 @@ class ClickPointsWindow(QWidget):
 
     # jump absolute
     def JumpToFrame(self, targetid):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        #QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+
         self.save()
         if self.media_handler.setCurrentPos(targetid):
             self.UpdateImage()
         for module in self.modules:
             if "FrameChangeEvent" in dir(module):
                 module.FrameChangeEvent()
-        QApplication.restoreOverrideCursor()
+        #QApplication.restoreOverrideCursor()
 
     def closeEvent(self, QCloseEvent):
         BroadCastEvent(self.modules, "closeEvent", QCloseEvent)
@@ -162,6 +164,17 @@ class ClickPointsWindow(QWidget):
                 if reply == QMessageBox.Yes:
                     print('Loading data of last image ...')
                     BroadCastEvent(self.modules, "loadLast")
+
+        if event.key() == QtCore.Qt.Key_Delete:
+            # @key Delete: close window
+            path, name = self.media_handler.getCurrentFilename()
+            path = os.path.join(path, name)
+            if os.path.isfile(path):
+                reply = QMessageBox.question(None, 'Warning', 'Do you really want to delete %s from your hard drive?' % path, QMessageBox.Yes,
+                                             QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    print('Deleting file %s' % path)
+                    os.remove(path)
 
         # @key ---- Modules ----
         if event.key() == QtCore.Qt.Key_P:
