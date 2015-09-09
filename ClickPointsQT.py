@@ -222,7 +222,7 @@ if __name__ == '__main__':
     if config.srcpath is "":
         config.srcpath = str(QFileDialog.getOpenFileName(None, "Choose Image", os.getcwd()))
         print(config.srcpath)
-    if config.outputpath is None:
+    if config.outputpath is "":
         config.outputpath = os.path.dirname(config.srcpath)
 
     window = ClickPointsWindow()
