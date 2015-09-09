@@ -3,13 +3,9 @@ import os
 import glob
 
 try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QTextStream, QGridLayout
-    from PyQt5.QtCore import Qt
+    from PyQt5 import QtCore
 except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem
-    from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
+    from PyQt4 import QtCore
 
 from Tools import BroadCastEvent
 
