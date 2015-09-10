@@ -15,7 +15,7 @@ except ImportError:
 from MaskHandler import MaskHandler
 from MarkerHandler import MarkerHandler
 from Timeline import Timeline
-from annotationhandler import AnnotationHandler
+from AnnotationHandler import AnnotationHandler
 
 from Tools import HelpText, BroadCastEvent, rotate_list
 from ConfigLoad import LoadConfig
