@@ -33,7 +33,7 @@ from mediahandler import MediaHandler
 config = LoadConfig()
 
 used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud", "hud", "hud"]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "", "", "", "", "hud"]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
@@ -73,7 +73,8 @@ class ClickPointsWindow(QWidget):
                 # Get a list of the arguments the function tages
                 arg_name_list = mod.__init__.func_code.co_varnames[:mod.__init__.func_code.co_argcount]
                 # Set the proper hud argument
-                arg_dict["parent_hud"] = eval("self.view."+hud)
+                if "parent_hud" in arg_name_list:
+                    arg_dict["parent_hud"] = eval("self.view."+hud)
                 # Filter out only the arguments the function wants
                 arg_dict2 = {k: v for k, v in arg_dict.items() if k in arg_name_list}
                 # Initialize the module
