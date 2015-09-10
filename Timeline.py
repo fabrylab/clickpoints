@@ -17,7 +17,7 @@ from Tools import MyMultiSlider
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
 
-class Viewer:
+class Timeline:
     def __init__(self, window, media_handler, layout, outputpath, config, modules):
         self.window = window
         self.media_handler = media_handler

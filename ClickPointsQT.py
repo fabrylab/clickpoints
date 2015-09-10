@@ -14,7 +14,7 @@ except ImportError:
 
 from MaskHandler import MaskHandler
 from MarkerHandler import MarkerHandler
-from PyViewer import Viewer
+from Timeline import Timeline
 from annotationhandler import AnnotationHandler
 
 from Tools import HelpText, BroadCastEvent, rotate_list
@@ -32,7 +32,7 @@ from mediahandler import MediaHandler
 
 config = LoadConfig()
 
-used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Viewer, AnnotationHandler, FolderBrowser, ScriptLauncher, HelpText]
+used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, HelpText]
 used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud", "hud", "hud", "hud", "hud"]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
