@@ -132,6 +132,23 @@ class DatabaseBrowser(QWidget):
         self.last_device_name = ""
 
     def showData(self):
+        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
+        device_id = self.devices[self.ComboBoxDevice.currentIndex()].id
+        start_time = datetime.strptime(str(self.EditStart.text()), '%Y-%m-%d %H:%M:%S')
+        end_time   = datetime.strptime(str(self.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
+        query = (database.SQL_Files.select()
+                 .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id, database.SQL_Files.timestamp > start_time, database.SQL_Files.timestamp < end_time)
+                 .order_by(database.SQL_Files.timestamp)
+                 )
+        with open("config_tmp.txt","w") as fp:
+            with open("config.txt","r") as fp2:
+                for line in fp2.readlines():
+                    fp.write(line)
+            fp.write("\n\nsrcpath = [")
+            for item in query:
+                fp.write("r\"\\\\%s\",\n\t\t\t" % os.path.join(self.getPath(item.path), item.basename+item.extension))
+            fp.write("]\n")
+        os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config_tmp.txt")
         pass
 
     def counts(self):
@@ -144,10 +161,10 @@ class DatabaseBrowser(QWidget):
         month = self.SpinBoxMonth.value()
         if month:
             daycount = calendar.monthrange(year,month)[1]
-        day = self.SpinBoxDay.value()
-        if day > daycount:
-            day = daycount
-            self.SpinBoxDay.setValue(day)
+            day = self.SpinBoxDay.value()
+            if day > daycount:
+                day = daycount
+                self.SpinBoxDay.setValue(day)
         if month == 0:
             start = datetime(year, 1, 1)
             end = datetime(year+1, 1, 1)
