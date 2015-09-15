@@ -117,6 +117,16 @@ class Database:
             item.save()
         return item.id
 
+    def getSystemId(self, system_name):
+        return self.system_dict[system_name]
+
+    def getDeviceId(self, system_name, device_name):
+        return self.device_dict[system_name+"_"+device_name]
+
+    def saveFiles(self, files):
+        with self.db.atomic():
+            self.SQL_Files.insert_many(files).execute()
+
     def saveFile(self, tstamp=-1, system_name = "AntaviaSpot", device_name = "Camera", basename="", ext=".none", path = r"/folder/10/test10.png"):
 
         if tstamp == -1:
