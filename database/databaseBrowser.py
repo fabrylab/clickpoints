@@ -22,14 +22,21 @@ try:
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QGridLayout, QVBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox
+    from PyQt4.QtGui import QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList, QObject, SIGNAL
 
 from peewee import fn
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar
 from database import Database
+
+def add_months(sourcedate,months):
+     month = sourcedate.month - 1 + months
+     year = int(sourcedate.year + month / 12 )
+     month = month % 12 + 1
+     day = min(sourcedate.day,calendar.monthrange(year,month)[1])
+     return datetime(year,month,day)
 
 class DatabaseBrowser(QWidget):
     def __init__(self):
@@ -59,26 +66,35 @@ class DatabaseBrowser(QWidget):
         self.ComboBoxDevice.setInsertPolicy(QComboBox.NoInsert)
         self.layout.addWidget(self.ComboBoxDevice, 0, 3)
 
-        self.layout.addWidget(QLabel('Year:', self), 1, 0)
+        layout_vert = QHBoxLayout()
+        self.layout.addLayout(layout_vert, 1, 0, 1, 4)
+        layout_vert.addWidget(QLabel('Year:', self))
         self.SpinBoxYear = QSpinBox(self)
         self.SpinBoxYear.setMaximum(2050)
         self.SpinBoxYear.setMinimum(2010)
         self.SpinBoxYear.valueChanged.connect(self.counts)
-        self.layout.addWidget(self.SpinBoxYear, 1, 1)
+        layout_vert.addWidget(self.SpinBoxYear)
 
-        self.layout.addWidget(QLabel('Month:', self), 1, 2)
+        layout_vert.addWidget(QLabel('Month:', self))
         self.SpinBoxMonth = QSpinBox(self)
         self.SpinBoxMonth.setMaximum(12)
         self.SpinBoxMonth.setMinimum(0)
         self.SpinBoxMonth.valueChanged.connect(self.counts)
-        self.layout.addWidget(self.SpinBoxMonth, 1, 3)
+        layout_vert.addWidget(self.SpinBoxMonth)
+
+        layout_vert.addWidget(QLabel('Day:', self))
+        self.SpinBoxDay = QSpinBox(self)
+        self.SpinBoxDay.setMaximum(31)
+        self.SpinBoxDay.setMinimum(0)
+        self.SpinBoxDay.valueChanged.connect(self.counts)
+        layout_vert.addWidget(self.SpinBoxDay)
 
         self.pbConfirm = QPushButton('C&onfirm', self)
         self.pbConfirm.pressed.connect(self.confirm)
         self.layout.addWidget(self.pbConfirm, 0, 4)
 
-        self.pbDiscard = QPushButton('&Discard', self)
-        self.pbDiscard.pressed.connect(self.counts)
+        self.pbDiscard = QPushButton('&Show', self)
+        self.pbDiscard.pressed.connect(self.showData)
         self.layout.addWidget(self.pbDiscard, 1, 4)
 
         layout_vert = QVBoxLayout()
@@ -87,8 +103,8 @@ class DatabaseBrowser(QWidget):
         self.EditStart = QLineEdit('20140101-000000', self)
         layout_vert.addWidget(self.EditStart)
         layout_vert.addWidget(QLabel('End:', self))
-        self.EditStart = QLineEdit('20140101-000000', self)
-        layout_vert.addWidget(self.EditStart)
+        self.EditEnd = QLineEdit('20140101-000000', self)
+        layout_vert.addWidget(self.EditEnd)
         layout_vert.addStretch()
 
         self.plot = MatplotlibWidget(self)
@@ -115,6 +131,9 @@ class DatabaseBrowser(QWidget):
         self.last_device_id = 0
         self.last_device_name = ""
 
+    def showData(self):
+        pass
+
     def counts(self):
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
         if self.ComboBoxDevice.currentIndex() == -1:
@@ -123,7 +142,17 @@ class DatabaseBrowser(QWidget):
         self.axes1.cla()
         year = self.SpinBoxYear.value()
         month = self.SpinBoxMonth.value()
+        if month:
+            daycount = calendar.monthrange(year,month)[1]
+        day = self.SpinBoxDay.value()
+        if day > daycount:
+            day = daycount
+            self.SpinBoxDay.setValue(day)
         if month == 0:
+            start = datetime(year, 1, 1)
+            end = datetime(year+1, 1, 1)
+            self.EditStart.setText(str(start))
+            self.EditEnd.setText(str(end))
             count = np.zeros(12)
             query = (database.SQL_Devices
                  .select(database.SQL_Devices, fn.Count(database.SQL_Files.id).alias('count'), fn.month(database.SQL_Files.timestamp).alias('month')).where(database.SQL_Devices.id == device_id)
@@ -138,8 +167,11 @@ class DatabaseBrowser(QWidget):
             cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
             self.axes1.set_title("%d" % year)
             self.plot.draw()
-        else:
-            daycount = calendar.monthrange(year,month)[1]
+        elif day == 0:
+            start = datetime(year, month, 1)
+            end = add_months(start, 1)
+            self.EditStart.setText(str(start))
+            self.EditEnd.setText(str(end))
             count = np.zeros(daycount)
             query = (database.SQL_Devices
                  .select(database.SQL_Devices, fn.Count(database.SQL_Files.id).alias('count'), fn.day(database.SQL_Files.timestamp).alias('day')).where(database.SQL_Devices.id == device_id)
@@ -148,9 +180,27 @@ class DatabaseBrowser(QWidget):
             for item in query:
                 count[item.day-1] = item.count
             self.axes1.cla()
-            self.axes1.bar(np.arange(1.1,daycount+1), count)
-            self.axes1.set_xlim(0,daycount)
+            self.axes1.bar(np.arange(0.6,daycount), count)
+            self.axes1.set_xlim(0.5,daycount+0.5)
             self.axes1.set_title("%s %d" % (["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
+            cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
+            self.plot.draw()
+        else:
+            start = datetime(year, month, day)
+            end = start + timedelta(days=1)
+            self.EditStart.setText(str(start))
+            self.EditEnd.setText(str(end))
+            count = np.zeros(24)
+            query = (database.SQL_Devices
+                 .select(database.SQL_Devices, fn.Count(database.SQL_Files.id).alias('count'), fn.hour(database.SQL_Files.timestamp).alias('hour')).where(database.SQL_Devices.id == device_id)
+                 .join(database.SQL_Files).where( fn.year(database.SQL_Files.timestamp) == year, fn.month(database.SQL_Files.timestamp) == month, fn.day(database.SQL_Files.timestamp) == day)
+                 .group_by(fn.hour(database.SQL_Files.timestamp)))
+            for item in query:
+                count[item.hour-1] = item.count
+            self.axes1.cla()
+            self.axes1.bar(np.arange(0.6,24), count)
+            self.axes1.set_xlim(0.5,24.5)
+            self.axes1.set_title("%d. %s %d" % (day, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
             cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
             self.plot.draw()
             return
