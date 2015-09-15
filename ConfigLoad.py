@@ -40,7 +40,7 @@ gamma_corretion_hide = False
 rotation = 0
 rotation_steps = 90
 
-jumps = (-1, +1, -24, +24, -100, +100, -1000, +1000)
+jumps = (-1, +1, -10, +10, -100, +100, -1000, +1000)
 
 # marker types
 types = {0: ["marker", [255, 0, 0], TYPE_Normal]}
