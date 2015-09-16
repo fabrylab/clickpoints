@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
 from matplotlibwidget import MatplotlibWidget
 import seaborn as sns
+import time
+from matplotlib.colors import LinearSegmentedColormap
+cmap = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,176/255,176/255)),'red':((0,0,0),(1,76/255,76/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
 
 try:
     from PyQt5 import QtGui, QtCore
@@ -38,15 +41,34 @@ def add_months(sourcedate,months):
      day = min(sourcedate.day,calendar.monthrange(year,month)[1])
      return datetime(year,month,day)
 
+def ShortenNumber(value):
+    if value == 0:
+        return ""
+    if value < 1:
+        return "%d" % value
+    postfix = ["", "k", "M", "G", "T", "P", "E", "Z", "Y"]
+    power = int(np.log10(value)//3)
+    power2 = int(np.log10(value*10)//3)
+    if power2 > power:
+        value /= 10**(power2*3)
+        return ("%.1f" % value+postfix[power2])[1:]
+    value /= 10**(power*3)
+    return "%d" % value+postfix[power]
+
 class DatabaseBrowser(QWidget):
     def __init__(self):
         QWidget.__init__(self)
 
-        # widget layout and ellements
+        # widget layout and elements
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
         self.setWindowTitle("Database Browser")
         self.layout = QGridLayout(self)
+        self.layout.setColumnStretch(4, 0)
+        self.layout.setColumnStretch(0, 1)
+        self.layout.setColumnStretch(1, 1)
+        self.layout.setColumnStretch(2, 1)
+        self.layout.setColumnStretch(3, 1)
 
         self.layout.addWidget(QLabel('System:', self), 0, 0)
         self.ComboBoxSystem = QComboBox(self)
@@ -71,7 +93,7 @@ class DatabaseBrowser(QWidget):
         layout_vert.addWidget(QLabel('Year:', self))
         self.SpinBoxYear = QSpinBox(self)
         self.SpinBoxYear.setMaximum(2050)
-        self.SpinBoxYear.setMinimum(2010)
+        self.SpinBoxYear.setMinimum(2014)
         self.SpinBoxYear.valueChanged.connect(self.counts)
         layout_vert.addWidget(self.SpinBoxYear)
 
@@ -111,18 +133,20 @@ class DatabaseBrowser(QWidget):
         self.plot.figure.patch.set_facecolor([0,1,0,0])
         self.layout.addWidget(self.plot, 3, 0, 1, 4)
         self.plot.figure.clear()
-        self.navi_toolbar = NavigationToolbar(self.plot, self)
-        self.layout.addWidget(self.navi_toolbar, 4, 0, 1, 4)
+        #self.navi_toolbar = NavigationToolbar(self.plot, self)
+        #self.layout.addWidget(self.navi_toolbar, 4, 0, 1, 4)
 
         # Create Axes object
         self.axes1 = self.plot.figure.add_axes([0.1,0.1,0.8,0.8])
 
+        """
         self.table = QTableWidget(0, 4, self)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setHorizontalHeaderLabels(QStringList(['Date', 'System', 'Device', 'Path']))
         self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setResizeMode(3, QHeaderView.Stretch)
         self.layout.addWidget(self.table, 5, 0, 5, 4)
+        """
 
         self.last_path_id = 0
         self.last_path = ""
@@ -152,6 +176,7 @@ class DatabaseBrowser(QWidget):
         pass
 
     def counts(self):
+        import time
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
         if self.ComboBoxDevice.currentIndex() == -1:
             return
@@ -171,10 +196,13 @@ class DatabaseBrowser(QWidget):
             self.EditStart.setText(str(start))
             self.EditEnd.setText(str(end))
             count = np.zeros(12)
+            t = time.time()
             query = (database.SQL_Devices
                  .select(database.SQL_Devices, fn.Count(database.SQL_Files.id).alias('count'), fn.month(database.SQL_Files.timestamp).alias('month')).where(database.SQL_Devices.id == device_id)
                  .join(database.SQL_Files).where( fn.year(database.SQL_Files.timestamp) == year)
                  .group_by(fn.month(database.SQL_Files.timestamp)))
+            query.execute()
+            print("Query Time:",time.time()-t)
             for item in query:
                 count[item.month-1] = item.count
             self.axes1.bar(np.arange(0.1,12), count)
@@ -221,6 +249,97 @@ class DatabaseBrowser(QWidget):
             cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
             self.plot.draw()
             return
+
+    def counts(self):
+        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
+        if self.ComboBoxDevice.currentIndex() == -1:
+            return
+        device_id = self.devices[self.ComboBoxDevice.currentIndex()].id
+        self.axes1.cla()
+        year = self.SpinBoxYear.value()
+        month = self.SpinBoxMonth.value()
+        if month:
+            daycount = calendar.monthrange(year,month)[1]
+            day = self.SpinBoxDay.value()
+            if day > daycount:
+                day = daycount
+                self.SpinBoxDay.setValue(day)
+        if month == 0:
+            start = datetime(year, 1, 1)
+            end = datetime(year+1, 1, 1)
+            self.EditStart.setText(str(start))
+            self.EditEnd.setText(str(end))
+            count = np.zeros((12, 31))
+            t = time.time()
+            query = (database.SQL_Files
+                     .select(fn.count(database.SQL_Files.id).alias('count'),
+                             fn.day(database.SQL_Files.timestamp).alias('day'),
+                             fn.month(database.SQL_Files.timestamp).alias('month'))
+                     .where(database.SQL_Files.device == device_id,
+                            fn.year(database.SQL_Files.timestamp) == year)
+                     .group_by(fn.dayofyear(database.SQL_Files.timestamp)))
+            query.execute()
+            print("Query Time:", time.time()-t)
+            for item in query:
+                count[item.month-1, item.day-1] = item.count
+            x, y = np.meshgrid(np.arange(1, 13), np.arange(1, 32))
+            self.axes1.scatter(x, y, c=count.T.flatten(), cmap=cmap, lw=0)
+            for month in range(12):
+                self.axes1.text(month+1, 32, ShortenNumber(np.sum(count[month,:])), ha="center")
+            self.axes1.set_xticks(np.arange(1,13))
+            self.axes1.set_xticklabels(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+            self.axes1.set_xlim(0.5,12.5)
+            self.axes1.set_ylim(0.5,33.5)
+            self.axes1.set_yticks([1,5,10,15,20,25,31])
+        elif day == 0:
+            start = datetime(year, month, 1)
+            end = add_months(start, 1)
+            self.EditStart.setText(str(start))
+            self.EditEnd.setText(str(end))
+            count = np.zeros((31,24))
+            t = time.time()
+            query = (database.SQL_Files
+                     .select(fn.count(database.SQL_Files.id).alias('count'),
+                             fn.day(database.SQL_Files.timestamp).alias('day'),
+                             fn.hour(database.SQL_Files.timestamp).alias('hour'))
+                     .where(database.SQL_Files.device == device_id,
+                            fn.year(database.SQL_Files.timestamp) == year,
+                            fn.month(database.SQL_Files.timestamp) == month)
+                     .group_by(fn.dayofyear(database.SQL_Files.timestamp) * 24 + fn.hour(database.SQL_Files.timestamp)))
+            query.execute()
+            print("Query Time:", time.time()-t)
+            for item in query:
+                count[item.day-1,item.hour-1] = item.count
+            x, y = np.meshgrid(np.arange(1,32),np.arange(1,25))
+            self.axes1.scatter(x, y, c=count.T.flatten(), cmap=cmap, lw=0)
+            for day in range(31):
+                self.axes1.text(day+1, 27, ShortenNumber(np.sum(count[day,:])), ha="center", va="top", rotation=90)
+            self.axes1.set_xlim(0.5, daycount+0.5)
+            self.axes1.set_title("%s %d" % (["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
+        else:
+            start = datetime(year, month, day)
+            end = start + timedelta(days=1)
+            self.EditStart.setText(str(start))
+            self.EditEnd.setText(str(end))
+            count = np.zeros(24)
+            t = time.time()
+            query = (database.SQL_Files
+                     .select(fn.Count(database.SQL_Files.id).alias('count'),
+                             fn.hour(database.SQL_Files.timestamp).alias('hour'))
+                     .where(database.SQL_Files.device == device_id,
+                            fn.year(database.SQL_Files.timestamp) == year,
+                            fn.month(database.SQL_Files.timestamp) == month,
+                            fn.day(database.SQL_Files.timestamp) == day)
+                     .group_by(fn.hour(database.SQL_Files.timestamp)))
+            query.execute()
+            print("Query Time:", time.time()-t)
+            for item in query:
+                count[item.hour-1] = item.count
+            self.axes1.bar(np.arange(0.6,24), count)
+            self.axes1.set_xlim(0.5,24.5)
+            self.axes1.set_title("%d. %s %d" % (day, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
+        cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
+        self.plot.draw()
 
     def getPath(self, path_index):
         if path_index != self.last_path_id:
