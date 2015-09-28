@@ -148,7 +148,7 @@ class BigImageDisplay:
         conversion[self.min:self.max] = np.power(np.arange(0, color_range) / color_range, self.gamma) * 256
         conversion[self.max:] = 255
         for i in range(self.number_of_imagesX * self.number_of_imagesY):
-            self.preview_qimageView[:, :, :] = conversion[self.preview_slice]
+            self.preview_qimageView[:, :, :] = conversion[self.preview_slice.astype(np.uint8)]
             self.preview_pixMapItem.setPixmap(QPixmap(self.preview_qimage))
         self.window.view.scene.update()
         self.conversion = conversion
