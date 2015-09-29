@@ -9,53 +9,61 @@ except ImportError:
 
 start_globals = globals().copy()
 
-TYPE_Normal = 0
-TYPE_Rect = 1
-TYPE_Line = 2
-
-auto_mask_update = True
-tracking = False
-tracking_connect_nearest = False
-tracking_show_trailing = -1
-tracking_show_leading = 0
+""" General """
 srcpath = ""
 filename = ""
 outputpath = ""
-logname_tag = '_pos.txt'
-maskname_tag = '_mask.png'
-annotation_tag = '_annot.txt'
-
 filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
-
 filterparam = {}
 
-play_start = 0.0
-play_end = 1.0
-playing = False
-timeline_hide = False
-fps = 0
+jumps = (-1, +1, -10, +10, -100, +100, -1000, +1000)
 
-gamma_corretion_hide = False
+max_image_size = 2 ** 12
 
 rotation = 0
 rotation_steps = 90
 
-jumps = (-1, +1, -10, +10, -100, +100, -1000, +1000)
+addons = []
 
-# marker types
+""" Marker """
+logname_tag = '_pos.txt'
+
+TYPE_Normal = 0
+TYPE_Rect = 1
+TYPE_Line = 2
+
 types = {0: ["marker", [255, 0, 0], TYPE_Normal]}
-# painter types
+
+tracking = False
+tracking_connect_nearest = False
+tracking_show_trailing = -1
+tracking_show_leading = 0
+
+""" Mask """
+maskname_tag = '_mask.png'
+auto_mask_update = True
 draw_types = [[0, (0, 0, 0)],
               [255, [255, 255, 255]],
               [124, [124, 124, 255]]]
 
-# possible addons
-addons = []
+""" GammaCorrection """
+gamma_corretion_hide = False
+
+""" Timeline """
+fps = 0
+play_start = 0.0
+play_end = 1.0
+playing = False
+timeline_hide = False
+
+""" Annotations """
+annotation_tag = '_annot.txt'
+
+""" FolderBrowser """
 folder_list = []
-launch_scripts = []
 
-max_image_size = 2 ** 12
-
+""" ScriptLauncher """
+launch_scripts = [r"C:\Users\Richard\Anaconda\python.exe E:\Slack\Navid\TestTrack.py", r"C:\Users\Richard\Anaconda\python.exe E:\Slack\Navid\Evaluation.py"]
 
 # enables .access on dicts
 class dotdict(dict):
