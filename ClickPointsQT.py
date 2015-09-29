@@ -236,6 +236,8 @@ if __name__ == '__main__':
 
     if config.srcpath is "":
         config.srcpath = str(QFileDialog.getOpenFileName(None, "Choose Image", os.getcwd()))
+        if config.srcpath is "":
+            sys.exit(1)
         print(config.srcpath)
     if config.outputpath is "":
         config.relative_outputpath = True
