@@ -508,7 +508,7 @@ class MarkerHandler:
                         type_string = line[7:].strip()
                         if type_string[0] == "{":
                             try:
-                                types = ReadTypeDict(line[7:])
+                                self.config["types"] = ReadTypeDict(line[7:])
                             except:
                                 print("ERROR: Type specification in %s broken, use types from config instead" % logname)
                             continue
@@ -518,9 +518,10 @@ class MarkerHandler:
                     x = float(line[0])
                     y = float(line[1])
                     marker_type = int(line[2])
-                    if marker_type not in types.keys():
+                    if marker_type not in self.config["types"].keys():
                         np.random.seed(marker_type)
-                        types[marker_type] = ["id%d" % marker_type, np.random.randint(0, 255, 3), 0]
+                        self.config["types"][marker_type] = ["id%d" % marker_type, np.random.randint(0, 255, 3), 0]
+                        print("self.config[types]", self.config["types"])
                     if len(line) == 3:
                         if index >= len(self.points):
                             self.points.append(MyMarkerItem(x, y, self.MarkerParent, self, marker_type))
