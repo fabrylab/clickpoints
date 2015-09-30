@@ -81,14 +81,22 @@ def LoadConfig():
     global types, draw_types, addons, max_image_size
     global filterparam
     global play_start, play_end, playing, rotation, rotation_steps
-    # overwrite defaults with personal cfg if available
-    config_filename = 'cp_cfg.txt'
+    # Search config recursive in the folder tree or from the command line
+    path = os.path.normpath(os.getcwd())
+    parent = os.path.join(path, ".")
+    path_list = []
+    while parent != path:
+        path = parent
+        parent = os.path.normpath(os.path.join(path, ".."))
+        path_list.append(os.path.normpath(os.path.join(path, "ConfigClickPoints.txt")))
     if len(sys.argv) >= 2:
-        config_filename = sys.argv[1]
-    if os.path.exists(config_filename):
-        with open(config_filename) as f:
-            code = compile(f.read(), config_filename, 'exec')
-            exec(code, globals())
+        path_list.insert(0, sys.argv[1])
+    for path in path_list:
+        if os.path.exists(path):
+            with open(path) as f:
+                code = compile(f.read(), path, 'exec')
+                exec(code, globals())
+            break
 
     # get global variables from command line
     for arg in sys.argv[1:]:
