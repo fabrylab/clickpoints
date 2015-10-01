@@ -367,7 +367,7 @@ class Crosshair(QGraphicsPathItem):
         new_slice = np.zeros(shape)
         if empty:
             return new_slice
-        new_slice[slices2[0], slices2[1], :] = source[slices1[0], slices1[1], :]
+        new_slice[slices2[0], slices2[1], :] = source[slices1[0], slices1[1], :3]
         return new_slice
 
     def Hide(self):
