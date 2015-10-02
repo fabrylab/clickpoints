@@ -170,7 +170,7 @@ class DatabaseBrowser(QWidget):
         self.last_device_id = 0
         self.last_device_name = ""
 
-    def showData(self):
+    def SaveFileList(self):
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
         device_id = self.devices[self.ComboBoxDevice.currentIndex()].id
         start_time = datetime.strptime(str(self.EditStart.text()), '%Y-%m-%d %H:%M:%S')
@@ -179,15 +179,13 @@ class DatabaseBrowser(QWidget):
                  .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id, database.SQL_Files.timestamp > start_time, database.SQL_Files.timestamp < end_time)
                  .order_by(database.SQL_Files.timestamp)
                  )
-        with open("config_tmp.txt","w") as fp:
-            with open("config.txt","r") as fp2:
-                for line in fp2.readlines():
-                    fp.write(line)
-            fp.write("\n\nsrcpath = [")
+        with open("files.txt","w") as fp:
             for item in query:
-                fp.write("r\"\\\\%s\",\n\t\t\t" % os.path.join(self.getPath(item.path), item.basename+item.extension))
-            fp.write("]\n")
-        os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config_tmp.txt")
+                fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+"\n")
+
+    def showData(self):
+        self.SaveFileList()
+        os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config_tmp.txt -srcpath=files.txt")
         pass
 
     def counts(self):
