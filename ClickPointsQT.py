@@ -30,8 +30,6 @@ from QExtendedGraphicsView import QExtendedGraphicsView
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 from mediahandler import MediaHandler
 
-config = LoadConfig()
-
 used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, HelpText]
 used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "", "", "", "", "hud"]
 
@@ -222,10 +220,6 @@ class ClickPointsWindow(QWidget):
                     self.JumpFrames(jump)
                     print(jump)
 
-for addon in config.addons:
-    with open(addon + ".py") as f:
-        code = compile(f.read(), addon + ".py", 'exec')
-        exec(code)
 
 if __name__ == '__main__':
     if sys.platform[:3] == 'win':
@@ -234,16 +228,11 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
 
-    if config.srcpath is "":
-        config.srcpath = str(QFileDialog.getOpenFileName(None, "Choose Image", os.getcwd()))
-        if config.srcpath is "":
-            sys.exit(1)
-        print(config.srcpath)
-    if config.outputpath is "":
-        config.relative_outputpath = True
-        config.outputpath = os.path.dirname(config.srcpath)
-    else:
-        config.relative_outputpath = False
+    config = LoadConfig()
+    for addon in config.addons:
+        with open(addon + ".py") as f:
+            code = compile(f.read(), addon + ".py", 'exec')
+            exec(code)
 
     window = ClickPointsWindow()
     window.show()
