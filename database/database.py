@@ -43,7 +43,7 @@ class folder(Model):
 class config:
     def __init__(self):
         self.sql_dbname = 'annotation'
-        self.sql_host = '131.188.117.100'
+        self.sql_host = '131.188.117.94'
         self.sql_port = 3306
         self.sql_user = 'clickpoints'
         self.sql_pwd = '123456'
@@ -79,14 +79,10 @@ class Database:
         self.SQL_Folder._meta.database = self.db
 
         self.system_dict = {}
-        res = self.SQL_Systems.select()
-        for item in res:
-            self.system_dict[item.name] = item.id
+        self.updateSystemDict()
 
         self.device_dict = {}
-        res = self.SQL_Devices.select()
-        for item in res:
-            self.device_dict[str(item.system.name)+"_"+item.name] = item.id
+        self.updateDeviceDict()
         print(self.device_dict)
 
         #self.saveFile()
@@ -94,6 +90,18 @@ class Database:
         #res = self.SQL_Files.select(self.SQL_Files.path).where( self.SQL_Files.system == 3)#(self.SQL_Files.timestamp > datetime(2015,9,11,23,10,55)) & (self.SQL_Files.timestamp < datetime(2015,9,11,23,20,55)) )
         #for item in res:
         #    print("Path", item.path)
+
+    def updateSystemDict(self):
+        self.system_dict = {}
+        res = self.SQL_Systems.select()
+        for item in res:
+            self.system_dict[item.name] = item.id
+
+    def updateDeviceDict(self):
+        self.device_dict = {}
+        res = self.SQL_Devices.select()
+        for item in res:
+            self.device_dict[str(item.system.name)+"_"+item.name] = item.id
 
     def getPath(self, path_id):
         path = []
@@ -122,6 +130,16 @@ class Database:
 
     def getDeviceId(self, system_name, device_name):
         return self.device_dict[system_name+"_"+device_name]
+
+    def newSystem(self, system_name):
+        system_id = self.SQL_Systems.create(name=system_name).id
+        self.updateSystemDict()
+        return system_id
+
+    def newDevice(self, system_id, device_name):
+        device_id = self.SQL_Devices.create(name=device_name, system=system_id).id
+        self.updateDeviceDict()
+        return device_id
 
     def saveFiles(self, files):
         with self.db.atomic():
