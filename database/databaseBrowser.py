@@ -9,7 +9,14 @@ from matplotlibwidget import MatplotlibWidget
 import seaborn as sns
 import time
 from matplotlib.colors import LinearSegmentedColormap
-cmap = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,176/255,176/255)),'red':((0,0,0),(1,76/255,76/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
+cmap_b = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,176/255,176/255)),'red':((0,0,0),(1,76/255,76/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
+cmap_r = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,104/255,104/255)),'red':((0,0,0),(1,85/255,85/255)),'green': ((0,0,0),(1,168/255,168/255)),'alpha':((0,0,0),(1,1,1))})
+cmap_g = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,82/255,82/255)),'red':((0,0,0),(1,196/255,196/255)),'green': ((0,0,0),(1,78/255,78/255)),'alpha':((0,0,0),(1,1,1))})
+cmap_r2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,178/255,178/255)),'red':((0,0,0),(1,129/255,129/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
+cmap_g2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,116/255,116/255)),'red':((0,0,0),(1,204/255,204/255)),'green': ((0,0,0),(1,185/255,185/255)),'alpha':((0,0,0),(1,1,1))})
+cmap_b2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,100/255,100/255)),'red':((0,0,0),(1,205/255,205/255)),'green': ((0,0,0),(1,181/255,181/255)),'alpha':((0,0,0),(1,1,1))})
+cmap = cmap_b
+cmaps = [cmap_b, cmap_r, cmap_g, cmap_r2, cmap_g2, cmap_b2]
 
 try:
     from PyQt5 import QtGui, QtCore
@@ -60,7 +67,7 @@ class DatabaseBrowser(QWidget):
         QWidget.__init__(self)
 
         # widget layout and elements
-        self.setMinimumWidth(650)
+        self.setMinimumWidth(655)
         self.setMinimumHeight(400)
         self.setWindowTitle("Database Browser")
         self.layout = QGridLayout(self)
@@ -73,8 +80,8 @@ class DatabaseBrowser(QWidget):
         self.layout.addWidget(QLabel('System:', self), 0, 0)
         self.ComboBoxSystem = QComboBox(self)
         self.systems = database.SQL_Systems.select()
-        for item in self.systems:
-            self.ComboBoxSystem.insertItem(1, item.name)
+        for index, item in enumerate(self.systems):
+            self.ComboBoxSystem.insertItem(index, item.name)
         self.ComboBoxSystem.currentIndexChanged.connect(self.ComboBoxSystemsChanged)
         self.ComboBoxSystem.setInsertPolicy(QComboBox.NoInsert)
         self.layout.addWidget(self.ComboBoxSystem, 0, 1)
@@ -82,9 +89,10 @@ class DatabaseBrowser(QWidget):
         self.layout.addWidget(QLabel('Device:', self), 0, 2)
         self.ComboBoxDevice = QComboBox(self)
         self.devices = self.systems[0].devices()
-        for item in self.devices:
-            self.ComboBoxDevice.insertItem(item.id, item.name)
-        self.ComboBoxDevice.currentIndexChanged.connect(self.counts)
+        self.ComboBoxDevice.insertItem(0, "All")
+        for index, item in enumerate(self.devices):
+            self.ComboBoxDevice.insertItem(index+1, item.name)
+        #self.ComboBoxDevice.currentIndexChanged.connect(self.counts)
         self.ComboBoxDevice.setInsertPolicy(QComboBox.NoInsert)
         self.layout.addWidget(self.ComboBoxDevice, 0, 3)
 
@@ -93,26 +101,26 @@ class DatabaseBrowser(QWidget):
         layout_vert.addWidget(QLabel('Year:', self))
         self.SpinBoxYear = QSpinBox(self)
         self.SpinBoxYear.setMaximum(2050)
-        self.SpinBoxYear.setMinimum(2014)
-        self.SpinBoxYear.valueChanged.connect(self.counts)
+        self.SpinBoxYear.setMinimum(2010)
+        #self.SpinBoxYear.valueChanged.connect(self.counts)
         layout_vert.addWidget(self.SpinBoxYear)
 
         layout_vert.addWidget(QLabel('Month:', self))
         self.SpinBoxMonth = QSpinBox(self)
         self.SpinBoxMonth.setMaximum(12)
         self.SpinBoxMonth.setMinimum(0)
-        self.SpinBoxMonth.valueChanged.connect(self.counts)
+        #self.SpinBoxMonth.valueChanged.connect(self.counts)
         layout_vert.addWidget(self.SpinBoxMonth)
 
         layout_vert.addWidget(QLabel('Day:', self))
         self.SpinBoxDay = QSpinBox(self)
         self.SpinBoxDay.setMaximum(31)
         self.SpinBoxDay.setMinimum(0)
-        self.SpinBoxDay.valueChanged.connect(self.counts)
+        #self.SpinBoxDay.valueChanged.connect(self.counts)
         layout_vert.addWidget(self.SpinBoxDay)
 
         self.pbConfirm = QPushButton('C&onfirm', self)
-        self.pbConfirm.pressed.connect(self.confirm)
+        self.pbConfirm.pressed.connect(self.counts)
         self.layout.addWidget(self.pbConfirm, 0, 4)
 
         self.pbDiscard = QPushButton('&Show', self)
@@ -133,11 +141,18 @@ class DatabaseBrowser(QWidget):
         self.plot.figure.patch.set_facecolor([0,1,0,0])
         self.layout.addWidget(self.plot, 3, 0, 1, 4)
         self.plot.figure.clear()
+
+        self.plot2 = MatplotlibWidget(self, width=1)
+        self.plot2.figure.patch.set_facecolor([0,1,0,0])
+        layout_vert.addWidget(self.plot2)
+        self.plot2.figure.clear()
         #self.navi_toolbar = NavigationToolbar(self.plot, self)
         #self.layout.addWidget(self.navi_toolbar, 4, 0, 1, 4)
 
         # Create Axes object
         self.axes1 = self.plot.figure.add_axes([0.1,0.1,0.8,0.8])
+        self.axes2 = self.plot2.figure.add_axes([0, 0, 1, 1], axisbg='none')
+        self.axes2.grid()
 
         """
         self.table = QTableWidget(0, 4, self)
@@ -254,8 +269,28 @@ class DatabaseBrowser(QWidget):
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
         if self.ComboBoxDevice.currentIndex() == -1:
             return
-        device_id = self.devices[self.ComboBoxDevice.currentIndex()].id
         self.axes1.cla()
+        self.plot_list = []
+        self.plot_list_names = []
+        if self.ComboBoxDevice.currentIndex() != 0:
+            device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
+            device_name = self.devices[self.ComboBoxDevice.currentIndex()-1].name
+            self.DrawData(device_id)
+            self.axes2.legend(self.plot_list, [device_name], loc="lower left", bbox_to_anchor=(-0.1, 0))
+            self.plot2.draw()
+        else:
+            for index, device in enumerate(self.devices):
+                self.plot_list_names.append(device.name)
+                self.DrawData(device.id, offset=index/(self.devices.count()+1), color=index, max_count=(self.devices.count()+1))
+                self.plot.draw()
+                self.axes2.legend(self.plot_list, self.plot_list_names, loc="lower left", scatterpoints=1, bbox_to_anchor=(-0.1, 0))
+                print(self.plot_list, self.plot_list_names)
+                self.plot2.draw()
+        cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
+        self.plot.draw()
+
+    def DrawData(self, device_id, offset=0, color=0, max_count=1):
+        cmap = cmaps[color % len(cmaps)]
         year = self.SpinBoxYear.value()
         month = self.SpinBoxMonth.value()
         if month:
@@ -283,7 +318,9 @@ class DatabaseBrowser(QWidget):
             for item in query:
                 count[item.month-1, item.day-1] = item.count
             x, y = np.meshgrid(np.arange(1, 13), np.arange(1, 32))
-            self.axes1.scatter(x, y, c=count.T.flatten(), cmap=cmap, lw=0)
+            self.axes1.scatter(x+offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
+            p = self.axes1.scatter([0,0], [0,0], c=[1,0], cmap=cmap, lw=0)
+            self.plot_list.append(p)
             for month in range(12):
                 self.axes1.text(month+1, 32, ShortenNumber(np.sum(count[month,:])), ha="center")
             self.axes1.set_xticks(np.arange(1,13))
@@ -311,7 +348,9 @@ class DatabaseBrowser(QWidget):
             for item in query:
                 count[item.day-1,item.hour-1] = item.count
             x, y = np.meshgrid(np.arange(1,32),np.arange(1,25))
-            self.axes1.scatter(x, y, c=count.T.flatten(), cmap=cmap, lw=0)
+            self.axes1.scatter(x+offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
+            p = self.axes1.scatter([0,0], [0,0], c=[1,0], cmap=cmap, lw=0)
+            self.plot_list.append(p)
             for day in range(31):
                 self.axes1.text(day+1, 27, ShortenNumber(np.sum(count[day,:])), ha="center", va="top", rotation=90)
             self.axes1.set_xlim(0.5, daycount+0.5)
@@ -335,11 +374,10 @@ class DatabaseBrowser(QWidget):
             print("Query Time:", time.time()-t)
             for item in query:
                 count[item.hour-1] = item.count
-            self.axes1.bar(np.arange(0.6,24), count)
+            p = self.axes1.bar(np.arange(0.6,24)+offset, count, width=1/max_count, color=cmap(255))
+            self.plot_list.append(p)
             self.axes1.set_xlim(0.5,24.5)
             self.axes1.set_title("%d. %s %d" % (day, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
-        cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
-        self.plot.draw()
 
     def getPath(self, path_index):
         if path_index != self.last_path_id:
@@ -388,9 +426,11 @@ class DatabaseBrowser(QWidget):
     def ComboBoxSystemsChanged(self, value):
         print("changed")
         self.ComboBoxDevice.clear()
+        print(self.systems, value, self.systems[value].name)
         self.devices = self.systems[value].devices()
-        for item in self.devices:
-            self.ComboBoxDevice.insertItem(item.id, item.name)
+        self.ComboBoxDevice.insertItem(0, "All")
+        for index, item in enumerate(self.devices):
+            self.ComboBoxDevice.insertItem(index+1, item.name)
 
 database = Database()
 
