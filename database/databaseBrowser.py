@@ -171,8 +171,12 @@ class DatabaseBrowser(QWidget):
         self.last_device_name = ""
 
     def SaveFileList(self):
+        if self.ComboBoxDevice.currentIndex() == 0:
+            print("No Device selected")
+            return
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
-        device_id = self.devices[self.ComboBoxDevice.currentIndex()].id
+        device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
+        print(system_id, device_id)
         start_time = datetime.strptime(str(self.EditStart.text()), '%Y-%m-%d %H:%M:%S')
         end_time   = datetime.strptime(str(self.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
         query = (database.SQL_Files.select()
@@ -185,7 +189,7 @@ class DatabaseBrowser(QWidget):
 
     def showData(self):
         self.SaveFileList()
-        os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config_tmp.txt -srcpath=files.txt")
+        os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config.txt -srcpath=files.txt")
         pass
 
     def counts(self):
