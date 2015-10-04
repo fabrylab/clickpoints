@@ -59,7 +59,7 @@ class ClickPointsWindow(QWidget):
 
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
-        self.media_handler = MediaHandler(config.srcpath, filterparam=config.filterparam)
+        self.media_handler = MediaHandler(config.srcpath, filterparam=config.filterparam, force_recursive=True)
 
         self.modules = []
         arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__}
