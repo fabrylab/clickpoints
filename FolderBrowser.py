@@ -1,11 +1,15 @@
 from __future__ import division, print_function
 import os
+import sys
 import glob
 
 try:
     from PyQt5 import QtCore
 except ImportError:
     from PyQt4 import QtCore
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
+from mediahandler import MediaHandler
 
 from Tools import BroadCastEvent
 
@@ -29,7 +33,7 @@ class FolderBrowser:
         if self.config.relative_outputpath:
             self.config.outputpath = os.path.dirname(self.folder_list[self.index])
         self.config.srcpath = self.folder_list[self.index]
-        self.media_handler.__init__(self.config.srcpath, filterparam=self.config.filterparam)
+        MediaHandler(self.config.srcpath, filterparam=self.config.filterparam, mediahandler_instance=self.media_handler)
         BroadCastEvent(self.modules, "FolderChangeEvent")
         self.window.JumpToFrame(0)
         self.window.setWindowTitle(self.folder_list[self.index])
