@@ -286,21 +286,20 @@ class Timeline:
         self.skip = 0
 
         # control elements
-        self.layoutCtrl = QtGui.QGridLayout()
-        self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
+        self.layoutCtrl = QtGui.QHBoxLayout()
         self.layout.addLayout(self.layoutCtrl)
         # frame control
         self.pbPlay = QtGui.QPushButton()
         self.pbPlay.setCheckable(True)
         self.pbPlay.toggled.connect(self.hpbPlay)
         sys.path.append(os.path.join(os.path.dirname(__file__), ".", "icons"))
-        self.layoutCtrl.addWidget(self.pbPlay, 0, 0)
+        self.layoutCtrl.addWidget(self.pbPlay)
 
         self.lbCFrame = QtGui.QLabel()
         self.lbCFrame.setText('%d' % self.media_handler.currentPos)
         self.lbCFrame.setMinimumWidth(40)
         self.lbCFrame.setAlignment(Qt.AlignVCenter)
-        self.layoutCtrl.addWidget(self.lbCFrame, 0, 1)
+        self.layoutCtrl.addWidget(self.lbCFrame)
 
         self.frameSlider = TimeLineSlider()
         self.frameSlider.sliderReleased = self.hfReleaseSlider
@@ -323,27 +322,27 @@ class Timeline:
                 self.frameSlider.setEndValue(int(self.media_handler.totalNr*self.config.play_end))
                 print(int(self.media_handler.totalNr*self.config.play_end))
         self.fsl_update = True
-        self.layoutCtrl.addWidget(self.frameSlider, 0, 2)
+        self.layoutCtrl.addWidget(self.frameSlider)
 
         self.lbTFrame = QtGui.QLabel()
         self.lbTFrame.setText("%d" % (self.media_handler.totalNr - 1))
         self.lbTFrame.setMinimumWidth(40)
         self.lbTFrame.setAlignment(Qt.AlignVCenter)
-        self.layoutCtrl.addWidget(self.lbTFrame, 0, 4)
+        self.layoutCtrl.addWidget(self.lbTFrame)
 
         self.sbFPS = QtGui.QSpinBox()
         self.sbFPS.setMinimum(1)
         self.sbFPS.setMaximum(1000)
         self.sbFPS.setValue(self.fps)
         self.sbFPS.valueChanged.connect(self.hsbFPS)
-        self.layoutCtrl.addWidget(self.sbFPS, 1, 0)
+        self.layoutCtrl.addWidget(self.sbFPS)
 
         self.sbSkip = QtGui.QSpinBox()
         self.sbSkip.setMinimum(0)
         self.sbSkip.setMaximum(1000)
         self.sbSkip.setValue(self.skip)
         self.sbSkip.valueChanged.connect(self.hsbSkip)
-        self.layoutCtrl.addWidget(self.sbSkip, 1, 1)
+        self.layoutCtrl.addWidget(self.sbSkip)
 
         # widget list for control
         self.control_widgets = [self.pbPlay,
