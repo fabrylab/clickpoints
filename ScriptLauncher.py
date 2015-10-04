@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-import os
+import os, sys
 
 try:
     from PyQt5 import QtCore
@@ -19,7 +19,7 @@ class ScriptLauncher:
             # @key F12: Launch
             if event.key() == key:
                 self.window.save()
-                os.system(r"%s %s %d" % (script, self.config.srcpath, self.media_handler.currentPos))
+                os.system(r"%s %s %s %d" % (sys.executable, script, os.path.abspath(self.config.srcpath), self.media_handler.currentPos))
 
     @staticmethod
     def file():
