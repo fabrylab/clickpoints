@@ -29,6 +29,7 @@ from QExtendedGraphicsView import QExtendedGraphicsView
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 from mediahandler import MediaHandler
+from regexpfilefilter import FILTER_Tag
 
 used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, HelpText]
 used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "", "", "", "", "hud"]
@@ -59,6 +60,9 @@ class ClickPointsWindow(QWidget):
 
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
+        if "filterlist" not in config.filterparam:
+            config.filterparam['filterlist'] = []
+        config.filterparam['filterlist'].append([FILTER_Tag, config.maskname_tag])
         self.media_handler = MediaHandler(config.srcpath, filterparam=config.filterparam, force_recursive=True)
 
         self.modules = []
