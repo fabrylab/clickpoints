@@ -62,7 +62,7 @@ annotation_tag = '_annot.txt'
 folder_list = []
 
 """ ScriptLauncher """
-launch_scripts = [r"C:\Users\Richard\Anaconda\python.exe E:\Slack\Navid\TestTrack.py", r"C:\Users\Richard\Anaconda\python.exe E:\Slack\Navid\Evaluation.py"]
+launch_scripts = []
 
 # enables .access on dicts
 class dotdict(dict):
