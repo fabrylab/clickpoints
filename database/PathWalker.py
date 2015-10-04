@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import os
 import re
 import glob
+import numpy as np
 
 from datetime import datetime, timedelta
 from database import Database
@@ -34,6 +35,7 @@ def AddPathToDatabase(root):
     return parent_id
 
 def loadConfigs(folder_path):
+    global fps, delta_t
     path = os.path.normpath(folder_path)
     parent = os.path.join(path, ".")
     path_list = []
@@ -48,36 +50,36 @@ def loadConfigs(folder_path):
                 print(path)
                 code = compile(f.read(), path, 'exec')
                 exec(code, globals())
+    if fps != 0:
+        delta_t = 1./fps
+
+def EstimateFps(folder):
+    files = sorted(glob.glob(folder))
+    frames = -1
+    time = 0
+    fps = []
+    for file in files:
+        r = re.match(filename_data_regex, os.path.basename(file))
+        data = r.groupdict()
+        print(data)
+        time_new = datetime.strptime(data["timestamp"], time_format)
+        if frames != -1:
+            fps.append( frames/(time_new-time).total_seconds())
+        frames = getFrameNumber(r"\\131.188.117.94\data\microbsDDU\microbs31_1\20140407_microbs31_1.mp4")
+        time = time_new
+    print(1./np.array(fps))
+
+filename_data_regex = r''
+time_from_exif = False
+time_format = ''
+fps = 0
+delta_t = 0
+system_name = ""
+device_name = ""
 
 database = Database()
 
-"""
-files = glob.glob(r"\\131.188.117.94\data\microbsDDU\microbs31_3\*")
-filename_data_regex = r'.*(?P<timestamp>\d{8})_(?P<device>.+)\.'
-time_format = '%Y%m%d'
-system_name = "microbsDDU"
-device_name = "microbs31_3"
-
-#files = glob.glob(r"\\131.188.117.94\spot2014\campbell\2014\*\*\*SPOT_CAMP.jpg")
-start_path = r"\\131.188.117.94\spot2014\mobotix\2014"
-start_path = r"\\131.188.117.94\spot2014\mobotix_south\2014"
-start_path = r"\\131.188.117.94\spot2014\ge"
-#files = glob.glob(r"\\131.188.117.94\spot2014\mobotix\2014\*\*\*SPOT_mobotix.jpg")
-
-
-filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})-(?P<micros>\d)_(?P<system>.+?[^_])_(?P<device>.+)\.jpg'
-time_format = '%Y%m%d-%H%M%S'
-system_name = "AtkaSpot"
-device_name = "Campbell"
-
-time_from_exif = True
-if time_from_exif:
-    time_format = '%Y:%m:%d %H:%M:%S'
-
-device_name = "GE4000"
-"""
-
-start_path = r"\\131.188.117.94\data\microbsCRO\2012"
+start_path = r"\\131.188.117.94\antavia2013-1204to0103"#r"\\131.188.117.94\data\microbsCRO\2012"
 
 for root, dirs, files in os.walk(start_path, topdown=False):
     print(root, files)
@@ -93,22 +95,42 @@ for root, dirs, files in os.walk(start_path, topdown=False):
         if not match:
             continue
         data = match.groupdict()
+        # Frames
+        try:
+            frames = getFrameNumber(os.path.join(root, file))
+        except:
+            frames = 1
+        # First timestamp
         if "timestamp" in data:
             tstamp = datetime.strptime(data["timestamp"], time_format)
-            tstamp = tstamp + timedelta(microseconds=int(data["micros"])*1e5)
+            if "micros" in data:
+                tstamp = tstamp + timedelta(microseconds=int(data["micros"])*1e5)
         elif time_from_exif:
             tstamp = getExifTime(os.path.join(root, file))
         else:
             raise NameError("No time information available. Use timestamp in regex or use time_from_exif")
+        # Second timestamp
+        if "timestamp2" in data:
+            tstamp2 = datetime.strptime(data["timestamp2"], time_format)
+            if "micros2" in data:
+                tstamp2 = tstamp2 + timedelta(microseconds=int(data["micros2"])*1e5)
+        elif delta_t != 0:
+            tstamp2 = tstamp + timedelta(seconds=delta_t)*frames
+        else:
+            tstamp2 = tstamp
+        # System id
         try:
             system_id = database.getSystemId(system_name)
         except KeyError:
             system_id = database.newSystem(system_name)
+        # Device id
         try:
             device_id = database.getDeviceId(system_name, device_name)
         except KeyError:
             device_id = database.newDevice(system_id, device_name)
-        file_data.append(dict(timestamp=tstamp, system=system_id, device=device_id, basename=basename, path=folder_id, extension=ext))
+        # Append to list
+        print("frames", frames)
+        file_data.append(dict(timestamp=tstamp, timestamp2=tstamp2, frames=frames, system=system_id, device=device_id, basename=basename, path=folder_id, extension=ext))
     if len(file_data):
         database.saveFiles(file_data)
         print(len(file_data),"items inserted")
