@@ -30,6 +30,8 @@ class devices(Model):
 
 class files(Model):
     timestamp = DateTimeField()
+    timestamp2 = DateTimeField()
+    frames = IntegerField()
     system = ForeignKeyField(systems)
     device = ForeignKeyField(devices)
     basename = CharField()
@@ -90,6 +92,11 @@ class Database:
         #res = self.SQL_Files.select(self.SQL_Files.path).where( self.SQL_Files.system == 3)#(self.SQL_Files.timestamp > datetime(2015,9,11,23,10,55)) & (self.SQL_Files.timestamp < datetime(2015,9,11,23,20,55)) )
         #for item in res:
         #    print("Path", item.path)
+
+        # set all timestamp2 entires to timestamp
+        #query = self.SQL_Files.update(timestamp2=self.SQL_Files.timestamp)
+        #query.execute()
+
 
     def updateSystemDict(self):
         self.system_dict = {}
