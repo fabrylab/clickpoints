@@ -307,7 +307,7 @@ class DatabaseBrowser(QWidget):
             count = np.zeros((12, 31))
             t = time.time()
             query = (database.SQL_Files
-                     .select(fn.count(database.SQL_Files.id).alias('count'),
+                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
                              fn.day(database.SQL_Files.timestamp).alias('day'),
                              fn.month(database.SQL_Files.timestamp).alias('month'))
                      .where(database.SQL_Files.device == device_id,
@@ -335,7 +335,7 @@ class DatabaseBrowser(QWidget):
             count = np.zeros((31,24))
             t = time.time()
             query = (database.SQL_Files
-                     .select(fn.count(database.SQL_Files.id).alias('count'),
+                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
                              fn.day(database.SQL_Files.timestamp).alias('day'),
                              fn.hour(database.SQL_Files.timestamp).alias('hour'))
                      .where(database.SQL_Files.device == device_id,
@@ -360,7 +360,7 @@ class DatabaseBrowser(QWidget):
             count = np.zeros(24)
             t = time.time()
             query = (database.SQL_Files
-                     .select(fn.Count(database.SQL_Files.id).alias('count'),
+                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
                              fn.hour(database.SQL_Files.timestamp).alias('hour'))
                      .where(database.SQL_Files.device == device_id,
                             fn.year(database.SQL_Files.timestamp) == year,
