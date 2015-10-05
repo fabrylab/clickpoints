@@ -1,7 +1,5 @@
 from __future__ import division, print_function
 import os, sys, ctypes
-import re
-import glob
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
@@ -9,14 +7,6 @@ from matplotlibwidget import MatplotlibWidget
 import seaborn as sns
 import time
 from matplotlib.colors import LinearSegmentedColormap
-cmap_b = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,176/255,176/255)),'red':((0,0,0),(1,76/255,76/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
-cmap_r = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,104/255,104/255)),'red':((0,0,0),(1,85/255,85/255)),'green': ((0,0,0),(1,168/255,168/255)),'alpha':((0,0,0),(1,1,1))})
-cmap_g = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,82/255,82/255)),'red':((0,0,0),(1,196/255,196/255)),'green': ((0,0,0),(1,78/255,78/255)),'alpha':((0,0,0),(1,1,1))})
-cmap_r2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,178/255,178/255)),'red':((0,0,0),(1,129/255,129/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
-cmap_g2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,116/255,116/255)),'red':((0,0,0),(1,204/255,204/255)),'green': ((0,0,0),(1,185/255,185/255)),'alpha':((0,0,0),(1,1,1))})
-cmap_b2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,100/255,100/255)),'red':((0,0,0),(1,205/255,205/255)),'green': ((0,0,0),(1,181/255,181/255)),'alpha':((0,0,0),(1,1,1))})
-cmap = cmap_b
-cmaps = [cmap_b, cmap_r, cmap_g, cmap_r2, cmap_g2, cmap_b2]
 
 try:
     from PyQt5 import QtGui, QtCore
@@ -164,21 +154,23 @@ class DatabaseBrowser(QWidget):
         self.axes2 = self.plot2.figure.add_axes([0, 0, 1, 1], axisbg='none')
         self.axes2.grid()
 
-        """
-        self.table = QTableWidget(0, 4, self)
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setHorizontalHeaderLabels(QStringList(['Date', 'System', 'Device', 'Path']))
-        self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setResizeMode(3, QHeaderView.Stretch)
-        self.layout.addWidget(self.table, 5, 0, 5, 4)
-        """
-
         self.last_path_id = 0
         self.last_path = ""
         self.last_system_id = 0
         self.last_system_name = ""
         self.last_device_id = 0
         self.last_device_name = ""
+
+        self.CreateColorMaps()
+
+    def CreateColorMaps(self):
+        cmap_b = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,176/255,176/255)),'red':((0,0,0),(1,76/255,76/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
+        cmap_r = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,104/255,104/255)),'red':((0,0,0),(1,85/255,85/255)),'green': ((0,0,0),(1,168/255,168/255)),'alpha':((0,0,0),(1,1,1))})
+        cmap_g = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,82/255,82/255)),'red':((0,0,0),(1,196/255,196/255)),'green': ((0,0,0),(1,78/255,78/255)),'alpha':((0,0,0),(1,1,1))})
+        cmap_r2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,178/255,178/255)),'red':((0,0,0),(1,129/255,129/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
+        cmap_g2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,116/255,116/255)),'red':((0,0,0),(1,204/255,204/255)),'green': ((0,0,0),(1,185/255,185/255)),'alpha':((0,0,0),(1,1,1))})
+        cmap_b2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,100/255,100/255)),'red':((0,0,0),(1,205/255,205/255)),'green': ((0,0,0),(1,181/255,181/255)),'alpha':((0,0,0),(1,1,1))})
+        self.cmaps = [cmap_b, cmap_r, cmap_g, cmap_r2, cmap_g2, cmap_b2]
 
     def SaveFileList(self):
         if self.ComboBoxDevice.currentIndex() == 0:
@@ -218,81 +210,6 @@ class DatabaseBrowser(QWidget):
             return
         print("Selected %d images." % count)
         os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config.txt -srcpath=files.txt")
-
-    def counts(self):
-        import time
-        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
-        if self.ComboBoxDevice.currentIndex() == -1:
-            return
-        device_id = self.devices[self.ComboBoxDevice.currentIndex()].id
-        self.axes1.cla()
-        year = self.SpinBoxYear.value()
-        month = self.SpinBoxMonth.value()
-        if month:
-            daycount = calendar.monthrange(year,month)[1]
-            day = self.SpinBoxDay.value()
-            if day > daycount:
-                day = daycount
-                self.SpinBoxDay.setValue(day)
-        if month == 0:
-            start = datetime(year, 1, 1)
-            end = datetime(year+1, 1, 1)
-            self.EditStart.setText(str(start))
-            self.EditEnd.setText(str(end))
-            count = np.zeros(12)
-            t = time.time()
-            query = (database.SQL_Devices
-                 .select(database.SQL_Devices, fn.Count(database.SQL_Files.id).alias('count'), fn.month(database.SQL_Files.timestamp).alias('month')).where(database.SQL_Devices.id == device_id)
-                 .join(database.SQL_Files).where( fn.year(database.SQL_Files.timestamp) == year)
-                 .group_by(fn.month(database.SQL_Files.timestamp)))
-            query.execute()
-            print("Query Time:",time.time()-t)
-            for item in query:
-                count[item.month-1] = item.count
-            self.axes1.bar(np.arange(0.1,12), count)
-            self.axes1.set_xticks(np.arange(0.5,12))
-            self.axes1.set_xticklabels(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
-            self.axes1.set_xlim(0,12)
-            cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
-            self.axes1.set_title("%d" % year)
-            self.plot.draw()
-        elif day == 0:
-            start = datetime(year, month, 1)
-            end = add_months(start, 1)
-            self.EditStart.setText(str(start))
-            self.EditEnd.setText(str(end))
-            count = np.zeros(daycount)
-            query = (database.SQL_Devices
-                 .select(database.SQL_Devices, fn.Count(database.SQL_Files.id).alias('count'), fn.day(database.SQL_Files.timestamp).alias('day')).where(database.SQL_Devices.id == device_id)
-                 .join(database.SQL_Files).where( fn.year(database.SQL_Files.timestamp) == year, fn.month(database.SQL_Files.timestamp) == month)
-                 .group_by(fn.day(database.SQL_Files.timestamp)))
-            for item in query:
-                count[item.day-1] = item.count
-            self.axes1.cla()
-            self.axes1.bar(np.arange(0.6,daycount), count)
-            self.axes1.set_xlim(0.5,daycount+0.5)
-            self.axes1.set_title("%s %d" % (["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
-            cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
-            self.plot.draw()
-        else:
-            start = datetime(year, month, day)
-            end = start + timedelta(days=1)
-            self.EditStart.setText(str(start))
-            self.EditEnd.setText(str(end))
-            count = np.zeros(24)
-            query = (database.SQL_Devices
-                 .select(database.SQL_Devices, fn.Count(database.SQL_Files.id).alias('count'), fn.hour(database.SQL_Files.timestamp).alias('hour')).where(database.SQL_Devices.id == device_id)
-                 .join(database.SQL_Files).where( fn.year(database.SQL_Files.timestamp) == year, fn.month(database.SQL_Files.timestamp) == month, fn.day(database.SQL_Files.timestamp) == day)
-                 .group_by(fn.hour(database.SQL_Files.timestamp)))
-            for item in query:
-                count[item.hour-1] = item.count
-            self.axes1.cla()
-            self.axes1.bar(np.arange(0.6,24), count)
-            self.axes1.set_xlim(0.5,24.5)
-            self.axes1.set_title("%d. %s %d" % (day, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
-            cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
-            self.plot.draw()
-            return
 
     def counts(self):
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
@@ -344,7 +261,7 @@ class DatabaseBrowser(QWidget):
             self.EditEnd.setText(str(end))
 
     def DrawData(self, device_id, offset=0, color=0, max_count=1):
-        cmap = cmaps[color % len(cmaps)]
+        cmap = self.cmaps[color % len(self.cmaps)]
         year = self.SpinBoxYear.value()
         month = self.SpinBoxMonth.value()
         if month:
@@ -443,28 +360,6 @@ class DatabaseBrowser(QWidget):
                     self.last_device_name = dev.name
         return self.last_device_name
 
-    def confirm(self):
-        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
-        device_id = self.devices[self.ComboBoxDevice.currentIndex()].id
-        print("confirm", system_id, device_id)
-        res = database.SQL_Files.select().where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id).order_by(database.SQL_Files.timestamp)
-        text = ""
-
-        for index, item in enumerate(res.naive().iterator()):
-            if index >= self.table.rowCount():
-                self.table.insertRow(self.table.rowCount())
-                for j in range(7):
-                    self.table.setItem(index, j, QTableWidgetItem())
-            print(index)
-            self.table.item(index, 0).setText(item.timestamp.strftime('%Y%m%d-%H%M%S'))
-            self.table.item(index, 1).setText(self.getSystem(item.system_id))
-            self.table.item(index, 2).setText(self.getDevice(item.device_id))
-            self.table.item(index, 3).setText(self.getPath(item.path))
-        for i in range(index+1, self.table.rowCount()):
-            self.table.removeRow(i)
-            #text += item.timestamp.strftime('%Y%m%d-%H%M%S')+"\n"#print("Path", item.path)
-        #self.pteAnnotation.setPlainText(text)
-
     def ComboBoxSystemsChanged(self, value):
         print("changed")
         self.ComboBoxDevice.clear()
@@ -485,8 +380,3 @@ if __name__ == '__main__':
     window = DatabaseBrowser()
     window.show()
     app.exec_()
-
-#database.SQL_Files.timestamp > datetime(2015,9,11,23,10,55) &
-#res = database.SQL_Files.select(database.SQL_Files.path).where( (database.SQL_Files.timestamp > datetime(2014,3,01,23,10,55)) & (database.SQL_Files.timestamp < datetime(2014,6,11,23,20,55)) )
-#for item in res:
-#    print("Path", item.path)
