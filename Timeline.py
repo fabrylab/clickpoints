@@ -50,6 +50,8 @@ class TimeLineSlider(QGraphicsView):
 
         self.setMaximumHeight(30)
         #self.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
@@ -130,7 +132,10 @@ class TimeLineSlider(QGraphicsView):
         if pos in self.tick_marker and type in self.tick_marker[pos]:
             tick_marker = self.tick_marker[pos][type]
         else:
-            tick_marker = QGraphicsRectItem(0.0, -3.5, self.ValueToPixel(1), -height, None, self.scene)
+            width = self.ValueToPixel(1)
+            if pos == self.max_value:
+                width = 2
+            tick_marker = QGraphicsRectItem(0.0, -3.5, width, -height, None, self.scene)
         tick_marker.setPen(QPen(color))
         tick_marker.setBrush(QBrush(color))
         tick_marker.value = pos
@@ -180,7 +185,10 @@ class TimeLineSlider(QGraphicsView):
         for pos, ticks in self.tick_marker.items():
             for type, tick in ticks.items():
                 tick.setPos(self.ValueToPixel(pos), 0)
-                tick.setRect(0.0, -3.5, self.ValueToPixel(1), -tick.height)
+                width = self.ValueToPixel(1)
+                if pos == self.max_value:
+                    width = 2
+                tick.setRect(0.0, -3.5, width, -tick.height)
         for marker in [self.slider_position, self.slider_start, self.slider_end]:
             marker.setPos(self.ValueToPixel(marker.value), 0)
             marker.setRange(0, self.length)
