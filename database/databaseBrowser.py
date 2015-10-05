@@ -122,16 +122,21 @@ class DatabaseBrowser(QWidget):
         self.SpinBoxDay.valueChanged.connect(self.update_timerange)
         layout_vert.addWidget(self.SpinBoxDay)
 
+        layout_vert = QVBoxLayout()
+        self.layout.addLayout(layout_vert, 0, 4, 4, 1)
+
         self.pbConfirm = QPushButton('C&onfirm', self)
         self.pbConfirm.pressed.connect(self.counts)
-        self.layout.addWidget(self.pbConfirm, 0, 4)
+        layout_vert.addWidget(self.pbConfirm)
 
-        self.pbDiscard = QPushButton('&Show', self)
-        self.pbDiscard.pressed.connect(self.showData)
-        self.layout.addWidget(self.pbDiscard, 1, 4)
+        self.pbShow = QPushButton('&Show', self)
+        self.pbShow.pressed.connect(self.showData)
+        layout_vert.addWidget(self.pbShow)
 
-        layout_vert = QVBoxLayout()
-        self.layout.addLayout(layout_vert, 2, 4, 3, 1)
+        self.pbFilelist = QPushButton('&Filelist', self)
+        self.pbFilelist.pressed.connect(self.doSaveFilelist)
+        layout_vert.addWidget(self.pbFilelist)
+
         layout_vert.addWidget(QLabel('Start:', self))
         self.EditStart = QLineEdit('', self)
         layout_vert.addWidget(self.EditStart)
@@ -194,6 +199,14 @@ class DatabaseBrowser(QWidget):
                 fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+"\n")
                 counter += 1
         return counter
+
+    def doSaveFilelist(self):
+        if self.ComboBoxDevice.currentIndex() == 0:
+            QMessageBox.question(None, 'Warning', 'You have to select a single device to write file list.', QMessageBox.Ok)
+            return
+        count = self.SaveFileList()
+        QMessageBox.question(None, 'Saved', 'The file list fielist.txt has been saved with %d entries.' % count, QMessageBox.Ok)
+        return
 
     def showData(self):
         if self.ComboBoxDevice.currentIndex() == 0:
