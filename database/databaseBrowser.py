@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-import os, sys
+import os, sys, ctypes
 import re
 import glob
 import numpy as np
@@ -41,6 +41,8 @@ from datetime import datetime, timedelta
 import calendar
 from database import Database
 
+icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
+
 def add_months(sourcedate,months):
      month = sourcedate.month - 1 + months
      year = int(sourcedate.year + month / 12 )
@@ -70,6 +72,7 @@ class DatabaseBrowser(QWidget):
         self.setMinimumWidth(655)
         self.setMinimumHeight(400)
         self.setWindowTitle("Database Browser")
+        self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
         self.layout = QGridLayout(self)
         self.layout.setColumnStretch(4, 0)
         self.layout.setColumnStretch(0, 1)
@@ -461,6 +464,9 @@ class DatabaseBrowser(QWidget):
 database = Database()
 
 if __name__ == '__main__':
+    if sys.platform[:3] == 'win':
+        myappid = 'fabrybiophysics.databasebrowser' # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     app = QApplication(sys.argv)
 
     window = DatabaseBrowser()
