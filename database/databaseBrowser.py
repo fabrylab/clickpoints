@@ -102,21 +102,21 @@ class DatabaseBrowser(QWidget):
         self.SpinBoxYear = QSpinBox(self)
         self.SpinBoxYear.setMaximum(2050)
         self.SpinBoxYear.setMinimum(2010)
-        #self.SpinBoxYear.valueChanged.connect(self.counts)
+        self.SpinBoxYear.valueChanged.connect(self.update_timerange)
         layout_vert.addWidget(self.SpinBoxYear)
 
         layout_vert.addWidget(QLabel('Month:', self))
         self.SpinBoxMonth = QSpinBox(self)
         self.SpinBoxMonth.setMaximum(12)
         self.SpinBoxMonth.setMinimum(0)
-        #self.SpinBoxMonth.valueChanged.connect(self.counts)
+        self.SpinBoxMonth.valueChanged.connect(self.update_timerange)
         layout_vert.addWidget(self.SpinBoxMonth)
 
         layout_vert.addWidget(QLabel('Day:', self))
         self.SpinBoxDay = QSpinBox(self)
         self.SpinBoxDay.setMaximum(31)
         self.SpinBoxDay.setMinimum(0)
-        #self.SpinBoxDay.valueChanged.connect(self.counts)
+        self.SpinBoxDay.valueChanged.connect(self.update_timerange)
         layout_vert.addWidget(self.SpinBoxDay)
 
         self.pbConfirm = QPushButton('C&onfirm', self)
@@ -130,12 +130,14 @@ class DatabaseBrowser(QWidget):
         layout_vert = QVBoxLayout()
         self.layout.addLayout(layout_vert, 2, 4, 3, 1)
         layout_vert.addWidget(QLabel('Start:', self))
-        self.EditStart = QLineEdit('20140101-000000', self)
+        self.EditStart = QLineEdit('', self)
         layout_vert.addWidget(self.EditStart)
         layout_vert.addWidget(QLabel('End:', self))
-        self.EditEnd = QLineEdit('20140101-000000', self)
+        self.EditEnd = QLineEdit('', self)
         layout_vert.addWidget(self.EditEnd)
         layout_vert.addStretch()
+
+        self.update_timerange()
 
         self.plot = MatplotlibWidget(self)
         self.plot.figure.patch.set_facecolor([0,1,0,0])
@@ -200,7 +202,6 @@ class DatabaseBrowser(QWidget):
             return
         print("Selected %d images." % count)
         os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config.txt -srcpath=files.txt")
-        pass
 
     def counts(self):
         import time
@@ -301,8 +302,7 @@ class DatabaseBrowser(QWidget):
         cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
         self.plot.draw()
 
-    def DrawData(self, device_id, offset=0, color=0, max_count=1):
-        cmap = cmaps[color % len(cmaps)]
+    def update_timerange(self):
         year = self.SpinBoxYear.value()
         month = self.SpinBoxMonth.value()
         if month:
@@ -316,6 +316,28 @@ class DatabaseBrowser(QWidget):
             end = datetime(year+1, 1, 1)
             self.EditStart.setText(str(start))
             self.EditEnd.setText(str(end))
+        elif day == 0:
+            start = datetime(year, month, 1)
+            end = add_months(start, 1)
+            self.EditStart.setText(str(start))
+            self.EditEnd.setText(str(end))
+        else:
+            start = datetime(year, month, day)
+            end = start + timedelta(days=1)
+            self.EditStart.setText(str(start))
+            self.EditEnd.setText(str(end))
+
+    def DrawData(self, device_id, offset=0, color=0, max_count=1):
+        cmap = cmaps[color % len(cmaps)]
+        year = self.SpinBoxYear.value()
+        month = self.SpinBoxMonth.value()
+        if month:
+            daycount = calendar.monthrange(year,month)[1]
+            day = self.SpinBoxDay.value()
+            if day > daycount:
+                day = daycount
+                self.SpinBoxDay.setValue(day)
+        if month == 0:
             count = np.zeros((12, 31))
             t = time.time()
             query = (database.SQL_Files
@@ -341,10 +363,6 @@ class DatabaseBrowser(QWidget):
             self.axes1.set_ylim(0.5,33.5)
             self.axes1.set_yticks([1,5,10,15,20,25,31])
         elif day == 0:
-            start = datetime(year, month, 1)
-            end = add_months(start, 1)
-            self.EditStart.setText(str(start))
-            self.EditEnd.setText(str(end))
             count = np.zeros((31,24))
             t = time.time()
             query = (database.SQL_Files
@@ -368,10 +386,6 @@ class DatabaseBrowser(QWidget):
             self.axes1.set_xlim(0.5, daycount+0.5)
             self.axes1.set_title("%s %d" % (["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
         else:
-            start = datetime(year, month, day)
-            end = start + timedelta(days=1)
-            self.EditStart.setText(str(start))
-            self.EditEnd.setText(str(end))
             count = np.zeros(24)
             t = time.time()
             query = (database.SQL_Files
