@@ -449,7 +449,7 @@ class Timeline:
         if nr != -1:
             self.window.JumpToFrame(nr)
         else:
-            if self.media_handler.currentPos < self.frameSlider.startValue() or self.media_handler.currentPos >= self.frameSlider.endValue()-1:
+            if self.media_handler.currentPos < self.frameSlider.startValue() or self.media_handler.currentPos >= self.frameSlider.endValue():
                 self.window.JumpToFrame(self.frameSlider.startValue())
             else:
                 self.window.JumpFrames(1+self.skip)
