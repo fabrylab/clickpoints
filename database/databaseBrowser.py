@@ -101,12 +101,11 @@ class DatabaseBrowser(QWidget):
         layout_hor.addWidget(QLabel('Year:', self))
         self.SpinBoxYear = QSpinBox(self)
         self.SpinBoxYear.setMaximum(2050)
-        self.SpinBoxYear.setMinimum(2010)
+        self.SpinBoxYear.setMinimum(0)
         self.SpinBoxYear.valueChanged.connect(self.update_timerange)
         layout_hor.addWidget(self.SpinBoxYear)
         button = QPushButton('R', self)
         button.setMaximumWidth(20)
-        button.setDisabled(True)
         button.pressed.connect(self.reset_year)
         layout_hor.addWidget(button)
 
@@ -114,7 +113,7 @@ class DatabaseBrowser(QWidget):
         layout_vert.addLayout(layout_hor)
         layout_hor.addWidget(QLabel('Month:', self))
         self.SpinBoxMonth = QSpinBox(self)
-        self.SpinBoxMonth.setMaximum(12)
+        self.SpinBoxMonth.setMaximum(13)
         self.SpinBoxMonth.setMinimum(0)
         self.SpinBoxMonth.valueChanged.connect(self.update_timerange)
         layout_hor.addWidget(self.SpinBoxMonth)
@@ -127,7 +126,7 @@ class DatabaseBrowser(QWidget):
         layout_vert.addLayout(layout_hor)
         layout_hor.addWidget(QLabel('Day:', self))
         self.SpinBoxDay = QSpinBox(self)
-        self.SpinBoxDay.setMaximum(31)
+        self.SpinBoxDay.setMaximum(32)
         self.SpinBoxDay.setMinimum(0)
         self.SpinBoxDay.valueChanged.connect(self.update_timerange)
         layout_hor.addWidget(self.SpinBoxDay)
@@ -271,12 +270,19 @@ class DatabaseBrowser(QWidget):
     def update_timerange(self):
         year = self.SpinBoxYear.value()
         month = self.SpinBoxMonth.value()
+        if month == 13:
+            self.SpinBoxMonth.setValue(1)
+            self.SpinBoxYear.setValue(year+1)
+            return
         if month:
             daycount = calendar.monthrange(year,month)[1]
             day = self.SpinBoxDay.value()
             if day > daycount:
-                day = daycount
-                self.SpinBoxDay.setValue(day)
+                self.SpinBoxMonth.setValue(month+1)
+                self.SpinBoxDay.setValue(1)
+                return
+        if year == 0:
+            return
         if month == 0:
             start = datetime(year, 1, 1)
             end = datetime(year+1, 1, 1)
@@ -303,7 +309,41 @@ class DatabaseBrowser(QWidget):
             if day > daycount:
                 day = daycount
                 self.SpinBoxDay.setValue(day)
-        if month == 0:
+        else:
+            day = 0
+        if year == 0:
+            t = time.time()
+            query = (database.SQL_Files
+                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
+                             fn.year(database.SQL_Files.timestamp).alias('year'),
+                             fn.month(database.SQL_Files.timestamp).alias('month'))
+                     .where(database.SQL_Files.device == device_id)
+                     .group_by(fn.year(database.SQL_Files.timestamp)*13+fn.month(database.SQL_Files.timestamp)))
+            query.execute()
+            print("Query Time:", time.time()-t)
+            years = np.unique([item.year for item in query])
+            year_count = max(years)-min(years)+1
+            print("years", years, year_count)
+            count = np.zeros((year_count, 12))
+            for item in query:
+                count[item.year-min(years), item.month-1] = item.count
+            x, y = np.meshgrid(np.arange(0, year_count), np.arange(1, 13))
+            self.axes1.scatter(x+offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
+            p = self.axes1.scatter([-2,-2], [0,0], c=[1,0], cmap=cmap, lw=0)
+            self.plot_list.append(p)
+            for year in range(year_count):
+                self.axes1.text(year+offset, 12.2, ShortenNumber(np.sum(count[year,:])), ha="center")
+            self.axes1.set_xlim(-0.5,year_count-0.5+(1 if max_count > 2 else 0))
+            self.axes1.set_ylim(0.5,12.5)
+            self.axes1.set_xticks(np.arange(0,year_count))
+            self.axes1.set_xticklabels(np.arange(0,year_count)+min(years))
+            self.axes1.set_yticks(np.arange(1,13))
+            self.axes1.set_yticklabels(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+            #self.axes1.set_yticks([1,5,10,15,20,25,31])
+            self.axes1.set_title("All data")
+            self.axes1.set_xlabel("year")
+            self.axes1.set_ylabel("month")
+        elif month == 0:
             count = np.zeros((12, 31))
             t = time.time()
             query = (database.SQL_Files
