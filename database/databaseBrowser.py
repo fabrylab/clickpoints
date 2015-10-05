@@ -64,22 +64,27 @@ class DatabaseBrowser(QWidget):
         self.setWindowTitle("Database Browser")
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
         self.layout = QGridLayout(self)
-        self.layout.setColumnStretch(4, 0)
         self.layout.setColumnStretch(0, 1)
         self.layout.setColumnStretch(1, 1)
-        self.layout.setColumnStretch(2, 1)
-        self.layout.setColumnStretch(3, 1)
+        self.layout.setColumnStretch(2, 0)
 
-        self.layout.addWidget(QLabel('System:', self), 0, 0)
+        layout_vert = QVBoxLayout()
+        self.layout.addLayout(layout_vert, 0, 0)
+        layout_vert.setContentsMargins(0, 0, 50, 0)
+        layout_hor = QHBoxLayout()
+        layout_vert.addLayout(layout_hor)
+        layout_hor.addWidget(QLabel('System:', self))
         self.ComboBoxSystem = QComboBox(self)
         self.systems = database.SQL_Systems.select()
         for index, item in enumerate(self.systems):
             self.ComboBoxSystem.insertItem(index, item.name)
         self.ComboBoxSystem.currentIndexChanged.connect(self.ComboBoxSystemsChanged)
         self.ComboBoxSystem.setInsertPolicy(QComboBox.NoInsert)
-        self.layout.addWidget(self.ComboBoxSystem, 0, 1)
+        layout_hor.addWidget(self.ComboBoxSystem)
 
-        self.layout.addWidget(QLabel('Device:', self), 0, 2)
+        layout_hor = QHBoxLayout()
+        layout_vert.addLayout(layout_hor)
+        layout_hor.addWidget(QLabel('Device:', self))
         self.ComboBoxDevice = QComboBox(self)
         self.devices = self.systems[0].devices()
         self.ComboBoxDevice.insertItem(0, "All")
@@ -87,33 +92,52 @@ class DatabaseBrowser(QWidget):
             self.ComboBoxDevice.insertItem(index+1, item.name)
         #self.ComboBoxDevice.currentIndexChanged.connect(self.counts)
         self.ComboBoxDevice.setInsertPolicy(QComboBox.NoInsert)
-        self.layout.addWidget(self.ComboBoxDevice, 0, 3)
+        layout_hor.addWidget(self.ComboBoxDevice)
 
-        layout_vert = QHBoxLayout()
-        self.layout.addLayout(layout_vert, 1, 0, 1, 4)
-        layout_vert.addWidget(QLabel('Year:', self))
+        layout_vert = QVBoxLayout()
+        self.layout.addLayout(layout_vert, 0, 1)
+        layout_hor = QHBoxLayout()
+        layout_vert.addLayout(layout_hor)
+        layout_hor.addWidget(QLabel('Year:', self))
         self.SpinBoxYear = QSpinBox(self)
         self.SpinBoxYear.setMaximum(2050)
         self.SpinBoxYear.setMinimum(2010)
         self.SpinBoxYear.valueChanged.connect(self.update_timerange)
-        layout_vert.addWidget(self.SpinBoxYear)
+        layout_hor.addWidget(self.SpinBoxYear)
+        button = QPushButton('R', self)
+        button.setMaximumWidth(20)
+        button.setDisabled(True)
+        button.pressed.connect(self.reset_year)
+        layout_hor.addWidget(button)
 
-        layout_vert.addWidget(QLabel('Month:', self))
+        layout_hor = QHBoxLayout()
+        layout_vert.addLayout(layout_hor)
+        layout_hor.addWidget(QLabel('Month:', self))
         self.SpinBoxMonth = QSpinBox(self)
         self.SpinBoxMonth.setMaximum(12)
         self.SpinBoxMonth.setMinimum(0)
         self.SpinBoxMonth.valueChanged.connect(self.update_timerange)
-        layout_vert.addWidget(self.SpinBoxMonth)
+        layout_hor.addWidget(self.SpinBoxMonth)
+        button = QPushButton('R', self)
+        button.setMaximumWidth(20)
+        button.pressed.connect(self.reset_month)
+        layout_hor.addWidget(button)
 
-        layout_vert.addWidget(QLabel('Day:', self))
+        layout_hor = QHBoxLayout()
+        layout_vert.addLayout(layout_hor)
+        layout_hor.addWidget(QLabel('Day:', self))
         self.SpinBoxDay = QSpinBox(self)
         self.SpinBoxDay.setMaximum(31)
         self.SpinBoxDay.setMinimum(0)
         self.SpinBoxDay.valueChanged.connect(self.update_timerange)
-        layout_vert.addWidget(self.SpinBoxDay)
+        layout_hor.addWidget(self.SpinBoxDay)
+        button = QPushButton('R', self)
+        button.setMaximumWidth(20)
+        button.pressed.connect(self.reset_day)
+        layout_hor.addWidget(button)
 
         layout_vert = QVBoxLayout()
-        self.layout.addLayout(layout_vert, 0, 4, 4, 1)
+        self.layout.addLayout(layout_vert, 0, 2, 4, 1)
 
         self.pbConfirm = QPushButton('C&onfirm', self)
         self.pbConfirm.pressed.connect(self.counts)
@@ -139,7 +163,7 @@ class DatabaseBrowser(QWidget):
 
         self.plot = MatplotlibWidget(self)
         self.plot.figure.patch.set_facecolor([0,1,0,0])
-        self.layout.addWidget(self.plot, 3, 0, 1, 4)
+        self.layout.addWidget(self.plot, 1, 0, 1, 2)
         self.plot.figure.clear()
 
         self.plot2 = MatplotlibWidget(self, width=1)
@@ -150,7 +174,7 @@ class DatabaseBrowser(QWidget):
         #self.layout.addWidget(self.navi_toolbar, 4, 0, 1, 4)
 
         # Create Axes object
-        self.axes1 = self.plot.figure.add_axes([0.1,0.1,0.8,0.8])
+        self.axes1 = self.plot.figure.add_axes([0.1,0.15,0.86,0.8])
         self.axes2 = self.plot2.figure.add_axes([0, 0, 1, 1], axisbg='none')
         self.axes2.grid()
 
@@ -171,6 +195,15 @@ class DatabaseBrowser(QWidget):
         cmap_g2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,116/255,116/255)),'red':((0,0,0),(1,204/255,204/255)),'green': ((0,0,0),(1,185/255,185/255)),'alpha':((0,0,0),(1,1,1))})
         cmap_b2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,100/255,100/255)),'red':((0,0,0),(1,205/255,205/255)),'green': ((0,0,0),(1,181/255,181/255)),'alpha':((0,0,0),(1,1,1))})
         self.cmaps = [cmap_b, cmap_r, cmap_g, cmap_r2, cmap_g2, cmap_b2]
+
+    def reset_year(self):
+        self.SpinBoxYear.setValue(0)
+
+    def reset_month(self):
+        self.SpinBoxMonth.setValue(0)
+
+    def reset_day(self):
+        self.SpinBoxDay.setValue(0)
 
     def SaveFileList(self):
         if self.ComboBoxDevice.currentIndex() == 0:
@@ -295,6 +328,9 @@ class DatabaseBrowser(QWidget):
             self.axes1.set_xlim(0.5,12.5)
             self.axes1.set_ylim(0.5,33.5)
             self.axes1.set_yticks([1,5,10,15,20,25,31])
+            self.axes1.set_title("%d" % (year))
+            self.axes1.set_xlabel("month")
+            self.axes1.set_ylabel("day")
         elif day == 0:
             count = np.zeros((31,24))
             t = time.time()
@@ -318,6 +354,8 @@ class DatabaseBrowser(QWidget):
                 self.axes1.text(day+1, 27, ShortenNumber(np.sum(count[day,:])), ha="center", va="top", rotation=90)
             self.axes1.set_xlim(0.5, daycount+0.5)
             self.axes1.set_title("%s %d" % (["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
+            self.axes1.set_xlabel("day")
+            self.axes1.set_ylabel("hour")
         else:
             count = np.zeros(24)
             t = time.time()
@@ -337,6 +375,8 @@ class DatabaseBrowser(QWidget):
             self.plot_list.append(p)
             self.axes1.set_xlim(0.5,24.5)
             self.axes1.set_title("%d. %s %d" % (day, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
+            self.axes1.set_xlabel("hour")
+            self.axes1.set_ylabel("count")
 
     def getPath(self, path_index):
         if path_index != self.last_path_id:
