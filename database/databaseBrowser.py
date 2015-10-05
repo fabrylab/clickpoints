@@ -173,7 +173,7 @@ class DatabaseBrowser(QWidget):
     def SaveFileList(self):
         if self.ComboBoxDevice.currentIndex() == 0:
             print("No Device selected")
-            return
+            return 0
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
         device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
         print(system_id, device_id)
@@ -183,12 +183,22 @@ class DatabaseBrowser(QWidget):
                  .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id, database.SQL_Files.timestamp > start_time, database.SQL_Files.timestamp < end_time)
                  .order_by(database.SQL_Files.timestamp)
                  )
+        counter = 0
         with open("files.txt","w") as fp:
             for item in query:
                 fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+"\n")
+                counter += 1
+        return counter
 
     def showData(self):
-        self.SaveFileList()
+        if self.ComboBoxDevice.currentIndex() == 0:
+            QMessageBox.question(None, 'Warning', 'You have to select a single device to display images.', QMessageBox.Ok)
+            return
+        count = self.SaveFileList()
+        if count == 0:
+            QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
+            return
+        print("Selected %d images." % count)
         os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config.txt -srcpath=files.txt")
         pass
 
