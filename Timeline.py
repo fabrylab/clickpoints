@@ -302,8 +302,7 @@ class Timeline:
         sys.path.append(os.path.join(os.path.dirname(__file__), ".", "icons"))
         self.layoutCtrl.addWidget(self.pbPlay)
 
-        self.lbCFrame = QtGui.QLabel()
-        self.lbCFrame.setText('%d' % self.media_handler.currentPos)
+        self.lbCFrame = QtGui.QLabel("")
         self.lbCFrame.setMinimumWidth(40)
         self.lbCFrame.setAlignment(Qt.AlignVCenter)
         self.layoutCtrl.addWidget(self.lbCFrame)
@@ -331,12 +330,6 @@ class Timeline:
         self.fsl_update = True
         self.layoutCtrl.addWidget(self.frameSlider)
 
-        self.lbTFrame = QtGui.QLabel()
-        self.lbTFrame.setText("%d" % (self.media_handler.totalNr - 1))
-        self.lbTFrame.setMinimumWidth(40)
-        self.lbTFrame.setAlignment(Qt.AlignVCenter)
-        self.layoutCtrl.addWidget(self.lbTFrame)
-
         self.sbFPS = QtGui.QSpinBox()
         self.sbFPS.setMinimum(1)
         self.sbFPS.setMaximum(1000)
@@ -355,7 +348,6 @@ class Timeline:
         self.control_widgets = [self.pbPlay,
                                 self.frameSlider,
                                 self.lbCFrame,
-                                self.lbTFrame,
                                 self.sbFPS,
                                 self.sbSkip
                                 ]
@@ -377,7 +369,7 @@ class Timeline:
 
     def FolderChangeEvent(self):
         self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
-        self.lbTFrame.setText("%d" % (self.media_handler.totalNr - 1))
+        self.lbCFrame.setText('%d/%d' % (self.media_handler.currentPos, (self.media_handler.totalNr-1)))
 
         self.frameSlider.clearTickMarker()
 
@@ -428,7 +420,7 @@ class Timeline:
     def hfReleaseSlider(self):
         n = self.frameSlider.value()
         self.fsl_update = True
-        self.lbCFrame.setText("%d" % n)
+        self.lbCFrame.setText('%d/%d' % (n, (self.media_handler.totalNr-1)))
         self.updateFrame(nr=n)
 
     def hfPressSlider(self):
@@ -458,7 +450,7 @@ class Timeline:
         if self.media_handler.valid:
             if self.fsl_update:
                 self.frameSlider.setValue(self.media_handler.currentPos)
-                self.lbCFrame.setText('%d' % self.media_handler.currentPos)
+                self.lbCFrame.setText('%d/%d' % (self.media_handler.currentPos, (self.media_handler.totalNr-1)))
 
             delta_t = self.real_fps_time.elapsed() - 1000/self.fps
             print("%d ms, jitter %d" % (self.real_fps_time.elapsed(), delta_t))
