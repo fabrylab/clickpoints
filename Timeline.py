@@ -285,10 +285,9 @@ class Timeline:
         self.layout = layout
         self.modules = modules
 
-        if self.media_handler.dtype == 'video':
-            self.fps = self.media_handler.fps
-        else:
-            self.fps = 1
+        self.fps = self.media_handler.fps
+        if self.fps == 0:
+            self.fps = 25
         if self.config.fps != 0:
             self.fps = self.config.fps
         self.skip = 0
