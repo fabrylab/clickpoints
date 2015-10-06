@@ -78,7 +78,7 @@ def LoadConfig():
     global srcpath, filename, outputpath, jumps, relative_outputpath
     global logname_tag, maskname_tag
     global types, draw_types, addons, max_image_size
-    global filterparam
+    global filterparam, dont_process_filelist
     global play_start, play_end, playing, rotation, rotation_steps
 
     """ Determine the input path """
@@ -91,16 +91,17 @@ def LoadConfig():
                 srcpath = value
 
     # if srcpath is a filelist load it
+    dont_process_filelist = False
     if type(srcpath) == type("") and srcpath[-4:] == ".txt":
         with open(srcpath, "r") as fp:
             srcpath = [line.strip() for line in fp.readlines()]
+            dont_process_filelist = True
 
     # if no srcpath is given, ask for one
     if srcpath is "":
         srcpath = str(QFileDialog.getOpenFileName(None, "Choose Image", os.getcwd()))
         if srcpath is "":
             sys.exit(1)
-        print(srcpath)
 
     """ Get config data """
 
