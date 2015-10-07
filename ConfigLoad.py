@@ -99,7 +99,7 @@ def LoadConfig():
 
     # if no srcpath is given, ask for one
     if srcpath is "":
-        srcpath = str(QFileDialog.getOpenFileName(None, "Choose Image", os.getcwd()))
+        srcpath = str(QFileDialog.getExistingDirectory(None, "Choose Image", os.getcwd()))+"\\"
         if srcpath is "":
             sys.exit(1)
 
