@@ -1,6 +1,3 @@
-""" General """
-srcpath = ""
-
 """ Marker """
 types = {0: ["beads", [255, 0, 0], TYPE_Normal]}
 

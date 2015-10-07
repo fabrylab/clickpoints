@@ -1,6 +1,3 @@
-""" General """
-srcpath = "*.tif"
-
 """ Marker """
 types = {}
 
