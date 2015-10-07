@@ -368,7 +368,13 @@ class Timeline:
         self.FolderChangeEvent()
 
     def FolderChangeEvent(self):
-        self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
+        if self.config.play_end is not None:
+            if self.config.play_end > 1:
+                self.frameSlider.setEndValue(self.config.play_end)
+            else:
+                self.frameSlider.setEndValue(int(self.media_handler.totalNr*self.config.play_end))
+        else:
+            self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
         self.lbCFrame.setText('%d/%d' % (self.media_handler.currentPos, (self.media_handler.totalNr-1)))
 
         self.frameSlider.clearTickMarker()
