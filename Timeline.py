@@ -231,6 +231,8 @@ class TimeLineSlider(QGraphicsView):
         return int(pixel/self.length*(self.max_value-self.min_value)+self.min_value)
 
     def ValueToPixel(self, value):
+        if self.min_value == self.max_value:
+            return 0
         return (value-self.min_value)/(self.max_value-self.min_value)*self.length
 
     def markerPosChanged(self, x, marker):
