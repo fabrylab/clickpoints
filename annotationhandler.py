@@ -68,6 +68,7 @@ def ReadAnnotation(filename):
 
     return results, comment
 
+
 class SQLAnnotation(Model):
         timestamp = DateTimeField()
         system = CharField()
@@ -75,6 +76,7 @@ class SQLAnnotation(Model):
         tags =  CharField()
         rating = IntegerField()
         reffilename = CharField()
+        reffileext = CharField()
         comment = TextField()
 
         class Meta:
@@ -144,6 +146,7 @@ class AnnotationEditor(QWidget):
 
         basename, ext = os.path.splitext(filename[1])
         self.basename = basename
+        self.ext = ext
 
         self.annotfilename = basename + self.config.annotation_tag
 
@@ -249,8 +252,7 @@ class AnnotationEditor(QWidget):
     # mySQL storage version here
     def SQL_saveAnnotation(self):
         # extract relevant values, store in dict
-        fname, ext = os.path.splitext(self.reffilename[1])
-        match = self.regFromFName.match(fname)
+        match = self.regFromFName.match(self.basename)
         if not match:
             print('warning - no match for regexp')
         else:
@@ -273,7 +275,7 @@ class AnnotationEditor(QWidget):
         item=self.SQLAnnotation
         try:
             # load entry from db
-            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.basename)
             print("entry found")
             found=True
         except DoesNotExist:
@@ -287,11 +289,13 @@ class AnnotationEditor(QWidget):
             item.tags = self.results['tags']
             item.rating = self.results['rating']
             item.comment = self.pteAnnotation.toPlainText()
-            item.reffilename=self.reffilename[1]
+            item.reffilename=self.basename
+            item.reffileext=self.ext
 
             item.save()
             print('update')
         else:
+            # create new entry
             item=self.SQLAnnotation(
                timestamp = tstamp,
                system = self.results['system'],
@@ -299,13 +303,14 @@ class AnnotationEditor(QWidget):
                tags = self.results['tags'],
                rating = self.results['rating'],
                comment = self.pteAnnotation.toPlainText(),
-               reffilename=self.reffilename[1])
+               reffilename=self.basename,
+               reffileext= self.ext)
+
             print('tags: ',item.tags)
             print('found: ',found)
 
             item.save()
             print('save')
-        
 
 
         # close widget
@@ -317,7 +322,7 @@ class AnnotationEditor(QWidget):
 
     def SQL_removeAnnotation(self):
         try:
-            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.basename)
             item.delete_instance()
 
             #BroadCastEvent(self.modules, "AnnotationRemoved", self.basename)
@@ -326,10 +331,11 @@ class AnnotationEditor(QWidget):
         except DoesNotExist:
             return False
 
+
     def SQL_annotationExists(self):
         # qerry db for matching reffilename
         try:
-            self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
+            self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.basename)
             found = True
         except DoesNotExist:
             found = False
@@ -339,16 +345,19 @@ class AnnotationEditor(QWidget):
     def SQL_getAnnotation(self):
 
         # qerry db for matching reffilename
+        basename,ext = os.path.splitext(refname)
         try:
-            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.reffilename[1])
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==basename)
             found = True
-            self.comment=item.comment
-            self.results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
-            self.results['system']=item.system
-            self.results['camera']=item.camera
-            self.results['tags']=[elem.strip() for elem in item.tags.split(",")]
-            self.results['rating']=item.rating
-            self.results['reffilename']=item.reffilename
+            comment=item.comment
+            results={}
+            results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
+            results['system']=item.system
+            results['camera']=item.camera
+            results['tags']=[elem.strip() for elem in item.tags.split(",")]
+            results['rating']=item.rating
+            results['reffilename']=item.reffilename
+            results['feffileext']=item.reffileext
 
         except DoesNotExist:
             found = False
