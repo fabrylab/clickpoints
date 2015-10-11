@@ -128,7 +128,7 @@ class AnnotationEditor(QWidget):
             # init for sql
             self.annotationExists = self.SQL_annotationExists
             self.removeAnnotation = self.SQL_removeAnnotation
-            self.getAnnotation    = self.SQL_getAnnotation
+            self.getAnnotation    = self.SQL_readAnnotation
             self.saveAnnotation   = self.SQL_saveAnnotation
 
         else:
@@ -211,7 +211,7 @@ class AnnotationEditor(QWidget):
 
 
         if self.annotationExists():
-            self.getAnnotation()
+            self.results, self.comment = self.getAnnotation(self.basename)
         else:
             # extract relevant values, store in dict
             fname, ext = os.path.splitext(self.reffilename[1])
@@ -342,8 +342,7 @@ class AnnotationEditor(QWidget):
         return found
 
 
-    def SQL_getAnnotation(self):
-
+    def SQL_readAnnotation(self, refname):
         # qerry db for matching reffilename
         basename,ext = os.path.splitext(refname)
         try:
@@ -361,7 +360,7 @@ class AnnotationEditor(QWidget):
 
         except DoesNotExist:
             found = False
-        return found
+        return results, comment
 
     ##########################################################################################################
     # TEXT file storage version here
