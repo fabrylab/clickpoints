@@ -516,7 +516,7 @@ class AnnotationOverview(QWidget):
                 break
 
 
-class AnnotationHandler:
+class AnnotationHandler():
     def __init__(self, window, media_handler, modules, config=None):
         self.config = config
 
@@ -529,20 +529,76 @@ class AnnotationHandler:
 
         self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
-        # get list of files
-        annotation_glob_string = os.path.join(self.outputpath, '*' + self.config.annotation_tag)
-        self.filelist = glob.glob(annotation_glob_string)
-
         self.annoations = {}
 
-        for i, file in enumerate(self.filelist):
-            # read annotation file
-            results, comment = ReadAnnotation(file)
+        if self.config.sql_annotation==False:
+            ## LOCAL version
+            # get list of files
+            annotation_glob_string = os.path.join(self.outputpath, '*' + self.config.annotation_tag)
+            self.filelist = glob.glob(annotation_glob_string)
 
-            # get file basename
-            filename = os.path.split(file)[1]
-            basename = filename[:-len(self.config.annotation_tag)]
-            self.annoations[basename] = dict(data=results, comment=comment)
+
+
+            for i, file in enumerate(self.filelist):
+                # read annotation file
+                results, comment = ReadAnnotation(file)
+
+                # get file basename
+                filename = os.path.split(file)[1]
+                basename = filename[:-len(self.config.annotation_tag)]
+                self.annoations[basename] = dict(data=results, comment=comment)
+        else:
+            ## MYSQL version
+            # init db connection
+            self.db = MySQLDatabase(self.config.sql_dbname,
+                                    host=self.config.sql_host,
+                                    port=self.config.sql_port,
+                                    user=self.config.sql_user,
+                                    passwd=self.config.sql_pwd)
+
+            self.db.connect()
+
+            if self.db.is_closed():
+                print("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
+                # TODO clean break?
+            else:
+                print("connection established")
+
+            # generate acess class
+            self.SQLAnnotation = SQLAnnotation
+            self.SQLAnnotation._meta.database=self.db
+
+            # TODO performance concerns - how to poll the DB in a clever way ?
+
+            # brute force version
+            for file in self.media_handler.filelist:
+                # extract base name
+                path,filename = os.path.split(file)
+                basename,ext = os.path.splitext(filename)
+
+                results = {}
+                comment=''
+
+                # TODO move the whole SQL thing to a seperate class
+                try:
+                    item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==basename)
+                    found = True
+                    comment=item.comment
+                    results={}
+                    results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
+                    results['system']=item.system
+                    results['camera']=item.camera
+                    results['tags']=[elem.strip() for elem in item.tags.split(",")]
+                    results['rating']=item.rating
+                    results['reffilename']=item.reffilename
+                    results['feffileext']=item.reffileext
+
+                    self.annoations[basename] = dict(data=results, comment=comment)
+                    
+                except DoesNotExist:
+                    pass
+
+
 
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
