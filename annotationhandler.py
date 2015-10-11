@@ -312,20 +312,18 @@ class AnnotationEditor(QWidget):
             item.save()
             print('save')
 
+        results, comment = self.SQL_readAnnotation(self.reffilename[1])
+        BroadCastEvent(self.modules, "AnnotationAdded", self.basename, results, comment)
 
         # close widget
         self.close()
-
-        # TODO add query results
-        #results, comment = ReadAnnotation(filename)
-        #BroadCastEvent(self.modules, "AnnotationAdded", self.basename, results, comment)
 
     def SQL_removeAnnotation(self):
         try:
             item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.basename)
             item.delete_instance()
 
-            #BroadCastEvent(self.modules, "AnnotationRemoved", self.basename)
+            BroadCastEvent(self.modules, "AnnotationRemoved", self.basename)
             self.close()
             return True
         except DoesNotExist:
