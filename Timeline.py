@@ -319,7 +319,9 @@ class Timeline:
         self.layoutCtrl.addWidget(self.lbCFrame)
 
         self.frameSlider = TimeLineSlider()
-        self.frameSlider.sliderReleased = self.hfReleaseSlider
+        #self.frameSlider.sliderReleased = self.hfReleaseSlider
+        self.frameSlider.slider_position.signal.sliderPressed.connect(self.hfPressSlider)
+        self.frameSlider.slider_position.signal.sliderReleased.connect(self.hfReleaseSlider)
         self.frameSlider.setMinimum(0)
         self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
         self.frameSlider.setValue(self.media_handler.currentPos)
