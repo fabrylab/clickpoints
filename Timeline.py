@@ -6,14 +6,19 @@ import glob
 try:
     from PyQt5 import QtGui, QtCore
     from PyQt5.QtWidgets import QIcon, QGraphicsRectItem, QPen, QBrush, QColor, QLinearGradient, QGraphicsPathItem, QPainterPath, QGraphicsScene, QGraphicsView, QPalette, QCursor
-    from PyQt5.QtCore import Qt, QPointF
+    from PyQt5.QtCore import Qt, QPointF, QObject
+    from PyQt5.QtCore import pyqtSignal
 except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QIcon, QGraphicsRectItem, QPen, QBrush, QColor, QLinearGradient, QGraphicsPathItem, QPainterPath, QGraphicsScene, QGraphicsView, QPalette, QCursor
-    from PyQt4.QtCore import Qt, QPointF
+    from PyQt4.QtCore import Qt, QPointF, QObject
+    from PyQt4.QtCore import pyqtSignal
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
+class TimeLineGrabberSignal(QObject):
+    sliderPressed=pyqtSignal()
+    sliderReleased=pyqtSignal()
 
 class TimeLineGrabber(QGraphicsPathItem):
     def __init__(self, parent):
@@ -23,6 +28,8 @@ class TimeLineGrabber(QGraphicsPathItem):
         self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
         self.dragged = False
 
+        self.signal=TimeLineGrabberSignal()
+
     def setRange(self, min, max):
         self.range = [min, max]
 
@@ -30,6 +37,7 @@ class TimeLineGrabber(QGraphicsPathItem):
         if event.button() == 1:
             self.dragged = True
             self.parent.sliderPressed()
+            self.signal.sliderPressed.emit()
 
     def mouseMoveEvent(self, event):
         if self.dragged:
@@ -42,6 +50,7 @@ class TimeLineGrabber(QGraphicsPathItem):
     def mouseReleaseEvent(self, event):
         self.dragged = False
         self.parent.sliderReleased()
+        self.signal.sliderReleased.emit()
 
 
 class TimeLineSlider(QGraphicsView):
