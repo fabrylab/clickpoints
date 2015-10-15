@@ -107,8 +107,18 @@ def LoadConfig():
 
     # Search config recursive in the folder tree or from the command line
     if type(srcpath) == type(""):
-        path = os.path.normpath(os.path.dirname(srcpath))
-        basepath = path
+        # check if srcpath is a directory
+        if os.path.isdir(srcpath):
+            # append / or \ to mark as DIR
+            srcpath=os.path.abspath(srcpath)
+            srcpath=srcpath+"\\"
+
+            basepath = srcpath
+            path = srcpath
+        else:
+        # else extract the base path
+            path = os.path.normpath(os.path.dirname(srcpath))
+            basepath = path
     elif len(srcpath) > 0:
         path = os.path.normpath(os.path.dirname(srcpath[0]))
         basepath = path
