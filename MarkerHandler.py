@@ -459,6 +459,9 @@ class MarkerHandler:
         self.PointsUnsaved = False
         self.active = False
         self.frame_number = None
+        self.hidden = False
+        if self.config.gamma_corretion_hide:
+            self.hidden = True
 
         self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), parent)
         self.MarkerParent.setZValue(10)
@@ -468,13 +471,14 @@ class MarkerHandler:
 
         self.Crosshair = Crosshair(parent, view, image_display, config)
 
-        self.counter = []
         self.UpdateCounter()
 
     def UpdateCounter(self):
         for counter in self.counter:
             self.view.scene.removeItem(self.counter[counter])
         self.counter = {i: MyCounter(self.parent_hud, self, i) for i in self.config.types.keys()}
+        for key in self.counter:
+            self.counter[key].setVisible(not self.hidden)
 
     def LoadImageEvent(self, filename, framenumber):
         if self.current_logname is not None:
@@ -646,6 +650,16 @@ class MarkerHandler:
         if event.key() == QtCore.Qt.Key_T:
             # @key T: toggle marker shape
             self.toggleMarkerShape()
+            
+        if event.key() == Qt.Key_F2:
+            # @key F2: hide/show gamma correction box
+            for key in self.counter:
+                print(self.counter[key])
+                try:
+                    self.counter[key].setVisible(self.hidden)
+                except:
+                    pass
+            self.hidden = not self.hidden
 
     def loadLast(self):
         self.LoadLog(self.last_logname)
