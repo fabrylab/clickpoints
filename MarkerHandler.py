@@ -515,6 +515,8 @@ class MarkerHandler:
                                 self.config["types"] = ReadTypeDict(line[7:])
                             except:
                                 print("ERROR: Type specification in %s broken, use types from config instead" % logname)
+                            else:
+                                self.UpdateCounter()
                             continue
                     if line[0] == '#':
                         continue
@@ -522,6 +524,8 @@ class MarkerHandler:
                     x = float(line[0])
                     y = float(line[1])
                     marker_type = int(line[2])
+                    if marker_type == -1:
+                        continue
                     if marker_type not in self.config["types"].keys():
                         np.random.seed(marker_type)
                         self.config["types"][marker_type] = ["id%d" % marker_type, np.random.randint(0, 255, 3), 0]
