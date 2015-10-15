@@ -625,6 +625,8 @@ class MarkerHandler:
             point.UpdatePath()
 
     def sceneEventFilter(self, event):
+        if self.hidden:
+            return False
         if event.type() == 156 and event.button() == 1:  # QtCore.QEvent.MouseButtonPress:
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
