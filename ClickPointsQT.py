@@ -23,6 +23,7 @@ from ToolsForClickPoints import BigImageDisplay
 from GammaCorrection import GammaCorrection
 from FolderBrowser import FolderBrowser
 from ScriptLauncher import ScriptLauncher
+from VideoExporter import VideoExporter
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
 from QExtendedGraphicsView import QExtendedGraphicsView
@@ -31,8 +32,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 from mediahandler import MediaHandler
 from regexpfilefilter import FILTER_Tag
 
-used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "", "", "", "", "hud"]
+used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, VideoExporter, HelpText]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "", "", "", "", "", "hud"]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
@@ -90,6 +91,11 @@ class ClickPointsWindow(QWidget):
 
         if config.rotation != 0:
             self.view.rotate(config.rotation)
+            
+    def GetModule(self, name):
+        module_names = [a.__class__.__name__ for a in self.modules]
+        index = module_names.index(name)
+        return self.modules[index]
 
     def UpdateImage(self):
         filename = self.media_handler.getCurrentFilename()[1]
