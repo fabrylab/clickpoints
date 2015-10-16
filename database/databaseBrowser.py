@@ -241,7 +241,7 @@ class DatabaseBrowser(QWidget):
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
         print("Selected %d images." % count)
-        os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py config.txt -srcpath=files.txt")
+        os.system(r"E:\WinPython-64bit-2.7.10.1\python-2.7.10.amd64\python.exe ..\ClickPointsQT.py ConfigClickPoints.txt -srcpath=files.txt")
 
     def counts(self):
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id

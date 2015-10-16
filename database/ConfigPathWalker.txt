@@ -1,0 +1,7 @@
+filename_data_regex = r''
+time_from_exif = False
+time_format = ''
+fps = 0
+delta_t = 0
+system_name = ""
+device_name = ""
