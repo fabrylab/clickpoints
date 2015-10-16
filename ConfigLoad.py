@@ -141,10 +141,12 @@ def LoadConfig():
         path_list.append(os.path.normpath(os.path.join(path, "ConfigClickPoints.txt")))
     if len(sys.argv) >= 2:
         path_list.insert(0, sys.argv[1])
+    path_list.append(os.path.join(os.path.dirname(__file__), "ConfigClickPoints.txt"))
     for path in path_list:
         if os.path.exists(path):
             with open(path) as f:
                 code = compile(f.read(), path, 'exec')
+                print("Loaded config",path)
                 exec(code, globals())
             break
 
