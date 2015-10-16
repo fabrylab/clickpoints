@@ -50,7 +50,7 @@ class GammaCorrection(QGraphicsRectItem):
         self.dragged = False
 
         self.hidden = False
-        if self.config.gamma_corretion_hide:
+        if self.config.hide_interfaces:
             self.setVisible(False)
             self.hidden = True
 
@@ -110,10 +110,9 @@ class GammaCorrection(QGraphicsRectItem):
             self.updateHist(self.image.hist)
             QApplication.restoreOverrideCursor()
 
-        if event.key() == Qt.Key_F2:
-            # @key F2: hide/show gamma correction box
-            self.setVisible(self.hidden)
-            self.hidden = not self.hidden
+    def ToggleInterfaceEvent(self):
+        self.setVisible(self.hidden)
+        self.hidden = not self.hidden
 
     @staticmethod
     def file():

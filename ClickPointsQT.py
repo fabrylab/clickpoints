@@ -133,6 +133,10 @@ class ClickPointsWindow(QWidget):
         if event.key() == QtCore.Qt.Key_F:
             # @key F: fit image to view
             self.view.fitInView()
+            
+        if event.key() == Qt.Key_F2:
+            # @key F2: hide/show interfaces
+            BroadCastEvent(self.modules, "ToggleInterfaceEvent")
 
         # @key W: fullscreen toggle
         if event.key() == QtCore.Qt.Key_W:
