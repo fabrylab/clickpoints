@@ -1,8 +1,9 @@
 syntax: glob
 *.pyc
-cp_cfg*
 
 syntax: regexp
+.directory
+^ClickPoints$
 ^ClickPoints.sh
 ^ClickPoints.bat
 ^database/files.txt
