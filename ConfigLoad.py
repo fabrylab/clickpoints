@@ -133,6 +133,7 @@ def LoadConfig():
     else:
         path = os.path.normpath(os.getcwd())
         basepath = path
+    path = os.path.abspath(path)
     parent = os.path.join(path, ".")
     path_list = []
     while parent != path:
