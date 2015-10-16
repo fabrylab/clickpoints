@@ -22,6 +22,8 @@ max_image_size = 2 ** 12
 rotation = 0
 rotation_steps = 90
 
+hide_interfaces = True
+
 addons = []
 
 """ Marker """
@@ -46,7 +48,7 @@ draw_types = [[0, (0, 0, 0)],
               [124, [124, 124, 255]]]
 
 """ GammaCorrection """
-gamma_corretion_hide = False
+
 
 """ Timeline """
 fps = 0

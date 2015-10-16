@@ -226,7 +226,7 @@ class MaskHandler:
         self.MaskEmpty = False
         self.active = False
         self.hidden = False
-        if self.config.gamma_corretion_hide:
+        if self.config.hide_interfaces:
             self.hidden = True
 
         self.counter = []
@@ -411,12 +411,11 @@ class MaskHandler:
             # @key M: redraw the mask
             self.RedrawMask()
             
-        if event.key() == Qt.Key_F2:
-            # @key F2: hide/show gamma correction box
-            for counter in self.counter:
-                print(counter)
-                counter.setVisible(self.hidden)
-            self.hidden = not self.hidden
+    def ToggleInterfaceEvent(self):
+        for counter in self.counter:
+            print(counter)
+            counter.setVisible(self.hidden)
+        self.hidden = not self.hidden
             
     def loadLast(self):
         self.LoadMask(self.last_maskname)

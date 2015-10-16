@@ -460,7 +460,7 @@ class MarkerHandler:
         self.active = False
         self.frame_number = None
         self.hidden = False
-        if self.config.gamma_corretion_hide:
+        if self.config.hide_interfaces:
             self.hidden = True
 
         self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), parent)
@@ -657,15 +657,14 @@ class MarkerHandler:
             # @key T: toggle marker shape
             self.toggleMarkerShape()
             
-        if event.key() == Qt.Key_F2:
-            # @key F2: hide/show gamma correction box
-            for key in self.counter:
-                print(self.counter[key])
-                try:
-                    self.counter[key].setVisible(self.hidden)
-                except:
-                    pass
-            self.hidden = not self.hidden
+    def ToggleInterfaceEvent(self):
+        for key in self.counter:
+            print(self.counter[key])
+            try:
+                self.counter[key].setVisible(self.hidden)
+            except:
+                pass
+        self.hidden = not self.hidden
 
     def loadLast(self):
         self.LoadLog(self.last_logname)
