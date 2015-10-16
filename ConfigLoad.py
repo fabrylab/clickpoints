@@ -119,7 +119,7 @@ def LoadConfig():
         if os.path.isdir(srcpath):
             # append / or \ to mark as DIR
             srcpath=os.path.abspath(srcpath)
-            srcpath=srcpath+"\\"
+            srcpath=srcpath+os.sep
 
             basepath = srcpath
             path = srcpath
