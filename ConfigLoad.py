@@ -88,7 +88,11 @@ def LoadConfig():
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=", 1)
             if key == "srcpath":
-                srcpath = value
+                if os.path.exists(value):
+                    srcpath = value
+                else:
+                    print("ERROR: path",value,"does not exist.")
+                    sys.exit(-1)
 
     # if srcpath is a filelist load it
     dont_process_filelist = False
@@ -99,9 +103,13 @@ def LoadConfig():
 
     # if no srcpath is given, ask for one
     if srcpath is "":
-        srcpath = str(QFileDialog.getExistingDirectory(None, "Choose Image", os.getcwd()))+"\\"
+        srcpath = str(QFileDialog.getExistingDirectory(None, "Choose Image", os.getcwd()))
         if srcpath is "":
+            print("No path selected")
             sys.exit(1)
+        if not os.path.exists(srcpath):
+            print("ERROR: path",srcpath,"does not exist.")
+            sys.exit(-1)
 
     """ Get config data """
 
