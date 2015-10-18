@@ -11,6 +11,7 @@ class SQLAnnotation(Model):
         reffilename = CharField()
         reffileext = CharField()
         comment = TextField()
+        fileid = IntegerField()
 
         class Meta:
             database = None
@@ -18,7 +19,7 @@ class SQLAnnotation(Model):
 
 sql_annotation=True
 sql_dbname='annotation'
-sql_host='131.188.117.100'
+sql_host='131.188.117.94'
 sql_port=3306
 sql_user = 'clickpoints'
 sql_pwd = '123456'
