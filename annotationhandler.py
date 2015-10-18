@@ -545,6 +545,12 @@ class AnnotationHandler():
 
         if self.config.sql_annotation==False:
             ## LOCAL version
+            if self.outputpath == '':
+                searchpath,fname=os.path.split(self.media_handler.filelist[0])
+            else:
+                searchpath=self.outputpath
+            # TODO: this is a band aid fix for choosing files with the file dialogue, this will break for recursive foulder structures!
+
             # get list of files
             annotation_glob_string = os.path.join(self.outputpath, '*' + self.config.annotation_tag)
             self.filelist = glob.glob(annotation_glob_string)
