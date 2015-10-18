@@ -552,7 +552,7 @@ class AnnotationHandler():
             # TODO: this is a band aid fix for choosing files with the file dialogue, this will break for recursive foulder structures!
 
             # get list of files
-            annotation_glob_string = os.path.join(self.outputpath, '*' + self.config.annotation_tag)
+            annotation_glob_string = os.path.join(searchpath, '*' + self.config.annotation_tag)
             self.filelist = glob.glob(annotation_glob_string)
 
 
