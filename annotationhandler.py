@@ -438,10 +438,10 @@ class AnnotationHandlerTXT:
             return False
 
     def getAnnotation(self):
-        f = QFile(self.prant.fname)
+        f = QFile(self.parent.fname)
         # read values from exisiting file
         if f.exists():
-            self.parent.results, self.parent.comment = ReadAnnotation(self.prant.fname)
+            self.parent.results, self.parent.comment = ReadAnnotation(self.parent.fname)
 
             return self.parent.results,self.parent.comment
 
