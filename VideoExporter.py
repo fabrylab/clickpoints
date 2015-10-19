@@ -47,7 +47,7 @@ class VideoExporter:
                 if video_writer == None:
                     fourcc = cv2.cv.CV_FOURCC(*'XVID')
                     video_writer = cv2.VideoWriter(path, fourcc, timeline.fps, (self.preview_slice.shape[1], self.preview_slice.shape[0]))
-                video_writer.write(self.preview_slice)
+                video_writer.write(cv2.cvtColor(self.preview_slice, cv2.cv.CV_RGB2BGR))
             else:
                 imsave(path % (frame-start), self.preview_slice)
         video_writer.release()
