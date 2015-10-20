@@ -58,7 +58,6 @@ if __name__ == '__main__':
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\command\\"
         set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,ntpath.join(os.path.abspath(os.path.dirname(__file__))+"\ClickPoints.bat \"%1\""))
 
-
         # ### add for specific file types
         # # create entry under HKEY_CLASSES_ROOT\SystemFileAssociations to show in dropdown menu for specific file types
         for ext in extension:
@@ -69,6 +68,20 @@ if __name__ == '__main__':
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\"  + ext + r"\shell\1ClickPoint\command\\"
             set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,ntpath.join(os.path.abspath(os.path.dirname(__file__))+"\ClickPoints.bat \"%1\""))
 
+        # ### add to open WithLIST # damn you ICON!
+        # register application
+        reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\open\command\\"
+        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,ntpath.join(os.path.abspath(os.path.dirname(__file__))+"\ClickPoints.bat \"%1\""))
+        reg_path = r"Software\Classes\Applications\ClickPoints.bat\DefaultIcon\\"
+        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,os.path.join(os.path.abspath(os.path.dirname(__file__))+r"\icons\ClickPoints.ico"))
+
+        for ext in extension:
+            print("install for extension:%s" % ext)
+            reg_path = r"SOFTWARE\Classes\\"  + ext + r"\OpenWithList\ClickPoints.bat\\"
+            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,None)
+
+
+
     elif mode == 'uninstall':
         ### remove from DIRECTORY
         print("remove for directory")
@@ -77,6 +90,7 @@ if __name__ == '__main__':
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\\"
         del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
 
+        ### remove from types
         for ext in extension:
             print("remove for extension:%s" % ext)
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\"  + ext + r"\shell\1ClickPoint\command\\"
@@ -84,5 +98,20 @@ if __name__ == '__main__':
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\"  + ext + r"\shell\1ClickPoint\\"
             del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
 
+        ## remove from OpenWithList
+        reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\open\command\\"
+        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\open\\"
+        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\\"
+        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        reg_path = r"Software\Classes\Applications\ClickPoints.bat\DefaultIcon\\"
+        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        reg_path = r"Software\Classes\Applications\ClickPoints.bat\\"
+        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+
+        for ext in extension:
+            reg_path = r"SOFTWARE\Classes\\"  + ext + r"\OpenWithList\ClickPoints.bat\\"
+            del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
     else:
         raise Exception('Uknown mode: %s' % mode)
