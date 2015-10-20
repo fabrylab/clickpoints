@@ -89,7 +89,7 @@ def LoadConfig():
     for arg in sys.argv[1:]:
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=", 1)
-            if key == "srcpath":
+            if key == "srcpath" and value != "":
                 if os.path.exists(value):
                     srcpath = value
                 else:
