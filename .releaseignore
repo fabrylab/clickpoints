@@ -2,5 +2,7 @@ syntax: glob
 .*
 *.svg
 
+
 syntax: regexp
 ^MakeRelease.py
+^register.bat
