@@ -53,6 +53,7 @@ def CheckForUncommitedChanges(directory):
     if uncommited != "":
         print("ERROR: uncommited changes in repository", directory)
         sys.exit(1)
+    os.system("hg pull -u")
     os.chdir(old_dir)
 
 # go to parent directory ClickPointsProject
@@ -116,21 +117,22 @@ print("Move Files")
 shutil.move(zip_file, os.path.join(path_to_website, zip_file))
 shutil.copy(version_file, os.path.join(path_to_website, "version.html"))
 
-# Commit changes in ClickPointsRelease
-os.popen("hg commit -m \"Release v%s\"" % new_version)
-os.popen("hg tag \"v%s\"" % new_version)
-
 # Commit changes to ClickPoints
 os.chdir("clickpoints")
-os.popen("hg commit -m \"set version to %s\"" % new_version)
+os.system("hg commit -m \"set version to %s\"" % new_version)
+os.chdir("..")
+
+# Commit changes in ClickPointsRelease
+os.system("hg commit -m \"Release v%s\"" % new_version)
+os.system("hg tag \"v%s\"" % new_version)
 
 # Commit changes in website
 os.chdir(path_to_website)
-os.popen("hg commit -m \"Release v%s\"" % new_version)
+os.system("hg commit -m \"Release v%s\"" % new_version)
 
 # Push everything
-os.popen("hg push")
+os.system("hg push")
 os.chdir(path_to_clickpointsproject)
-os.popen("hg push")
+os.system("hg push")
 os.chdir("clickpoints")
-os.popen("hg push")
+os.system("hg push")
