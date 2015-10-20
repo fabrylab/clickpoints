@@ -6,9 +6,14 @@ icon_path = os.path.join(directory, "icons", "ClickPoints.ico")
 if sys.platform.startswith('win'):
     with open("ClickPoints.bat", 'w') as fp:
         print("Writing ClickPoints.bat")
+        fp.write("@echo off")
+        fp.write("\"")
         fp.write(sys.executable)
+        fp.write("\"")
         fp.write(" ")
+        fp.write("\"")
         fp.write(script_path)
+        fp.write("\"")
         fp.write(" -srcpath=%1\n")
         fp.write("IF %ERRORLEVEL% NEQ 0 pause\n")
 else:
