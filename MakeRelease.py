@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 import os
 import shutil
 import fnmatch
@@ -20,44 +21,35 @@ with open(".releaseignore") as fp:
         if syntax == "glob":
             ignore_pattern.append(lambda name, pattern=line: fnmatch.fnmatch(name, pattern))
         elif syntax == "regexp":
-            print("regext", line)
             ignore_pattern.append(lambda name, pattern=line: re.match(pattern, name) is not None)
         else:
             print("WARNING: unknown syntax", syntax)
 
-directory = os.path.dirname(__file__)
-#target_directory = os.path.join(directory, "..", "tmp")
-#if os.path.exists(target_directory):
-#    shutil.rmtree(target_directory)
-#os.mkdir(target_directory)
-myzip = zipfile.ZipFile('clickpoints.zip', 'w')
+def CheckIgnoreMatch(file):
+    for pattern in ignore_pattern:
+        if pattern(file):
+            return True
+    return False
 
 def CopyDirectory(directory):
-    global myzip
+    global myzip, file_list
     old_dir = os.getcwd()
     os.chdir(directory)
-    a = [file[2:] for file in os.popen("hg status -m").read().split("\n") if file != ""]
-    if len(a) != 0:
-        print("WARNING: uncommited changes")
+    uncommited = os.popen("hg status -m").read().strip()
+    if uncommited != "":
+        print("WARNING: uncommited changes in", directory)
 
     filelist = [file[2:] for file in os.popen("hg status -m -c").read().split("\n") if file != ""]
     for file in filelist:
-        ignore = False
-        for pattern in ignore_pattern:
-            if pattern(file):
-                ignore = True
-                print("ignoring", file)
-                break
-        if ignore:
+        if CheckIgnoreMatch(file):
             continue
-        #dst = os.path.join(target_directory, os.path.basename(directory), file)
-        #print(dst)
-        #folder = os.path.dirname(dst)
-        #if not os.path.exists(folder):
-        #    os.mkdir(folder)
         myzip.write(file, os.path.join(directory, file))
-        #shutil.copyfile(file, dst)
+        file_list.write(os.path.join(directory, file)+"\n")
     os.chdir(old_dir)
+
+directory = os.path.dirname(__file__)
+file_list = open("files_tmp.txt", "w")
+myzip = zipfile.ZipFile('clickpoints.zip', 'w')
 
 os.chdir("..")
 CopyDirectory(".")
@@ -65,4 +57,7 @@ CopyDirectory("clickpoints")
 CopyDirectory("mediahandler")
 CopyDirectory("qextendedgraphicsview")
 
+file_list.close()
+myzip.write(os.path.join("clickpoints", "files_tmp.txt"), "files.txt")
+os.remove(os.path.join("clickpoints", "files_tmp.txt"))
 myzip.close()
