@@ -111,7 +111,7 @@ def doUpdate():
     #print("update path: %s" % update_path)
 
     ## remove local files according to local file list
-    with open(os.path.normpath(os.path.join('../../',file_local_filelist)),'r') as f:
+    with open(os.path.normpath(os.path.join('../../../',file_local_filelist)),'r') as f:
         local_filelist=f.readlines()
 
     os.chdir(base_path)
