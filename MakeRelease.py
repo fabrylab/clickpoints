@@ -109,7 +109,7 @@ for path in paths:
 print("finished zip")
 # Close
 file_list.close()
-myzip.write("files.txt", "files.txt")
+#myzip.write("files.txt", "files.txt")
 myzip.close()
 
 # Copy files to website
