@@ -6,7 +6,7 @@ icon_path = os.path.join(directory, "icons", "ClickPoints.ico")
 if sys.platform.startswith('win'):
     with open("ClickPoints.bat", 'w') as fp:
         print("Writing ClickPoints.bat")
-        fp.write("@echo off")
+        fp.write("@echo off\n")
         fp.write("\"")
         fp.write(sys.executable)
         fp.write("\"")
