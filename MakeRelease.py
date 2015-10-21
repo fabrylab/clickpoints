@@ -62,7 +62,7 @@ path_to_clickpointsproject = os.getcwd()
 
 # define paths to website, zipfile and version file
 path_to_website = r"..\fabry_biophysics.bitbucket.org\clickpoints"
-zip_file = 'clickpoints.zip'
+zip_file = 'clickpoints_v%s.zip'
 version_file = os.path.join("clickpoints", "version.txt")
 
 """ Checks """
@@ -75,6 +75,7 @@ except IndexError:
 if new_version == "":
     print("ERROR: no version number supplied. Use 'MakeRelease.py 0.9' to release as version 0.9")
     sys.exit(1)
+zip_file = zip_file % new_version
 
 # get old version name
 with open(version_file, "r") as fp:
@@ -97,7 +98,7 @@ with open(version_file, "w") as fp:
     fp.write(new_version)
 
 # Create filelist and zip file
-file_list = open("files_tmp.txt", "w")
+file_list = open("files.txt", "w")
 myzip = zipfile.ZipFile(zip_file, 'w')
 
 # Gather files repository files and add them to zip file
@@ -108,8 +109,7 @@ for path in paths:
 print("finished zip")
 # Close
 file_list.close()
-myzip.write("files_tmp.txt", "files.txt")
-os.remove("files_tmp.txt")
+myzip.write("files.txt", "files.txt")
 myzip.close()
 
 # Copy files to website
@@ -128,6 +128,7 @@ os.system("hg tag \"v%s\"" % new_version)
 
 # Commit changes in website
 os.chdir(path_to_website)
+os.system("hg add clickpoints\\"+zip_file)
 os.system("hg commit -m \"Release v%s\"" % new_version)
 
 # Push everything
