@@ -42,7 +42,8 @@ def CopyDirectory(directory):
         if CheckIgnoreMatch(file):
             continue
         print(file, os.path.join(directory, file))
-        myzip.write(file, os.path.join(directory, file))
+        if file != "files.txt":
+            myzip.write(file, os.path.join(directory, file))
         file_list.write(os.path.join(directory, file)+"\n")
     os.chdir(old_dir)
 
@@ -109,7 +110,7 @@ for path in paths:
 print("finished zip")
 # Close
 file_list.close()
-#myzip.write("files.txt", "files.txt")
+myzip.write("files.txt", "files.txt")
 myzip.close()
 
 # Copy files to website
