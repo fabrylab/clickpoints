@@ -66,21 +66,22 @@ def doPrep():
     r=urllib.urlopen(link_server_update)
     link_server_dl=r.read()
     link_server_dl=link_server_dl % server_version
-    print('server DL link: %s' % server_version)
+    print('server DL link: %s' % link_server_dl)
 
     ## get files for update
     if not os.path.exists(path_update):
         os.mkdir(path_update)
 
+    print('dummy')
     ## dowload files
-    urllib.urlretrieve(link_server_dl, os.path.join(path_update,"clickpoints.zip"))
+    urllib.urlretrieve("http://"+link_server_dl,os.path.join(path_update,"clickpoints.zip"))
 
     ## extract files
     with zipfile.ZipFile(os.path.join(path_update,"clickpoints.zip"),'r') as z:
         z.extractall(path_update)
 
     # TODO: remove copy for live version!
-    shutil.copy('get_update.py','update\clickpoints\get_update.py')
+    #shutil.copy('get_update.py','update\clickpoints\get_update.py')
 
     # # fork clean process
     #print(os.path.abspath(os.path.join(path_update,'clickpoints','get_update.py')))
