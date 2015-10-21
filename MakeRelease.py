@@ -128,7 +128,7 @@ os.system("hg tag \"v%s\"" % new_version)
 
 # Commit changes in website
 os.chdir(path_to_website)
-os.system("hg add clickpoints\\"+zip_file)
+os.system("hg add "+zip_file)
 os.system("hg commit -m \"Release v%s\"" % new_version)
 
 # Push everything
