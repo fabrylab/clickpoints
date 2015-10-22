@@ -14,7 +14,7 @@ file_local_filelist=r"files.txt"
 path_update="update"
 
 def copytree(src, dst, symlinks=False, ignore=None):
-    print(os.listdir(src))
+    #print(os.listdir(src))
     for item in os.listdir(src):
         s = os.path.join(src, item)
         d = os.path.join(dst, item)
@@ -22,7 +22,8 @@ def copytree(src, dst, symlinks=False, ignore=None):
             try:
                 shutil.copytree(s, d, symlinks, ignore)
             except WindowsError:
-                print("Can't copy %s %s" % (s,d))
+                pass
+                #print("Can't copy %s %s" % (s,d))
             copytree(s,d,symlinks,ignore)
         else:
             shutil.copy2(s, d)
@@ -41,9 +42,6 @@ def checkForUpdate():
     f.close()
     print('local version: %s' % local_version)
 
-    # TODO: remove always update hack
-    #local_version='0.0'
-
     ## check if update is necessary
     if not local_version == server_version:
         print('Update to version %s found!' % server_version)
@@ -55,7 +53,13 @@ def checkForUpdate():
 
 def doPrep():
     """" executed from base """
-    print("Running PREPARE as %d" % os.getpid())
+    print("Running PREPARE as PID: %d" % os.getpid())
+
+    ## get local version
+    f=open(file_local_version,'r')
+    local_version=f.readline()
+    f.close()
+    print('local version: %s' % local_version)
 
     ## get server version
     r=urllib.urlopen(link_server_version)
@@ -90,11 +94,10 @@ def doPrep():
 
 def doUpdate():
     """" executed from update/ """
-    print("Running UPDATE as %d" % os.getpid())
+    print("Running UPDATE as PID: %d" % os.getpid())
 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     #print('currentpath: %s' % os.path.abspath(os.path.curdir))
-
 
     ## get base path
     base_path = os.path.dirname(os.path.abspath(__file__)) # update file path
@@ -137,13 +140,15 @@ def doUpdate():
 
 def doCleanUp():
     """" executed from base """
-    print("Running CLEAN UP as: %d" %os.getpid())
+    print("Running CLEAN UP as PID: %d" %os.getpid())
     base_path= os.path.dirname(os.path.abspath(__file__)) # update file path
     base_path,tail=os.path.split(base_path)       # main path (thats update)
 
     ## clean up update folder
     shutil.rmtree(os.path.join(base_path,'clickpoints',path_update))
-    exit(0)
+
+    print("Update completed")
+
     
 if __name__ == '__main__':
     mode= sys.argv[1]
@@ -154,12 +159,7 @@ if __name__ == '__main__':
 
     if mode=='check':
         ret=checkForUpdate()
-        if ret:
-            print('Update available!')
-        else:
-            print('NO Update available')
-
-    elif mode=='prep':
+    elif mode=='prepare':
         doPrep()
 
     elif mode=='update':
