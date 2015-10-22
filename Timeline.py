@@ -514,11 +514,11 @@ class Timeline:
 
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left and event.modifiers() & Qt.ControlModifier:
-            # @key Left: previous image
+            # @key Ctrl+Left: previous annotated image
             tick = self.frameSlider.getNextTick(self.media_handler.currentPos, back=True)
             self.window.JumpToFrame(tick)
         if event.key() == QtCore.Qt.Key_Right and event.modifiers() & Qt.ControlModifier:
-            # @key Right: next image
+            # @key Ctrl+Right: next annotated image
             tick = self.frameSlider.getNextTick(self.media_handler.currentPos)
             self.window.JumpToFrame(tick)
 
