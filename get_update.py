@@ -84,8 +84,7 @@ def doPrep():
     with zipfile.ZipFile(os.path.join(path_update,"clickpoints.zip"),'r') as z:
         z.extractall(path_update)
 
-    # TODO: remove copy for live version!
-    #shutil.copy('get_update.py','update\clickpoints\get_update.py')
+    os.remove(os.path.join(path_update,"clickpoints.zip"))
 
     # # fork clean process
     #print(os.path.abspath(os.path.join(path_update,'clickpoints','get_update.py')))
