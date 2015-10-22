@@ -48,7 +48,7 @@ def showMessageBox(parent,newversion,curversion):
     """ notify user """
     #print("start gui")
 
-    reply = QMessageBox.question(None, 'Update to %s available'% str(newversion), 'Do you want to update ClickPoints now?\n  current version:\t%s \n  new version:\t\t%s' % (curversion,newversion), QMessageBox.Yes,
+    reply = QMessageBox.question(None, 'Update to %s available'% str(newversion), 'Do you want to update ClickPoints now?\n\n    current version:\t%s \n    new version:\t\t%s' % (curversion,newversion), QMessageBox.Yes,
                              QMessageBox.No)
     if reply == QMessageBox.Yes:
         print('Preparing for update')
