@@ -33,6 +33,9 @@ def checkForUpdate():
     """" executed from base """
     ## get server version
     r=urllib.urlopen(link_server_version)
+    if not r.getcode()==200:
+        print('Can\'t reach server')
+        return False, '',''
     server_version=r.read()
     print('server version: %s' % server_version)
 
@@ -46,10 +49,11 @@ def checkForUpdate():
     if not local_version == server_version:
         print('Update to version %s found!' % server_version)
         update=True
+        return update,server_version, local_version
     else:
         print('no update available')
         update=False
-    return update
+        return update, '',''
 
 def doPrep():
     """" executed from base """
@@ -63,11 +67,16 @@ def doPrep():
 
     ## get server version
     r=urllib.urlopen(link_server_version)
+    if not r.getcode()==200:
+        raise Exception('Can\'t reach server')
+
     server_version=r.read()
     print('server version: %s' % server_version)
 
     ## get server link
     r=urllib.urlopen(link_server_update)
+    if not r.getcode()==200:
+        raise Exception('Can\'t reach server')
     link_server_dl=r.read()
     link_server_dl=link_server_dl % server_version
     print('server DL link: %s' % link_server_dl)
@@ -76,7 +85,6 @@ def doPrep():
     if not os.path.exists(path_update):
         os.mkdir(path_update)
 
-    print('dummy')
     ## dowload files
     urllib.urlretrieve("http://"+link_server_dl,os.path.join(path_update,"clickpoints.zip"))
 
@@ -87,7 +95,6 @@ def doPrep():
     os.remove(os.path.join(path_update,"clickpoints.zip"))
 
     # # fork clean process
-    #print(os.path.abspath(os.path.join(path_update,'clickpoints','get_update.py')))
     subprocess.Popen(['python.exe',os.path.abspath(os.path.join(path_update,'clickpoints','get_update.py')),'update'],close_fds=True)
 
 
@@ -157,7 +164,12 @@ if __name__ == '__main__':
     print("Running update script - mode: %s" % mode)
 
     if mode=='check':
-        ret=checkForUpdate()
+        ret,newversion,localversion=checkForUpdate()
+        if ret:
+            print('Update available!')
+        else:
+            print('NO Update available')
+
     elif mode=='prepare':
         doPrep()
 
