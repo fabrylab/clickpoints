@@ -31,15 +31,16 @@ class checkUpdateThread(QThread):
     def run(self):
         ret=gu.checkForUpdate()
 
-        # check if we should notify the user
-        print("verify user anoyance level...")
-        lnl = nl.lastNotifiedLogger(logfile)
+        if ret:
+            # check if we should notify the user
+            print("verify user anoyance level...")
+            lnl = nl.lastNotifiedLogger(logfile)
 
-        if ret and lnl.excedTimeElpased(0.01):
-            print("update found - notify user")
-            self.signal.sig.emit()
-        elif not lnl.excedTimeElpased(0.01):
-            print("to early notify later ...")
+            if lnl.excedTimeElpased(24):
+                print("update found - notify user")
+                self.signal.sig.emit()
+            else:
+                print("to early notify later ...")
 
 def showMessageBox(parent):
     """ notify user """

@@ -32,12 +32,8 @@ class lastNotifiedLogger:
             self.dt=datetime.datetime.strptime(self.line.strip(),timeformat)
             print(self.dt)
         else:
-            print('write lnl log')
-            self.f=open(file,'w')
-            self.dt=datetime.datetime.now()
-            self.f.write(datetime.datetime.now().strftime(timeformat))
-            self.f.close()
-            print(self.dt)
+            # no file so we should ask anyway
+            self.dt=datetime.datetime(1970,01,01,0,0,0)
 
     def timeElapsed(self):
         self.tl= datetime.datetime.now()-self.dt
