@@ -20,7 +20,7 @@ logfile="lastnotified.log"
 timeformat='%Y%m%d-%H%M%S'
 
 class updaterSignals(QObject):
-        sig = pyqtSignal()
+        sig = pyqtSignal(str,str)
 
 class checkUpdateThread(QThread):
     def __init__(self):
@@ -29,23 +29,26 @@ class checkUpdateThread(QThread):
         self.signal = updaterSignals()
 
     def run(self):
-        ret=gu.checkForUpdate()
+        ret,newversion,localversion=gu.checkForUpdate()
+        print("version %s" % newversion)
+        print("version %s" % localversion)
 
         if ret:
             # check if we should notify the user
-            print("verify user anoyance level...")
+            #print("verify user anoyance level...")
             lnl = nl.lastNotifiedLogger(logfile)
 
             if lnl.excedTimeElpased(24):
                 print("update found - notify user")
-                self.signal.sig.emit()
+                self.signal.sig.emit(newversion,localversion)
             else:
                 print("to early notify later ...")
 
-def showMessageBox(parent):
+def showMessageBox(parent,newversion,curversion):
     """ notify user """
-    print("start gui")
-    reply = QMessageBox.question(None, 'Update available', 'Do you want to update ClickPoints now?', QMessageBox.Yes,
+    #print("start gui")
+
+    reply = QMessageBox.question(None, 'Update to %s available'% str(newversion), 'Do you want to update ClickPoints now?\n  current version:\t%s \n  new version:\t\t%s' % (curversion,newversion), QMessageBox.Yes,
                              QMessageBox.No)
     if reply == QMessageBox.Yes:
         print('Preparing for update')
@@ -70,7 +73,7 @@ class Updater(QWidget):
 
         self.t=checkUpdateThread()
         # otherwise we can't connect the function
-        self.func=lambda : showMessageBox(self.parent)
+        self.func=lambda x,y: showMessageBox(self.parent,x,y)
         self.t.signal.sig.connect(self.func)
         self.t.start()
 
