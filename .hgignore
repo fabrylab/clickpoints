@@ -3,6 +3,7 @@ syntax: glob
 
 syntax: regexp
 .directory
+lastnotified.log
 ^ClickPoints$
 ^ClickPoints.sh
 ^ClickPoints.bat
