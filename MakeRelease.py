@@ -57,6 +57,7 @@ def CheckForUncommitedChanges(directory):
     os.system("hg pull -u")
     os.chdir(old_dir)
 
+print("MakeRelease started ...")
 # go to parent directory ClickPointsProject
 os.chdir("..")
 path_to_clickpointsproject = os.getcwd()
@@ -138,3 +139,5 @@ os.chdir(path_to_clickpointsproject)
 os.system("hg push")
 os.chdir("clickpoints")
 os.system("hg push")
+
+print("MakeRelease completed!")
