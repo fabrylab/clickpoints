@@ -32,6 +32,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 from mediahandler import MediaHandler
 from regexpfilefilter import FILTER_Tag
 
+import updateHandler as uh
+
 used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, VideoExporter, HelpText]
 used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "", "", "", "", "", "hud"]
 
@@ -47,6 +49,8 @@ class ClickPointsWindow(QWidget):
         super(QWidget, self).__init__(parent)
         self.setWindowTitle('Select Window')
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
+
+        self.updater = uh.Updater(self)
 
         self.layout = QtGui.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
