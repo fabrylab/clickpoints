@@ -28,14 +28,19 @@ class FolderBrowser:
             else:
                 self.folder_list.append(folder)
 
+        self.media_handler_list = []
+        for folder in self.folder_list:
+            self.media_handler_list.append(MediaHandler(folder, filterparam=self.config.filterparam))
+
     def LoadFolder(self):
         self.window.save()
         if self.config.relative_outputpath:
             self.config.outputpath = os.path.dirname(self.folder_list[self.index])
         self.config.srcpath = self.folder_list[self.index]
-        MediaHandler(self.config.srcpath, filterparam=self.config.filterparam, mediahandler_instance=self.media_handler)
+        index = self.window.media_handler.getCurrentPos()
+        self.window.media_handler = self.media_handler_list[self.index]
         BroadCastEvent(self.modules, "FolderChangeEvent")
-        self.window.JumpToFrame(0)
+        self.window.JumpToFrame(index)
         self.window.setWindowTitle(self.folder_list[self.index])
 
     def keyPressEvent(self, event):
