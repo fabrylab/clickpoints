@@ -195,6 +195,8 @@ class MyMarkerItem(QGraphicsPathItem):
         if self.rectObj:
             self.partner.partner = None
             self.marker_handler.view.scene.removeItem(self.rectObj)
+        if self.pathItem:
+            self.marker_handler.view.scene.removeItem(self.pathItem)
 
     def UpdateRect(self):
         x, y = self.pos().x(), self.pos().y()
