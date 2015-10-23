@@ -381,6 +381,7 @@ class Timeline:
         self.FolderChangeEvent()
 
     def FolderChangeEvent(self):
+        self.media_handler = self.window.media_handler
         if self.config.play_end is not None:
             if self.config.play_end > 1:
                 self.frameSlider.setEndValue(self.config.play_end)
