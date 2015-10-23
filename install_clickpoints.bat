@@ -10,3 +10,5 @@ echo DONE
 echo Register Clickpoints ...
 python install_registry.py install
 echo DONE
+
+pause
