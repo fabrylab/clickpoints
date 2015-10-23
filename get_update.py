@@ -96,7 +96,7 @@ def doPrep():
     os.remove(os.path.join(path_update,"clickpoints.zip"))
 
     # # fork clean process
-    subprocess.Popen(['python.exe',os.path.abspath(os.path.join(path_update,'clickpoints','get_update.py')),'update'],close_fds=True)
+    subprocess.Popen([sys.executable,os.path.abspath(os.path.join(path_update,'clickpoints','get_update.py')),'update'],close_fds=True)
 
 
 def doUpdate():
@@ -142,7 +142,7 @@ def doUpdate():
     # # fork clean process
     os.chdir('clickpoints')
     #print('currentpath: %s' % os.path.abspath(os.path.curdir))
-    subprocess.Popen(['python.exe',os.path.normpath(os.path.join('get_update.py')),'clean'],close_fds=True)
+    subprocess.Popen([sys.executable,os.path.normpath(os.path.join('get_update.py')),'clean'],close_fds=True)
     exit(0)
 
 def doCleanUp():
