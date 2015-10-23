@@ -29,8 +29,23 @@ class FolderBrowser:
                 self.folder_list.append(folder)
 
         self.media_handler_list = []
-        for folder in self.folder_list:
-            self.media_handler_list.append(MediaHandler(folder, filterparam=self.config.filterparam))
+        folder_found = False
+        srcpath_folder = self.config.srcpath
+        if type("srcpath_folder") == type("") and srcpath_folder.lower().endswith((".jpg", ".png", ".tif", ".tiff")):
+            srcpath_folder = os.path.dirname(srcpath_folder)+os.path.sep
+        for index, folder in enumerate(self.folder_list):
+            folder = os.path.abspath(folder)+os.path.sep
+            print("FOlder", folder, srcpath_folder)
+            if folder == srcpath_folder:
+                self.media_handler_list.append(self.window.media_handler)
+                self.index = index
+                folder_found = True
+                print("Folder found!")
+            else:
+                self.media_handler_list.append(MediaHandler(folder, filterparam=self.config.filterparam))
+        if not folder_found:
+            print("Folder not found!")
+            self.media_handler_list.insert(0, self.window.media_handler)
 
     def LoadFolder(self):
         self.window.save()
