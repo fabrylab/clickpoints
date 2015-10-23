@@ -433,8 +433,9 @@ class Timeline:
 
     def hsbFPS(self):
         self.fps = self.sbFPS.value()
-        self.tUpdate.stop()
-        self.tUpdate.start(1000 / self.fps)
+        if self.playing:
+            self.tUpdate.stop()
+            self.tUpdate.start(1000 / self.fps)
 
     def hfReleaseSlider(self):
         n = self.frameSlider.value()
@@ -452,9 +453,11 @@ class Timeline:
         if state:
             self.tUpdate.start(1000 / self.fps)
             self.pbPlay.setIcon(QIcon(os.path.join(icon_path, "media-playback-pause.png")))
+            self.playing = True
         else:
             self.tUpdate.stop()
             self.pbPlay.setIcon(QIcon(os.path.join(icon_path, "media-playback-start.png")))
+            self.playing = False
 
     def updateFrame(self, nr=-1):
         if nr != -1:
