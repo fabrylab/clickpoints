@@ -2,6 +2,13 @@
 ::install super script for clickpoints
 ::assuming python was added to system PATH variable
 
+@ECHO OFF & CLS & ECHO.
+NET FILE 1>NUL 2>NUL & IF ERRORLEVEL 1 (ECHO You must right-click and select & ECHO "RUN AS ADMINISTRATOR"  to run this batch. Exiting... & ECHO. & PAUSE & EXIT /D)
+:: ... proceed here with admin rights ...
+
+::switch path back after UAC elevation
+cd /d %~dp0
+
 ::generate Clickpoints.bat
 python install_bat.py 
 echo DONE
