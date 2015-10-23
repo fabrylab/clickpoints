@@ -9,8 +9,9 @@ import zipfile
 ## parameters
 link_server_version=r"http://fabry_biophysics.bitbucket.org/clickpoints/version.html"
 link_server_update=r"http://fabry_biophysics.bitbucket.org/clickpoints/link.html"
-file_local_version=r"version.txt"
-file_local_filelist=r"files.txt"
+basedir=os.path.dirname(__file__)
+file_local_version=os.path.join(basedir,r"version.txt")
+file_local_filelist=os.path.join(basedir,r"files.txt")
 path_update="update"
 
 def copytree(src, dst, symlinks=False, ignore=None):
