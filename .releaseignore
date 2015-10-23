@@ -5,4 +5,4 @@ syntax: glob
 
 syntax: regexp
 ^MakeRelease.py
-^register.bat
+^register_winpy.bat
