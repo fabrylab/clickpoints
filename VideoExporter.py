@@ -7,7 +7,29 @@ except ImportError:
     from PyQt4 import QtCore
 
 from scipy.misc import imsave
-import cv2
+try:
+    import cv2
+    cv2_loaded = True
+    try:
+        from cv2.cv import CV_CAP_PROP_POS_FRAMES as CAP_PROP_POS_FRAMES
+        from cv2.cv import CV_CAP_PROP_FRAME_COUNT as CAP_PROP_FRAME_COUNT
+        from cv2.cv import CV_CAP_PROP_FRAME_WIDTH as CAP_PROP_FRAME_WIDTH
+        from cv2.cv import CV_CAP_PROP_FRAME_HEIGHT as CAP_PROP_FRAME_HEIGHT
+        from cv2.cv import CV_CAP_PROP_FPS as CAP_PROP_FPS
+
+        from cv2.cv import CV_FOURCC as VideoWriter_fourcc
+        from cv2.cv import CV_RGB2BGR as COLOR_RGB2BGR
+    except ImportError:
+        from cv2 import CAP_PROP_POS_FRAMES as CAP_PROP_POS_FRAMES
+        from cv2 import CAP_PROP_FRAME_COUNT as CAP_PROP_FRAME_COUNT
+        from cv2 import CAP_PROP_FRAME_WIDTH as CAP_PROP_FRAME_WIDTH
+        from cv2 import CAP_PROP_FRAME_HEIGHT as CAP_PROP_FRAME_HEIGHT
+        from cv2 import CAP_PROP_FPS as CAP_PROP_FPS
+
+        from cv2 import VideoWriter_fourcc
+        from cv2 import COLOR_RGB2BGR as COLOR_RGB2BGR
+except ImportError:
+    cv2_loaded = False
 import numpy as np
 
 class VideoExporter:
@@ -45,9 +67,9 @@ class VideoExporter:
                 self.preview_slice = np.dstack((self.preview_slice,self.preview_slice,self.preview_slice))
             if use_video:
                 if video_writer == None:
-                    fourcc = cv2.cv.CV_FOURCC(*'XVID')
+                    fourcc = VideoWriter_fourcc(*'XVID')
                     video_writer = cv2.VideoWriter(path, fourcc, timeline.fps, (self.preview_slice.shape[1], self.preview_slice.shape[0]))
-                video_writer.write(cv2.cvtColor(self.preview_slice, cv2.cv.CV_RGB2BGR))
+                video_writer.write(cv2.cvtColor(self.preview_slice, COLOR_RGB2BGR))
             else:
                 imsave(path % (frame-start), self.preview_slice)
         video_writer.release()
