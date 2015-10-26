@@ -92,6 +92,10 @@ folder_list = []
 # @config `launch_scripts = ` specify a list of scripts which can be started by pressing `F12` to `F9`
 launch_scripts = []
 
+""" @config InfoHud """
+# @config `info_hud_string = ` specify string to display in the hud
+info_hud_string = "bla{meta}"
+
 # enables .access on dicts
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""

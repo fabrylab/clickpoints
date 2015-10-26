@@ -29,8 +29,9 @@ def rotate_list(l,n):
 
 def BroadCastEvent(modules, function, *args, **kwargs):
     for module in modules:
-         if function in dir(module):
-                eval("module."+function+"(*args, **kwargs)")
+        if function in dir(module):
+            eval("module."+function+"(*args, **kwargs)")
+
 
 class HelpText(QGraphicsRectItem):
     def __init__(self, window, file, modules=[]):

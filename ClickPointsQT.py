@@ -9,7 +9,7 @@ try:
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox
+    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox, QGraphicsSceneWheelEvent
     from PyQt4.QtCore import Qt
 
 from MaskHandler import MaskHandler
@@ -24,6 +24,8 @@ from GammaCorrection import GammaCorrection
 from FolderBrowser import FolderBrowser
 from ScriptLauncher import ScriptLauncher
 from VideoExporter import VideoExporter
+from InfoHud import InfoHud
+from Overview import Overview
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
 from QExtendedGraphicsView import QExtendedGraphicsView
@@ -34,8 +36,8 @@ from regexpfilefilter import FILTER_Tag
 
 import updateHandler as uh
 
-used_modules = [MarkerHandler, MaskHandler, GammaCorrection, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, VideoExporter, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "", "", "", "", "", "hud"]
+used_modules = [MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, VideoExporter, HelpText]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "", "hud"]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
@@ -134,6 +136,9 @@ class ClickPointsWindow(QWidget):
     def closeEvent(self, QCloseEvent):
         self.save()
         BroadCastEvent(self.modules, "closeEvent", QCloseEvent)
+
+    def resizeEvent(self, event):
+        BroadCastEvent(self.modules, "resizeEvent", event)
 
     def keyPressEvent(self, event):
 
