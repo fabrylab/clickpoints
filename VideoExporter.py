@@ -4,7 +4,8 @@ import os
 try:
     from PyQt5 import QtCore
 except ImportError:
-    from PyQt4 import QtCore
+    from PyQt4 import QtCore, QtGui
+    from PyQt4.QtGui import QWidget
 
 from scipy.misc import imsave
 try:
@@ -32,23 +33,97 @@ except ImportError:
     cv2_loaded = False
 import numpy as np
 
-class VideoExporter:
-    def __init__(self, window, media_handler, modules, config=None):
+class VideoExporterDialog(QWidget):
+    def __init__(self, parent, window, media_handler, config, modules):
+        QWidget.__init__(self)
         # default settings and parameters
         self.window = window
         self.media_handler = media_handler
         self.config = config
         self.modules = modules
 
+        # widget layout and elements
+        self.setMinimumWidth(700)
+        self.setMinimumHeight(300)
+        self.setWindowTitle('Video Export')
+        self.layout = QtGui.QVBoxLayout(self)
+        self.parent = parent
+
+        Hlayout = QtGui.QHBoxLayout(self)
+        self.cbType = QtGui.QComboBox(self)
+        self.cbType.insertItem(0, "Video")
+        self.cbType.insertItem(1, "Images")
+        self.cbType.insertItem(2, "Gif")
+        Hlayout.addWidget(self.cbType)
+        self.layout.addLayout(Hlayout)
+
+        """ Video """
+        self.video_layouts = []
+        Hlayout = QtGui.QHBoxLayout(self)
+        Hlayout.addWidget(QtGui.QLabel('Filename:'))
+        self.leAName = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export.avi"), self)
+        self.leAName.setEnabled(False)
+        Hlayout.addWidget(self.leAName)
+        button = QtGui.QPushButton("Choose File")
+        button.pressed.connect(self.OpenDialog)
+        Hlayout.addWidget(button)
+        self.layout.addLayout(Hlayout)
+        self.video_layouts.append(Hlayout)
+
+        Hlayout = QtGui.QHBoxLayout(self)
+        Hlayout.addWidget(QtGui.QLabel('Codec (fourcc code):'))
+        self.leCodec = QtGui.QLineEdit("XVID", self)
+        self.leCodec.setMaxLength(4)
+        Hlayout.addWidget(self.leCodec)
+        self.layout.addLayout(Hlayout)
+        self.video_layouts.append(Hlayout)
+
+        """ Image """
+        self.images_layouts = []
+        Hlayout = QtGui.QHBoxLayout(self)
+        Hlayout.addWidget(QtGui.QLabel('Filename:'))
+        self.leAName = QtGui.QLineEdit(os.path.join(self.config.outputpath, "images%d.avi"), self)
+        self.leAName.setEnabled(False)
+        Hlayout.addWidget(self.leAName)
+        button = QtGui.QPushButton("Choose File")
+        button.pressed.connect(self.OpenDialog)
+        Hlayout.addWidget(button)
+        self.layout.addLayout(Hlayout)
+        self.images_layouts.append(Hlayout)
+
+        #Hlayout = QtGui.QHBoxLayout(self)
+        #Hlayout.addWidget(QtGui.QLabel('Codec (fourcc code):'))
+        #self.leCodec = QtGui.QLineEdit("XVID", self)
+        #self.leCodec.setMaxLength(4)
+        #Hlayout.addWidget(self.leCodec)
+        #self.layout.addLayout(Hlayout)
+        #self.images_layouts.append(Hlayout)
+
+
+        Hlayout = QtGui.QHBoxLayout(self)
+        self.progressbar = QtGui.QProgressBar()
+        Hlayout.addWidget(self.progressbar)
+        button = QtGui.QPushButton("Start")
+        button.pressed.connect(self.SaveImage)
+        Hlayout.addWidget(button)
+        self.layout.addLayout(Hlayout)
+
+    def OpenDialog(self):
+        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Image", os.getcwd(), "Videos (*.avi)"))
+        self.leAName.setText(srcpath)
 
     def SaveImage(self):
         timeline = self.window.GetModule("Timeline")
+        marker_handler = self.window.GetModule("MarkerHandler")
         start = timeline.frameSlider.startValue()
         end = timeline.frameSlider.endValue()
         video_writer = None
-        path = os.path.join(self.config.outputpath, "export.avi")
+        path = str(self.leAName.text())
         use_video = True
-        for frame in range(start, end+1):            
+        self.progressbar.setMinimum(start)
+        self.progressbar.setMaximum(end)
+        for frame in range(start, end+1):
+            self.progressbar.setValue(frame)
             self.window.JumpToFrame(frame)
             self.preview_rect = self.window.view.GetExtend(True)
             self.image = self.window.ImageDisplay.image
@@ -62,23 +137,36 @@ class VideoExporter:
             if end_x > start_x + self.config.max_image_size: end_x = start_x + self.config.max_image_size
             if end_y > start_y + self.config.max_image_size: end_y = start_y + self.config.max_image_size
             self.preview_slice = self.image[start_y:end_y, start_x:end_x, :]
-            
+
             if self.preview_slice.shape[2] == 1:
                 self.preview_slice = np.dstack((self.preview_slice,self.preview_slice,self.preview_slice))
+            if marker_handler:
+                print("MarkerHandler")
+                marker_handler.drawToImage(self.image, start_x, start_y)
             if use_video:
                 if video_writer == None:
-                    fourcc = VideoWriter_fourcc(*'XVID')
+                    fourcc = VideoWriter_fourcc(*str(self.leCodec.text()))
                     video_writer = cv2.VideoWriter(path, fourcc, timeline.fps, (self.preview_slice.shape[1], self.preview_slice.shape[0]))
                 video_writer.write(cv2.cvtColor(self.preview_slice, COLOR_RGB2BGR))
             else:
                 imsave(path % (frame-start), self.preview_slice)
         video_writer.release()
 
+class VideoExporter:
+    def __init__(self, window, media_handler, modules, config=None):
+        # default settings and parameters
+        self.window = window
+        self.media_handler = media_handler
+        self.config = config
+        self.modules = modules
+
     def keyPressEvent(self, event):
 
         # @key Z: Export Video
         if event.key() == QtCore.Qt.Key_Z:
-            self.SaveImage()
+            self.ExporterWindow = VideoExporterDialog(self, self.window, self.media_handler, self.config, self.modules)
+            self.ExporterWindow.show()
+            #self.SaveImage()
 
     @staticmethod
     def file():
