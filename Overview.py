@@ -1,0 +1,142 @@
+from __future__ import division, print_function
+
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QGraphicsRectItem, QCursor, QBrush, QColor, QGraphicsSimpleTextItem, QFont, QGraphicsPixmapItem, QPixmap
+    from PyQt5.QtCore import QRectF, Qt
+except ImportError:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QGraphicsRectItem, QCursor, QBrush, QColor, QGraphicsSimpleTextItem, QFont, QGraphicsPixmapItem, QPixmap, QImage
+    from PyQt4.QtCore import QRectF, Qt, pyqtSignal, QThread, QObject
+
+from qimage2ndarray import array2qimage, rgb_view
+from Tools import BoxGrabber
+
+from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
+
+import thread
+
+from PIL import Image
+from PIL.ExifTags import TAGS
+import time
+import os
+import numpy as np
+
+def get_exif(fn):
+    ret = {}
+    i = Image.open(fn)
+    info = i._getexif()
+    for tag, value in info.items():
+        decoded = TAGS.get(tag, tag)
+        ret[decoded] = value
+    return ret
+
+class loaderSignals(QObject):
+    sig = pyqtSignal(int)
+
+class checkUpdateThread(QThread):
+    def __init__(self, parent):
+        super(QThread, self).__init__()
+        self.exiting = False
+        self.signal = loaderSignals()
+        self.parent = parent
+
+    def run(self):
+        time.sleep(0.5)
+        for i in xrange(len(self.parent.qimages)):
+            print("Threading", i)
+
+            thumb = self.parent.window.media_handler.GetTumbnails(i)
+            self.parent.shapes[i] = thumb.shape
+            self.parent.qimages[i] = array2qimage(thumb)
+            self.signal.sig.emit(i)
+            time.sleep(0.06)
+
+class Overview(QGraphicsRectItem):
+    def __init__(self, parent_hud, window, image_display, config):
+        QGraphicsRectItem.__init__(self, parent_hud)
+        self.config = config
+
+        self.window = window
+        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+
+        self.setBrush(QBrush(QColor(0, 0, 0, 250)))
+        self.setZValue(30)
+
+        self.setRect(QRectF(0, 0, 110, 110))
+        BoxGrabber(self)
+        self.dragged = False
+
+        self.hidden = False
+        if self.config.hide_interfaces:
+            self.setVisible(False)
+            self.hidden = True
+
+        self.qimages = []
+        self.pixmaps = []
+        self.shapes = []
+        for i in xrange(600):
+            self.pixmaps.append(QGraphicsPixmapItem(self))
+            self.qimages.append(QImage())
+            self.shapes.append((0, 0))
+
+        self.offset = [0,0]
+
+        self.t=checkUpdateThread(self)
+        self.t.signal.sig.connect(self.updatePixmap)
+        self.t.start()
+
+    def updatePixmap(self, index):
+        self.pixmaps[index].setPixmap(QPixmap(self.qimages[index]))
+        self.resizeEvent(())
+
+    def resizeEvent(self, event=None):
+        self.setRect(QRectF(0, 0, self.window.view.size().width(), self.window.view.size().height()))
+        x = 0
+        y = 0
+        for i in xrange(len(self.pixmaps)):
+            if x+self.shapes[i][1] > self.window.view.size().width():
+                x = 0
+                y += self.shapes[i][0]+10
+            self.pixmaps[i].setOffset(x+self.offset[0]*0, y+self.offset[1])
+            x += self.shapes[i][1]+10
+
+    def mousePressEvent(self, event):
+        self.last_pos = np.array([event.pos().x(),event.pos().y()])
+
+    def mouseMoveEvent(self, event):
+        self.offset -= self.last_pos-np.array([event.pos().x(),event.pos().y()])
+        self.last_pos = np.array([event.pos().x(),event.pos().y()])
+        self.resizeEvent("")
+
+    def mouseReleaseEvent(self, event):
+        pass
+
+    def wheelEvent(self, event):
+        if 0:#qt_version == '5':
+            angle = event.angleDelta().y()
+        else:
+            angle = event.delta()
+        if angle > 0:
+            self.offset[1] += 50
+            self.resizeEvent("")
+        else:
+            self.offset[1] -= 50
+            self.resizeEvent("")
+        event.setAccepted(True)
+
+    def LoadImageEvent(self, filename="", frame_number=0):
+        pass
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_F3:
+            # @key F3: toggle Overview
+            self.ToggleOverviewInterfaceEvent()
+
+    def ToggleOverviewInterfaceEvent(self):
+        self.setVisible(self.hidden)
+        self.hidden = not self.hidden
+
+    @staticmethod
+    def file():
+        return __file__
