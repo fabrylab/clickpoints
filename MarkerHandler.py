@@ -85,6 +85,8 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.UseCrosshair = True
 
+        self.pathItem = None
+
         self.partner = None
         self.rectObj = None
         self.partner_id = partner_id
@@ -474,6 +476,9 @@ class MarkerHandler:
         self.Crosshair = Crosshair(parent, view, image_display, config)
 
         self.UpdateCounter()
+
+    def drawToImage(self, image, start_x, start_y):
+        image[:,:,0] = 1
 
     def UpdateCounter(self):
         for counter in self.counter:
