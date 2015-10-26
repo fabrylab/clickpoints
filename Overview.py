@@ -46,7 +46,7 @@ class checkUpdateThread(QThread):
         for i in xrange(len(self.parent.qimages)):
             print("Threading", i)
 
-            thumb = self.parent.window.media_handler.GetTumbnails(i)
+            thumb = self.parent.window.media_handler.GetThumbnails(i)
             self.parent.shapes[i] = thumb.shape
             self.parent.qimages[i] = array2qimage(thumb)
             self.signal.sig.emit(i)
