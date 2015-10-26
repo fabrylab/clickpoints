@@ -88,6 +88,7 @@ class Overview(QGraphicsRectItem):
 
     def updatePixmap(self, index):
         self.pixmaps[index].setPixmap(QPixmap(self.qimages[index]))
+        self.pixmaps[index].mousePressEvent = lambda event, index=index: (self.ToggleOverviewInterfaceEvent(), self.window.JumpToFrame(index))
         self.resizeEvent(())
 
     def resizeEvent(self, event=None):
