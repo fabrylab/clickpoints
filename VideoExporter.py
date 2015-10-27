@@ -31,7 +31,14 @@ try:
         from cv2 import COLOR_RGB2BGR as COLOR_RGB2BGR
 except ImportError:
     cv2_loaded = False
+try:
+    import images2gif
+    images2gif_loaded = True
+except ImportError:
+    images2gif_loaded = False
+
 import numpy as np
+import re
 
 class VideoExporterDialog(QWidget):
     def __init__(self, parent, window, media_handler, config, modules):
@@ -53,13 +60,21 @@ class VideoExporterDialog(QWidget):
         self.cbType = QtGui.QComboBox(self)
         self.cbType.insertItem(0, "Video")
         self.cbType.insertItem(1, "Images")
-        self.cbType.insertItem(2, "Gif")
+        #self.cbType.insertItem(2, "Gif")
         Hlayout.addWidget(self.cbType)
         self.layout.addLayout(Hlayout)
 
+        self.StackedWidget = QtGui.QStackedWidget(self)
+        self.layout.addWidget(self.StackedWidget)
+
+        self.cbType.currentIndexChanged.connect(self.StackedWidget.setCurrentIndex)
+
         """ Video """
-        self.video_layouts = []
-        Hlayout = QtGui.QHBoxLayout(self)
+        videoWidget = QtGui.QGroupBox("Video Settings")
+        self.StackedWidget.addWidget(videoWidget)
+        Vlayout = QtGui.QVBoxLayout(videoWidget)
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
         Hlayout.addWidget(QtGui.QLabel('Filename:'))
         self.leAName = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export.avi"), self)
         self.leAName.setEnabled(False)
@@ -67,38 +82,45 @@ class VideoExporterDialog(QWidget):
         button = QtGui.QPushButton("Choose File")
         button.pressed.connect(self.OpenDialog)
         Hlayout.addWidget(button)
-        self.layout.addLayout(Hlayout)
-        self.video_layouts.append(Hlayout)
 
-        Hlayout = QtGui.QHBoxLayout(self)
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
         Hlayout.addWidget(QtGui.QLabel('Codec (fourcc code):'))
         self.leCodec = QtGui.QLineEdit("XVID", self)
         self.leCodec.setMaxLength(4)
         Hlayout.addWidget(self.leCodec)
-        self.layout.addLayout(Hlayout)
-        self.video_layouts.append(Hlayout)
+        Vlayout.addStretch()
 
         """ Image """
-        self.images_layouts = []
-        Hlayout = QtGui.QHBoxLayout(self)
+        imageWidget = QtGui.QGroupBox("Image Settings")
+        self.StackedWidget.addWidget(imageWidget)
+        Vlayout = QtGui.QVBoxLayout(imageWidget)
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
         Hlayout.addWidget(QtGui.QLabel('Filename:'))
-        self.leAName = QtGui.QLineEdit(os.path.join(self.config.outputpath, "images%d.avi"), self)
-        self.leAName.setEnabled(False)
-        Hlayout.addWidget(self.leAName)
+        self.leANameI = QtGui.QLineEdit(os.path.join(self.config.outputpath, "images%d.jpg"), self)
+        self.leANameI.setEnabled(False)
+        Hlayout.addWidget(self.leANameI)
         button = QtGui.QPushButton("Choose File")
-        button.pressed.connect(self.OpenDialog)
+        button.pressed.connect(self.OpenDialog2)
         Hlayout.addWidget(button)
-        self.layout.addLayout(Hlayout)
-        self.images_layouts.append(Hlayout)
+        Vlayout.addWidget(QtGui.QLabel('Image names have to contain %d as a placeholder for the image number.'))
+        Vlayout.addStretch()
 
-        #Hlayout = QtGui.QHBoxLayout(self)
-        #Hlayout.addWidget(QtGui.QLabel('Codec (fourcc code):'))
-        #self.leCodec = QtGui.QLineEdit("XVID", self)
-        #self.leCodec.setMaxLength(4)
-        #Hlayout.addWidget(self.leCodec)
-        #self.layout.addLayout(Hlayout)
-        #self.images_layouts.append(Hlayout)
-
+        """ Gif """
+        gifWidget = QtGui.QGroupBox("Animated Gif Settings")
+        self.StackedWidget.addWidget(gifWidget)
+        Vlayout = QtGui.QVBoxLayout(gifWidget)
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
+        Hlayout.addWidget(QtGui.QLabel('Filename:'))
+        self.leANameG = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export.gif"), self)
+        self.leANameG.setEnabled(False)
+        Hlayout.addWidget(self.leANameG)
+        button = QtGui.QPushButton("Choose File")
+        button.pressed.connect(self.OpenDialog3)
+        Hlayout.addWidget(button)
+        Vlayout.addStretch()
 
         Hlayout = QtGui.QHBoxLayout(self)
         self.progressbar = QtGui.QProgressBar()
@@ -108,9 +130,30 @@ class VideoExporterDialog(QWidget):
         Hlayout.addWidget(button)
         self.layout.addLayout(Hlayout)
 
+    def ComboBoxChanged(self, index):
+        if index == 0:
+            for layout in self.video_layouts:
+                layout.setHidden(False)
+            for layout in self.images_layouts:
+                layout.setHidden(True)
+        if index == 1:
+            for layout in self.video_layouts:
+                layout.setHidden(True)
+            for layout in self.images_layouts:
+                layout.setHidden(False)
+
     def OpenDialog(self):
-        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Image", os.getcwd(), "Videos (*.avi)"))
+        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Video", os.getcwd(), "Videos (*.avi)"))
         self.leAName.setText(srcpath)
+
+    def OpenDialog2(self):
+        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Image", os.getcwd(), "Images (*.jpg *.png *.tif)"))
+        srcpath = re.sub(r"\d+", "%d", srcpath, count=1)
+        self.leANameI.setText(srcpath)
+
+    def OpenDialog3(self):
+        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Gif", os.getcwd(), "Animated Gifs (*.gif)"))
+        self.leANameG.setText(srcpath)
 
     def SaveImage(self):
         timeline = self.window.GetModule("Timeline")
@@ -118,7 +161,14 @@ class VideoExporterDialog(QWidget):
         start = timeline.frameSlider.startValue()
         end = timeline.frameSlider.endValue()
         video_writer = None
-        path = str(self.leAName.text())
+        if self.cbType.currentIndex() == 0:
+            path = str(self.leAName.text())
+        elif self.cbType.currentIndex() == 1:
+            path = str(self.leANameI.text())
+        elif self.cbType.currentIndex() == 2:
+            path = str(self.leANameG.text())
+            gifstack = []
+        print("--------------- Index is ", self.cbType.currentIndex())
         use_video = True
         self.progressbar.setMinimum(start)
         self.progressbar.setMaximum(end)
@@ -140,17 +190,25 @@ class VideoExporterDialog(QWidget):
 
             if self.preview_slice.shape[2] == 1:
                 self.preview_slice = np.dstack((self.preview_slice,self.preview_slice,self.preview_slice))
-            if marker_handler:
-                print("MarkerHandler")
-                marker_handler.drawToImage(self.image, start_x, start_y)
-            if use_video:
+            #if marker_handler:
+            #    print("MarkerHandler")
+            #    marker_handler.drawToImage(self.image, start_x, start_y)
+            if self.cbType.currentIndex() == 0:
                 if video_writer == None:
                     fourcc = VideoWriter_fourcc(*str(self.leCodec.text()))
                     video_writer = cv2.VideoWriter(path, fourcc, timeline.fps, (self.preview_slice.shape[1], self.preview_slice.shape[0]))
                 video_writer.write(cv2.cvtColor(self.preview_slice, COLOR_RGB2BGR))
-            else:
+            elif self.cbType.currentIndex() == 1:
                 imsave(path % (frame-start), self.preview_slice)
-        video_writer.release()
+            elif self.cbType.currentIndex() == 2:
+                gifstack.append(self.preview_slice)
+        if self.cbType.currentIndex() == 2:
+            print(gifstack)
+            print(gifstack[0].shape)
+            images2gif.writeGif(path, gifstack, duration=1./timeline.fps, dither=0)
+            print("Wrote gif", path)
+        if self.cbType.currentIndex() == 0:
+            video_writer.release()
 
 class VideoExporter:
     def __init__(self, window, media_handler, modules, config=None):
@@ -159,6 +217,7 @@ class VideoExporter:
         self.media_handler = media_handler
         self.config = config
         self.modules = modules
+        self.ExporterWindow = None
 
     def keyPressEvent(self, event):
 
@@ -166,7 +225,10 @@ class VideoExporter:
         if event.key() == QtCore.Qt.Key_Z:
             self.ExporterWindow = VideoExporterDialog(self, self.window, self.media_handler, self.config, self.modules)
             self.ExporterWindow.show()
-            #self.SaveImage()
+
+    def closeEvent(self, event):
+        if self.ExporterWindow:
+            self.ExporterWindow.close()
 
     @staticmethod
     def file():
