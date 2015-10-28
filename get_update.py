@@ -11,7 +11,7 @@ link_server_version=r"http://fabry_biophysics.bitbucket.org/clickpoints/version.
 link_server_update=r"http://fabry_biophysics.bitbucket.org/clickpoints/link.html"
 basedir=os.path.dirname(__file__)
 file_local_version=os.path.join(basedir,r"version.txt")
-file_local_filelist=os.path.join(basedir,r"files.txt")
+file_local_filelist=os.path.join(basedir, "..", "..", "..", r"files.txt")
 path_update="update"
 
 def copytree(src, dst, symlinks=False, ignore=None):
@@ -121,7 +121,7 @@ def doUpdate():
     #print("update path: %s" % update_path)
 
     ## remove local files according to local file list
-    with open(os.path.normpath(os.path.join('../../../',file_local_filelist)),'r') as f:
+    with open(file_local_filelist, 'r') as f:
         local_filelist=f.readlines()
 
     os.chdir(base_path)
