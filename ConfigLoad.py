@@ -94,7 +94,7 @@ launch_scripts = []
 
 """ @config InfoHud """
 # @config `info_hud_string = ` specify string to display in the hud
-info_hud_string = "bla{meta}"
+info_hud_string = ""
 
 # enables .access on dicts
 class dotdict(dict):
