@@ -67,6 +67,8 @@ path_to_website = r"..\fabry_biophysics.bitbucket.org\clickpoints"
 zip_file = 'clickpoints_v%s.zip'
 version_file = os.path.join("clickpoints", "version.txt")
 
+paths = [".", "clickpoints", "mediahandler", "qextendedgraphicsview"]
+
 """ Checks """
 # check for new version name as command line argument
 new_version = ""
@@ -89,7 +91,6 @@ if old_version == new_version:
     sys.exit(1)
 
 # check for uncommited changes
-paths = [".", "clickpoints", "mediahandler", "qextendedgraphicsview"]
 for path in paths:
     CheckForUncommitedChanges(path)
 CheckForUncommitedChanges(path_to_website)
@@ -101,7 +102,7 @@ with open(version_file, "w") as fp:
 
 # Create filelist and zip file
 file_list = open("files.txt", "w")
-myzip = zipfile.ZipFile(zip_file, 'w')
+myzip = zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED)
 
 # Gather files repository files and add them to zip file
 ignore_pattern = LoadIgnorePatterns(os.path.join("clickpoints", ".releaseignore"))
