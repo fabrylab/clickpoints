@@ -32,10 +32,10 @@ try:
 except ImportError:
     cv2_loaded = False
 try:
-    import images2gif
-    images2gif_loaded = True
+    import imageio
+    imageio_loaded = True
 except ImportError:
-    images2gif_loaded = False
+    imageio_loaded = False
 
 import numpy as np
 import re
@@ -60,7 +60,7 @@ class VideoExporterDialog(QWidget):
         self.cbType = QtGui.QComboBox(self)
         self.cbType.insertItem(0, "Video")
         self.cbType.insertItem(1, "Images")
-        #self.cbType.insertItem(2, "Gif")
+        self.cbType.insertItem(2, "Gif")
         Hlayout.addWidget(self.cbType)
         self.layout.addLayout(Hlayout)
 
@@ -160,7 +160,7 @@ class VideoExporterDialog(QWidget):
         marker_handler = self.window.GetModule("MarkerHandler")
         start = timeline.frameSlider.startValue()
         end = timeline.frameSlider.endValue()
-        video_writer = None
+        writer = None
         if self.cbType.currentIndex() == 0:
             path = str(self.leAName.text())
         elif self.cbType.currentIndex() == 1:
@@ -194,21 +194,20 @@ class VideoExporterDialog(QWidget):
             #    print("MarkerHandler")
             #    marker_handler.drawToImage(self.image, start_x, start_y)
             if self.cbType.currentIndex() == 0:
-                if video_writer == None:
+                if writer == None:
                     fourcc = VideoWriter_fourcc(*str(self.leCodec.text()))
-                    video_writer = cv2.VideoWriter(path, fourcc, timeline.fps, (self.preview_slice.shape[1], self.preview_slice.shape[0]))
-                video_writer.write(cv2.cvtColor(self.preview_slice, COLOR_RGB2BGR))
+                    writer = cv2.VideoWriter(path, fourcc, timeline.fps, (self.preview_slice.shape[1], self.preview_slice.shape[0]))
+                writer.write(cv2.cvtColor(self.preview_slice, COLOR_RGB2BGR))
             elif self.cbType.currentIndex() == 1:
                 imsave(path % (frame-start), self.preview_slice)
             elif self.cbType.currentIndex() == 2:
-                gifstack.append(self.preview_slice)
+                if writer == None:
+                    writer = imageio.get_writer(path, format="gif", mode="I", fps=timeline.fps)
+                writer.append_data(self.preview_slice)
         if self.cbType.currentIndex() == 2:
-            print(gifstack)
-            print(gifstack[0].shape)
-            images2gif.writeGif(path, gifstack, duration=1./timeline.fps, dither=0)
-            print("Wrote gif", path)
+            writer.close()
         if self.cbType.currentIndex() == 0:
-            video_writer.release()
+            writer.release()
 
 class VideoExporter:
     def __init__(self, window, media_handler, modules, config=None):
