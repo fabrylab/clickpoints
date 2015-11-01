@@ -84,6 +84,20 @@ timeline_hide = False
 # @config `annotation_tag =` specifies what to append to the annotation file.
 annotation_tag = '_annot.txt'
 
+
+# @config `sql_annotation=` weather to use local or sql based annotation stoarage
+sql_annotation=True
+# @config `sql_dbname=` database name e.g. annotations
+sql_dbname='annotation'
+# @config `sql_host=` ip adress of the server
+sql_host='131.188.117.94'
+# @config `sql_port=` port for mysql service
+sql_port=3306
+# @config `sql_user =` username for mySQL database
+sql_user = 'clickpoints'
+# @config `sql_pwd =`  password for mySQL database
+sql_pwd = '123456'
+
 """ @config FolderBrowser """
 # @config `folder_list =` specify a lists of folder which can be switched with the `path_up` and `page_down` keys.
 folder_list = []
