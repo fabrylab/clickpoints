@@ -37,6 +37,8 @@ class files(Model):
     basename = CharField()
     path = IntegerField()
     extension = CharField()
+    annotation_id = IntegerField()
+
 
 class folder(Model):
     parent_id = IntegerField()#ForeignKeyField(folder)
