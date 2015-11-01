@@ -221,7 +221,7 @@ class DatabaseBrowser(QWidget):
         counter = 0
         with open("files.txt","w") as fp:
             for item in query:
-                fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+"\n")
+                fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
                 counter += 1
         return counter
 
