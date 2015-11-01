@@ -121,7 +121,7 @@ class dotdict(dict):
 
 def LoadConfig():
     global auto_mask_update, tracking, tracking_connect_nearest
-    global srcpath, filename, outputpath, jumps, relative_outputpath
+    global srcpath, filename, outputpath, jumps, relative_outputpath, file_ids, annotation_ids
     global logname_tag, maskname_tag
     global types, draw_types, addons, max_image_size
     global filterparam, dont_process_filelist
@@ -142,10 +142,20 @@ def LoadConfig():
 
     # if srcpath is a filelist load it
     dont_process_filelist = False
+    file_ids=[]
+    annotation_ids=[]
+    # extract file pahts and ids if applicable
     if type(srcpath) == type("") and srcpath[-4:] == ".txt":
-        with open(srcpath, "r") as fp:
-            srcpath = [line.strip() for line in fp.readlines()]
+        try:
+            with open(srcpath, "r") as fp:
+                srcpath,file_ids,anotation_ids = zip(*[line.strip().split() for line in fp.readlines()])
             dont_process_filelist = True
+            print("filelist: path file_id annotation_id")
+        except ValueError:
+            with open(srcpath, "r") as fp:
+                srcpath = [line.strip() for line in fp.readlines()]
+            dont_process_filelist = True
+            print("filelist: path")
 
     # if no srcpath is given, ask for one
     if srcpath is "":
