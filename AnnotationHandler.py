@@ -13,7 +13,11 @@ except ImportError:
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
 
 from Tools import BroadCastEvent
+from abc import abstractmethod
 
+#TODO conditional export based on config?
+from peewee import *
+from datetime import datetime
 
 # util
 def UpdateDictWith(x, y):
@@ -65,6 +69,20 @@ def ReadAnnotation(filename):
     return results, comment
 
 
+class SQLAnnotation(Model):
+        timestamp = DateTimeField()
+        system = CharField()
+        camera = CharField()
+        tags =  CharField()
+        rating = IntegerField()
+        reffilename = CharField()
+        reffileext = CharField()
+        comment = TextField()
+        fileid = IntegerField()
+
+        class Meta:
+            database = None
+
 class AnnotationEditor(QWidget):
     def __init__(self, filename, outputpath, modules, config):
         QWidget.__init__(self)
@@ -80,8 +98,22 @@ class AnnotationEditor(QWidget):
                              'rating': 0
                              })
         self.comment = ''
+        self.fid=0
+
         self.modules = modules
         self.config = config
+
+
+        self.ah=[]
+
+        # check for sql or file mode
+        if self.config.sql_annotation==True:
+            print('SQL Mode enabled')
+            self.ah=AnnotationHandlerSQL(config,self)
+
+        else:
+            print('local text mode enabled')
+            self.ah=AnnotationHandlerTXT(config,self)
 
         # regexp
         self.regFromFNameString = self.config.filename_data_regex
@@ -89,13 +121,14 @@ class AnnotationEditor(QWidget):
 
         basename, ext = os.path.splitext(filename[1])
         self.basename = basename
+        self.ext = ext
 
         self.annotfilename = basename + self.config.annotation_tag
 
         if self.outputpath == '':
-            fname = os.path.join(self.reffilename[0], self.annotfilename)
+            self.fname = os.path.join(self.reffilename[0], self.annotfilename)
         else:
-            fname = os.path.join(self.outputpath, self.annotfilename)
+            self.fname = os.path.join(self.outputpath, self.annotfilename)
 
         # widget layout and ellements
         self.setMinimumWidth(650)
@@ -135,27 +168,25 @@ class AnnotationEditor(QWidget):
         self.layout.addWidget(self.leRating, 4, 3)
 
         self.pbConfirm = QPushButton('C&onfirm', self)
-        self.pbConfirm.pressed.connect(self.saveAnnotation)
+        self.pbConfirm.pressed.connect(self.ah.saveAnnotation)
         self.layout.addWidget(self.pbConfirm, 0, 4)
 
         self.pbDiscard = QPushButton('&Discard', self)
-        self.pbDiscard.pressed.connect(self.discardAnnotation)
+        self.pbDiscard.pressed.connect(self.ah.discardAnnotation)
         self.layout.addWidget(self.pbDiscard, 1, 4)
 
-        if os.path.exists(fname):
+        if self.ah.annotationExists():
             self.pbRemove = QPushButton('&Remove', self)
-            self.pbRemove.pressed.connect(self.removeAnnotation)
+            self.pbRemove.pressed.connect(self.ah.removeAnnotation)
             self.layout.addWidget(self.pbRemove, 2, 4)
 
         self.pteAnnotation = QPlainTextEdit(self)
         self.pteAnnotation.setFocus()
         self.layout.addWidget(self.pteAnnotation, 5, 0, 5, 4)
 
-        f = QFile(fname)
-        # read values from exisiting file
-        if f.exists():
-            self.results, self.comment = ReadAnnotation(fname)
-        # extract values from filename
+
+        if self.ah.annotationExists():
+            self.results, self.comment = self.ah.getAnnotation()
         else:
             # extract relevant values, store in dict
             fname, ext = os.path.splitext(self.reffilename[1])
@@ -179,14 +210,175 @@ class AnnotationEditor(QWidget):
         # update comment
         self.pteAnnotation.setPlainText(self.comment)
 
+    # @abstractmethod
+    # def annotationExists(self):
+    #     pass
+    # @abstractmethod
+    # def removeAnnotation(self):
+    #     pass
+    # @abstractmethod
+    # def getAnnotation(self):
+    #     pass
+    # @abstractmethod
+    # def saveAnnotation(self):
+    #     pass
+
+
+class AnnotationHandlerSQL:
+    def __init__(self,config,parent):
+        self.config=config
+        self.parent=parent
+        # init db connection
+        self.db = MySQLDatabase(self.config.sql_dbname,
+                                host=self.config.sql_host,
+                                port=self.config.sql_port,
+                                user=self.config.sql_user,
+                                passwd=self.config.sql_pwd)
+
+        self.db.connect()
+
+        if self.db.is_closed():
+            raise Exception("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
+        else:
+            print("connection established")
+
+        # generate acess class
+        self.SQLAnnotation = SQLAnnotation
+        self.SQLAnnotation._meta.database=self.db
+
+    def saveAnnotation(self):
+        # extract relevant values, store in dict
+        match = self.parent.regFromFName.match(self.parent.basename)
+        if not match:
+            print('warning - no match for regexp')
+        else:
+            re_dict = match.groupdict()
+
+            # update results
+            self.parent.results = UpdateDictWith(self.parent.results, re_dict)
+
+        # update with gui changes
+        self.parent.results['tags'] = self.parent.leTag.text()
+        self.parent.results['rating'] = self.parent.leRating.currentIndex()
+
+        # check for empty timestamp
+        if not self.parent.results['timestamp'] == '':
+            tstamp = datetime.strptime(self.parent.results['timestamp'],'%Y%m%d-%H%M%S')
+        else:
+            tstamp = datetime(1970,1,1,0,0,0)
+
+
+        item=self.SQLAnnotation
+        try:
+            # load entry from db
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.parent.basename)
+            print("entry found")
+            found=True
+        except DoesNotExist:
+            found=False
+
+        if found:
+            # update values and update db
+            item.timestamp = tstamp
+            item.system = self.parent.results['system']
+            item.camera = self.parent.results['camera']
+            item.tags = self.parent.results['tags']
+            item.rating = self.parent.results['rating']
+            item.comment = self.parent.pteAnnotation.toPlainText()
+            item.reffilename=self.parent.basename
+            item.reffileext=self.parent.ext
+            item.fileid=self.parent.fid
+
+            item.save()
+            print('update')
+        else:
+            # create new entry
+            item=self.SQLAnnotation(
+               timestamp = tstamp,
+               system = self.parent.results['system'],
+               camera = self.parent.results['camera'],
+               tags = self.parent.results['tags'],
+               rating = self.parent.results['rating'],
+               comment = self.parent.pteAnnotation.toPlainText(),
+               reffilename=self.parent.basename,
+               reffileext= self.parent.ext,
+               fileid=self.parent.fid)
+
+            print('tags: ',item.tags)
+            print('found: ',found)
+
+            item.save()
+            print('save')
+
+        results, comment = self.getAnnotation()
+        BroadCastEvent(self.parent.modules, "AnnotationAdded", self.parent.basename, results, comment)
+
+        # close widget
+        self.parent.close()
+
+    def removeAnnotation(self):
+        try:
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.parent.basename)
+            item.delete_instance()
+
+            BroadCastEvent(self.parent.modules, "AnnotationRemoved", self.parent.basename)
+            self.parent.close()
+            return True
+        except DoesNotExist:
+            return False
+
+
+    def annotationExists(self):
+        # qerry db for matching reffilename
+        try:
+            self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.parent.basename)
+            found = True
+        except DoesNotExist:
+            found = False
+        return found
+
+
+    def getAnnotation(self):
+        # qerry db for matching reffilename
+        # path,file = os.path.split(refname)
+        # basename,ext = os.path.splitext(file)
+
+        try:
+            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.parent.basename)
+            found = True
+            comment=item.comment
+            results={}
+            results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
+            results['system']=item.system
+            results['camera']=item.camera
+            results['tags']=[elem.strip() for elem in item.tags.split(",")]
+            results['rating']=item.rating
+            results['reffilename']=item.reffilename
+            results['feffileext']=item.reffileext
+            return results, comment
+
+        except DoesNotExist:
+            raise Exception("Can't retrieve annotation details")
+
+
+    def discardAnnotation(self):
+        print("DISCARD")
+        self.parent.close()
+
+
+class AnnotationHandlerTXT:
+    def __init__(self,config,parent):
+        self.config = config
+        self.parent = parent
+
     def saveAnnotation(self):
         print("SAVE")
-        if self.outputpath == '':
-            filename = os.path.join(self.reffilename[0], self.annotfilename)
+        if self.parent.outputpath == '':
+            filename = os.path.join(self.parent.reffilename[0], self.parent.annotfilename)
             f = QFile(filename)
             print(filename)
         else:
-            filename = os.path.join(self.outputpath, self.annotfilename)
+            filename = os.path.join(self.parent.outputpath, self.parent.annotfilename)
             f = QFile(filename)
         f.open(QFile.Truncate | QFile.ReadWrite)
 
@@ -195,53 +387,68 @@ class AnnotationEditor(QWidget):
         else:
             # new output format
             # extract relevant values, store in dict
-            fname, ext = os.path.splitext(self.reffilename[1])
-            match = self.regFromFName.match(fname)
+            fname, ext = os.path.splitext(self.parent.reffilename[1])
+            match = self.parent.regFromFName.match(fname)
             if not match:
                 print('warning - no match for regexp')
             else:
                 re_dict = match.groupdict()
 
                 # update results
-                self.results = UpdateDictWith(self.results, re_dict)
+                self.parent.results = UpdateDictWith(self.parent.results, re_dict)
 
             # update with gui changes
-            self.results['tags'] = self.leTag.text()
-            self.results['rating'] = self.leRating.currentIndex()
+            self.parent.results['tags'] = self.parent.leTag.text()
+            self.parent.results['rating'] = self.parent.leRating.currentIndex()
 
             # write to file
             out = QTextStream(f)
             # write header
             out << '[data]\n'
             # write header info
-            for field in self.results:
-                out << "%s=%s\n" % (field, self.results.get(field))
+            for field in self.parent.results:
+                out << "%s=%s\n" % (field, self.parent.results.get(field))
 
             # # write data
-            comment = self.pteAnnotation.toPlainText()
+            comment = self.parent.pteAnnotation.toPlainText()
             out << '\n[comment]\n'
             out << comment
 
             f.close()
-            self.close()
+            self.parent.close()
 
             results, comment = ReadAnnotation(filename)
-            BroadCastEvent(self.modules, "AnnotationAdded", self.basename, results, comment)
+            BroadCastEvent(self.parent.modules, "AnnotationAdded", self.parent.basename, results, comment)
 
     def removeAnnotation(self):
-        if self.outputpath == '':
-            f = os.path.join(self.reffilename[0], self.annotfilename)
-            print(os.path.join(self.reffilename[0], self.annotfilename))
+        if self.parent.outputpath == '':
+            f = os.path.join(self.parent.reffilename[0], self.parent.annotfilename)
+            print(os.path.join(self.parent.reffilename[0], self.parent.annotfilename))
         else:
-            f = os.path.join(self.outputpath, self.annotfilename)
+            f = os.path.join(self.parent.outputpath, self.parent.annotfilename)
         os.remove(f)
-        BroadCastEvent(self.modules, "AnnotationRemoved", self.basename)
+        BroadCastEvent(self.parent.modules, "AnnotationRemoved", self.parent.basename)
 
-        self.close()
+        self.parent.close()
+
+    def annotationExists(self):
+        if os.path.exists(self.parent.fname):
+            return True
+        else:
+            return False
+
+    def getAnnotation(self):
+        f = QFile(self.parent.fname)
+        # read values from exisiting file
+        if f.exists():
+            self.parent.results, self.parent.comment = ReadAnnotation(self.parent.fname)
+
+            return self.parent.results,self.parent.comment
 
     def discardAnnotation(self):
         print("DISCARD")
-        self.close()
+        self.parent.close()
+
 
 
 class AnnotationOverview(QWidget):
@@ -321,7 +528,7 @@ class AnnotationOverview(QWidget):
                 break
 
 
-class AnnotationHandler:
+class AnnotationHandler():
     def __init__(self, window, media_handler, modules, config=None):
         self.config = config
 
@@ -334,20 +541,81 @@ class AnnotationHandler:
 
         self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
-        # get list of files
-        annotation_glob_string = os.path.join(self.outputpath, '*' + self.config.annotation_tag)
-        self.filelist = glob.glob(annotation_glob_string)
-
         self.annoations = {}
 
-        for i, file in enumerate(self.filelist):
-            # read annotation file
-            results, comment = ReadAnnotation(file)
+        if self.config.sql_annotation==False:
+            ## LOCAL version
+            if self.outputpath == '':
+                searchpath,fname=os.path.split(self.media_handler.filelist[0])
+            else:
+                searchpath=self.outputpath
+            # TODO: this is a band aid fix for choosing files with the file dialogue, this will break for recursive foulder structures!
 
-            # get file basename
-            filename = os.path.split(file)[1]
-            basename = filename[:-len(self.config.annotation_tag)]
-            self.annoations[basename] = dict(data=results, comment=comment)
+            # get list of files
+            annotation_glob_string = os.path.join(searchpath, '*' + self.config.annotation_tag)
+            self.filelist = glob.glob(annotation_glob_string)
+
+            for i, file in enumerate(self.filelist):
+                # read annotation file
+                results, comment = ReadAnnotation(file)
+
+                # get file basename
+                filename = os.path.split(file)[1]
+                basename = filename[:-len(self.config.annotation_tag)]
+                self.annoations[basename] = dict(data=results, comment=comment)
+        else:
+            ## MYSQL version
+            # init db connection
+            self.db = MySQLDatabase(self.config.sql_dbname,
+                                    host=self.config.sql_host,
+                                    port=self.config.sql_port,
+                                    user=self.config.sql_user,
+                                    passwd=self.config.sql_pwd)
+
+            self.db.connect()
+
+            if self.db.is_closed():
+                raise Exception("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
+            else:
+                print("connection established")
+
+            # generate acess class
+            self.SQLAnnotation = SQLAnnotation
+            self.SQLAnnotation._meta.database=self.db
+
+            # TODO performance concerns - how to poll the DB in a clever way ?
+            # TODO fix issue with recursive media handler
+
+            # brute force version
+            for file in self.media_handler.filelist:
+                # extract base name
+                path,filename = os.path.split(file)
+                basename,ext = os.path.splitext(filename)
+
+                results = {}
+                comment=''
+
+                try:
+                    item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==basename)
+                    found = True
+                    comment=item.comment
+                    results={}
+                    results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
+                    results['system']=item.system
+                    results['camera']=item.camera
+                    results['tags']=[elem.strip() for elem in item.tags.split(",")]
+                    results['rating']=item.rating
+                    results['reffilename']=item.reffilename
+                    results['feffileext']=item.reffileext
+
+                    self.annoations[basename] = dict(data=results, comment=comment)
+
+                except DoesNotExist:
+                    print('no annotation for file:',file)
+                    pass
+
+
+
 
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
