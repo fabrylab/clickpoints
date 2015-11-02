@@ -36,7 +36,7 @@ def getExifTime(path):
 # name_scheme = TS1(_TS2)_SYSTEM_DEVICE_DIV.ext
 timestamp_scheme= '%Y%m%d-%H%M%S'
 name_scheme = '{timestamp}_{system}_{device}{ext}'
-path_scheme = os.path.join('{basepath}','{year}','{system}','{yearmonthday}','{hour}')
+path_scheme = os.path.join('{basepath}','{year}','{system}','{device}','{yearmonthday}','{hour}')
 
 #input_folder =
 #output_folder=
@@ -44,12 +44,12 @@ extensions=['.jpg', '.png', '.tif', '.tiff']
 
 basepath = '\\\\131.188.117.94\data'
 meta = DotDict({'system':'microbsDDU',
-                'device':'32n3',
+                'device':'32n1',
                 'timestamp':None,
                 'ext':''})
 
 
-start_path=r'G:\microbs31_3'
+start_path=r'G:\microbs31_1'
 
 # get list of files
 
@@ -84,6 +84,7 @@ for root, dirs, files in os.walk(start_path, topdown=False):
                 new_path = path_scheme.format(basepath=basepath,
                                               year=meta.timestamp.strftime('%Y'),
                                               system=meta.system,
+                                              device=meta.device,
                                               yearmonthday=meta.timestamp.strftime('%Y%m%d'),
                                               hour=meta.timestamp.strftime('%H'))
                 new_path=os.path.normpath(new_path)
