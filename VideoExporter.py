@@ -163,13 +163,12 @@ class VideoExporterDialog(QWidget):
         writer = None
         if self.cbType.currentIndex() == 0:
             path = str(self.leAName.text())
+            writer_params = dict(format="avi", mode="I", fps=timeline.fps)
         elif self.cbType.currentIndex() == 1:
             path = str(self.leANameI.text())
         elif self.cbType.currentIndex() == 2:
             path = str(self.leANameG.text())
-            gifstack = []
-        print("--------------- Index is ", self.cbType.currentIndex())
-        use_video = True
+            writer_params = dict(format="gif", mode="I", fps=timeline.fps)
         self.progressbar.setMinimum(start)
         self.progressbar.setMaximum(end)
         for frame in range(start, end+1):
@@ -186,6 +185,8 @@ class VideoExporterDialog(QWidget):
             if end_y < start_y: end_y = start_y+1
             if end_x > start_x + self.config.max_image_size: end_x = start_x + self.config.max_image_size
             if end_y > start_y + self.config.max_image_size: end_y = start_y + self.config.max_image_size
+            if (end_y-start_y) % 2 != 0: end_y -= 1
+            if (end_x-start_x) % 2 != 0: end_x -= 1
             self.preview_slice = self.image[start_y:end_y, start_x:end_x, :]
 
             if self.preview_slice.shape[2] == 1:
@@ -195,19 +196,24 @@ class VideoExporterDialog(QWidget):
             #    marker_handler.drawToImage(self.image, start_x, start_y)
             if self.cbType.currentIndex() == 0:
                 if writer == None:
+                    writer = imageio.get_writer(path, **writer_params)
+                writer.append_data(self.preview_slice)
+                """
+                if writer == None:
                     fourcc = VideoWriter_fourcc(*str(self.leCodec.text()))
                     writer = cv2.VideoWriter(path, fourcc, timeline.fps, (self.preview_slice.shape[1], self.preview_slice.shape[0]))
                 writer.write(cv2.cvtColor(self.preview_slice, COLOR_RGB2BGR))
+                """
             elif self.cbType.currentIndex() == 1:
                 imsave(path % (frame-start), self.preview_slice)
-            elif self.cbType.currentIndex() == 2:
+            elif self.cbType.currentIndex() == 0 or self.cbType.currentIndex() == 2:
                 if writer == None:
-                    writer = imageio.get_writer(path, format="gif", mode="I", fps=timeline.fps)
+                    writer = imageio.get_writer(path, **writer_params)
                 writer.append_data(self.preview_slice)
-        if self.cbType.currentIndex() == 2:
+        if self.cbType.currentIndex() == 2 or self.cbType.currentIndex() == 0:
             writer.close()
-        if self.cbType.currentIndex() == 0:
-            writer.release()
+        #if self.cbType.currentIndex() == 0:
+        #    writer.release()
 
 class VideoExporter:
     def __init__(self, window, media_handler, modules, config=None):
