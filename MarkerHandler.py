@@ -478,7 +478,20 @@ class MarkerHandler:
         self.UpdateCounter()
 
     def drawToImage(self, image, start_x, start_y):
-        image[:,:,0] = 1
+        # TODO check if marker is outside of image
+        # TODO draw marker history in tracking mode
+        # TODO size settings for export
+        w = 1.
+        b = 10-7
+        r2 = 10
+        print("Saving", image.shape)
+        for point in self.points:
+            color = np.array(self.config.types[point.type][1]).reshape(1, 1, 3)
+            x, y = point.pos().x()-start_x, point.pos().y()-start_y
+            image[y-r2:y-b,x-w:x+w,:] = color
+            image[y+b:y+r2,x-w:x+w,:] = color
+            image[y-w:y+w,x-r2:x-b,:] = color
+            image[y-w:y+w,x+b:x+r2,:] = color
 
     def UpdateCounter(self):
         for counter in self.counter:
