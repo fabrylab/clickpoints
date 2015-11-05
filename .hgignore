@@ -1,7 +1,12 @@
 syntax: glob
 *.pyc
 
+# Python egg metadata, regenerated from source files by setuptools.
+
 syntax: regexp
+^tools/.*\.egg-info.*
+^tools/dist.*
+^tools/build.*
 .directory
 lastnotified.log
 ^ClickPoints$

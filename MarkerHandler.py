@@ -500,13 +500,15 @@ class MarkerHandler:
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
 
+    def GetLogName(self, filename):
+        base_filename = os.path.splitext(filename)[0]
+        return os.path.join(self.config.outputpath, base_filename + self.config.logname_tag)
+
     def LoadImageEvent(self, filename, framenumber):
         if self.current_logname is not None:
             self.last_logname = self.current_logname
         self.frame_number = framenumber
-        base_filename = os.path.splitext(filename)[0]
-        self.config["outputpath"]
-        self.current_logname = os.path.join(self.config.outputpath, base_filename + self.config.logname_tag)
+        self.current_logname = self.GetLogName(filename)
 
         self.LoadLog(self.current_logname)
 

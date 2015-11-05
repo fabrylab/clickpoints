@@ -12,10 +12,10 @@ import SocketServer, socket, threading, subprocess
 
 class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
-        self.server.signal.emit(self.request[0])
+        self.server.signal.emit(self.request[0], self.request[1], self.client_address)
 
 class ScriptLauncher(QObject):
-    signal = pyqtSignal(str)
+    signal = pyqtSignal(str, socket._socketobject, tuple)
 
     def __init__(self, window, media_handler, config=None):
         QObject.__init__(self)
@@ -39,10 +39,23 @@ class ScriptLauncher(QObject):
         server_thread.daemon = True
         server_thread.start()
 
-    def Command(self, command):
+    def Command(self, command, socket, client_address):
         cmd, value = str(command).split(" ", 1)
         if cmd == "JumpFrames":
             self.window.JumpFrames(int(value))
+        if cmd == "GetImageName":
+            name = self.window.media_handler.getCurrentFilename(int(value))
+            if name[0] is None:
+                socket.sendto("", client_address)
+            else:
+                socket.sendto(os.path.join(*name), client_address)
+        if cmd == "GetMarkerName":
+            name = self.window.media_handler.getCurrentFilename(int(value))
+            if name[0] is None:
+                socket.sendto("", client_address)
+            else:
+                name = self.window.GetModule("MarkerHandler").GetLogName(os.path.join(*name))
+                socket.sendto(name, client_address)
 
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]

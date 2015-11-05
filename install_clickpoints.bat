@@ -29,4 +29,9 @@ python install_registry.py install
 echo DONE
 echo.
 
+:: iinstall clickpoints python package
+cd tools
+python setup.py install
+cd ..
+
 pause
