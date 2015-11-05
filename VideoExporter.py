@@ -191,9 +191,9 @@ class VideoExporterDialog(QWidget):
 
             if self.preview_slice.shape[2] == 1:
                 self.preview_slice = np.dstack((self.preview_slice,self.preview_slice,self.preview_slice))
-            #if marker_handler:
-            #    print("MarkerHandler")
-            #    marker_handler.drawToImage(self.image, start_x, start_y)
+            if marker_handler:
+                print("MarkerHandler")
+                marker_handler.drawToImage(self.preview_slice, start_x, start_y)
             if self.cbType.currentIndex() == 0:
                 if writer == None:
                     writer = imageio.get_writer(path, **writer_params)
