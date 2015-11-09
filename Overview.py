@@ -84,7 +84,7 @@ class Overview(QGraphicsRectItem):
 
         self.t=checkUpdateThread(self)
         self.t.signal.sig.connect(self.updatePixmap)
-        self.t.start()
+        self.started = False
 
     def updatePixmap(self, index):
         self.pixmaps[index].setPixmap(QPixmap(self.qimages[index]))
@@ -132,6 +132,9 @@ class Overview(QGraphicsRectItem):
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F3:
             # @key F3: toggle Overview
+            if self.started == False:
+                self.t.start()
+                self.started = True
             self.ToggleOverviewInterfaceEvent()
 
     def ToggleOverviewInterfaceEvent(self):
