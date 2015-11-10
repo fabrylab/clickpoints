@@ -4,9 +4,9 @@ syntax: glob
 # Python egg metadata, regenerated from source files by setuptools.
 
 syntax: regexp
-^tools/.*\.egg-info.*
-^tools/dist.*
-^tools/build.*
+^package/.*\.egg-info.*
+^package/dist.*
+^package/build.*
 .directory
 lastnotified.log
 ^ClickPoints$
