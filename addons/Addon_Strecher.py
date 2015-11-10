@@ -83,5 +83,5 @@ def OverloadKeyPressEvent(func):
     return wrapper
 
 
-MediaHandler.ReadImage = OverloadImageRead(MediaHandler.ReadImage)
+MediaHandler._ReadImage = OverloadImageRead(MediaHandler._ReadImage)
 DrawImage.keyPressEvent = OverloadKeyPressEvent(DrawImage.keyPressEvent)

@@ -12,14 +12,15 @@ except ImportError:
     from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox, QGraphicsSceneWheelEvent
     from PyQt4.QtCore import Qt
 
+from Tools import HelpText, BroadCastEvent, rotate_list
+from ConfigLoad import LoadConfig
+from ToolsForClickPoints import BigImageDisplay
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "modules"))
 from MaskHandler import MaskHandler
 from MarkerHandler import MarkerHandler
 from Timeline import Timeline
 from AnnotationHandler import AnnotationHandler
-
-from Tools import HelpText, BroadCastEvent, rotate_list
-from ConfigLoad import LoadConfig
-from ToolsForClickPoints import BigImageDisplay
 from GammaCorrection import GammaCorrection
 from FolderBrowser import FolderBrowser
 from ScriptLauncher import ScriptLauncher
@@ -32,12 +33,11 @@ from QExtendedGraphicsView import QExtendedGraphicsView
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 from mediahandler import MediaHandler
-from regexpfilefilter import FILTER_Tag
 
 import updateHandler as uh
 
-used_modules = [MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, AnnotationHandler, FolderBrowser, ScriptLauncher, VideoExporter, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "", "hud"]
+used_modules = [MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud"]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
