@@ -8,7 +8,7 @@ try:
 except ImportError:
     from PyQt4 import QtCore
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "mediahandler"))
 from mediahandler import MediaHandler
 
 from Tools import BroadCastEvent
@@ -23,7 +23,7 @@ class FolderBrowser:
         self.index = 0
         self.folder_list = []
         for folder in config.folder_list:
-            if folder.find("*") != -1:
+            if folder.find("*") != -1 and 0:
                 self.folder_list.extend(glob.glob(folder))
             else:
                 self.folder_list.append(folder)
@@ -46,6 +46,8 @@ class FolderBrowser:
         if not folder_found:
             print("Folder not found!")
             self.media_handler_list.insert(0, self.window.media_handler)
+            self.folder_list.insert(0, srcpath_folder)
+        print(self.media_handler_list)
 
     def LoadFolder(self):
         self.window.save()
@@ -54,6 +56,7 @@ class FolderBrowser:
         self.config.srcpath = self.folder_list[self.index]
         index = self.window.media_handler.getCurrentPos()
         self.window.media_handler = self.media_handler_list[self.index]
+        print("self.window.media_handler", self.window.media_handler, self.index)
         BroadCastEvent(self.modules, "FolderChangeEvent")
         self.window.JumpToFrame(index)
         self.window.setWindowTitle(self.folder_list[self.index])

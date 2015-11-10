@@ -110,6 +110,8 @@ launch_scripts = []
 # @config `info_hud_string = ` specify string to display in the hud
 info_hud_string = ""
 
+dimension_template = "Recording(?P<recording>\d*)_FoW(?P<fov>\d*)_Mode(?P<mode>.*)_z(?P<z>\d*).tif"
+
 # enables .access on dicts
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
@@ -134,7 +136,7 @@ def LoadConfig():
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=", 1)
             if key == "srcpath" and value != "":
-                if os.path.exists(value):
+                if os.path.exists(value) or "*" in value:
                     srcpath = value
                 else:
                     print("ERROR: path",value,"does not exist.")
