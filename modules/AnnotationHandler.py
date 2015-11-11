@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import os
+import sys
 import re
 import glob
 
@@ -18,6 +19,10 @@ from abc import abstractmethod
 #TODO conditional export based on config?
 from peewee import *
 from datetime import datetime
+
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "database"))
+from databaseAnnotation import DatabaseAnnotation
 
 # util
 def UpdateDictWith(x, y):
@@ -69,19 +74,6 @@ def ReadAnnotation(filename):
     return results, comment
 
 
-class SQLAnnotation(Model):
-        timestamp = DateTimeField()
-        system = CharField()
-        camera = CharField()
-        tags =  CharField()
-        rating = IntegerField()
-        reffilename = CharField()
-        reffileext = CharField()
-        comment = TextField()
-        fileid = IntegerField()
-
-        class Meta:
-            database = None
 
 class AnnotationEditor(QWidget):
     def __init__(self, filename, outputpath, modules, config):
@@ -229,22 +221,7 @@ class AnnotationHandlerSQL:
         self.config=config
         self.parent=parent
         # init db connection
-        self.db = MySQLDatabase(self.config.sql_dbname,
-                                host=self.config.sql_host,
-                                port=self.config.sql_port,
-                                user=self.config.sql_user,
-                                passwd=self.config.sql_pwd)
-
-        self.db.connect()
-
-        if self.db.is_closed():
-            raise Exception("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
-        else:
-            print("connection established")
-
-        # generate acess class
-        self.SQLAnnotation = SQLAnnotation
-        self.SQLAnnotation._meta.database=self.db
+        self.db = DatabaseAnnotation(self.config)
 
     def saveAnnotation(self):
         # extract relevant values, store in dict
@@ -566,22 +543,7 @@ class AnnotationHandler():
         else:
             ## MYSQL version
             # init db connection
-            self.db = MySQLDatabase(self.config.sql_dbname,
-                                    host=self.config.sql_host,
-                                    port=self.config.sql_port,
-                                    user=self.config.sql_user,
-                                    passwd=self.config.sql_pwd)
-
-            self.db.connect()
-
-            if self.db.is_closed():
-                raise Exception("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
-            else:
-                print("connection established")
-
-            # generate acess class
-            self.SQLAnnotation = SQLAnnotation
-            self.SQLAnnotation._meta.database=self.db
+            self.db = DatabaseAnnotation(self.config)
 
             # TODO performance concerns - how to poll the DB in a clever way ?
 
