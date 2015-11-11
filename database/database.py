@@ -44,6 +44,7 @@ class folder(Model):
     parent_id = IntegerField()#ForeignKeyField(folder)
     name = CharField()
 
+# TODO: make sure this doesn't overwrite actual config!
 class config:
     def __init__(self):
         self.sql_dbname = 'annotation'
@@ -66,8 +67,7 @@ class Database:
         self.db.connect()
 
         if self.db.is_closed():
-            print("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
-            # TODO clean break?
+            raise Exception("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
         else:
             print("connection established")
 
