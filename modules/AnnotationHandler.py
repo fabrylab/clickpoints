@@ -584,37 +584,41 @@ class AnnotationHandler():
             self.SQLAnnotation._meta.database=self.db
 
             # TODO performance concerns - how to poll the DB in a clever way ?
-            # TODO fix issue with recursive media handler
 
+            if not self.config.annotation_ids:
             # brute force version
-            for file in self.media_handler.filelist:
-                # extract base name
-                path,filename = os.path.split(file)
-                basename,ext = os.path.splitext(filename)
+                for file in self.media_handler.filelist:
+                    # extract base name
+                    path,filename = os.path.split(file)
+                    basename,ext = os.path.splitext(filename)
 
-                results = {}
-                comment=''
+                    results = {}
+                    comment=''
 
-                try:
-                    item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==basename)
-                    found = True
-                    comment=item.comment
-                    results={}
-                    results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
-                    results['system']=item.system
-                    results['camera']=item.camera
-                    results['tags']=[elem.strip() for elem in item.tags.split(",")]
-                    results['rating']=item.rating
-                    results['reffilename']=item.reffilename
-                    results['feffileext']=item.reffileext
+                    try:
+                        item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==basename)
+                        found = True
+                        comment=item.comment
+                        results={}
+                        results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
+                        results['system']=item.system
+                        results['camera']=item.camera
+                        results['tags']=[elem.strip() for elem in item.tags.split(",")]
+                        results['rating']=item.rating
+                        results['reffilename']=item.reffilename
+                        results['feffileext']=item.reffileext
 
-                    self.annoations[basename] = dict(data=results, comment=comment)
+                        self.annoations[basename] = dict(data=results, comment=comment)
 
-                except DoesNotExist:
-                    print('no annotation for file:',file)
-                    pass
+                    except DoesNotExist:
+                        print('no annotation for file:',file)
+                        pass
 
-
+            else:
+            # SQL File & Annotation version
+                for nr,anotation_ID in enumerate(self.config.annotation_ids):
+                    if anotation_ID: # is not empty
+                        print(nr,anotation_ID)
 
 
         self.AnnotationEditorWindow = None
