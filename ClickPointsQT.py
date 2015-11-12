@@ -34,6 +34,7 @@ from QExtendedGraphicsView import QExtendedGraphicsView
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 from mediahandler import MediaHandler
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "update"))
 import updateHandler as uh
 
 used_modules = [MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText]
