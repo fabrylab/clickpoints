@@ -1,4 +1,8 @@
-import socket, sys
+from __future__ import division, print_function
+import sys
+import os
+import socket
+import signal
 
 def send(message):
     HOST, PORT = "localhost", int(sys.argv[3])
@@ -22,3 +26,18 @@ def GetImageName(value):
 
 def GetMarkerName(value):
     return send2("GetMarkerName %d \n" % value)
+
+terminate_signal = False
+def CatchTerminateSignal():
+    def signal_handler(signal, frame):
+        global terminate_signal
+        terminate_signal = True
+
+    if hasattr(os.sys, 'winver'):
+        signal.signal(signal.SIGBREAK, signal_handler)
+    else:
+        signal.signal(signal.SIGTERM, signal_handler)
+
+def HasTerminateSignal():
+    global terminate_signal
+    return terminate_signal

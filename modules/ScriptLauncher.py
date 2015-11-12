@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import os, sys
 import psutil
+import signal
 
 try:
     from PyQt5 import QtCore
@@ -67,12 +68,19 @@ class ScriptLauncher(QObject):
         for script, key, index in zip(self.config.launch_scripts, keys, range(len(self.config.launch_scripts))):
             # @key F12: Launch
             if event.key() == key:
-                if self.running_processes[index] is not None and self.running_processes[index].pid in psutil.pids(): #self.running_processes[index] is not None:
-                    self.running_processes[index].kill()
+                process = self.running_processes[index]
+                if process is not None and process.pid in psutil.pids():
+                    if hasattr(os.sys, 'winver'):
+                        os.kill(process.pid, signal.CTRL_BREAK_EVENT)
+                    else:
+                        process.send_signal(signal.SIGTERM)
                     continue
                 self.window.save()
                 args = [sys.executable, os.path.abspath(script), os.path.abspath(self.config.srcpath), str(self.media_handler.currentPos), str(self.PORT)]
-                process = subprocess.Popen(args)
+                if hasattr(os.sys, 'winver'):
+                    process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+                else:
+                    process = subprocess.Popen(args)
                 self.running_processes[index] = process
 
     @staticmethod
