@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import os, sys
+import psutil
 
 try:
     from PyQt5 import QtCore
@@ -39,10 +40,14 @@ class ScriptLauncher(QObject):
         server_thread.daemon = True
         server_thread.start()
 
+        self.running_processes = [None]*len(self.config.launch_scripts)
+
     def Command(self, command, socket, client_address):
         cmd, value = str(command).split(" ", 1)
         if cmd == "JumpFrames":
             self.window.JumpFrames(int(value))
+        if cmd == "JumpToFrame":
+            self.window.JumpToFrame(int(value))
         if cmd == "GetImageName":
             name = self.window.media_handler.getCurrentFilename(int(value))
             if name[0] is None:
@@ -59,11 +64,16 @@ class ScriptLauncher(QObject):
 
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
-        for script, key in zip(self.config.launch_scripts, keys):
+        for script, key, index in zip(self.config.launch_scripts, keys, range(len(self.config.launch_scripts))):
             # @key F12: Launch
             if event.key() == key:
+                if self.running_processes[index] is not None and self.running_processes[index].pid in psutil.pids(): #self.running_processes[index] is not None:
+                    self.running_processes[index].kill()
+                    continue
                 self.window.save()
-                subprocess.Popen([sys.executable, os.path.abspath(script), os.path.abspath(self.config.srcpath), str(self.media_handler.currentPos), str(self.PORT)])
+                args = [sys.executable, os.path.abspath(script), os.path.abspath(self.config.srcpath), str(self.media_handler.currentPos), str(self.PORT)]
+                process = subprocess.Popen(args)
+                self.running_processes[index] = process
 
     @staticmethod
     def file():

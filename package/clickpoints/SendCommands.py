@@ -14,6 +14,9 @@ def send2(message):
 def JumpFrames(value):
     send("JumpFrames %d \n" % value)
 
+def JumpToFrame(value):
+    send("JumpToFrame %d \n" % value)
+
 def GetImageName(value):
     return send2("GetImageName %d \n" % value)
 

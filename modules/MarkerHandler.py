@@ -64,6 +64,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.config = self.marker_handler.config
 
         self.scale_value = 1
+        self.processed = 0
 
         self.UpdatePath()
 
@@ -118,11 +119,15 @@ class MyMarkerItem(QGraphicsPathItem):
         self.marker_handler.PointsUnsaved = True
         self.setAcceptHoverEvents(True)
         if self.marker_handler.config.tracking is True:
-            self.track = {self.marker_handler.frame_number: [x, y, point_type]}
+            self.track = {self.marker_handler.frame_number: [x, y, point_type, self.processed]}
             self.pathItem = QGraphicsPathItem(self.imgItem)
             self.path = QPainterPath()
             self.path.moveTo(x, y)
         self.active = True
+
+    def SetProcessed(self, processed):
+        self.track[self.marker_handler.frame_number][3] = processed
+        self.processed = processed
 
     def ConnectToPartner(self, point):
         self.partner_id = point.id
@@ -146,7 +151,7 @@ class MyMarkerItem(QGraphicsPathItem):
                 continue
             if self.config.tracking_show_leading != -1 and frame > self.marker_handler.frame_number+self.config.tracking_show_leading:
                 continue
-            x, y, marker_type = self.track[frame]
+            x, y, marker_type, processed = self.track[frame]
             if marker_type != -1:
                 if last_active:
                     self.path.lineTo(x, y)
@@ -170,11 +175,11 @@ class MyMarkerItem(QGraphicsPathItem):
             self.pathItem.setOpacity(0.5)
             self.track[self.marker_handler.frame_number][2] = self.type
 
-    def addPoint(self, x, y, marker_type):
+    def addPoint(self, x, y, marker_type, processed=0):
         if marker_type == -1:
             x, y = self.pos().x(), self.pos().y()
         self.setPos(x, y)
-        self.track[self.marker_handler.frame_number] = [x, y, marker_type]
+        self.track[self.marker_handler.frame_number] = [x, y, marker_type, processed]
         if marker_type == -1:
             self.SetTrackActive(False)
         else:
@@ -187,6 +192,7 @@ class MyMarkerItem(QGraphicsPathItem):
             else:
                 self.partner.UpdateRect()
                 self.partner.setPos(self.partner.pos())
+        self.SetProcessed(processed)
 
     def OnRemove(self):
         self.marker_handler.counter[self.type].AddCount(-1)
@@ -256,6 +262,7 @@ class MyMarkerItem(QGraphicsPathItem):
         if event.button() == 1:
             self.marker_handler.PointsUnsaved = True
             self.dragged = False
+            self.SetProcessed(0)
             self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
             self.marker_handler.Crosshair.Hide()
             pass
@@ -559,8 +566,8 @@ class MarkerHandler:
                         else:
                             self.points[index].addPoint(x, y, marker_type)
                         continue
-                    active = int(line[3])
-                    if marker_type == -1 or active == 0:
+                    processed = int(line[3])
+                    if marker_type == -1:
                         continue
                     marker_id = line[4]
                     partner_id = None
@@ -570,14 +577,14 @@ class MarkerHandler:
                     if self.config.tracking is True:
                         for point in self.points:
                             if point.id == marker_id:
-                                point.addPoint(x, y, marker_type)
+                                point.addPoint(x, y, marker_type, processed)
                                 found = True
                                 break
                     if not found:
                         self.points.append(
                             MyMarkerItem(x, y, self.MarkerParent, self, marker_type, marker_id, partner_id))
                         self.points[-1].setScale(1 / self.scale)
-                        self.points[-1].setActive(active)
+                        self.points[-1].SetProcessed(processed)
                 self.UpdateCounter()
         else:
             for index in range(0, len(self.points)):
@@ -604,7 +611,7 @@ class MarkerHandler:
                     os.remove(self.current_logname)
             else:
                 data = ["%f %f %d %d %s %s\n" % (
-                    point.pos().x(), point.pos().y(), point.type, point.active, point.id, point.partner_id)
+                    point.pos().x(), point.pos().y(), point.type, point.processed, point.id, point.partner_id)
                         for point in self.points if point.active]
                 with open(self.current_logname, 'w') as fp:
                     fp.write("#@types " + str(self.config.types) + "\n")

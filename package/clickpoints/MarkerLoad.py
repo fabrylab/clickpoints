@@ -37,18 +37,25 @@ def LoadLog(logname):
             if len(line) == 3:
                 points.append(dict(x=x, y=y, type=marker_type))
                 continue
-            active = int(line[3])
-            if marker_type == -1 or active == 0:
+            processed = int(line[3])
+            if marker_type == -1:
                 continue
             marker_id = line[4]
             partner_id = None
             if len(line) >= 6:
                 partner_id = line[5]
-            points.append(dict(x=x, y=y, type=marker_type, id=marker_id, partner_id=partner_id))
+            points.append(dict(x=x, y=y, type=marker_type, id=marker_id, partner_id=partner_id, processed=processed))
     return points, types
 
+def LoadLogIDindexed(logname):
+    points, types = LoadLog(logname)
+    points2 = {point["id"]: point for point in points}
+    return points2, types
+
 def SaveLog(filename, points, types={}):
-    data = ["%f %f %d %d %s %s\n" % (point["x"], point["y"], point["type"], 1, point["id"], point["partner_id"]) for point in points]
+    if isinstance(points, dict):
+        points = [points[id] for id in points]
+    data = ["%f %f %d %d %s %s\n" % (point["x"], point["y"], point["type"], point["processed"], point["id"], point["partner_id"]) for point in points]
     with open(filename, 'w') as fp:
         fp.write("#@types " + str(types) + "\n")
         for line in data:
