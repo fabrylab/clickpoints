@@ -497,6 +497,9 @@ class Timeline:
     def AnnotationRemoved(self, *args):
         self.frameSlider.removeTickMarker(self.media_handler.currentPos, type=0)
 
+    def AnnotationMarkerAdd(self, position, *args):
+        self.frameSlider.addTickMarker(position, type=0)
+
     def HideInterface(self, hide):
         self.hidden = hide
         if hide:
