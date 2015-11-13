@@ -223,7 +223,7 @@ class DatabaseByFiles(QWidget):
         if self.ComboBoxDevice.currentIndex() == 0:
             QMessageBox.question(None, 'Warning', 'You have to select a single device to display images.', QMessageBox.Ok)
             return
-        count = self.SaveFileList()
+        count = self.parent.SaveFileList()
         if count == 0:
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
@@ -420,6 +420,7 @@ class DatabaseBrowser(QWidget):
         # widget layout and elements
         self.setMinimumWidth(655)
         self.setMinimumHeight(500)
+        self.setGeometry(100,100,500,600)
         self.setWindowTitle("Database Browser")
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
         self.layout = QGridLayout(self)
@@ -474,11 +475,11 @@ class DatabaseBrowser(QWidget):
         self.fWidget=self.tab_dict[n]
 
     def SaveFileList(self):
-        if self.ComboBoxDevice.currentIndex() == 0:
+        if self.fWidget.ComboBoxDevice.currentIndex() == 0:
             print("No Device selected")
             return 0
-        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
-        device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
+        system_id = self.fWidget.systems[self.fWidget.ComboBoxSystem.currentIndex()].id
+        device_id = self.fWidget.devices[self.fWidget.ComboBoxDevice.currentIndex()-1].id
         print(system_id, device_id)
         start_time = datetime.strptime(str(self.EditStart.text()), '%Y-%m-%d %H:%M:%S')
         end_time   = datetime.strptime(str(self.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
@@ -494,7 +495,7 @@ class DatabaseBrowser(QWidget):
         return counter
 
     def doSaveFilelist(self):
-        if self.ComboBoxDevice.currentIndex() == 0:
+        if self.fWidget.ComboBoxDevice.currentIndex() == 0:
             QMessageBox.question(None, 'Warning', 'You have to select a single device to write file list.', QMessageBox.Ok)
             return
         count = self.SaveFileList()
