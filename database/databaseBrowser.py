@@ -159,6 +159,7 @@ class DatabaseByFiles(QWidget):
         self.plot2.figure.clear()
         #self.navi_toolbar = NavigationToolbar(self.plot, self)
         #self.layout.addWidget(self.navi_toolbar, 4, 0, 1, 4)
+        self.toggle_widgets=[self.plot2]
 
         # Create Axes object
         self.axes1 = self.plot.figure.add_axes([0.1,0.15,0.86,0.8])
@@ -176,6 +177,9 @@ class DatabaseByFiles(QWidget):
 
     def post_init(self):
         self.parent.layout_vert.addWidget(self.plot2)
+
+    def hideWidgets(self,flag):
+        [w.setHidden(flag) for w in self.toggle_widgets]
 
     def CreateColorMaps(self):
         cmap_b = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,176/255,176/255)),'red':((0,0,0),(1,76/255,76/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
@@ -223,7 +227,7 @@ class DatabaseByFiles(QWidget):
         if self.ComboBoxDevice.currentIndex() == 0:
             QMessageBox.question(None, 'Warning', 'You have to select a single device to display images.', QMessageBox.Ok)
             return
-        count = self.parent.SaveFileList()
+        count = self.SaveFileList()
         if count == 0:
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
@@ -413,6 +417,34 @@ class DatabaseByFiles(QWidget):
             self.parent.EditStart.setText(str(start))
             self.parent.EditEnd.setText(str(end))
 
+    def SaveFileList(self):
+        if self.ComboBoxDevice.currentIndex() == 0:
+            print("No Device selected")
+            return 0
+        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
+        device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
+        print(system_id, device_id)
+        start_time = datetime.strptime(str(self.parent.EditStart.text()), '%Y-%m-%d %H:%M:%S')
+        end_time   = datetime.strptime(str(self.parent.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
+        query = (database.SQL_Files.select()
+                 .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id, database.SQL_Files.timestamp > start_time, database.SQL_Files.timestamp < end_time)
+                 .order_by(database.SQL_Files.timestamp)
+                 )
+        counter = 0
+        with open("files.txt","w") as fp:
+            for item in query:
+                fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
+                counter += 1
+        return counter
+
+    def doSaveFilelist(self):
+        if self.ComboBoxDevice.currentIndex() == 0:
+            QMessageBox.question(None, 'Warning', 'You have to select a single device to write file list.', QMessageBox.Ok)
+            return
+        count = self.SaveFileList()
+        QMessageBox.question(None, 'Saved', 'The file list fielist.txt has been saved with %d entries.' % count, QMessageBox.Ok)
+        return
+
 class DatabaseBrowser(QWidget):
     def __init__(self):
         QWidget.__init__(self)
@@ -452,7 +484,7 @@ class DatabaseBrowser(QWidget):
         self.layout_vert.addWidget(self.pbShow)
 
         self.pbFilelist = QPushButton('&Filelist', self)
-        self.pbFilelist.pressed.connect(self.doSaveFilelist)
+        self.pbFilelist.pressed.connect(self.fWidget.doSaveFilelist)
         self.layout_vert.addWidget(self.pbFilelist)
 
         self.layout_vert.addWidget(QLabel('Start:', self))
@@ -474,34 +506,10 @@ class DatabaseBrowser(QWidget):
         print("set active to:", self.tab_dict[n])
         self.fWidget=self.tab_dict[n]
 
-    def SaveFileList(self):
-        if self.fWidget.ComboBoxDevice.currentIndex() == 0:
-            print("No Device selected")
-            return 0
-        system_id = self.fWidget.systems[self.fWidget.ComboBoxSystem.currentIndex()].id
-        device_id = self.fWidget.devices[self.fWidget.ComboBoxDevice.currentIndex()-1].id
-        print(system_id, device_id)
-        start_time = datetime.strptime(str(self.EditStart.text()), '%Y-%m-%d %H:%M:%S')
-        end_time   = datetime.strptime(str(self.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
-        query = (database.SQL_Files.select()
-                 .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id, database.SQL_Files.timestamp > start_time, database.SQL_Files.timestamp < end_time)
-                 .order_by(database.SQL_Files.timestamp)
-                 )
-        counter = 0
-        with open("files.txt","w") as fp:
-            for item in query:
-                fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
-                counter += 1
-        return counter
-
-    def doSaveFilelist(self):
-        if self.fWidget.ComboBoxDevice.currentIndex() == 0:
-            QMessageBox.question(None, 'Warning', 'You have to select a single device to write file list.', QMessageBox.Ok)
-            return
-        count = self.SaveFileList()
-        QMessageBox.question(None, 'Saved', 'The file list fielist.txt has been saved with %d entries.' % count, QMessageBox.Ok)
-        return
-
+        # hife widgets of all other tabs
+        [v.hideWidgets(True) for k,v in self.tab_dict.iteritems()]
+        # show widgets of current acitve tab
+        self.fWidget.hideWidgets(False)
 
 
 database = Database()
