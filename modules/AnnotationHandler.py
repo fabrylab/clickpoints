@@ -90,14 +90,14 @@ class pyQtTagSelector(QWidget):
             # add to list of currently used tags
             self.parent.list.append(str(name))
 
-            print(self.parent.list)
+            #print(self.parent.list)
 
         def hCB_remove(self):
             # remove from tag list
             self.parent.list.remove(self.name)
 
             # DEBUG
-            print(self.parent.list)
+            #print(self.parent.list)
 
             # delete icon
             self.deleteLater()
@@ -159,7 +159,7 @@ class pyQtTagSelector(QWidget):
 
 
 class AnnotationEditor(QWidget):
-    def __init__(self, filename, outputpath, modules, config):
+    def __init__(self, filename,filenr, outputpath, modules, config):
         QWidget.__init__(self)
 
         # default settings and parameters
@@ -173,7 +173,11 @@ class AnnotationEditor(QWidget):
                              'rating': 0
                              })
         self.comment = ''
+
+
         self.fid=0
+        if not config.files_id==[]:
+            self.fid = config.file_ids[filenr]
 
         self.modules = modules
         self.config = config
@@ -332,8 +336,10 @@ class AnnotationHandlerSQL:
             self.parent.results = UpdateDictWith(self.parent.results, re_dict)
 
         # update with gui changes
-        self.parent.results['tags'] = self.parent.leTag.text()
         self.parent.results['rating'] = self.parent.leRating.currentIndex()
+        # update tags
+        self.parent.results['tags'] = "SQLTags"
+
 
         # check for empty timestamp
         if not self.parent.results['timestamp'] == '':
@@ -378,11 +384,19 @@ class AnnotationHandlerSQL:
                reffileext= self.parent.ext,
                fileid=self.parent.fid)
 
-            print('tags: ',item.tags)
-            print('found: ',found)
-
             item.save()
             print('save')
+
+        print(item.id)
+
+        # update tags
+        self.parent.results['tags'] = "SQLTags"
+        # get table list from selecttag widget
+        taglist=self.parent.leTag.getTagList()
+        # update SQL tag table
+        self.db.updateTagTable(taglist)
+        # update tag association table
+        self.db.setTagsForAnnotationID(item.id,taglist)
 
         results, comment = self.getAnnotation()
         BroadCastEvent(self.parent.modules, "AnnotationAdded", self.parent.basename, results, comment)
@@ -391,9 +405,16 @@ class AnnotationHandlerSQL:
         self.parent.close()
 
     def removeAnnotation(self):
+        print('remove annotation')
         try:
+            # remove annotation entry
             item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
+            id=item.id
             item.delete_instance()
+
+            # remove tag associations
+            tag_associations = self.db.SQLTagAssociation.select().where(self.db.SQLTagAssociation.annotation_id==id)
+            [item.delete_instance() for item in tag_associations]
 
             BroadCastEvent(self.parent.modules, "AnnotationRemoved", self.parent.basename)
             self.parent.close()
@@ -425,10 +446,14 @@ class AnnotationHandlerSQL:
             results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
             results['system']=item.system
             results['camera']=item.camera
-            results['tags']=[elem.strip() for elem in item.tags.split(",")]
+            #results['tags']=[elem.strip() for elem in item.tags.split(",")]
             results['rating']=item.rating
             results['reffilename']=item.reffilename
             results['feffileext']=item.reffileext
+
+            tag_list=self.db.getTagsForAnnotationID(item.id)
+            self.parent.leTag.setActiveTagList(tag_list)
+            results['tags']= tag_list
             return results, comment
 
         except DoesNotExist:
@@ -616,6 +641,7 @@ class AnnotationHandler():
         self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
         self.annoations = {}
+        self.db=[]
 
         if self.config.sql_annotation==False:
             ## LOCAL version
@@ -644,8 +670,9 @@ class AnnotationHandler():
 
             # TODO performance concerns - how to poll the DB in a clever way ?
 
-            if not self.config.annotation_ids:
+            if self.config.annotation_ids==[]:
             # brute force version
+                print("brute force")
                 for file in self.media_handler.filelist:
                     # extract base name
                     path,filename = os.path.split(file)
@@ -655,29 +682,26 @@ class AnnotationHandler():
                     comment=''
 
                     try:
-                        item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==basename)
-                        found = True
-                        comment=item.comment
-                        results={}
-                        results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
-                        results['system']=item.system
-                        results['camera']=item.camera
-                        results['tags']=[elem.strip() for elem in item.tags.split(",")]
-                        results['rating']=item.rating
-                        results['reffilename']=item.reffilename
-                        results['feffileext']=item.reffileext
-
+                        results,comment=self.db.getAnnotationByBasename(basename)
                         self.annoations[basename] = dict(data=results, comment=comment)
-
+                        BroadCastEvent(self.modules, "AnnotationAdded", basename, results, comment)
                     except DoesNotExist:
                         print('no annotation for file:',file)
                         pass
 
             else:
             # SQL File & Annotation version
-                for nr,anotation_ID in enumerate(self.config.annotation_ids):
-                    if anotation_ID: # is not empty
-                        print(nr,anotation_ID)
+                print('annotation ids version')
+                for nr,annotation_ID in enumerate(self.config.annotation_ids):
+                    if not annotation_ID == 0: # is not empty
+                        print(nr,annotation_ID)
+                        try:
+                            results,comment=self.db.getAnnotationByID(annotation_ID)
+                            self.annoations[self.frame_list[nr]] = dict(data=results, comment=comment)
+                            BroadCastEvent(self.modules, "AnnotationAdded", self.frame_list[nr], results, comment)
+                        except:
+                            print('no annotation for file:',self.frame_list[nr])
+
 
 
         self.AnnotationEditorWindow = None
@@ -700,6 +724,7 @@ class AnnotationHandler():
         # @key A: add/edit annotation
         if event.key() == Qt.Key_A:
             self.AnnotationEditorWindow = AnnotationEditor(self.media_handler.getCurrentFilename(),
+                                                           self.media_handler.getCurrentPos(),
                                                            outputpath=self.outputpath, modules=self.modules,
                                                            config=self.config)
             self.AnnotationEditorWindow.show()
