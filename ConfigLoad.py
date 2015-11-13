@@ -150,7 +150,9 @@ def LoadConfig():
     if type(srcpath) == type("") and srcpath[-4:] == ".txt":
         try:
             with open(srcpath, "r") as fp:
-                srcpath,file_ids,anotation_ids = zip(*[line.strip().split() for line in fp.readlines()])
+                srcpath,file_ids,annotation_ids = zip(*[line.strip().split() for line in fp.readlines()])
+                annotation_ids=[int(nr) for nr in annotation_ids]
+                file_ids=[int(nr) for nr in file_ids]
             dont_process_filelist = True
             print("filelist: path file_id annotation_id")
         except ValueError:
