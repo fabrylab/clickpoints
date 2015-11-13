@@ -198,4 +198,4 @@ class DatabaseAnnotation:
 
 
 if __name__ == '__main__':
-    database = DatabaseAnnotation(config())
+    db = DatabaseAnnotation(config())

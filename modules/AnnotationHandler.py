@@ -24,6 +24,7 @@ from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "database"))
 print(os.path.join(os.path.dirname(__file__), "..", "database"))
 from databaseAnnotation import *
+import database as fileDB
 
 # util
 def UpdateDictWith(x, y):
@@ -321,6 +322,8 @@ class AnnotationHandlerSQL:
         self.parent=parent
         # init db connection
         self.db = DatabaseAnnotation(self.config)
+        #TODO: add config
+        self.dbFiles = fileDB.Database()
 
         self.parent.leTag.setStringList(self.db.getTagList())
 
@@ -398,6 +401,14 @@ class AnnotationHandlerSQL:
         # update tag association table
         self.db.setTagsForAnnotationID(item.id,taglist)
 
+        # update file
+        file_item = self.dbFiles.SQL_Files.get(self.dbFiles.SQL_Files.id==self.parent.fid)
+        print(file_item.basename)
+        file_item.annotation_id = item.id
+        print('update anotation',file_item.id,item.id)
+        print(file_item.annotation_id)
+        file_item.save()
+
         results, comment = self.getAnnotation()
         BroadCastEvent(self.parent.modules, "AnnotationAdded", self.parent.basename, results, comment)
 
@@ -410,11 +421,16 @@ class AnnotationHandlerSQL:
             # remove annotation entry
             item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
             id=item.id
+            file_id=item.fileid
             item.delete_instance()
 
             # remove tag associations
             tag_associations = self.db.SQLTagAssociation.select().where(self.db.SQLTagAssociation.annotation_id==id)
             [item.delete_instance() for item in tag_associations]
+
+            # reset annotation_id in files table
+            file_item = self.dbFiles.SQL_Files.get(self.dbFiles.SQL_Files.id==file_id)
+            file_item.annotation_id=0
 
             BroadCastEvent(self.parent.modules, "AnnotationRemoved", self.parent.basename)
             self.parent.close()
@@ -698,6 +714,7 @@ class AnnotationHandler():
                         try:
                             results,comment=self.db.getAnnotationByID(annotation_ID)
                             self.annoations[self.frame_list[nr]] = dict(data=results, comment=comment)
+                            BroadCastEvent(self.modules, "AnnotationMarkerAdd", nr)
                             BroadCastEvent(self.modules, "AnnotationAdded", self.frame_list[nr], results, comment)
                         except:
                             print('no annotation for file:',self.frame_list[nr])
