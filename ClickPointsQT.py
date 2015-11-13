@@ -37,8 +37,8 @@ from mediahandler import MediaHandler
 sys.path.append(os.path.join(os.path.dirname(__file__), "update"))
 import updateHandler as uh
 
-used_modules = [MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud"]
+used_modules = [MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText, AnnotationHandler]
+used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
