@@ -135,6 +135,15 @@ class pyQtTagSelector(QWidget):
     def setStringList(self,string_list):
         self.cbTag.addItems(QStringList(string_list))
 
+    def setActiveTagList(self,string_list):
+        for tag in string_list:
+            # on add create checked checbox
+            cb = self.unCheckBox(self,tag)
+            self.layout_list.addWidget(cb)
+
+    def getTagList(self):
+        return self.list
+
     def hPB_add(self):
         name = self.cbTag.currentText()
         # check if already in list
