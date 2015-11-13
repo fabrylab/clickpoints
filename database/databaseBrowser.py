@@ -22,7 +22,7 @@ try:
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox
+    from PyQt4.QtGui import QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox, QTabWidget, QSpacerItem
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList, QObject, SIGNAL
 
 from peewee import fn
@@ -54,26 +54,33 @@ def ShortenNumber(value):
     value /= 10**(power*3)
     return "%d" % value+postfix[power]
 
-class DatabaseBrowser(QWidget):
-    def __init__(self):
+class DatabaseByFiles(QWidget):
+    def __init__(self,parent):
         QWidget.__init__(self)
+        self.parent = parent
 
-        # widget layout and elements
-        self.setMinimumWidth(655)
-        self.setMinimumHeight(400)
-        self.setWindowTitle("Database Browser")
-        self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
-        self.layout = QGridLayout(self)
-        self.layout.setColumnStretch(0, 1)
-        self.layout.setColumnStretch(1, 1)
-        self.layout.setColumnStretch(2, 0)
+        # main layout splits top bottom (control / display)
+        self.layout = QVBoxLayout(self)
 
-        layout_vert = QVBoxLayout()
-        self.layout.addLayout(layout_vert, 0, 0)
-        layout_vert.setContentsMargins(0, 0, 50, 0)
+        # top split in left right segment
+        self.layout_top = QHBoxLayout()
+        self.layout.addLayout(self.layout_top)
+
+        # vertical split on left and right side
+        self.layout_top_v_left = QVBoxLayout()
+        self.layout_top_v_left.setContentsMargins(0,0,20,0)
+        self.layout_top_v_right = QVBoxLayout()
+        self.layout_top_v_right.setContentsMargins(0,0,20,0)
+        self.layout_top.addLayout(self.layout_top_v_left)
+        self.layout_top.addLayout(self.layout_top_v_right)
+
+        # non persistant hbox for label + combo box
+        # System
+        #self.layout_top_v_left.addSpacing(10)
         layout_hor = QHBoxLayout()
-        layout_vert.addLayout(layout_hor)
+        self.layout_top_v_left.addLayout(layout_hor)
         layout_hor.addWidget(QLabel('System:', self))
+
         self.ComboBoxSystem = QComboBox(self)
         self.systems = database.SQL_Systems.select()
         for index, item in enumerate(self.systems):
@@ -82,8 +89,10 @@ class DatabaseBrowser(QWidget):
         self.ComboBoxSystem.setInsertPolicy(QComboBox.NoInsert)
         layout_hor.addWidget(self.ComboBoxSystem)
 
+        # Device
         layout_hor = QHBoxLayout()
-        layout_vert.addLayout(layout_hor)
+        layout_hor.setSpacing(1)
+        self.layout_top_v_left.addLayout(layout_hor)
         layout_hor.addWidget(QLabel('Device:', self))
         self.ComboBoxDevice = QComboBox(self)
         self.devices = self.systems[0].devices()
@@ -94,10 +103,9 @@ class DatabaseBrowser(QWidget):
         self.ComboBoxDevice.setInsertPolicy(QComboBox.NoInsert)
         layout_hor.addWidget(self.ComboBoxDevice)
 
-        layout_vert = QVBoxLayout()
-        self.layout.addLayout(layout_vert, 0, 1)
+        # Year
         layout_hor = QHBoxLayout()
-        layout_vert.addLayout(layout_hor)
+        self.layout_top_v_right.addLayout(layout_hor)
         layout_hor.addWidget(QLabel('Year:', self))
         self.SpinBoxYear = QSpinBox(self)
         self.SpinBoxYear.setMaximum(2050)
@@ -109,9 +117,9 @@ class DatabaseBrowser(QWidget):
         button.setMaximumWidth(20)
         button.pressed.connect(self.reset_year)
         layout_hor.addWidget(button)
-
+        # Month
         layout_hor = QHBoxLayout()
-        layout_vert.addLayout(layout_hor)
+        self.layout_top_v_right.addLayout(layout_hor)
         layout_hor.addWidget(QLabel('Month:', self))
         self.SpinBoxMonth = QSpinBox(self)
         self.SpinBoxMonth.setMaximum(13)
@@ -122,9 +130,9 @@ class DatabaseBrowser(QWidget):
         button.setMaximumWidth(20)
         button.pressed.connect(self.reset_month)
         layout_hor.addWidget(button)
-
+        # Day
         layout_hor = QHBoxLayout()
-        layout_vert.addLayout(layout_hor)
+        self.layout_top_v_right.addLayout(layout_hor)
         layout_hor.addWidget(QLabel('Day:', self))
         self.SpinBoxDay = QSpinBox(self)
         self.SpinBoxDay.setMaximum(32)
@@ -136,39 +144,18 @@ class DatabaseBrowser(QWidget):
         button.pressed.connect(self.reset_day)
         layout_hor.addWidget(button)
 
-        layout_vert = QVBoxLayout()
-        self.layout.addLayout(layout_vert, 0, 2, 4, 1)
-
-        self.pbConfirm = QPushButton('C&onfirm', self)
-        self.pbConfirm.pressed.connect(self.counts)
-        layout_vert.addWidget(self.pbConfirm)
-
-        self.pbShow = QPushButton('&Show', self)
-        self.pbShow.pressed.connect(self.showData)
-        layout_vert.addWidget(self.pbShow)
-
-        self.pbFilelist = QPushButton('&Filelist', self)
-        self.pbFilelist.pressed.connect(self.doSaveFilelist)
-        layout_vert.addWidget(self.pbFilelist)
-
-        layout_vert.addWidget(QLabel('Start:', self))
-        self.EditStart = QLineEdit('', self)
-        layout_vert.addWidget(self.EditStart)
-        layout_vert.addWidget(QLabel('End:', self))
-        self.EditEnd = QLineEdit('', self)
-        layout_vert.addWidget(self.EditEnd)
-        layout_vert.addStretch()
-
-        self.update_timerange()
+        # PLOT
+        self.layout.addSpacing(50)
+        self.layout.setStretch(1,1)
 
         self.plot = MatplotlibWidget(self)
         self.plot.figure.patch.set_facecolor([0,1,0,0])
-        self.layout.addWidget(self.plot, 1, 0, 1, 2)
+        self.layout.addWidget(self.plot)
         self.plot.figure.clear()
 
         self.plot2 = MatplotlibWidget(self, width=1)
         self.plot2.figure.patch.set_facecolor([0,1,0,0])
-        layout_vert.addWidget(self.plot2)
+
         self.plot2.figure.clear()
         #self.navi_toolbar = NavigationToolbar(self.plot, self)
         #self.layout.addWidget(self.navi_toolbar, 4, 0, 1, 4)
@@ -187,6 +174,9 @@ class DatabaseBrowser(QWidget):
 
         self.CreateColorMaps()
 
+    def post_init(self):
+        self.parent.layout_vert.addWidget(self.plot2)
+
     def CreateColorMaps(self):
         cmap_b = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,176/255,176/255)),'red':((0,0,0),(1,76/255,76/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
         cmap_r = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,104/255,104/255)),'red':((0,0,0),(1,85/255,85/255)),'green': ((0,0,0),(1,168/255,168/255)),'alpha':((0,0,0),(1,1,1))})
@@ -204,45 +194,6 @@ class DatabaseBrowser(QWidget):
 
     def reset_day(self):
         self.SpinBoxDay.setValue(0)
-
-    def SaveFileList(self):
-        if self.ComboBoxDevice.currentIndex() == 0:
-            print("No Device selected")
-            return 0
-        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
-        device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
-        print(system_id, device_id)
-        start_time = datetime.strptime(str(self.EditStart.text()), '%Y-%m-%d %H:%M:%S')
-        end_time   = datetime.strptime(str(self.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
-        query = (database.SQL_Files.select()
-                 .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id, database.SQL_Files.timestamp > start_time, database.SQL_Files.timestamp < end_time)
-                 .order_by(database.SQL_Files.timestamp)
-                 )
-        counter = 0
-        with open("files.txt","w") as fp:
-            for item in query:
-                fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
-                counter += 1
-        return counter
-
-    def doSaveFilelist(self):
-        if self.ComboBoxDevice.currentIndex() == 0:
-            QMessageBox.question(None, 'Warning', 'You have to select a single device to write file list.', QMessageBox.Ok)
-            return
-        count = self.SaveFileList()
-        QMessageBox.question(None, 'Saved', 'The file list fielist.txt has been saved with %d entries.' % count, QMessageBox.Ok)
-        return
-
-    def showData(self):
-        if self.ComboBoxDevice.currentIndex() == 0:
-            QMessageBox.question(None, 'Warning', 'You have to select a single device to display images.', QMessageBox.Ok)
-            return
-        count = self.SaveFileList()
-        if count == 0:
-            QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
-            return
-        print("Selected %d images." % count)
-        os.system(r"python.exe ..\ClickPointsQT.py ConfigClickPoints.txt -srcpath=files.txt")
 
     def counts(self):
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
@@ -268,37 +219,16 @@ class DatabaseBrowser(QWidget):
         cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
         self.plot.draw()
 
-    def update_timerange(self):
-        year = self.SpinBoxYear.value()
-        month = self.SpinBoxMonth.value()
-        if month == 13:
-            self.SpinBoxMonth.setValue(1)
-            self.SpinBoxYear.setValue(year+1)
+    def showData(self):
+        if self.ComboBoxDevice.currentIndex() == 0:
+            QMessageBox.question(None, 'Warning', 'You have to select a single device to display images.', QMessageBox.Ok)
             return
-        if month:
-            daycount = calendar.monthrange(year,month)[1]
-            day = self.SpinBoxDay.value()
-            if day > daycount:
-                self.SpinBoxMonth.setValue(month+1)
-                self.SpinBoxDay.setValue(1)
-                return
-        if year == 0:
+        count = self.SaveFileList()
+        if count == 0:
+            QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
-        if month == 0:
-            start = datetime(year, 1, 1)
-            end = datetime(year+1, 1, 1)
-            self.EditStart.setText(str(start))
-            self.EditEnd.setText(str(end))
-        elif day == 0:
-            start = datetime(year, month, 1)
-            end = add_months(start, 1)
-            self.EditStart.setText(str(start))
-            self.EditEnd.setText(str(end))
-        else:
-            start = datetime(year, month, day)
-            end = start + timedelta(days=1)
-            self.EditStart.setText(str(start))
-            self.EditEnd.setText(str(end))
+        print("Selected %d images." % count)
+        os.system(r"python.exe ..\ClickPointsQT.py ConfigClickPoints.txt -srcpath=files.txt")
 
     def DrawData(self, device_id, offset=0, color=0, max_count=1):
         cmap = self.cmaps[color % len(self.cmaps)]
@@ -449,6 +379,129 @@ class DatabaseBrowser(QWidget):
         self.ComboBoxDevice.insertItem(0, "All")
         for index, item in enumerate(self.devices):
             self.ComboBoxDevice.insertItem(index+1, item.name)
+
+
+    def update_timerange(self):
+        year = self.SpinBoxYear.value()
+        month = self.SpinBoxMonth.value()
+        if month == 13:
+            self.SpinBoxMonth.setValue(1)
+            self.SpinBoxYear.setValue(year+1)
+            return
+        if month:
+            daycount = calendar.monthrange(year,month)[1]
+            day = self.SpinBoxDay.value()
+            if day > daycount:
+                self.SpinBoxMonth.setValue(month+1)
+                self.SpinBoxDay.setValue(1)
+                return
+        if year == 0:
+            return
+        if month == 0:
+            start = datetime(year, 1, 1)
+            end = datetime(year+1, 1, 1)
+            self.parent.EditStart.setText(str(start))
+            self.parent.EditEnd.setText(str(end))
+        elif day == 0:
+            start = datetime(year, month, 1)
+            end = add_months(start, 1)
+            self.parent.EditStart.setText(str(start))
+            self.parent.EditEnd.setText(str(end))
+        else:
+            start = datetime(year, month, day)
+            end = start + timedelta(days=1)
+            self.parent.EditStart.setText(str(start))
+            self.parent.EditEnd.setText(str(end))
+
+class DatabaseBrowser(QWidget):
+    def __init__(self):
+        QWidget.__init__(self)
+
+        # widget layout and elements
+        self.setMinimumWidth(655)
+        self.setMinimumHeight(500)
+        self.setWindowTitle("Database Browser")
+        self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
+        self.layout = QGridLayout(self)
+        self.layout.setColumnStretch(0, 1)
+        self.layout.setColumnStretch(1, 1)
+        self.layout.setColumnStretch(2, 0)
+        self.layout_vert = QVBoxLayout()
+
+        self.dbByFiles=DatabaseByFiles(self)
+        self.dbByAnnotation=DatabaseByFiles(self)
+
+        self.tabWidget=QTabWidget(self)
+        self.tabWidget.addTab(self.dbByFiles,'by File')
+        self.tabWidget.addTab(self.dbByAnnotation,'by Annotation')
+        self.tab_dict={0:self.dbByFiles,
+                       1:self.dbByAnnotation}
+        self.fWidget=self.dbByFiles
+        # TODO add switch widget on focus change
+        self.tabWidget.currentChanged.connect(self.setFocusTab)
+        self.layout.addWidget(self.tabWidget,0,0,2,2)
+        self.layout.addLayout(self.layout_vert, 0, 2, 2, 1)
+
+        self.pbConfirm = QPushButton('C&onfirm', self)
+        self.pbConfirm.pressed.connect(self.fWidget.counts)
+        self.layout_vert.addWidget(self.pbConfirm)
+
+        self.pbShow = QPushButton('&Show', self)
+        self.pbShow.pressed.connect(self.fWidget.showData)
+        self.layout_vert.addWidget(self.pbShow)
+
+        self.pbFilelist = QPushButton('&Filelist', self)
+        self.pbFilelist.pressed.connect(self.doSaveFilelist)
+        self.layout_vert.addWidget(self.pbFilelist)
+
+        self.layout_vert.addWidget(QLabel('Start:', self))
+        self.EditStart = QLineEdit('', self)
+        self.layout_vert.addWidget(self.EditStart)
+        self.layout_vert.addWidget(QLabel('End:', self))
+        self.EditEnd = QLineEdit('', self)
+        self.layout_vert.addWidget(self.EditEnd)
+        self.layout_vert.addStretch()
+
+        self.fWidget.update_timerange()
+
+        for key,tabWidget in self.tab_dict.iteritems():
+            tabWidget.post_init()
+
+    def setFocusTab(self,n):
+        print("changed to tab: ",n)
+        print(self.tabWidget.tabText(n))
+        print("set active to:", self.tab_dict[n])
+        self.fWidget=self.tab_dict[n]
+
+    def SaveFileList(self):
+        if self.ComboBoxDevice.currentIndex() == 0:
+            print("No Device selected")
+            return 0
+        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
+        device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
+        print(system_id, device_id)
+        start_time = datetime.strptime(str(self.EditStart.text()), '%Y-%m-%d %H:%M:%S')
+        end_time   = datetime.strptime(str(self.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
+        query = (database.SQL_Files.select()
+                 .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id, database.SQL_Files.timestamp > start_time, database.SQL_Files.timestamp < end_time)
+                 .order_by(database.SQL_Files.timestamp)
+                 )
+        counter = 0
+        with open("files.txt","w") as fp:
+            for item in query:
+                fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
+                counter += 1
+        return counter
+
+    def doSaveFilelist(self):
+        if self.ComboBoxDevice.currentIndex() == 0:
+            QMessageBox.question(None, 'Warning', 'You have to select a single device to write file list.', QMessageBox.Ok)
+            return
+        count = self.SaveFileList()
+        QMessageBox.question(None, 'Saved', 'The file list fielist.txt has been saved with %d entries.' % count, QMessageBox.Ok)
+        return
+
+
 
 database = Database()
 
