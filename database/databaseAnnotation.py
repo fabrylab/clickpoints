@@ -71,6 +71,8 @@ class DatabaseAnnotation:
         self.SQLAnnotation._meta.database=self.db
         self.SQLTags = tags
         self.SQLTags._meta.database = self.db
+        self.SQLTagAssociation = tagassociation
+        self.SQLTagAssociation._meta.database = self.db
 
         self.tag_dict_byID = {}
         self.tag_dict_byName = {}
@@ -78,6 +80,40 @@ class DatabaseAnnotation:
 
     ''' Annotation Handling '''
     # TODO add annotation utility function
+    def getAnnotationByID(self,id):
+        item=self.SQLAnnotation.get(self.SQLAnnotation.id==id)
+
+        comment=item.comment
+        results={}
+        results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
+        results['system']=item.system
+        results['camera']=item.camera
+        results['rating']=item.rating
+        results['reffilename']=item.reffilename
+        results['feffileext']=item.reffileext
+
+        tag_list=self.getTagsForAnnotationID(item.id)
+        results['tags']= tag_list
+        return results, comment
+
+
+
+    def getAnnotationByBasename(self,basename):
+        item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==basename)
+
+        comment=item.comment
+        results={}
+        results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
+        results['system']=item.system
+        results['camera']=item.camera
+        results['rating']=item.rating
+        results['reffilename']=item.reffilename
+        results['feffileext']=item.reffileext
+
+        tag_list=self.getTagsForAnnotationID(item.id)
+        results['tags']= tag_list
+        return results, comment
+
 
     ''' Tag Handling'''
     def updateTagDict(self):
@@ -129,6 +165,37 @@ class DatabaseAnnotation:
             except:
                 raise Exception("requested tag name: %s not found" % tag)
         return ids
+
+    ''' tag association '''
+    def getTagsForAnnotationID(self,id):
+        self.updateTagDict()
+
+        tagIDs = self.SQLTagAssociation.select().where(self.SQLTagAssociation.annotation_id==id)
+        tag_list= [self.tag_dict_byID[item.tag_id] for item in tagIDs]
+        print(tag_list)
+        return tag_list
+
+    def setTagsForAnnotationID(self,id,tag_list):
+        tagIDs = self.SQLTagAssociation.select().where(self.SQLTagAssociation.annotation_id==id)
+
+        #TODO: discuss if this is bad practice?
+        # delete all old tags
+        for item in tagIDs:
+
+            item.delete_instance()
+
+        # add new tags
+        tag_id_list = [ self.tag_dict_byName[tag] for tag in tag_list]
+        for tag in tag_id_list:
+            self.SQLTagAssociation.create(annotation_id=id,tag_id=tag)
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     database = DatabaseAnnotation(config())
