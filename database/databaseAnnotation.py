@@ -35,6 +35,10 @@ class SQLAnnotation(Model):
 class tags(Model):
     name = CharField()
 
+class tagassociation(Model):
+    annotation_id = IntegerField()
+    tag_id = IntegerField()
+
 # TODO: make sure this doesn't overwrite actual config!
 class config:
     def __init__(self):
