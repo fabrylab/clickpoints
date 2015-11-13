@@ -53,6 +53,8 @@ class ClickPointsWindow(QWidget):
         self.setWindowTitle('Select Window')
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
 
+        self.move(50,50)
+
         self.updater = uh.Updater(self)
 
         self.layout = QtGui.QVBoxLayout()
