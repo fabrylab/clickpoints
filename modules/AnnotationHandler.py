@@ -22,7 +22,8 @@ from datetime import datetime
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "database"))
-from databaseAnnotation import DatabaseAnnotation
+print(os.path.join(os.path.dirname(__file__), "..", "database"))
+from databaseAnnotation import *
 
 # util
 def UpdateDictWith(x, y):
@@ -73,6 +74,79 @@ def ReadAnnotation(filename):
 
     return results, comment
 
+class pyQtTagSelector(QWidget):
+
+    class unCheckBox(QtGui.QCheckBox):
+        def __init__(self,parent,name):
+            super(QtGui.QCheckBox, self).__init__(parent)
+            #self.parent = parent
+            self.name = name
+            self.parent = parent
+
+            self.setText(self.name)
+            self.setChecked(True)
+            self.toggled.connect(self.hCB_remove)
+
+            # add to list of currently used tags
+            self.parent.list.append(str(name))
+
+            print(self.parent.list)
+
+        def hCB_remove(self):
+            # remove from tag list
+            self.parent.list.remove(self.name)
+
+            # DEBUG
+            print(self.parent.list)
+
+            # delete icon
+            self.deleteLater()
+
+    def __init__(self, parent=None):
+        super(QWidget, self).__init__(parent)
+
+
+        self.cbTag = QtGui.QComboBox(self)
+        self.cbTag.addItems(QStringList(['']))
+        self.cbTag.setInsertPolicy(QtGui.QComboBox.InsertAtBottom)
+        self.cbTag.setEditable(True)
+
+        self.pbAdd = QtGui.QPushButton(self)
+        self.pbAdd.setText('Add')
+        self.pbAdd.released.connect(self.hPB_add)
+
+        self.layout_main = QtGui.QVBoxLayout()
+        self.layout_main.setAlignment(Qt.AlignTop)
+        self.layout_tag = QtGui.QHBoxLayout()
+        self.layout_list = QtGui.QVBoxLayout()
+        self.setLayout(self.layout_main)
+        self.layout_main.addLayout(self.layout_tag)
+        self.layout_main.addLayout(self.layout_list)
+        self.layout_tag.addWidget(self.cbTag)
+        self.layout_tag.addWidget(self.pbAdd)
+
+        self.layout_main.setContentsMargins(0,0,0,0)
+
+        self.list=[]
+
+    def setText(self,string):
+        self.cbTag.setEditText(string)
+
+    def setStringList(self,string_list):
+        self.cbTag.addItems(QStringList(string_list))
+
+    def hPB_add(self):
+        name = self.cbTag.currentText()
+        # check if already in list
+        if not name in self.list and not name=='':
+            print('add: ',self.cbTag.currentText())
+
+            # on add create checked checbox
+            cb = self.unCheckBox(self,self.cbTag.currentText())
+            self.layout_list.addWidget(cb)
+        else:
+            print("Item %s is already in list" % name)
+
 
 
 class AnnotationEditor(QWidget):
@@ -94,18 +168,6 @@ class AnnotationEditor(QWidget):
 
         self.modules = modules
         self.config = config
-
-
-        self.ah=[]
-
-        # check for sql or file mode
-        if self.config.sql_annotation==True:
-            print('SQL Mode enabled')
-            self.ah=AnnotationHandlerSQL(config,self)
-
-        else:
-            print('local text mode enabled')
-            self.ah=AnnotationHandlerTXT(config,self)
 
         # regexp
         self.regFromFNameString = self.config.filename_data_regex
@@ -148,16 +210,40 @@ class AnnotationEditor(QWidget):
         self.leCamera.setEnabled(False)
         self.layout.addWidget(self.leCamera, 3, 3)
 
-        self.layout.addWidget(QLabel('Tag:', self), 4, 0)
-        self.leTag = QLineEdit('uninit', self)
-        self.layout.addWidget(self.leTag, 4, 1)
+        self.laTag = QLabel('Tag:', self)
+        self.laTag.setContentsMargins(0,4,0,0)
+        self.layout.addWidget(self.laTag, 4, 0,Qt.AlignTop)
 
-        self.layout.addWidget(QLabel('Rating:', self), 4, 2)
+        self.leTag=[]
+        if self.config.sql_annotation==True:
+            print("run TagSelector")
+            self.leTag = pyQtTagSelector()
+            self.layout.addWidget(self.leTag, 4, 1)
+        else:
+            print("run LineEdit")
+            self.leTag = QLineEdit('uninit', self)
+            self.layout.addWidget(self.leTag, 4, 1)
+
+        self.laRating = QLabel('Rating:', self)
+        self.laRating.setContentsMargins(0,4,0,0)
+        self.layout.addWidget(self.laRating, 4, 2, Qt.AlignTop)
         self.leRating = QComboBox(self)
         for index, basename in enumerate(['0 - none', '1 - bad', '2', '3', '4', '5 - good']):
             self.leRating.insertItem(index, basename)
         self.leRating.setInsertPolicy(QComboBox.NoInsert)
-        self.layout.addWidget(self.leRating, 4, 3)
+        self.leRating.setContentsMargins(0,5,0,0)
+        self.layout.addWidget(self.leRating, 4, 3,Qt.AlignTop)
+
+        self.ah=[]
+        # check for sql or file mode
+        if self.config.sql_annotation==True:
+            print('SQL Mode enabled')
+            self.ah=AnnotationHandlerSQL(config,self)
+
+        else:
+            print('local text mode enabled')
+            self.ah=AnnotationHandlerTXT(config,self)
+
 
         self.pbConfirm = QPushButton('C&onfirm', self)
         self.pbConfirm.pressed.connect(self.ah.saveAnnotation)
@@ -223,6 +309,8 @@ class AnnotationHandlerSQL:
         # init db connection
         self.db = DatabaseAnnotation(self.config)
 
+        self.parent.leTag.setStringList(self.db.getTagList())
+
     def saveAnnotation(self):
         # extract relevant values, store in dict
         match = self.parent.regFromFName.match(self.parent.basename)
@@ -245,10 +333,10 @@ class AnnotationHandlerSQL:
             tstamp = datetime(1970,1,1,0,0,0)
 
 
-        item=self.SQLAnnotation
+        item=self.db.SQLAnnotation
         try:
             # load entry from db
-            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.parent.basename)
+            item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
             print("entry found")
             found=True
         except DoesNotExist:
@@ -270,7 +358,7 @@ class AnnotationHandlerSQL:
             print('update')
         else:
             # create new entry
-            item=self.SQLAnnotation(
+            item=self.db.SQLAnnotation(
                timestamp = tstamp,
                system = self.parent.results['system'],
                camera = self.parent.results['camera'],
@@ -295,7 +383,7 @@ class AnnotationHandlerSQL:
 
     def removeAnnotation(self):
         try:
-            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.parent.basename)
+            item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
             item.delete_instance()
 
             BroadCastEvent(self.parent.modules, "AnnotationRemoved", self.parent.basename)
@@ -308,7 +396,7 @@ class AnnotationHandlerSQL:
     def annotationExists(self):
         # qerry db for matching reffilename
         try:
-            self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.parent.basename)
+            self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
             found = True
         except DoesNotExist:
             found = False
@@ -321,7 +409,7 @@ class AnnotationHandlerSQL:
         # basename,ext = os.path.splitext(file)
 
         try:
-            item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==self.parent.basename)
+            item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
             found = True
             comment=item.comment
             results={}
@@ -558,7 +646,7 @@ class AnnotationHandler():
                     comment=''
 
                     try:
-                        item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==basename)
+                        item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==basename)
                         found = True
                         comment=item.comment
                         results={}
