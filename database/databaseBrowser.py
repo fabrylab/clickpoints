@@ -29,7 +29,9 @@ from peewee import fn
 
 from datetime import datetime, timedelta
 import calendar
+
 from database import Database
+from databaseAnnotation import DatabaseAnnotation, config
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
@@ -581,6 +583,13 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
     def __init__(self,parent):
         DatabaseTabTemplate.__init__(self, parent)
 
+        # init db
+        # TODO replace with proper configuration
+        cfg = config()
+        self.dbAnot = DatabaseAnnotation(cfg)
+
+        print(self.dbAnot.tag_dict_byID)
+
         # list of shared toggle widgets
         self.toggle_widgets=[]
 
@@ -618,9 +627,23 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         self.parent.layout_vert.addStretch()
 
     def onConfirm(self):
-        qm = QMessageBox()
-        qm.setText("WARNING - Not implemented yet!")
-        qm.exec_()
+        if self.ComboBoxDevice.currentIndex() == 0:
+            print("No Device selected")
+            return 0
+        system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
+        device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
+        print(system_id, device_id)
+        start_time = datetime.strptime(str(self.parent.EditStart.text()), '%Y-%m-%d %H:%M:%S')
+        end_time   = datetime.strptime(str(self.parent.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
+        query = (self.dbAnot.SQLAnnotation.select()
+                 .where(self.dbAnot.SQLAnnotation.system == system_id, self.dbAnot.SQLAnnotation.camera == device_id, self.dbAnot.SQLAnnotation.timestamp > start_time, self.dbAnot.SQLAnnotation.timestamp < end_time)
+                 .order_by(self.dbAnot.SQLAnnotation.timestamp)
+                 )
+        counter = 0
+        for  q in query:
+            print(q.comment)
+
+        #TODO row update
 
     def doSaveFilelist(self):
         qm = QMessageBox()
@@ -631,6 +654,21 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         qm = QMessageBox()
         qm.setText("WARNING - Not implemented yet!")
         qm.exec_()
+
+    def UpdateRow(self, row, basename, data, comment, sort_if_new=False):
+        new = False
+        if self.table.rowCount() <= row:
+            self.table.insertRow(self.table.rowCount())
+            for j in range(7):
+                self.table.setItem(row, j, QTableWidgetItem())
+            new = True
+        texts = [data['timestamp'], ", ".join(data['tags']), comment, str(data['rating']), data['system'],
+                 data['camera'], basename]
+        for index, text in enumerate(texts):
+            self.table.item(row, index).setText(text)
+        if new and sort_if_new:
+            self.table.sortByColumn(0, Qt.AscendingOrder)
+
 
 class DatabaseBrowser(QWidget):
     def __init__(self):
