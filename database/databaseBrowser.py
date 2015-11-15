@@ -394,7 +394,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
         cmap_b2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,100/255,100/255)),'red':((0,0,0),(1,205/255,205/255)),'green': ((0,0,0),(1,181/255,181/255)),'alpha':((0,0,0),(1,1,1))})
         self.cmaps = [cmap_b, cmap_r, cmap_g, cmap_r2, cmap_g2, cmap_b2]
 
-    def counts(self):
+    def onConfirm(self):
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
         if self.ComboBoxDevice.currentIndex() == -1:
             return
@@ -617,6 +617,20 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         self.parent.layout_vert.addWidget(self.leTimeAfter)
         self.parent.layout_vert.addStretch()
 
+    def onConfirm(self):
+        qm = QMessageBox()
+        qm.setText("WARNING - Not implemented yet!")
+        qm.exec_()
+
+    def doSaveFilelist(self):
+        qm = QMessageBox()
+        qm.setText("WARNING - Not implemented yet!")
+        qm.exec_()
+
+    def showData(self):
+        qm = QMessageBox()
+        qm.setText("WARNING - Not implemented yet!")
+        qm.exec_()
 
 class DatabaseBrowser(QWidget):
     def __init__(self):
@@ -648,7 +662,7 @@ class DatabaseBrowser(QWidget):
         self.layout.addLayout(self.layout_vert, 0, 2, 2, 1)
 
         self.pbConfirm = QPushButton('C&onfirm', self)
-        self.pbConfirm.pressed.connect(self.fWidget.counts)
+        self.pbConfirm.pressed.connect(self.fWidget.onConfirm)
         self.layout_vert.addWidget(self.pbConfirm)
 
         self.pbShow = QPushButton('&Show', self)
@@ -685,6 +699,13 @@ class DatabaseBrowser(QWidget):
         # show widgets of current acitve tab
         self.fWidget.hideWidgets(False)
 
+        # update connects
+        self.pbConfirm.pressed.disconnect()
+        self.pbConfirm.pressed.connect(self.fWidget.onConfirm)
+        self.pbShow.pressed.disconnect()
+        self.pbShow.pressed.connect(self.fWidget.showData)
+        self.pbFilelist.pressed.disconnect()
+        self.pbFilelist.pressed.connect(self.fWidget.doSaveFilelist)
 
 database = Database()
 
