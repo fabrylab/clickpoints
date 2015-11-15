@@ -54,7 +54,7 @@ def ShortenNumber(value):
     value /= 10**(power*3)
     return "%d" % value+postfix[power]
 
-class DatabaseByFiles(QWidget):
+class DatabaseTabTemplate(QWidget):
     def __init__(self,parent):
         QWidget.__init__(self)
         self.parent = parent
@@ -74,6 +74,7 @@ class DatabaseByFiles(QWidget):
         # self.layout_top.addLayout(self.layout_top_v_left)
         # self.layout_top.addLayout(self.layout_top_v_right)
         self.layout_top = QGridLayout()
+        self.layout_top.setAlignment(Qt.AlignTop)
         self.layout_top.setContentsMargins(20,10,0,0)
         self.layout.addLayout(self.layout_top)
 
@@ -117,7 +118,7 @@ class DatabaseByFiles(QWidget):
         self.SpinBoxYearStart = QSpinBox(self)
         self.SpinBoxYearStart.setMaximum(2050)
         self.SpinBoxYearStart.setMinimum(0)
-        self.SpinBoxYearStart.setValue(2014)
+        self.SpinBoxYearStart.setValue(0)
         self.SpinBoxYearStart.valueChanged.connect(self.update_timerange)
         layout_hor.addWidget(self.SpinBoxYearStart)
         self.SpinBoxYearEnd = QSpinBox(self)
@@ -169,7 +170,184 @@ class DatabaseByFiles(QWidget):
 
         self.listSpinBoxStart = [self.SpinBoxYearStart,self.SpinBoxMonthStart,self.SpinBoxDayStart]
 
+        # list of shared toggle able widgets
+        self.toggle_widgets=[]
 
+    def hideWidgets(self,flag):
+        [w.setHidden(flag) for w in self.toggle_widgets]
+
+    def reset_year(self):
+        self.SpinBoxYearEnd.setValue(0)
+        self.SpinBoxYearStart.setValue(0)
+
+
+    def reset_month(self):
+        self.SpinBoxMonthEnd.setValue(0)
+        self.SpinBoxMonthStart.setValue(0)
+
+    def reset_day(self):
+        self.SpinBoxDayEnd.setValue(0)
+        self.SpinBoxDayStart.setValue(0)
+
+
+    def getPath(self, path_index):
+        if path_index != self.last_path_id:
+            self.last_path = database.getPath(path_index)
+            self.last_path_id = path_index
+        return self.last_path
+
+    def getSystem(self, system_index):
+        if system_index != self.last_system_id:
+            self.last_system_id = system_index
+            for sys in self.systems:
+                if sys.id == self.last_system_id:
+                    self.last_system_name = sys.name
+        return self.last_system_name
+
+    def getDevice(self, device_index):
+        if device_index != self.last_device_id:
+            self.last_device_id = device_index
+            for dev in self.devices:
+                if dev.id == self.last_device_id:
+                    self.last_device_name = dev.name
+        return self.last_device_name
+
+    def ComboBoxSystemsChanged(self, value):
+        print("changed")
+        self.ComboBoxDevice.clear()
+        print(self.systems, value, self.systems[value].name)
+        self.devices = self.systems[value].devices()
+        self.ComboBoxDevice.insertItem(0, "All")
+        for index, item in enumerate(self.devices):
+            self.ComboBoxDevice.insertItem(index+1, item.name)
+
+
+    def update_timerange(self):
+        self.updateSpinBoxState()
+        ### get shorter handels for values
+        year = self.SpinBoxYearStart.value()
+        month = self.SpinBoxMonthStart.value()
+
+        year_end = self.SpinBoxYearEnd.value()
+        month_end = self.SpinBoxMonthEnd.value()
+
+        ### handle overruns
+        # month overrun handling
+        if month == 13:
+            self.SpinBoxMonthStart.setValue(1)
+            self.SpinBoxYearStart.setValue(year+1)
+            return
+        if month_end == 13:
+            self.SpinBoxMonthEnd.setValue(1)
+            self.SpinBoxYearEnd.setValue(year+1)
+            return
+
+        # day overrun handling
+        if month:
+            daycount = calendar.monthrange(year,month)[1]
+            day = self.SpinBoxDayStart.value()
+            if day > daycount:
+                self.SpinBoxMonthStart.setValue(month+1)
+                self.SpinBoxDayStart.setValue(1)
+                return
+            daycount = calendar.monthrange(year_end,month_end)[1]
+            day_end = self.SpinBoxDayEnd.value()
+            if day_end > daycount:
+                self.SpinBoxMonthEnd.setValue(month_end+1)
+                self.SpinBoxDayEnd.setValue(1)
+                return
+
+        ### set start stop text fields
+        if year == 0:
+            self.parent.EditStart.setText('')
+            self.parent.EditEnd.setText('')
+            return
+
+        if month == 0:
+            # select full year if start==stop
+            # otherwise select specified intervall
+            if year == year_end:
+                start = datetime(year, 1, 1)
+                end = datetime(year_end+1, 1, 1)
+            else:
+                start = datetime(year, 1, 1)
+                end = datetime(year_end, 1, 1)
+            self.parent.EditStart.setText(str(start))
+            self.parent.EditEnd.setText(str(end))
+
+        elif day == 0:
+            # select full month if start==stop
+            # otherwise select specified intervall
+            if month == month_end:
+                start = datetime(year, month, 1)
+                end = datetime(year_end, month+1, 1)
+            else:
+                start = datetime(year, month, 1)
+                end = datetime(year_end, month_end, 1)
+            self.parent.EditStart.setText(str(start))
+            self.parent.EditEnd.setText(str(end))
+        else:
+            # select full day if start==stop
+            # otherwise select specified intervall
+            if day==day_end:
+                start = datetime(year, month, day)
+                end = datetime(year_end,month_end,day_end)+ timedelta(days=1)
+            else:
+                start = datetime(year, month, day)
+                end = datetime(year_end, month_end, day_end)
+            self.parent.EditStart.setText(str(start))
+            self.parent.EditEnd.setText(str(end))
+
+    def updateSpinBoxState(self):
+        print("sender:",self.sender())
+        # if start field is zero - deactivate stop field
+        if self.SpinBoxYearStart.value()== 0:
+            self.SpinBoxYearEnd.setValue(0);
+            self.SpinBoxYearEnd.setEnabled(False);
+
+            self.SpinBoxMonthStart.setValue(0);
+            self.SpinBoxMonthStart.setEnabled(False);
+        else:
+            self.SpinBoxYearEnd.setEnabled(True);
+            # prevent end < start
+            if self.SpinBoxYearEnd.value() < self.SpinBoxYearStart.value():
+                self.SpinBoxYearEnd.setValue(self.SpinBoxYearStart.value());
+            self.SpinBoxMonthStart.setEnabled(True);
+
+        if self.SpinBoxMonthStart.value()== 0:
+            self.SpinBoxMonthEnd.setValue(0);
+            self.SpinBoxMonthEnd.setEnabled(False);
+
+            self.SpinBoxDayStart.setValue(0);
+            self.SpinBoxDayStart.setEnabled(False);
+        else:
+            self.SpinBoxMonthEnd.setEnabled(True);
+            if self.SpinBoxMonthEnd.value()==0:
+                self.SpinBoxMonthEnd.setValue(self.SpinBoxMonthStart.value());
+            # prevent end < start
+            if self.SpinBoxMonthEnd.value() < self.SpinBoxMonthStart.value() \
+                    and self.SpinBoxYearEnd.value()==self.SpinBoxYearStart.value():
+                self.SpinBoxMonthEnd.setValue(self.SpinBoxMonthStart.value());
+            self.SpinBoxDayStart.setEnabled(True);
+
+        if self.SpinBoxDayStart.value()== 0:
+            self.SpinBoxDayEnd.setValue(0);
+            self.SpinBoxDayEnd.setEnabled(False);
+        else:
+            self.SpinBoxDayEnd.setEnabled(True);
+            # prevent zero on go active
+            if self.SpinBoxDayEnd.value()==0:
+                self.SpinBoxDayEnd.setValue(self.SpinBoxDayStart.value());
+            # prevent end < start
+            if self.SpinBoxDayEnd.value() < self.SpinBoxDayStart.value() \
+                and self.SpinBoxYearEnd.value() == self.SpinBoxYearStart.value()\
+                and self.SpinBoxMonthEnd.value() == self.SpinBoxMonthStart.value():
+                self.SpinBoxDayEnd.setValue(self.SpinBoxDayStart.value());
+
+
+class DatabaseByFiles(DatabaseTabTemplate):
+    def __init__(self,parent):
+        DatabaseTabTemplate.__init__(self, parent)
 
         # PLOT
         self.layout.addSpacing(50)
@@ -203,11 +381,9 @@ class DatabaseByFiles(QWidget):
         self.CreateColorMaps()
 
     def post_init(self):
-        self.parent.layout_vert.addWidget(self.plot2)
         self.updateSpinBoxState()
+        self.parent.layout_vert.addWidget(self.plot2)
 
-    def hideWidgets(self,flag):
-        [w.setHidden(flag) for w in self.toggle_widgets]
 
     def CreateColorMaps(self):
         cmap_b = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,176/255,176/255)),'red':((0,0,0),(1,76/255,76/255)),'green': ((0,0,0),(1,114/255,114/255)),'alpha':((0,0,0),(1,1,1))})
@@ -217,19 +393,6 @@ class DatabaseByFiles(QWidget):
         cmap_g2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,116/255,116/255)),'red':((0,0,0),(1,204/255,204/255)),'green': ((0,0,0),(1,185/255,185/255)),'alpha':((0,0,0),(1,1,1))})
         cmap_b2 = LinearSegmentedColormap("TransBlue", {'blue':((0, 0, 0),(1,100/255,100/255)),'red':((0,0,0),(1,205/255,205/255)),'green': ((0,0,0),(1,181/255,181/255)),'alpha':((0,0,0),(1,1,1))})
         self.cmaps = [cmap_b, cmap_r, cmap_g, cmap_r2, cmap_g2, cmap_b2]
-
-    def reset_year(self):
-        self.SpinBoxYearEnd.setValue(0)
-        self.SpinBoxYearStart.setValue(0)
-
-
-    def reset_month(self):
-        self.SpinBoxMonthEnd.setValue(0)
-        self.SpinBoxMonthStart.setValue(0)
-
-    def reset_day(self):
-        self.SpinBoxDayEnd.setValue(0)
-        self.SpinBoxDayStart.setValue(0)
 
     def counts(self):
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
@@ -385,157 +548,6 @@ class DatabaseByFiles(QWidget):
             self.axes1.set_xlabel("hour")
             self.axes1.set_ylabel("count")
 
-    def getPath(self, path_index):
-        if path_index != self.last_path_id:
-            self.last_path = database.getPath(path_index)
-            self.last_path_id = path_index
-        return self.last_path
-
-    def getSystem(self, system_index):
-        if system_index != self.last_system_id:
-            self.last_system_id = system_index
-            for sys in self.systems:
-                if sys.id == self.last_system_id:
-                    self.last_system_name = sys.name
-        return self.last_system_name
-
-    def getDevice(self, device_index):
-        if device_index != self.last_device_id:
-            self.last_device_id = device_index
-            for dev in self.devices:
-                if dev.id == self.last_device_id:
-                    self.last_device_name = dev.name
-        return self.last_device_name
-
-    def ComboBoxSystemsChanged(self, value):
-        print("changed")
-        self.ComboBoxDevice.clear()
-        print(self.systems, value, self.systems[value].name)
-        self.devices = self.systems[value].devices()
-        self.ComboBoxDevice.insertItem(0, "All")
-        for index, item in enumerate(self.devices):
-            self.ComboBoxDevice.insertItem(index+1, item.name)
-
-
-    def update_timerange(self):
-        ### get shorter handels for values
-        year = self.SpinBoxYearStart.value()
-        month = self.SpinBoxMonthStart.value()
-
-        year_end = self.SpinBoxYearEnd.value()
-        month_end = self.SpinBoxMonthEnd.value()
-
-        ### handle overruns
-        # month overrun handling
-        if month == 13:
-            self.SpinBoxMonthStart.setValue(1)
-            self.SpinBoxYearStart.setValue(year+1)
-            return
-        if month_end == 13:
-            self.SpinBoxMonthEnd.setValue(1)
-            self.SpinBoxYearEnd.setValue(year+1)
-            return
-
-        # day overrun handling
-        if month:
-            daycount = calendar.monthrange(year,month)[1]
-            day = self.SpinBoxDayStart.value()
-            if day > daycount:
-                self.SpinBoxMonthStart.setValue(month+1)
-                self.SpinBoxDayStart.setValue(1)
-                return
-            daycount = calendar.monthrange(year_end,month_end)[1]
-            day_end = self.SpinBoxDayEnd.value()
-            if day_end > daycount:
-                self.SpinBoxMonthEnd.setValue(month_end+1)
-                self.SpinBoxDayEnd.setValue(1)
-                return
-
-        ### set start stop text fields
-        if year == 0:
-            return
-
-        if month == 0:
-            # select full year if start==stop
-            # otherwise select specified intervall
-            if year == year_end:
-                start = datetime(year, 1, 1)
-                end = datetime(year_end+1, 1, 1)
-            else:
-                start = datetime(year, 1, 1)
-                end = datetime(year_end, 1, 1)
-            self.parent.EditStart.setText(str(start))
-            self.parent.EditEnd.setText(str(end))
-
-        elif day == 0:
-            # select full month if start==stop
-            # otherwise select specified intervall
-            if month == month_end:
-                start = datetime(year, month, 1)
-                end = datetime(year_end, month+1, 1)
-            else:
-                start = datetime(year, month, 1)
-                end = datetime(year_end, month_end, 1)
-            self.parent.EditStart.setText(str(start))
-            self.parent.EditEnd.setText(str(end))
-        else:
-            # select full day if start==stop
-            # otherwise select specified intervall
-            if day==day_end:
-                start = datetime(year, month, day)
-                end = datetime(year_end,month_end,day_end)+ timedelta(days=1)
-            else:
-                start = datetime(year, month, day)
-                end = datetime(year_end, month_end, day_end)
-            self.parent.EditStart.setText(str(start))
-            self.parent.EditEnd.setText(str(end))
-
-    def updateSpinBoxState(self):
-        print("sender:",self.sender())
-        # if start field is zero - deactivate stop field
-        if self.SpinBoxYearStart.value()== 0:
-            self.SpinBoxYearEnd.setValue(0);
-            self.SpinBoxYearEnd.setEnabled(False);
-
-            self.SpinBoxMonthStart.setValue(0);
-            self.SpinBoxMonthStart.setEnabled(False);
-        else:
-            self.SpinBoxYearEnd.setEnabled(True);
-            # prevent end < start
-            if self.SpinBoxYearEnd.value() < self.SpinBoxYearStart.value():
-                self.SpinBoxYearEnd.setValue(self.SpinBoxYearStart.value());
-            self.SpinBoxMonthStart.setEnabled(True);
-            
-        if self.SpinBoxMonthStart.value()== 0:
-            self.SpinBoxMonthEnd.setValue(0);
-            self.SpinBoxMonthEnd.setEnabled(False);
-
-            self.SpinBoxDayStart.setValue(0);
-            self.SpinBoxDayStart.setEnabled(False);
-        else:
-            self.SpinBoxMonthEnd.setEnabled(True);
-            if self.SpinBoxMonthEnd.value()==0:
-                self.SpinBoxMonthEnd.setValue(self.SpinBoxMonthStart.value());
-            # prevent end < start
-            if self.SpinBoxMonthEnd.value() < self.SpinBoxMonthStart.value() \
-                    and self.SpinBoxYearEnd.value()==self.SpinBoxYearStart.value():
-                self.SpinBoxMonthEnd.setValue(self.SpinBoxMonthStart.value());
-            self.SpinBoxDayStart.setEnabled(True);
-            
-        if self.SpinBoxDayStart.value()== 0:
-            self.SpinBoxDayEnd.setValue(0);
-            self.SpinBoxDayEnd.setEnabled(False);
-        else:
-            self.SpinBoxDayEnd.setEnabled(True);
-            # prevent zero on go active
-            if self.SpinBoxDayEnd.value()==0:
-                self.SpinBoxDayEnd.setValue(self.SpinBoxDayStart.value());
-            # prevent end < start
-            if self.SpinBoxDayEnd.value() < self.SpinBoxDayStart.value() \
-                and self.SpinBoxYearEnd.value() == self.SpinBoxYearStart.value()\
-                and self.SpinBoxMonthEnd.value() == self.SpinBoxMonthStart.value():
-                self.SpinBoxDayEnd.setValue(self.SpinBoxDayStart.value());
-
 
     def SaveFileList(self):
         if self.ComboBoxDevice.currentIndex() == 0:
@@ -565,6 +577,47 @@ class DatabaseByFiles(QWidget):
         QMessageBox.question(None, 'Saved', 'The file list fielist.txt has been saved with %d entries.' % count, QMessageBox.Ok)
         return
 
+class DatabaseByAnnotation(DatabaseTabTemplate):
+    def __init__(self,parent):
+        DatabaseTabTemplate.__init__(self, parent)
+
+        # list of shared toggle widgets
+        self.toggle_widgets=[]
+
+        # add table
+        self.layout.addSpacing(50)
+        self.table = QTableWidget(0, 7, self)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setHorizontalHeaderLabels(QStringList(['Date', 'Tag', 'Comment', 'R', 'System', 'Cam', 'file']))
+        self.table.hideColumn(6)
+        self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setResizeMode(2, QHeaderView.Stretch)
+        self.table.verticalHeader().hide()
+
+        self.layout.addWidget(self.table)
+
+        # add lead/tail time
+        self.laTimeBefore = QLabel('Time before:', self)
+        self.toggle_widgets.append(self.laTimeBefore)
+        self.leTimeBefore = QLineEdit(self)
+        self.toggle_widgets.append(self.leTimeBefore)
+
+        self.laTimeAfter = QLabel('Time after:', self)
+        self.toggle_widgets.append(self.laTimeAfter)
+        self.leTimeAfter = QLineEdit(self)
+        self.toggle_widgets.append(self.leTimeAfter)
+
+
+    def post_init(self):
+        self.updateSpinBoxState()
+        self.parent.layout_vert.addSpacing(20)
+        self.parent.layout_vert.addWidget(self.laTimeBefore)
+        self.parent.layout_vert.addWidget(self.leTimeBefore)
+        self.parent.layout_vert.addWidget(self.laTimeAfter)
+        self.parent.layout_vert.addWidget(self.leTimeAfter)
+        self.parent.layout_vert.addStretch()
+
+
 class DatabaseBrowser(QWidget):
     def __init__(self):
         QWidget.__init__(self)
@@ -582,7 +635,7 @@ class DatabaseBrowser(QWidget):
         self.layout_vert = QVBoxLayout()
 
         self.dbByFiles=DatabaseByFiles(self)
-        self.dbByAnnotation=DatabaseByFiles(self)
+        self.dbByAnnotation=DatabaseByAnnotation(self)
 
         self.tabWidget=QTabWidget(self)
         self.tabWidget.addTab(self.dbByFiles,'by File')
@@ -612,12 +665,14 @@ class DatabaseBrowser(QWidget):
         self.layout_vert.addWidget(QLabel('End:', self))
         self.EditEnd = QLineEdit('', self)
         self.layout_vert.addWidget(self.EditEnd)
-        self.layout_vert.addStretch()
+
 
         self.fWidget.update_timerange()
 
         for key,tabWidget in self.tab_dict.iteritems():
             tabWidget.post_init()
+
+        self.setFocusTab(0)
 
     def setFocusTab(self,n):
         print("changed to tab: ",n)
