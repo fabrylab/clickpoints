@@ -17,6 +17,7 @@ from abc import abstractmethod
 from peewee import *
 from datetime import datetime
 
+from databaseFiles import DatabaseFiles
 
 class SQLAnnotation(Model):
         timestamp = DateTimeField()
@@ -52,12 +53,15 @@ class DatabaseAnnotation:
     def __init__(self,config):
         self.config = config
 
-        # init db connection
+        # init db connection for annotations
         self.db = MySQLDatabase(self.config.sql_dbname,
                                 host=self.config.sql_host,
                                 port=self.config.sql_port,
                                 user=self.config.sql_user,
                                 passwd=self.config.sql_pwd)
+
+        # init db connection for files
+        self.dbFiles = DatabaseFiles(config)
 
         self.db.connect()
 
@@ -80,31 +84,36 @@ class DatabaseAnnotation:
 
     ''' Annotation Handling '''
     # TODO add annotation utility function
+    def retrieveSystemID(self,name):
+        self.dbFiles.updateSystemDict()
+
+        try:
+            # check for system name in db
+            system_id = self.dbFiles.getSystemId(name)
+            return system_id
+        except KeyError:
+            print('System Key=%s not found' % name)
+            try:
+                # check alias
+                system_id = self.dbFiles.getSystemIdByAlias(name)
+                return system_id
+            except KeyError:
+                print('SystemAlias Key=%s not found' % name)
+                return False
+
     def getAnnotationByID(self,id):
         item=self.SQLAnnotation.get(self.SQLAnnotation.id==id)
-
-        comment=item.comment
-        results={}
-        results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
-        results['system']=item.system
-        results['camera']=item.camera
-        results['rating']=item.rating
-        results['reffilename']=item.reffilename
-        results['feffileext']=item.reffileext
-
-        tag_list=self.getTagsForAnnotationID(item.id)
-        results['tags']= tag_list
-        return results, comment
-
-
+        return self.readAnnotation(item)
 
     def getAnnotationByBasename(self,basename):
         item=self.SQLAnnotation.get(self.SQLAnnotation.reffilename==basename)
+        return self.readAnnotation(item)
 
+    def readAnnotation(self,item):
         comment=item.comment
         results={}
         results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
-        results['system']=item.system
+        results['system']=self.dbFiles.getSystemName(item.system)
         results['camera']=item.camera
         results['rating']=item.rating
         results['reffilename']=item.reffilename
