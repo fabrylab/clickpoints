@@ -5,7 +5,7 @@ import glob
 import numpy as np
 
 from datetime import datetime, timedelta
-from database import Database
+from databaseFiles import DatabaseFiles, config
 from PIL import Image
 import PIL.ExifTags
 import cv2
@@ -77,7 +77,7 @@ delta_t = 0
 system_name = ""
 device_name = ""
 
-database = Database()
+database = DatabaseFiles(config())
 
 start_path = r"\\131.188.117.94\antavia2013-1204to0103"#r"\\131.188.117.94\data\microbsCRO\2012"
 

@@ -24,7 +24,7 @@ from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "database"))
 print(os.path.join(os.path.dirname(__file__), "..", "database"))
 from databaseAnnotation import *
-import database as fileDB
+import databaseFiles as fileDB
 
 # util
 def UpdateDictWith(x, y):
@@ -323,7 +323,7 @@ class AnnotationHandlerSQL:
         # init db connection
         self.db = DatabaseAnnotation(self.config)
         #TODO: add config
-        self.dbFiles = fileDB.Database()
+        self.dbFiles = fileDB.DatabaseFiles()
 
         self.parent.leTag.setStringList(self.db.getTagList())
 
