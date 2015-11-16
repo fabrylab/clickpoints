@@ -30,7 +30,7 @@ from peewee import fn
 from datetime import datetime, timedelta
 import calendar
 
-from database import Database
+from databaseFiles import DatabaseFiles
 from databaseAnnotation import DatabaseAnnotation, config
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
@@ -745,7 +745,7 @@ class DatabaseBrowser(QWidget):
         self.pbFilelist.pressed.disconnect()
         self.pbFilelist.pressed.connect(self.fWidget.doSaveFilelist)
 
-database = Database()
+database = DatabaseFiles(config)
 
 if __name__ == '__main__':
     if sys.platform[:3] == 'win':
