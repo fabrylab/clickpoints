@@ -745,7 +745,7 @@ class DatabaseBrowser(QWidget):
         self.pbFilelist.pressed.disconnect()
         self.pbFilelist.pressed.connect(self.fWidget.doSaveFilelist)
 
-database = DatabaseFiles(config)
+database = DatabaseFiles(config())
 
 if __name__ == '__main__':
     if sys.platform[:3] == 'win':
