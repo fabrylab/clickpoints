@@ -52,11 +52,14 @@ if __name__ == '__main__':
         ### add to DIRECTORYS
         # create entry under HKEY_CURRENT_USER to show in dropdown menu for folders
         print("setup for directory")
+        icon_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "icons", "ClickPoints.ico")
+        bat_path = ntpath.join(os.path.abspath(os.path.dirname(__file__)), "..", "ClickPoints.bat \"%1\"")
+
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\\"
         set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,"ClickPoints")
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,"icon", os.path.join(os.path.abspath(os.path.dirname(__file__))+r"\icons\ClickPoints.ico"))
+        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,"icon", icon_path)
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\command\\"
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,ntpath.join(os.path.abspath(os.path.dirname(__file__))+"\ClickPoints.bat \"%1\""))
+        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None, bat_path)
 
         # ### add for specific file types
         # # create entry under HKEY_CLASSES_ROOT\SystemFileAssociations to show in dropdown menu for specific file types
@@ -64,16 +67,16 @@ if __name__ == '__main__':
             print("install for extension:%s" % ext)
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\" + ext + r"\shell\1ClickPoint\\"
             set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,"ClickPoints")
-            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,"icon", os.path.join(os.path.abspath(os.path.dirname(__file__))+r"\icons\ClickPoints.ico"))
+            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,"icon", icon_path)
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\"  + ext + r"\shell\1ClickPoint\command\\"
-            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,ntpath.join(os.path.abspath(os.path.dirname(__file__))+"\ClickPoints.bat \"%1\""))
+            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,bat_path)
 
         # ### add to open WithLIST # damn you ICON!
         # register application
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\open\command\\"
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,ntpath.join(os.path.abspath(os.path.dirname(__file__))+"\ClickPoints.bat \"%1\""))
+        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,bat_path)
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\DefaultIcon\\"
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,os.path.join(os.path.abspath(os.path.dirname(__file__))+r"\icons\ClickPoints.ico"))
+        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,icon_path)
 
         for ext in extension:
             print("install for extension:%s" % ext)
