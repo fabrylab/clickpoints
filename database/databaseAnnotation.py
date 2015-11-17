@@ -21,7 +21,7 @@ from databaseFiles import DatabaseFiles
 
 class SQLAnnotation(Model):
         timestamp = DateTimeField()
-        system = CharField()
+        system = IntegerField()
         camera = CharField()
         tags =  CharField()
         rating = IntegerField()
