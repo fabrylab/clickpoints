@@ -16,7 +16,7 @@ except ImportError:
     from PyQt4.QtCore import Qt, QPointF, QObject
     from PyQt4.QtCore import pyqtSignal
 
-icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
+icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
 class TimeLineGrabberSignal(QObject):
     sliderPressed=pyqtSignal()
