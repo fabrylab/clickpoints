@@ -10,7 +10,7 @@ try:
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem
+    from PyQt4.QtGui import QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QRadioButton
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
 
 from Tools import BroadCastEvent
@@ -156,6 +156,31 @@ class pyQtTagSelector(QWidget):
             self.layout_list.addWidget(cb)
         else:
             print("Item %s is already in list" % name)
+
+class AnnotationEditorAddMeta(QWidget):
+    def __init__(self,name,type,type_alias,type_name,dbFiles):
+        QWidget.__init__(self)
+
+        # paramete
+        self.name=name
+        self.db=dbFiles
+        self.type=type
+        self.type_alias=type_alias
+
+        self.setMinimumWidth(200)
+        self.setMinimumHeight(100)
+        self.setWindowTitle("Add %s to %s" % (name,type_name))
+        self.layout = QGridLayout(self)
+
+        self.rb_AsType = QRadioButton("Add as Tag")
+        self.rb_AsTypeAlias =QRadioButton("Add as Alias for Tag")
+
+        self.layout.addWidget(self.rb_AsType)
+        self.layout.addWidget(self.rb_AsTypeAlias)
+
+        print("was in here!")
+
+
 
 
 
@@ -323,7 +348,7 @@ class AnnotationHandlerSQL:
         # init db connection
         self.db = DatabaseAnnotation(self.config)
         #TODO: add config
-        self.dbFiles = fileDB.DatabaseFiles()
+        self.dbFiles = fileDB.DatabaseFiles(self.config)
 
         self.parent.leTag.setStringList(self.db.getTagList())
 
@@ -355,10 +380,17 @@ class AnnotationHandlerSQL:
         try:
             # load entry from db
             item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
-            print("entry found")
             found=True
         except DoesNotExist:
             found=False
+
+        # check for system ID
+        print("system:",self.parent.results['system'])
+        system_id = self.db.retrieveSystemID(self.parent.results['system'])
+        if system_id==False:
+            print("can't find System or SystemAlias")
+            self.popup=AnnotationEditorAddMeta(self.parent.results['system'],self.dbFiles.SQL_Systems,self.dbFiles.SQL_SystemAlias,'System',self.dbFiles)
+            self.popup.show()
 
         if found:
             # update values and update db
@@ -443,6 +475,7 @@ class AnnotationHandlerSQL:
         # qerry db for matching reffilename
         try:
             self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
+            print("Annotation exists TRUE")
             found = True
         except DoesNotExist:
             found = False
@@ -455,21 +488,9 @@ class AnnotationHandlerSQL:
         # basename,ext = os.path.splitext(file)
 
         try:
+            print("try get annotation")
             item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
-            found = True
-            comment=item.comment
-            results={}
-            results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
-            results['system']=item.system
-            results['camera']=item.camera
-            #results['tags']=[elem.strip() for elem in item.tags.split(",")]
-            results['rating']=item.rating
-            results['reffilename']=item.reffilename
-            results['feffileext']=item.reffileext
-
-            tag_list=self.db.getTagsForAnnotationID(item.id)
-            self.parent.leTag.setActiveTagList(tag_list)
-            results['tags']= tag_list
+            results,comment=self.db.readAnnotation(item)
             return results, comment
 
         except DoesNotExist:
