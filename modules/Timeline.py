@@ -2,6 +2,8 @@ from __future__ import division, print_function
 import sys
 import os
 import glob
+import time
+import numpy as np
 
 try:
     from PyQt5 import QtGui, QtCore
@@ -366,15 +368,14 @@ class Timeline:
                                 ]
 
         # video replay
+        self.current_fps = 0
+        self.last_time = time.time()
         self.tUpdate = QtCore.QTimer()
         self.tUpdate.timeout.connect(self.htUpdate)
 
         self.hpbPlay(self.config.playing)
 
         self.hidden = True
-
-        self.real_fps_time = QtCore.QTime()
-        self.real_fps_time.start()
 
         self.HideInterface(self.config.timeline_hide)
 
@@ -389,7 +390,7 @@ class Timeline:
                 self.frameSlider.setEndValue(int(self.media_handler.totalNr*self.config.play_end))
         else:
             self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
-        self.lbCFrame.setText('%d/%d' % (self.media_handler.currentPos, (self.media_handler.totalNr-1)))
+        self.updateLabel()
 
         self.frameSlider.clearTickMarker()
 
@@ -441,7 +442,7 @@ class Timeline:
     def hfReleaseSlider(self):
         n = self.frameSlider.value()
         self.fsl_update = True
-        self.lbCFrame.setText('%d/%d' % (n, (self.media_handler.totalNr-1)))
+        self.updateLabel()
         self.updateFrame(nr=n)
 
     def hfPressSlider(self):
@@ -469,15 +470,22 @@ class Timeline:
             else:
                 self.window.JumpFrames(1+self.skip)
 
-    def FrameChangeEvent(self):
-        if self.media_handler.valid:
-            if self.fsl_update:
-                self.frameSlider.setValue(self.media_handler.currentPos)
-                self.lbCFrame.setText('%d/%d' % (self.media_handler.currentPos, (self.media_handler.totalNr-1)))
+    def updateLabel(self):
+        if self.fsl_update:
+            self.frameSlider.setValue(self.media_handler.currentPos)
+            self.lbCFrame.setText('%d/%d  %.1ffps' % (self.media_handler.currentPos, (self.media_handler.totalNr-1), self.current_fps))
 
-            delta_t = self.real_fps_time.elapsed() - 1000/self.fps
-            print("%d ms, jitter %d" % (self.real_fps_time.elapsed(), delta_t))
-            self.real_fps_time.restart()
+    def FrameChangeEvent(self):
+        dt = time.time()-self.last_time
+        if self.current_fps is None:
+            self.current_fps = 1/dt
+        else:
+            a = np.exp(-dt)
+            self.current_fps = a*self.current_fps + (1-a) * 1/dt
+        self.last_time = time.time()
+
+        if self.media_handler.valid:
+            self.updateLabel()
         else:
             # stop timer
             self.pbPlay.setChecked(False)
@@ -517,6 +525,8 @@ class Timeline:
             self.HideInterface(self.hidden == False)
         # @key Space: run/pause
         if event.key() == QtCore.Qt.Key_Space:
+            self.current_fps = None
+            self.last_time = time.time()
             self.pbPlay.toggle()
 
         # @key ---- Frame jumps ----
