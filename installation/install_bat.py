@@ -1,6 +1,7 @@
 import sys, os
 
-directory = os.path.dirname(os.path.abspath(__file__))
+directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+os.chdir("..")
 script_path = os.path.join(directory, "ClickPointsQT.py")
 icon_path = os.path.join(directory, "icons", "ClickPoints.ico")
 if sys.platform.startswith('win'):

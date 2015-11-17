@@ -30,8 +30,9 @@ echo DONE
 echo.
 
 :: iinstall clickpoints python package
-cd tools
-python setup.py install
+cd ..
+cd package
+python setup.py develop
 cd ..
 
 pause
