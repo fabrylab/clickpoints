@@ -151,7 +151,7 @@ class DatabaseFiles:
         return self.system_dict[system_name]
 
     def getSystemName(self, id):
-        system_dict_byname = { v: K for k, v in self.system_dict.items()}
+        system_dict_byname = { v:k for k, v in self.system_dict.items()}
         return system_dict_byname[id]
 
     def getSystemIdByAlias(self,system_name):
