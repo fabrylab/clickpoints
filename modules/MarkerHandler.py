@@ -87,17 +87,30 @@ class MarkerFile:
             db.create_tables([self.table_marker, self.table_images, self.table_tracks, self.table_types])
 
         self.image = None
+        self.next_image_index = 1
+        query = self.table_images.select().order_by(-self.table_images.id).limit(1)
+        for image in query:
+            self.next_image_index = image.id+1
+
+        self.image = None
 
     def set_image(self, filename, index, frame=0):
+        if self.image:
+            use = self.table_marker.select(fn.count(self.table_marker.id).alias('count')).where(self.table_marker.image == self.image)[0]
+            if use.count == 0:
+                if self.next_image_index == self.image.id+1:
+                    self.next_image_index -= 1
+                self.image.delete_instance()
         try:
             self.image = self.table_images.get(self.table_images.filename == filename)
         except DoesNotExist:
-            self.image = self.table_images()
+            self.image = self.table_images(id=self.next_image_index)
+            self.next_image_index += 1
             self.image.filename = filename
             self.image.ext = os.path.splitext(filename)[1]
             self.image.frame = frame
             self.image.index = index
-            self.image.save()
+            self.image.save(force_insert=True)
         return self.image
 
     def set_track(self):
