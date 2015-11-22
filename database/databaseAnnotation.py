@@ -22,8 +22,8 @@ from databaseFiles import DatabaseFiles
 class SQLAnnotation(Model):
         timestamp = DateTimeField()
         system = IntegerField()
-        camera = CharField()
-        tags =  CharField()
+        device = IntegerField()
+        tag_type =  CharField()
         rating = IntegerField()
         reffilename = CharField()
         reffileext = CharField()
@@ -37,8 +37,8 @@ class tags(Model):
     name = CharField()
 
 class tagassociation(Model):
-    annotation_id = IntegerField()
-    tag_id = IntegerField()
+    annotation = ForeignKeyField(SQLAnnotation)
+    tag = ForeignKeyField(tags)
 
 # TODO: make sure this doesn't overwrite actual config!
 class config:
@@ -84,23 +84,6 @@ class DatabaseAnnotation:
 
     ''' Annotation Handling '''
     # TODO add annotation utility function
-    def retrieveSystemID(self,name):
-        self.dbFiles.updateSystemDict()
-
-        try:
-            # check for system name in db
-            system_id = self.dbFiles.getSystemId(name)
-            return system_id
-        except KeyError:
-            print('System Key=%s not found' % name)
-            try:
-                # check alias
-                system_id = self.dbFiles.getSystemIdByAlias(name)
-                return system_id
-            except KeyError:
-                print('SystemAlias Key=%s not found' % name)
-                return False
-
     def getAnnotationByID(self,id):
         item=self.SQLAnnotation.get(self.SQLAnnotation.id==id)
         return self.readAnnotation(item)
@@ -113,11 +96,15 @@ class DatabaseAnnotation:
         comment=item.comment
         results={}
         results['timestamp']=datetime.strftime(item.timestamp,'%Y%m%d-%H%M%S')
-        results['system']=self.dbFiles.getSystemName(item.system)
-        results['camera']=item.camera
+        if not item.system==0:  results['system']=self.dbFiles.getSystemName(item.system)
+        else:                   results['system']='none'
+        if not item.device==0:  results['camera']=self.dbFiles.getDeviceName(item.device)
+        else:                   results['camera']='none'
         results['rating']=item.rating
         results['reffilename']=item.reffilename
         results['feffileext']=item.reffileext
+        results['fileid']=item.fileid
+        results['annotationid']=item.id
 
         tag_list=self.getTagsForAnnotationID(item.id)
         results['tags']= tag_list
@@ -208,3 +195,54 @@ class DatabaseAnnotation:
 
 if __name__ == '__main__':
     db = DatabaseAnnotation(config())
+
+    self = db
+
+
+    system_id = 0
+    device_id = 0
+    start_time = 0
+    end_time = 0
+    tag_list = ["huddle", "aurora"]
+    """
+    query = self.SQLAnnotation.select()
+    if system_id:
+        query = query.where(self.SQLAnnotation.system == system_id)
+    if device_id:
+        query = query.where(self.SQLAnnotation.device == device_id)
+    if start_time:
+        query = query.where(self.SQLAnnotation.timestamp > start_time)
+    if end_time:
+        query = query.where(self.SQLAnnotation.timestamp < end_time)
+    if tag_list:
+        query = (query.order_by(self.SQLAnnotation.timestamp)
+        .join(self.SQLTagAssociation)
+        .join(self.SQLTags))
+        .where(self.SQLTags.name.in_(tag_list))
+        #.group_by(self.SQLAnnotation.id)
+        )
+    """
+    query = (self.SQLAnnotation.select(self.SQLAnnotation, self.SQLTagAssociation, self.SQLTags)
+        .join(self.SQLTagAssociation)
+        .join(self.SQLTags)
+        .switch(self.SQLAnnotation)
+        #.annotate(self.SQLTagAssociation)
+        .where(self.SQLTags.name.in_(tag_list))
+        .where(self.SQLAnnotation.id == 29)
+        .order_by(self.SQLAnnotation.id)
+             )
+
+    print(query)
+    last_id = None
+    tags = []
+    for item in query:
+        if item.id != last_id:
+            tags.append([item, [item.tagassociation.tag.name]])
+            last_id = item.id
+        else:
+            print(item.tagassociation.tag.name)
+            tags[-1][1].append(item.tagassociation.tag.name)
+    print( tags)
+
+        #print(item.count)
+        #print(item.tags)
