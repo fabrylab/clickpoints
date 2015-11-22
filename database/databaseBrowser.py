@@ -22,7 +22,7 @@ try:
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox, QTabWidget, QSpacerItem
+    from PyQt4.QtGui import QWidget, QSizePolicy,QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox, QTabWidget, QSpacerItem
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList, QObject, SIGNAL
 
 from peewee import fn
@@ -32,8 +32,11 @@ import calendar
 
 from databaseFiles import DatabaseFiles
 from databaseAnnotation import DatabaseAnnotation, config
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "modules"))
+from AnnotationHandler import pyQtTagSelector
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
+
 
 def add_months(sourcedate,months):
      month = sourcedate.month - 1 + months
@@ -169,6 +172,7 @@ class DatabaseTabTemplate(QWidget):
         button.setMaximumWidth(20)
         button.pressed.connect(self.reset_day)
         layout_hor.addWidget(button)
+        layout_hor.setAlignment(Qt.AlignTop)
 
         self.listSpinBoxStart = [self.SpinBoxYearStart,self.SpinBoxMonthStart,self.SpinBoxDayStart]
 
@@ -352,7 +356,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
         DatabaseTabTemplate.__init__(self, parent)
 
         # PLOT
-        self.layout.addSpacing(50)
+        self.layout.addSpacing(20)
         self.layout.setStretch(1,1)
 
         self.plot = MatplotlibWidget(self)
@@ -593,8 +597,26 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         # list of shared toggle widgets
         self.toggle_widgets=[]
 
+        layout_horizontal = QHBoxLayout()
+        self.layout_top.addLayout(layout_horizontal,2,0)
+        label=QLabel("Tag:")
+        label.setAlignment(Qt.AlignTop)
+        # sizePolicy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
+        # sizePolicy.setHorizontalStretch(0)
+        # label.setSizePolicy(sizePolicy)
+        layout_horizontal.addWidget(label)
+        self.tagutil = pyQtTagSelector()
+        self.tagutil.setStringList(self.dbAnot.getTagList())
+        layout_horizontal.addWidget(self.tagutil)
+        layout_horizontal.addSpacing(30)
+        # layout_horizontal.setStretch(0,0)
+        # layout_horizontal.setStretch(1,1)
+        # layout_horizontal.setStretch(2,0)
+
+        #self.layout_top.addWidget(self.tagutil,2,0)
+
         # add table
-        self.layout.addSpacing(50)
+        self.layout.addSpacing(20)
         self.table = QTableWidget(0, 7, self)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setHorizontalHeaderLabels(QStringList(['Date', 'Tag', 'Comment', 'R', 'System', 'Cam', 'file']))
@@ -636,12 +658,13 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         start_time = datetime.strptime(str(self.parent.EditStart.text()), '%Y-%m-%d %H:%M:%S')
         end_time   = datetime.strptime(str(self.parent.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
         query = (self.dbAnot.SQLAnnotation.select()
-                 .where(self.dbAnot.SQLAnnotation.system == system_id, self.dbAnot.SQLAnnotation.camera == device_id, self.dbAnot.SQLAnnotation.timestamp > start_time, self.dbAnot.SQLAnnotation.timestamp < end_time)
+                 .where(self.dbAnot.SQLAnnotation.system == system_id, self.dbAnot.SQLAnnotation.device == device_id, self.dbAnot.SQLAnnotation.timestamp > start_time, self.dbAnot.SQLAnnotation.timestamp < end_time)
                  .order_by(self.dbAnot.SQLAnnotation.timestamp)
                  )
         counter = 0
-        for  q in query:
-            print(q.comment)
+        for (i,item) in enumerate(query):
+            data,comment=self.dbAnot.readAnnotation(item)
+            self.UpdateRow(i,data['reffilename'],data,comment)
 
         #TODO row update
 
