@@ -10,7 +10,7 @@ try:
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QRadioButton
+    from PyQt4.QtGui import QWidget, QDialog, QGridLayout, QHBoxLayout, QVBoxLayout,QSizePolicy, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QRadioButton
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
 
 from Tools import BroadCastEvent
@@ -111,9 +111,13 @@ class pyQtTagSelector(QWidget):
         self.cbTag.addItems(QStringList(['']))
         self.cbTag.setInsertPolicy(QtGui.QComboBox.InsertAtBottom)
         self.cbTag.setEditable(True)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(1)
+        self.cbTag.setSizePolicy(sizePolicy)
 
         self.pbAdd = QtGui.QPushButton(self)
         self.pbAdd.setText('Add')
+        self.pbAdd.setMaximumWidth(30)
         self.pbAdd.released.connect(self.hPB_add)
 
         self.layout_main = QtGui.QVBoxLayout()
@@ -157,31 +161,175 @@ class pyQtTagSelector(QWidget):
         else:
             print("Item %s is already in list" % name)
 
-class AnnotationEditorAddMeta(QWidget):
-    def __init__(self,name,type,type_alias,type_name,dbFiles):
+class AddMetaTemplate(QDialog):
+    def __init__(self,parent,name,dbFiles):
         QWidget.__init__(self)
 
         # paramete
-        self.name=name
         self.db=dbFiles
-        self.type=type
-        self.type_alias=type_alias
+        self.name=name
+        self.system_id=0
 
-        self.setMinimumWidth(200)
-        self.setMinimumHeight(100)
-        self.setWindowTitle("Add %s to %s" % (name,type_name))
-        self.layout = QGridLayout(self)
+        self.setMinimumWidth(400)
+        #self.setMinimumHeight(400)
+        self.layout = QVBoxLayout(self)
 
         self.rb_AsType = QRadioButton("Add as Tag")
-        self.rb_AsTypeAlias =QRadioButton("Add as Alias for Tag")
+        self.rb_AsType.toggled.connect(self.h_rbSelect)
+        self.rb_AsTypeAliasAndType = QRadioButton("Add as Alias for NEW Tag")
+        self.rb_AsTypeAliasAndType.toggled.connect(self.h_rbSelect)
+
+
+
+        # sub layouts
+        self.layout_AsType= QHBoxLayout()
+        self.layout_AsTypeAndAlias= QHBoxLayout()
+
 
         self.layout.addWidget(self.rb_AsType)
-        self.layout.addWidget(self.rb_AsTypeAlias)
+        self.layout.addLayout(self.layout_AsType)
+        self.layout.addWidget(self.rb_AsTypeAliasAndType)
+        self.layout.addLayout(self.layout_AsTypeAndAlias)
 
-        print("was in here!")
+
+        self.pb_Confirm = QPushButton("OK")
+        self.pb_Confirm.released.connect(self.h_pb_Confirm)
+        self.pb_Confirm.setDisabled(True)
+        self.pb_Cancel = QPushButton("Cancel")
+        self.pb_Cancel.released.connect(self.h_pb_Cancel)
+
+        self.layout_buttons = QHBoxLayout()
+        self.layout_buttons.addWidget(self.pb_Confirm)
+        self.layout_buttons.addWidget(self.pb_Cancel)
+        self.layout.addLayout(self.layout_buttons)
+
+    def h_pb_Confirm(self):
+        print("Confirm pressed")
+        self.close()
+
+    def h_pb_Cancel(self):
+        print("Cancel pressed")
+        self.close()
+
+    def h_rbSelect(self):
+        self.pb_Confirm.setEnabled(True)
 
 
+class AddMetaSystem(AddMetaTemplate):
+    def __init__(self,parent,name,dbFiles):
+        AddMetaTemplate.__init__(self,parent,type,dbFiles)
 
+        self.name=name;
+
+        # set names
+        self.setWindowTitle("Add System or SystemAlias")
+        self.rb_AsType.setText("Add \"%s\" as new System"%name)
+        self.rb_AsTypeAliasAndType.setText("Add \"%s\" as Alias for a System"%name)
+
+        # for add as Alias to new System
+        self.layout_AsTypeAndAlias.addSpacing(20)
+        self.layout_AsTypeAndAlias.addWidget(QLabel("Add "))
+        self.leAlias = QLineEdit()
+        self.leAlias.setText(name)
+        self.leAlias.setDisabled(True)
+        sp = self.leAlias.sizePolicy()
+        sp.setHorizontalStretch(1)
+        self.leAlias.setSizePolicy(sp)
+        self.layout_AsTypeAndAlias.addWidget(self.leAlias)
+        self.ComboBoxSystem2 = QComboBox(self)
+        self.systems = dbFiles.SQL_Systems.select()
+        for index, item in enumerate(self.systems):
+            self.ComboBoxSystem2.insertItem(index, item.name)
+        self.ComboBoxSystem2.setInsertPolicy(QComboBox.InsertAtBottom and QComboBox.InsertAtBottom)
+        self.ComboBoxSystem2.setEditable(True)
+        sp =self.ComboBoxSystem2.sizePolicy()
+        sp.setHorizontalStretch(1)
+        self.ComboBoxSystem2.setSizePolicy(sp)
+        self.layout_AsTypeAndAlias.addWidget(self.ComboBoxSystem2)
+
+    def h_pb_Confirm(self):
+        print("Confirm pressed")
+
+        # depending on mode:
+        if self.rb_AsType.isChecked():
+            # add as new System
+            system_id=self.db.newSystem(self.name)
+            self.system_id= system_id
+        elif self.rb_AsTypeAliasAndType.isChecked():
+            # check if target system exists
+            target_system = str(self.ComboBoxSystem2.currentText())
+            if target_system in self.db.system_dict:
+                #get system_id
+                system_id=self.db.getSystemId(target_system)
+            else:
+                # add System
+                system_id=self.db.newSystem(target_system)
+
+            # add Alias for System
+            self.db.newSystemAlias(self.name,target_system)
+            self.system_id= system_id
+
+        self.close()
+
+class AddMetaDevice(AddMetaTemplate):
+    def __init__(self,parent,name,dbFiles,system_id):
+        AddMetaTemplate.__init__(self,parent,type,dbFiles)
+
+        self.name=name
+        self.system_id=system_id
+
+        # set names
+        self.setWindowTitle("Add Device or DeviceAlias")
+        self.rb_AsType.setText("Add \"%s\" as new Device"%name)
+        self.rb_AsTypeAliasAndType.setText("Add \"%s\" as Alias for a Device"%name)
+
+        # for add as Alias to new System
+        self.layout_AsTypeAndAlias.addSpacing(20)
+        self.layout_AsTypeAndAlias.addWidget(QLabel("Add "))
+        self.leAlias = QLineEdit()
+        self.leAlias.setText(name)
+        self.leAlias.setDisabled(True)
+        sp = self.leAlias.sizePolicy()
+        sp.setHorizontalStretch(1)
+        self.leAlias.setSizePolicy(sp)
+        self.layout_AsTypeAndAlias.addWidget(self.leAlias)
+        self.ComboBoxDevice = QComboBox(self)
+        self.systems = dbFiles.SQL_Systems.select()
+        self.devices = self.systems[self.system_id-1].devices()
+        for index, item in enumerate(self.devices):
+            self.ComboBoxDevice.insertItem(index, item.name)
+        self.ComboBoxDevice.setInsertPolicy(QComboBox.InsertAtBottom and QComboBox.InsertAtBottom)
+        self.ComboBoxDevice.setEditable(True)
+        sp =self.ComboBoxDevice.sizePolicy()
+        sp.setHorizontalStretch(1)
+        self.ComboBoxDevice.setSizePolicy(sp)
+        self.layout_AsTypeAndAlias.addWidget(self.ComboBoxDevice)
+
+    def h_pb_Confirm(self):
+        print("Confirm pressed")
+        # TODO finish up confirm callback and update
+        # depending on mode:
+        if self.rb_AsType.isChecked():
+            # add as new Device
+            device_id=self.db.newDevice(self.system_id,self.name)
+            self.device_id= device_id
+        elif self.rb_AsTypeAliasAndType.isChecked():
+            # check if target device exists
+            target_device = str(self.ComboBoxDevice.currentText())
+            target_system=  self.db.getSystemName(self.system_id)
+            print("used names:",target_device,target_system)
+            if (target_system+'_'+target_device) in self.db.device_dict:
+                #get device_id
+                device_id=self.db.getDeviceId(target_system,target_device)
+            else:
+                # add device
+                device_id=self.db.newDevice(self.system_id,target_device)
+
+            # add Alias for device
+            self.db.newDeviceAlias(self.name,target_system,target_device)
+            self.device_id= device_id
+
+        self.close()
 
 
 class AnnotationEditor(QWidget):
@@ -202,8 +350,18 @@ class AnnotationEditor(QWidget):
 
 
         self.fid=0
-        if not config.files_id==[]:
+        self.aid=0
+        self.validFID=False
+        self.validAID=False
+        if not config.file_ids==[]:
             self.fid = config.file_ids[filenr]
+            if not self.fid==0: self.validFID=True
+        if not config.annotation_ids==[]:
+            self.aid = config.annotation_ids[filenr]
+            if not self.aid==0: self.varlidAID=True
+
+
+        print('FileID: %d AnnotationID: %d' % (self.fid,self.aid))
 
         self.modules = modules
         self.config = config
@@ -321,24 +479,18 @@ class AnnotationEditor(QWidget):
         self.leTStamp.setText(self.results['timestamp'])
         self.leSystem.setText(self.results['system'])
         self.leCamera.setText(self.results['camera'])
-        self.leTag.setText(", ".join(self.results['tags']))
         self.leRating.setCurrentIndex(int(self.results['rating']))
-
-        # update comment
         self.pteAnnotation.setPlainText(self.comment)
 
-    # @abstractmethod
-    # def annotationExists(self):
-    #     pass
-    # @abstractmethod
-    # def removeAnnotation(self):
-    #     pass
-    # @abstractmethod
-    # def getAnnotation(self):
-    #     pass
-    # @abstractmethod
-    # def saveAnnotation(self):
-    #     pass
+        # update active tags
+        if self.config.sql_annotation==True:
+            self.leTag.setActiveTagList(self.results['tags'])
+        else:
+            self.leTag.setText(", ".join(self.results['tags']))
+
+
+
+
 
 
 class AnnotationHandlerSQL:
@@ -353,21 +505,19 @@ class AnnotationHandlerSQL:
         self.parent.leTag.setStringList(self.db.getTagList())
 
     def saveAnnotation(self):
+        ### extract parameters ###
         # extract relevant values, store in dict
         match = self.parent.regFromFName.match(self.parent.basename)
         if not match:
             print('warning - no match for regexp')
         else:
             re_dict = match.groupdict()
-
             # update results
             self.parent.results = UpdateDictWith(self.parent.results, re_dict)
 
         # update with gui changes
         self.parent.results['rating'] = self.parent.leRating.currentIndex()
-        # update tags
         self.parent.results['tags'] = "SQLTags"
-
 
         # check for empty timestamp
         if not self.parent.results['timestamp'] == '':
@@ -376,27 +526,50 @@ class AnnotationHandlerSQL:
             tstamp = datetime(1970,1,1,0,0,0)
 
 
-        item=self.db.SQLAnnotation
+        #item=self.db.SQLAnnotation
         try:
             # load entry from db
-            item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
-            found=True
+            if self.config.annotation_ids==[]:
+                # use basename match
+                item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
+                found=True
+            else:
+                # use annotationID if available
+                if not self.parent.aid==0:
+                    item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.id==self.parent.aid)
+                    found=True
+                else:
+                    item=self.db.SQLAnnotation.get(self.db.SQLAnnotation.reffilename==self.parent.basename)
+                    found=True
+
         except DoesNotExist:
             found=False
 
         # check for system ID
         print("system:",self.parent.results['system'])
-        system_id = self.db.retrieveSystemID(self.parent.results['system'])
+        system_id = self.dbFiles.retrieveSystemID(self.parent.results['system'])
         if system_id==False:
-            print("can't find System or SystemAlias")
-            self.popup=AnnotationEditorAddMeta(self.parent.results['system'],self.dbFiles.SQL_Systems,self.dbFiles.SQL_SystemAlias,'System',self.dbFiles)
-            self.popup.show()
+            self.popup=AddMetaSystem(self.parent,self.parent.results['system'],self.dbFiles)
+            self.popup.exec_()
+            system_id = self.popup.system_id
+            if system_id==0:
+                raise Exception("No System \"%s\" found, please add System or System Alias"%self.parent.results['system'])
+        print("SystemID=",system_id)
+
+        # check for device ID
+        print("device:",self.parent.results['camera'])
+        device_id = self.dbFiles.retrieveDeviceID(self.dbFiles.getSystemName(system_id),self.parent.results['camera'])
+        if device_id==False:
+            self.popup=AddMetaDevice(self.parent,self.parent.results['camera'],self.dbFiles,system_id)
+            self.popup.exec_()
+            device_id = self.popup.device_id
+        print("DeviceID=",device_id)
 
         if found:
             # update values and update db
             item.timestamp = tstamp
-            item.system = self.parent.results['system']
-            item.camera = self.parent.results['camera']
+            item.system = system_id
+            item.device = device_id
             item.tags = self.parent.results['tags']
             item.rating = self.parent.results['rating']
             item.comment = self.parent.pteAnnotation.toPlainText()
@@ -410,8 +583,8 @@ class AnnotationHandlerSQL:
             # create new entry
             item=self.db.SQLAnnotation(
                timestamp = tstamp,
-               system = self.parent.results['system'],
-               camera = self.parent.results['camera'],
+               system = system_id,
+               device = device_id,
                tags = self.parent.results['tags'],
                rating = self.parent.results['rating'],
                comment = self.parent.pteAnnotation.toPlainText(),
@@ -434,12 +607,10 @@ class AnnotationHandlerSQL:
         self.db.setTagsForAnnotationID(item.id,taglist)
 
         # update file
-        file_item = self.dbFiles.SQL_Files.get(self.dbFiles.SQL_Files.id==self.parent.fid)
-        print(file_item.basename)
-        file_item.annotation_id = item.id
-        print('update anotation',file_item.id,item.id)
-        print(file_item.annotation_id)
-        file_item.save()
+        if not self.config.file_ids==[]:
+            file_item = self.dbFiles.SQL_Files.get(self.dbFiles.SQL_Files.id==self.parent.fid)
+            file_item.annotation_id = item.id
+            file_item.save()
 
         results, comment = self.getAnnotation()
         BroadCastEvent(self.parent.modules, "AnnotationAdded", self.parent.basename, results, comment)
