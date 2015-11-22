@@ -31,6 +31,10 @@ class devices(Model):
     system = ForeignKeyField(systems)
     name = CharField()
 
+class devicealias(Model):
+    name = CharField()
+    device_id = IntegerField()
+
 class files(Model):
     timestamp = DateTimeField()
     timestamp2 = DateTimeField()
@@ -82,6 +86,8 @@ class DatabaseFiles:
         self.SQL_SystemAlias._meta.database = self.db
         self.SQL_Devices = devices
         self.SQL_Devices._meta.database = self.db
+        self.SQL_DeviceAlias = devicealias
+        self.SQL_DeviceAlias._meta.database = self.db
         self.SQL_Files = files
         self.SQL_Files._meta.database = self.db
         self.SQL_Folder = folder
@@ -93,7 +99,10 @@ class DatabaseFiles:
         self.updateSystemAliasDict()
 
         self.device_dict = {}
+        self.device_dict_plain = {}
         self.updateDeviceDict()
+        self.devicealias_dict = {}
+        self.updateDeviceAliasDict()
         print(self.device_dict)
 
         #self.saveFile()
@@ -106,7 +115,7 @@ class DatabaseFiles:
         #query = self.SQL_Files.update(timestamp2=self.SQL_Files.timestamp)
         #query.execute()
 
-
+    ''' SYSTEM functions '''
     def updateSystemDict(self):
         self.system_dict = {}
         res = self.SQL_Systems.select()
@@ -119,12 +128,109 @@ class DatabaseFiles:
         for item in res:
             self.systemalias_dict[item.name] = item.id
 
+    def getSystemId(self, system_name):
+        return self.system_dict[system_name]
+
+    def getSystemName(self, id):
+        system_dict_byname = { v:k for k, v in self.system_dict.items()}
+        return system_dict_byname[id]
+
+    def getSystemIdByAlias(self,system_name):
+        alais_id = self.systemalias_dict[system_name]
+        qr = self.SQL_SystemAlias.get(self.SQL_SystemAlias.id==alais_id)
+        return qr.system_id
+
+    def retrieveSystemID(self,name):
+        self.updateSystemDict()
+        try:
+            # check for system name in db
+            system_id = self.getSystemId(name)
+            return system_id
+        except KeyError:
+            print('System Key=%s not found' % name)
+            try:
+                # check alias
+                system_id = self.getSystemIdByAlias(name)
+                return system_id
+            except KeyError:
+                print('SystemAlias Key=%s not found' % name)
+                return False
+
+
+    def newSystem(self, system_name):
+        system_id = self.SQL_Systems.create(name=system_name).id
+        self.updateSystemDict()
+        return system_id
+
+    def newSystemAlias(self,system_alias,system_name):
+        try:
+            system_id = self.getSystemId(system_name)
+            if not system_alias in self.systemalias_dict:
+                system_id = self.SQL_SystemAlias.create(name=system_alias,system_id=system_id).id
+                return system_id
+        except KeyError:
+            raise Exception("The target system %s does not exist!"%system_name)
+
+
+    ''' DEVICE functions '''
     def updateDeviceDict(self):
         self.device_dict = {}
         res = self.SQL_Devices.select()
         for item in res:
             self.device_dict[str(item.system.name)+"_"+item.name] = item.id
+        self.device_dict_plain = {}
+        for item in res:
+            self.device_dict_plain[item.name] = item.id
 
+    def updateDeviceAliasDict(self):
+        self.devicealias_dict = {}
+        res = self.SQL_DeviceAlias.select()
+        for item in res:
+            self.devicealias_dict[item.name] = item.device_id
+
+    def retrieveDeviceID(self,system_name, device_name):
+        self.updateDeviceDict()
+        try:
+            # check for device name in db
+            device_id = self.getDeviceId(system_name,device_name)
+            return device_id
+        except KeyError:
+            print('System Key=%s_%s not found' % (system_name,device_name))
+            try:
+                # check alias
+                device_id = self.getDeviceIdByAlias(device_name)
+                return device_id
+            except KeyError:
+                print('SystemAlias Key=%s_%s not found' % (system_name,device_name))
+                return False
+
+    def getDeviceId(self, system_name, device_name):
+        return self.device_dict[system_name+"_"+device_name]
+
+    def getDeviceName(self, id):
+        device_dict_byname = { v:k for k, v in self.device_dict_plain.items()}
+        return device_dict_byname[id]
+
+    def getDeviceIdByAlias(self,device_name):
+        #device_dict_plain_reverse = { v:k for k, v in self.device_dict_plain.items()}
+        return self.devicealias_dict[device_name]
+
+    def newDevice(self, system_id, device_name):
+        device_id = self.SQL_Devices.create(name=device_name, system=system_id).id
+        self.updateDeviceDict()
+        return device_id
+
+    def newDeviceAlias(self,device_alias,system_name,device_name):
+        try:
+            device_id = self.getDeviceId(system_name,device_name)
+            if not device_alias in self.devicealias_dict:
+                self.SQL_DeviceAlias.create(name=device_alias,device_id=device_id)
+                return device_id
+        except KeyError:
+            raise Exception("The target device %s does not exist!"%device_name)
+
+
+    ''' PATH functions '''
     def getPath(self, path_id):
         path = []
         while path_id:
@@ -147,37 +253,6 @@ class DatabaseFiles:
             item.save()
         return item.id
 
-    def getSystemId(self, system_name):
-        return self.system_dict[system_name]
-
-    def getSystemName(self, id):
-        system_dict_byname = { v:k for k, v in self.system_dict.items()}
-        return system_dict_byname[id]
-
-    def getSystemIdByAlias(self,system_name):
-        return self.systemalias_dict[system_name]
-
-    def newSystemAlias(self,system_alias,system_name):
-        try:
-            system_id = self.getSystemId(system_name)
-            if not system_alias in self.systemalias_dict:
-                system_id = self.SQL_SystemAlias.create(name=system_name,system_id=system_id).id
-                return system_id
-        except KeyError:
-            raise Exception("The target system %s does not exist!"%system_name)
-
-    def getDeviceId(self, system_name, device_name):
-        return self.device_dict[system_name+"_"+device_name]
-
-    def newSystem(self, system_name):
-        system_id = self.SQL_Systems.create(name=system_name).id
-        self.updateSystemDict()
-        return system_id
-
-    def newDevice(self, system_id, device_name):
-        device_id = self.SQL_Devices.create(name=device_name, system=system_id).id
-        self.updateDeviceDict()
-        return device_id
 
     def saveFiles(self, files):
         with self.db.atomic():
