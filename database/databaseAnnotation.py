@@ -166,13 +166,13 @@ class DatabaseAnnotation:
     def getTagsForAnnotationID(self,id):
         self.updateTagDict()
 
-        tagIDs = self.SQLTagAssociation.select().where(self.SQLTagAssociation.annotation_id==id)
+        tagIDs = self.SQLTagAssociation.select().where(self.SQLTagAssociation.annotation==id)
         tag_list= [self.tag_dict_byID[item.tag_id] for item in tagIDs]
         print(tag_list)
         return tag_list
 
     def setTagsForAnnotationID(self,id,tag_list):
-        tagIDs = self.SQLTagAssociation.select().where(self.SQLTagAssociation.annotation_id==id)
+        tagIDs = self.SQLTagAssociation.select().where(self.SQLTagAssociation.annotation==id)
 
         #TODO: discuss if this is bad practice?
         # delete all old tags
@@ -183,7 +183,7 @@ class DatabaseAnnotation:
         # add new tags
         tag_id_list = [ self.tag_dict_byName[tag] for tag in tag_list]
         for tag in tag_id_list:
-            self.SQLTagAssociation.create(annotation_id=id,tag_id=tag)
+            self.SQLTagAssociation.create(annotation=id,tag=tag)
 
 
 
@@ -204,8 +204,11 @@ if __name__ == '__main__':
     start_time = 0
     end_time = 0
     tag_list = ["huddle", "aurora"]
-    """
-    query = self.SQLAnnotation.select()
+
+
+    query = self.SQLAnnotation.select(self.SQLAnnotation, self.SQLTagAssociation, self.SQLTags)\
+                        .join(self.SQLTagAssociation,join_type='LEFT OUTER') \
+                        .join(self.SQLTags,join_type='LEFT OUTER')
     if system_id:
         query = query.where(self.SQLAnnotation.system == system_id)
     if device_id:
@@ -215,22 +218,12 @@ if __name__ == '__main__':
     if end_time:
         query = query.where(self.SQLAnnotation.timestamp < end_time)
     if tag_list:
-        query = (query.order_by(self.SQLAnnotation.timestamp)
-        .join(self.SQLTagAssociation)
-        .join(self.SQLTags))
-        .where(self.SQLTags.name.in_(tag_list))
-        #.group_by(self.SQLAnnotation.id)
-        )
-    """
-    query = (self.SQLAnnotation.select(self.SQLAnnotation, self.SQLTagAssociation, self.SQLTags)
-        .join(self.SQLTagAssociation)
-        .join(self.SQLTags)
-        .switch(self.SQLAnnotation)
-        #.annotate(self.SQLTagAssociation)
-        .where(self.SQLTags.name.in_(tag_list))
-        .where(self.SQLAnnotation.id == 29)
-        .order_by(self.SQLAnnotation.id)
-             )
+        print("check tags")
+        query = (query  .switch(self.SQLAnnotation)
+                        .where(self.SQLTags.name.in_(tag_list)))
+
+    query = query.order_by(self.SQLAnnotation.timestamp)
+
 
     print(query)
     last_id = None
@@ -241,8 +234,6 @@ if __name__ == '__main__':
             last_id = item.id
         else:
             print(item.tagassociation.tag.name)
+            print(item.comment)
             tags[-1][1].append(item.tagassociation.tag.name)
     print( tags)
-
-        #print(item.count)
-        #print(item.tags)
