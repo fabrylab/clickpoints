@@ -114,11 +114,13 @@ class pyQtTagSelector(QWidget):
         sizePolicy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         self.cbTag.setSizePolicy(sizePolicy)
+        self.cbTag.activated.connect(self.hPB_add)
 
         self.pbAdd = QtGui.QPushButton(self)
         self.pbAdd.setText('Add')
         self.pbAdd.setMaximumWidth(30)
         self.pbAdd.released.connect(self.hPB_add)
+
 
         self.layout_main = QtGui.QVBoxLayout()
         self.layout_main.setAlignment(Qt.AlignTop)
@@ -570,7 +572,7 @@ class AnnotationHandlerSQL:
             item.timestamp = tstamp
             item.system = system_id
             item.device = device_id
-            item.tags = self.parent.results['tags']
+            item.tag_type = self.parent.results['tags']
             item.rating = self.parent.results['rating']
             item.comment = self.parent.pteAnnotation.toPlainText()
             item.reffilename=self.parent.basename
@@ -585,7 +587,7 @@ class AnnotationHandlerSQL:
                timestamp = tstamp,
                system = system_id,
                device = device_id,
-               tags = self.parent.results['tags'],
+               tag_type = self.parent.results['tags'],
                rating = self.parent.results['rating'],
                comment = self.parent.pteAnnotation.toPlainText(),
                reffilename=self.parent.basename,
@@ -628,7 +630,7 @@ class AnnotationHandlerSQL:
             item.delete_instance()
 
             # remove tag associations
-            tag_associations = self.db.SQLTagAssociation.select().where(self.db.SQLTagAssociation.annotation_id==id)
+            tag_associations = self.db.SQLTagAssociation.select().where(self.db.SQLTagAssociation.annotation==id)
             [item.delete_instance() for item in tag_associations]
 
             # reset annotation_id in files table
