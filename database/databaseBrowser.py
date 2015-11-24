@@ -26,8 +26,10 @@ except ImportError:
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList, QObject, SIGNAL
 
 from peewee import fn
+import re
 
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import calendar
 
 from databaseFiles import DatabaseFiles
@@ -123,7 +125,7 @@ class DatabaseTabTemplate(QWidget):
         self.SpinBoxYearStart = QSpinBox(self)
         self.SpinBoxYearStart.setMaximum(2050)
         self.SpinBoxYearStart.setMinimum(0)
-        self.SpinBoxYearStart.setValue(0)
+        self.SpinBoxYearStart.setValue(2014)
         self.SpinBoxYearStart.valueChanged.connect(self.update_timerange)
         layout_hor.addWidget(self.SpinBoxYearStart)
         self.SpinBoxYearEnd = QSpinBox(self)
@@ -175,6 +177,14 @@ class DatabaseTabTemplate(QWidget):
         layout_hor.setAlignment(Qt.AlignTop)
 
         self.listSpinBoxStart = [self.SpinBoxYearStart,self.SpinBoxMonthStart,self.SpinBoxDayStart]
+
+        # for file list
+        self.last_path_id = 0
+        self.last_path = ""
+        self.last_system_id = 0
+        self.last_system_name = ""
+        self.last_device_id = 0
+        self.last_device_name = ""
 
         # list of shared toggle able widgets
         self.toggle_widgets=[]
@@ -265,8 +275,8 @@ class DatabaseTabTemplate(QWidget):
 
         ### set start stop text fields
         if year == 0:
-            self.parent.EditStart.setText('')
-            self.parent.EditEnd.setText('')
+            self.parent.EditStart.setText(str(datetime(1970,1,1)))
+            self.parent.EditEnd.setText(str(datetime(3000,1,1)))
             return
 
         if month == 0:
@@ -377,12 +387,6 @@ class DatabaseByFiles(DatabaseTabTemplate):
         self.axes2 = self.plot2.figure.add_axes([0, 0, 1, 1], axisbg='none')
         self.axes2.grid()
 
-        self.last_path_id = 0
-        self.last_path = ""
-        self.last_system_id = 0
-        self.last_system_name = ""
-        self.last_device_id = 0
-        self.last_device_name = ""
 
         self.CreateColorMaps()
 
@@ -591,6 +595,7 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         # TODO replace with proper configuration
         cfg = config()
         self.dbAnot = DatabaseAnnotation(cfg)
+        self.dbFiles = DatabaseFiles(cfg)
 
         print(self.dbAnot.tag_dict_byID)
 
@@ -624,59 +629,197 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setResizeMode(2, QHeaderView.Stretch)
         self.table.verticalHeader().hide()
-
+        self.table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.layout.addWidget(self.table)
+
+        self.table.cellClicked.connect(self.hCellClicked)
 
         # add lead/tail time
         self.laTimeBefore = QLabel('Time before:', self)
         self.toggle_widgets.append(self.laTimeBefore)
+        self.leTimeBStart = QLineEdit(self)
+        self.leTimeBStart.setEnabled(False)
+        self.toggle_widgets.append(self.leTimeBStart)
+
         self.leTimeBefore = QLineEdit(self)
         self.toggle_widgets.append(self.leTimeBefore)
+        self.leTimeBefore.textChanged.connect(self.hLETimeBefore)
 
         self.laTimeAfter = QLabel('Time after:', self)
         self.toggle_widgets.append(self.laTimeAfter)
+        self.leTimeBEnd = QLineEdit(self)
+        self.leTimeBEnd.setEnabled(False)
+        self.toggle_widgets.append(self.leTimeBEnd)
         self.leTimeAfter = QLineEdit(self)
         self.toggle_widgets.append(self.leTimeAfter)
+        self.leTimeAfter.textChanged.connect(self.hLETimeAfter)
+
+        self.time_after=relativedelta(0)
+        self.time_before=relativedelta(0)
+
+        self.ts=0
+        self.data_timestart=0
+        self.data_timestop=0
+
 
 
     def post_init(self):
         self.updateSpinBoxState()
         self.parent.layout_vert.addSpacing(20)
         self.parent.layout_vert.addWidget(self.laTimeBefore)
+        self.parent.layout_vert.addWidget(self.leTimeBStart)
         self.parent.layout_vert.addWidget(self.leTimeBefore)
         self.parent.layout_vert.addWidget(self.laTimeAfter)
+        self.parent.layout_vert.addWidget(self.leTimeBEnd)
         self.parent.layout_vert.addWidget(self.leTimeAfter)
         self.parent.layout_vert.addStretch()
+
+    def hCellClicked(self,row,col):
+
+        self.active_row=row
+        # get time stamp
+        self.ts = datetime.strptime(str(self.table.item(row,0).text()),'%Y%m%d-%H%M%S')
+        print(self.ts,self.time_before, self.time_after)
+        self.updateDataTS()
+
+    def updateDataTS(self):
+        if self.ts:
+            self.data_timestart=self.ts-self.time_before
+            self.data_timestop=self.ts+self.time_after
+
+            self.leTimeBStart.setText(str(self.ts-self.time_before))
+            self.leTimeBEnd.setText(str(self.ts+self.time_after))
+
+
+    def processLineEidtTimeDelta(self,text):
+        reg = re.compile("^(?:\D*(?P<year>\d{1,4})y)?(?:\D*(?P<month>\d{1,4})m)?(?:\D*(?P<day>\d{1,4})d)?(?:\D*(?P<hour>\d{1,4})H)?(?:\D*(?P<minute>\d{1,4})M)?(?:\D*(?P<second>\d{1,4})S)?")
+        res = reg.match(text)
+
+        regdict = res.groupdict()
+
+        # replace none with 0, convert string to int
+        return_dict={}
+        for k,v in regdict.iteritems():
+            if (v==None):
+                return_dict[k]=0
+            else:
+                return_dict[k]=int(v)
+
+        return return_dict
+
+    def hLETimeAfter(self):
+        txt = self.leTimeAfter.text()
+        res = self.processLineEidtTimeDelta(txt)
+
+        delta = relativedelta(years=res['year'],months=res['month'],days=res['day'],hours=res['hour'],minutes=res['minute'],seconds=res['second'])
+        print(delta)
+        self.time_after = delta
+        self.updateDataTS()
+
+
+
+    def hLETimeBefore(self):
+        txt = self.leTimeBefore.text()
+        res = self.processLineEidtTimeDelta(txt)
+
+        delta = relativedelta(years=res['year'],months=res['month'],days=res['day'],hours=res['hour'],minutes=res['minute'],seconds=res['second'])
+        print(delta)
+        self.time_before = delta
+        self.updateDataTS()
+
+
 
     def onConfirm(self):
         if self.ComboBoxDevice.currentIndex() == 0:
             print("No Device selected")
-            return 0
+            device_id=0
+        else:
+            device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
+
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
-        device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
-        print(system_id, device_id)
         start_time = datetime.strptime(str(self.parent.EditStart.text()), '%Y-%m-%d %H:%M:%S')
         end_time   = datetime.strptime(str(self.parent.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
-        query = (self.dbAnot.SQLAnnotation.select()
-                 .where(self.dbAnot.SQLAnnotation.system == system_id, self.dbAnot.SQLAnnotation.device == device_id, self.dbAnot.SQLAnnotation.timestamp > start_time, self.dbAnot.SQLAnnotation.timestamp < end_time)
-                 .order_by(self.dbAnot.SQLAnnotation.timestamp)
-                 )
-        counter = 0
-        for (i,item) in enumerate(query):
-            data,comment=self.dbAnot.readAnnotation(item)
+        tag_list   = self.tagutil.getTagList()
+
+
+        # # old
+        # query = (self.dbAnot.SQLAnnotation.select()
+        #          .where(self.dbAnot.SQLAnnotation.system == system_id, self.dbAnot.SQLAnnotation.device == device_id, self.dbAnot.SQLAnnotation.timestamp > start_time, self.dbAnot.SQLAnnotation.timestamp < end_time)
+        #          .order_by(self.dbAnot.SQLAnnotation.timestamp)
+        #          )
+        #
+        print(system_id,device_id, start_time, end_time, tag_list)
+
+        query = self.dbAnot.SQLAnnotation.select(self.dbAnot.SQLAnnotation, self.dbAnot.SQLTagAssociation, self.dbAnot.SQLTags) \
+                            .join(self.dbAnot.SQLTagAssociation, join_type='LEFT OUTER') \
+                            .join(self.dbAnot.SQLTags, join_type='LEFT OUTER')
+        if system_id:
+            query = query.where(self.dbAnot.SQLAnnotation.system == system_id)
+        if device_id:
+            query = query.where(self.dbAnot.SQLAnnotation.device == device_id)
+        if start_time:
+            query = query.where(self.dbAnot.SQLAnnotation.timestamp > start_time)
+        if end_time:
+            query = query.where(self.dbAnot.SQLAnnotation.timestamp < end_time)
+        if tag_list:
+            query = (query.switch(self.dbAnot.SQLAnnotation)
+                          .where(self.dbAnot.SQLTags.name.in_(tag_list)))
+
+        query = query.order_by(self.dbAnot.SQLAnnotation.timestamp)
+
+        # resort and accumulate tags for mutli tag annotations
+        last_id = None
+        results = []
+        for item in query:
+            if item.id != last_id:
+                results.append([item, [item.tagassociation.tag.name]])
+                last_id = item.id
+            else:
+                print(item.tagassociation.tag.name)
+                print(item.comment)
+                results[-1][1].append(item.tagassociation.tag.name)
+
+        # display results
+        self.table.setRowCount(0)
+        for (i,res) in enumerate(results):
+            data,comment=self.dbAnot.readAnnotation(res[0])
+            if not res[1]==[None]:
+                data['tags']=res[1]
+            else:
+                data['tags']=['']
+            print("row %d tag %s" % (i,res[1]))
+            print("tags:", ", ".join(data['tags']))
             self.UpdateRow(i,data['reffilename'],data,comment)
 
-        #TODO row update
 
     def doSaveFilelist(self):
-        qm = QMessageBox()
-        qm.setText("WARNING - Not implemented yet!")
-        qm.exec_()
+        # retrieve system and device
+        system_name = self.table.item(self.active_row,4).text()
+        system_id = self.dbFiles.getSystemId(str(system_name))
+
+        device_name = self.table.item(self.active_row,5).text()
+        device_id = self.dbFiles.getDeviceId(str(system_name),str(device_name))
+
+        start_time = datetime.strptime(str(self.leTimeBStart.text()), '%Y-%m-%d %H:%M:%S')
+        end_time   = datetime.strptime(str(self.leTimeBEnd.text()), '%Y-%m-%d %H:%M:%S')
+        query = (self.dbFiles.SQL_Files.select()
+                 .where(self.dbFiles.SQL_Files.system == system_id, self.dbFiles.SQL_Files.device == device_id, self.dbFiles.SQL_Files.timestamp >= start_time, self.dbFiles.SQL_Files.timestamp <= end_time)
+                 .order_by(self.dbFiles.SQL_Files.timestamp)
+                 )
+        counter = 0
+        with open("files.txt","w") as fp:
+            for item in query:
+                fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
+                counter += 1
+        return counter
 
     def showData(self):
-        qm = QMessageBox()
-        qm.setText("WARNING - Not implemented yet!")
-        qm.exec_()
+        count = self.doSaveFilelist()
+        if count==0:
+            QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
+            return
+        print("Selected %d images." % count)
+        os.system(r"python.exe ..\ClickPointsQT.py ConfigClickPoints.txt -srcpath=files.txt")
 
     def UpdateRow(self, row, basename, data, comment, sort_if_new=False):
         new = False
@@ -685,7 +828,7 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
             for j in range(7):
                 self.table.setItem(row, j, QTableWidgetItem())
             new = True
-        texts = [data['timestamp'], ", ".join(data['tags']), comment, str(data['rating']), data['system'],
+        texts = [data['timestamp'], str(", ".join(data['tags'])), comment, str(data['rating']), data['system'],
                  data['camera'], basename]
         for index, text in enumerate(texts):
             self.table.item(row, index).setText(text)
@@ -747,7 +890,8 @@ class DatabaseBrowser(QWidget):
         for key,tabWidget in self.tab_dict.iteritems():
             tabWidget.post_init()
 
-        self.setFocusTab(0)
+        self.tabWidget.setCurrentIndex(1)
+
 
     def setFocusTab(self,n):
         print("changed to tab: ",n)
