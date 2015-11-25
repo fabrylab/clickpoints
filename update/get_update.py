@@ -154,6 +154,14 @@ def doCleanUp():
     ## clean up update folder
     shutil.rmtree(os.path.join(base_path,'clickpoints',path_update))
 
+    # remove all .pyc files
+    clickpointsproject_path = os.path.dirname(os.path.abspath(os.path.join(__file__, "..", "..")))  # update file path
+    matches = []
+    for root, dirnames, filenames in os.walk(clickpointsproject_path):
+        matches.extend([os.path.join(clickpointsproject_path, root, filename) for filename in filenames if filename.lower().endswith(".pyc")])
+    for match in matches:
+        os.remove(match)
+
     print("Update completed")
 
     
