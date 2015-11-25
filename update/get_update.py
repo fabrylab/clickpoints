@@ -9,10 +9,10 @@ import zipfile
 ## parameters
 link_server_version=r"http://fabry_biophysics.bitbucket.org/clickpoints/version.html"
 link_server_update=r"http://fabry_biophysics.bitbucket.org/clickpoints/link.html"
-basedir=os.path.dirname(__file__)
+basedir=os.path.join(os.path.dirname(__file__), "..")
 file_local_version=os.path.join(basedir,r"version.txt")
 file_local_filelist=os.path.join(basedir, "..", "..", "..", r"files.txt")
-path_update="update"
+path_update="update_tmp"
 
 def copytree(src, dst, symlinks=False, ignore=None):
     #print(os.listdir(src))
@@ -103,18 +103,18 @@ def doUpdate():
     """" executed from update/ """
     print("Running UPDATE as PID: %d" % os.getpid())
 
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(os.path.dirname(os.path.abspath(os.path.join(__file__, ".."))))
     #print('currentpath: %s' % os.path.abspath(os.path.curdir))
 
     ## get base path
-    base_path = os.path.dirname(os.path.abspath(__file__)) # update file path
-    base_path,tail=os.path.split(base_path)       # main path (thats update)
+    base_path = os.path.dirname(os.path.abspath(os.path.join(__file__, ".."))) # update file path
+    base_path,tail=os.path.split(base_path)       # main path (thats update tmp)
     base_path,tail=os.path.split(base_path)       # main path (thats clickpoints)
     base_path,tail=os.path.split(base_path)       # main path (thats clickpointspriject)
     base_path=os.path.normpath(base_path)
 
     ## get update path
-    update_path= os.path.dirname(os.path.abspath(__file__)) # update file path
+    update_path= os.path.dirname(os.path.abspath(os.path.join(__file__, ".."))) # update file path
     update_path,tail=os.path.split(update_path)    # thats update
 
     #print("base path: %s" % base_path)
@@ -148,7 +148,7 @@ def doUpdate():
 def doCleanUp():
     """" executed from base """
     print("Running CLEAN UP as PID: %d" %os.getpid())
-    base_path= os.path.dirname(os.path.abspath(__file__)) # update file path
+    base_path= os.path.dirname(os.path.abspath(os.path.join(__file__, ".."))) # update file path
     base_path,tail=os.path.split(base_path)       # main path (thats update)
 
     ## clean up update folder
