@@ -148,7 +148,14 @@ class VideoExporterDialog(QWidget):
 
     def OpenDialog2(self):
         srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Image", os.getcwd(), "Images (*.jpg *.png *.tif)"))
-        srcpath = re.sub(r"\d+", "%d", srcpath, count=1)
+        match = re.match(r"%\s*\d*d", srcpath)
+        if not match:
+            path, name = os.path.split(srcpath)
+            basename, ext = os.path.splitext(name)
+            basename_new = re.sub(r"\d+", "%04d", basename, count=1)
+            if basename_new == basename:
+                basename_new = basename+"%04d"
+            srcpath = os.path.join(path, basename_new+ext)
         self.leANameI.setText(srcpath)
 
     def OpenDialog3(self):
@@ -160,7 +167,7 @@ class VideoExporterDialog(QWidget):
         marker_handler = self.window.GetModule("MarkerHandler")
         start = timeline.frameSlider.startValue()
         end = timeline.frameSlider.endValue()
-        skip = timeline.skip
+        skip = timeline.skip if timeline.skip >= 1 else 1
         writer = None
         if self.cbType.currentIndex() == 0:
             path = str(self.leAName.text())
