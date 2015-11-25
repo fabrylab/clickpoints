@@ -160,6 +160,7 @@ class VideoExporterDialog(QWidget):
         marker_handler = self.window.GetModule("MarkerHandler")
         start = timeline.frameSlider.startValue()
         end = timeline.frameSlider.endValue()
+        skip = timeline.skip
         writer = None
         if self.cbType.currentIndex() == 0:
             path = str(self.leAName.text())
@@ -171,7 +172,7 @@ class VideoExporterDialog(QWidget):
             writer_params = dict(format="gif", mode="I", fps=timeline.fps)
         self.progressbar.setMinimum(start)
         self.progressbar.setMaximum(end)
-        for frame in range(start, end+1):
+        for frame in range(start, end+1, skip):
             self.progressbar.setValue(frame)
             self.window.JumpToFrame(frame)
             self.preview_rect = self.window.view.GetExtend(True)
@@ -210,6 +211,7 @@ class VideoExporterDialog(QWidget):
                 if writer == None:
                     writer = imageio.get_writer(path, **writer_params)
                 writer.append_data(self.preview_slice)
+        self.progressbar.setValue(end)
         if self.cbType.currentIndex() == 2 or self.cbType.currentIndex() == 0:
             writer.close()
         #if self.cbType.currentIndex() == 0:
