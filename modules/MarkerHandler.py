@@ -526,11 +526,12 @@ class Crosshair(QGraphicsPathItem):
 
 
 class MyCounter(QGraphicsRectItem):
-    def __init__(self, parent, marker_handler, type):
+    def __init__(self, parent, marker_handler, type, index):
         QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
         self.marker_handler = marker_handler
         self.type = type
+        self.index = index
         self.count = 0
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
@@ -547,7 +548,7 @@ class MyCounter(QGraphicsRectItem):
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.setPos(10, 10 + 25 * (self.type.id-1))
+        self.setPos(10, 10 + 25 * self.index)
         self.setZValue(9)
 
         count = 0
@@ -586,7 +587,7 @@ class MyCounter(QGraphicsRectItem):
             if not self.marker_handler.active:
                 BroadCastEvent([module for module in self.marker_handler.modules if module != self.marker_handler], "setActiveModule", False)
                 self.marker_handler.setActiveModule(True)
-            self.marker_handler.SetActiveMarkerType(self.type.id)
+            self.marker_handler.SetActiveMarkerType(self.index)
 
 
 class MarkerHandler:
@@ -642,7 +643,7 @@ class MarkerHandler:
             self.view.scene.removeItem(self.counter[counter])
 
         type_list = [self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2]) for type_id, type_def in self.config.types.items()]
-        self.counter = {type.id: MyCounter(self.parent_hud, self, type) for type in type_list}
+        self.counter = {type.id: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
         self.active_type = self.counter[self.counter.keys()[0]].type
 
         for key in self.counter:
@@ -695,11 +696,15 @@ class MarkerHandler:
         for point in self.points:
             point.save()
 
-    def SetActiveMarkerType(self, new_type):
-        if new_type not in self.counter.keys():
+    def SetActiveMarkerType(self, new_index):
+        try:
+            counter_list = [c for i, c in self.counter.iteritems() if c.index == new_index]
+            print(counter_list, [c for i, c in self.counter.iteritems()])
+            counter = counter_list[0]
+        except IndexError:
             return
         self.counter[self.active_type.id].SetToInactiveColor()
-        self.active_type = self.counter[new_type].type
+        self.active_type = counter.type
         self.counter[self.active_type.id].SetToActiveColor()
 
     def zoomEvent(self, scale, pos):
@@ -759,7 +764,7 @@ class MarkerHandler:
         # @key ---- Marker ----
         if self.active and 0 <= numberkey < 9 and event.modifiers() != Qt.KeypadModifier:
             # @key 0-9: change marker type
-            self.SetActiveMarkerType(numberkey+1)
+            self.SetActiveMarkerType(numberkey)
 
         if event.key() == QtCore.Qt.Key_T:
             # @key T: toggle marker shape
