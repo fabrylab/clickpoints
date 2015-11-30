@@ -95,12 +95,12 @@ class MarkerFile:
         self.image = None
 
     def set_image(self, filename, index, frame=0):
-        if self.image:
-            use = self.table_marker.select(fn.count(self.table_marker.id).alias('count')).where(self.table_marker.image == self.image)[0]
-            if use.count == 0:
-                if self.next_image_index == self.image.id+1:
-                    self.next_image_index -= 1
-                self.image.delete_instance()
+        #if self.image:
+        #    use = self.table_marker.select(fn.count(self.table_marker.id).alias('count')).where(self.table_marker.image == self.image)[0]
+        #    if use.count == 0:
+        #        if self.next_image_index == self.image.id+1:
+        #            self.next_image_index -= 1
+        #        self.image.delete_instance()
         try:
             self.image = self.table_images.get(self.table_images.filename == filename)
         except DoesNotExist:
@@ -644,11 +644,7 @@ class MarkerHandler:
         type_list = [self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2]) for type_id, type_def in self.config.types.items()]
         self.counter = {type.id: MyCounter(self.parent_hud, self, type) for type in type_list}
         self.active_type = self.counter[self.counter.keys()[0]].type
-        #types = self.marker_file.get_type_list()
-        #for marker in marker_list:
-        #    self.points.append(MyMarkerItem(self, marker))
 
-        #self.counter = {i: MyCounter(self.parent_hud, self, i) for i in self.config.types.keys()}
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
 
@@ -667,13 +663,6 @@ class MarkerHandler:
                     track.FrameChanged(image)
         else:
             self.LoadLog("")
-        return
-        if self.current_logname is not None:
-            self.last_logname = self.current_logname
-        self.frame_number = framenumber
-        self.current_logname = self.GetLogName(filename)
-
-        self.LoadLog(self.current_logname)
 
     def FolderChangeEvent(self):
         while len(self.points):
@@ -703,9 +692,8 @@ class MarkerHandler:
             BroadCastEvent(self.modules, "MarkerPointsRemoved")
 
     def save(self):
-        if self.PointsUnsaved:
-            for point in self.points:
-                point.save()
+        for point in self.points:
+            point.save()
 
     def SetActiveMarkerType(self, new_type):
         if new_type not in self.counter.keys():
