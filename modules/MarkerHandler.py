@@ -420,6 +420,8 @@ class Crosshair(QGraphicsPathItem):
         self.image = image
         self.config = config
         self.radius = 50
+        self.not_scaled = True
+        self.scale = 1
 
         self.RGB = np.zeros((self.radius * 2 + 1, self.radius * 2 + 1, 3))
         self.Alpha = disk(self.radius) * 255
@@ -452,12 +454,18 @@ class Crosshair(QGraphicsPathItem):
 
     def setScale(self, value):
         QGraphicsPathItem.setScale(self, value)
+        self.scale = value
         if not self.SetZoom(value):
             QGraphicsPathItem.setScale(self, 0)
         return True
 
-    def SetZoom(self, new_radius):
-        self.radius = int(new_radius * 50 / 3)
+    def SetZoom(self, new_radius=None):
+        if new_radius is not None:
+            self.radius = int(new_radius * 50 / 3)
+        if not self.isVisible():
+            self.not_scaled = True
+            return False
+        self.not_scaled = False
         if self.radius <= 10:
             return False
         self.RGB = np.zeros((self.radius * 2 + 1, self.radius * 2 + 1, 3))
@@ -475,7 +483,7 @@ class Crosshair(QGraphicsPathItem):
         y = int(y)
         x = int(x)
         self.setPos(x, y)
-        if self.scale() == 0:
+        if not self.isVisible() or self.radius <= 10:
             return
         self.CrosshairQImageView[:, :, :] = self.SaveSlice(self.image.image,
                                                            [[y - self.radius, y + self.radius + 1],
@@ -508,6 +516,11 @@ class Crosshair(QGraphicsPathItem):
 
     def Show(self, point):
         self.setVisible(True)
+        if self.not_scaled:
+            if self.SetZoom():
+                self.setScale(self.scale)
+            else:
+                self.setScale(0)
         self.CrosshairPathItem2.setPen(QPen(point.color))
         self.CrosshairPathItem.setPen(QPen(point.color))
 
