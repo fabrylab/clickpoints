@@ -8,7 +8,22 @@ from datetime import datetime, timedelta
 from databaseFiles import DatabaseFiles, config
 from PIL import Image
 import PIL.ExifTags
-import cv2
+
+# import imageio or opencv
+imageio_loaded=False
+opencv_loaded=False
+try:
+    import imageio
+    imageio_loaded=True
+except:
+    print("Image IO not available")
+
+    try:
+        import cv2
+        opencv_loaded=True
+    except:
+        raise Exception("Neither opencv nor imageio found!")
+
 
 script_path = os.path.dirname(__file__)
 
@@ -22,8 +37,12 @@ def getExifTime(path):
     return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
 
 def getFrameNumber(path):
-    cap = cv2.VideoCapture(path)
-    return int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+    if imageio_loaded:
+        reader = imageio.get_reader(path)
+        return reader.get_length()
+    elif opencv_loaded:
+        cap = cv2.VideoCapture(path)
+        return int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
 
 def AddPathToDatabase(root):
     root = os.path.normpath(root)
