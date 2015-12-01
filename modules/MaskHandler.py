@@ -251,7 +251,7 @@ class MaskHandler:
 
     def LoadMask(self, maskname):
         mask_valid = False
-        print("Loading " + maskname)
+        #print("Loading " + maskname)
         if os.path.exists(maskname):
             print("Load Mask")
             try:
