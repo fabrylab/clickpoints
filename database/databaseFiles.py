@@ -3,14 +3,14 @@ import os
 import re
 import glob
 
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QTextStream, QGridLayout
-    from PyQt5.QtCore import Qt
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem
-    from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
+# try:
+#     from PyQt5 import QtGui, QtCore
+#     from PyQt5.QtWidgets import QWidget, QTextStream, QGridLayout
+#     from PyQt5.QtCore import Qt
+# except ImportError:
+#     from PyQt4 import QtGui, QtCore
+#     from PyQt4.QtGui import QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem
+#     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
 
 from abc import abstractmethod
 
@@ -74,9 +74,9 @@ class DatabaseFiles:
         self.db.connect()
 
         if self.db.is_closed():
-            raise Exception("Couldn't open connection to DB %s on host %s",self.config.sql_dbname,self.config.sql_host)
+            raise Exception("Couldn't open connection to DB %s on host %s" % (self.config.sql_dbname,self.config.sql_host))
         else:
-            print("connection established")
+            print("Connection established to fileDB %s on host %s" % (self.config.sql_dbname,self.config.sql_host))
 
         # generate acess class
 
@@ -103,7 +103,7 @@ class DatabaseFiles:
         self.updateDeviceDict()
         self.devicealias_dict = {}
         self.updateDeviceAliasDict()
-        print(self.device_dict)
+        #print(self.device_dict)
 
         #self.saveFile()
         #self.SQL_Files.timestamp > datetime(2015,9,11,23,10,55) &
