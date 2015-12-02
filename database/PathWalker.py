@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import os
+import sys
 import re
 import glob
 import numpy as np
@@ -9,6 +10,7 @@ from databaseFiles import DatabaseFiles, config
 from PIL import Image
 import PIL.ExifTags
 
+#region imports
 # import imageio or opencv
 imageio_loaded=False
 opencv_loaded=False
@@ -24,9 +26,12 @@ except:
     except:
         raise Exception("Neither opencv nor imageio found!")
 
+#endregion
+
 
 script_path = os.path.dirname(__file__)
 
+#region functions
 def getExifTime(path):
     img = Image.open(path)
     exif = {
@@ -72,6 +77,7 @@ def loadConfigs(folder_path):
     if fps != 0:
         delta_t = 1./fps
 
+## experimental
 def EstimateFps(folder):
     files = sorted(glob.glob(folder))
     frames = -1
@@ -88,6 +94,20 @@ def EstimateFps(folder):
         time = time_new
     print(1./np.array(fps))
 
+# usage
+def printUsage():
+    print("------------------------------------------------------")
+    print("PathWalker.py - recursivly adds file to mySQL database")
+    print("")
+    print("USAGE:")
+    print("\tPathWalker.py mode path")
+    print("\tmode:\tadd\t- adds files in path")
+    print("\t\tremove\t- removes files in path")
+    print("\tpath:\ttarget path (relative or absolut)")
+
+
+#endregion
+
 filename_data_regex = r''
 time_from_exif = False
 time_format = ''
@@ -95,30 +115,86 @@ fps = 0
 delta_t = 0
 system_name = ""
 device_name = ""
+mode="add"
+start_path=""
 
+# load mysqlDB
 database = DatabaseFiles(config())
 
-start_path = r"\\131.188.117.94\antavia2013-1204to0103"#r"\\131.188.117.94\data\microbsCRO\2012"
+## process inline parameters
+try:
+    if len(sys.argv) < 3:
+        raise Exception("Parameters missing!")
+except:
+    printUsage()
+    sys.exit(1)
+
+
+# get mode
+mode_list = ['add','remove']
+tmp=sys.argv[1]
+if tmp in mode_list:
+    mode = tmp
+    print("Mode:\t",mode)
+else:
+        print("Unuspported mode:",tmp)
+        printUsage()
+        sys.exit(1)
+
+
+# get target path
+tmp=sys.argv[2]
+if os.path.exists(tmp):
+    start_path=os.path.abspath(tmp)
+    print('Path:\t',tmp)
+    print('FullPath:\t',start_path)
+else:
+    print("Path %s does not exist"%tmp)
+    sys.exit(1)
+
+
+# for root, dirs, files in os.walk(start_path, topdown=False):
+#     print('root:',root)
+#     print('dirs:',dirs)
+#     print('files:',files)
+#
+# sys.exit(1)
+
+#start_path = r"\\131.188.117.94\antavia2013-1204to0103"#r"\\131.188.117.94\data\microbsCRO\2012"
 
 for root, dirs, files in os.walk(start_path, topdown=False):
     print(root, files)
     loadConfigs(root)
     folder_id = AddPathToDatabase(root)
     print("folder_id", folder_id)
+
+    ## check if we're resuming a run
+    if os.path.isfile(os.path.join(root,'pathwalker.done')) and mode=="add":
+        print('have been here before - continue')
+        continue
+
+    ### delete entrys based in this folder
     query = database.SQL_Files.delete().where(database.SQL_Files.path == folder_id)
     print(query.execute(),"items deleted")
+    if mode=='remove':
+        continue
+
+    ### add entrys
     file_data = []
     for file in files:
+        # extract Meta
         basename, ext = os.path.splitext(file)
         match = re.match(filename_data_regex, os.path.basename(file))
         if not match:
             continue
         data = match.groupdict()
+
         # Frames
         try:
             frames = getFrameNumber(os.path.join(root, file))
         except:
             frames = 1
+
         # First timestamp
         if "timestamp" in data:
             tstamp = datetime.strptime(data["timestamp"], time_format)
@@ -128,6 +204,7 @@ for root, dirs, files in os.walk(start_path, topdown=False):
             tstamp = getExifTime(os.path.join(root, file))
         else:
             raise NameError("No time information available. Use timestamp in regex or use time_from_exif")
+
         # Second timestamp
         if "timestamp2" in data:
             tstamp2 = datetime.strptime(data["timestamp2"], time_format)
@@ -137,19 +214,34 @@ for root, dirs, files in os.walk(start_path, topdown=False):
             tstamp2 = tstamp + timedelta(seconds=delta_t)*frames
         else:
             tstamp2 = tstamp
+
         # System id
         try:
             system_id = database.getSystemId(system_name)
         except KeyError:
             system_id = database.newSystem(system_name)
+
         # Device id
         try:
             device_id = database.getDeviceId(system_name, device_name)
         except KeyError:
             device_id = database.newDevice(system_id, device_name)
+
         # Append to list
         print("frames", frames)
         file_data.append(dict(timestamp=tstamp, timestamp2=tstamp2, frames=frames, system=system_id, device=device_id, basename=basename, path=folder_id, extension=ext))
+
+    # write entries to DB
     if len(file_data):
         database.saveFiles(file_data)
         print(len(file_data),"items inserted")
+
+    # create .done file for resume
+    fdone = open('pathwalker.done','w')
+    fdone.write(len(file_data))
+    fdone.close()
+
+# on complete remove resume files
+for root, dirs, files in os.walk(start_path, topdown=False):
+    if os.path.isfile(os.path.join(root,'pathwalker.done')):
+        print(os.path.join(root,'pathwalker.done'))
