@@ -136,7 +136,8 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
 
 
         if line.startswith("path="):
-            path=line.strip().replace("path=","")
+            #path=line.strip().replace("path=","")
+            path=line.split("=")[-1].strip()
             #print("path:",path)
 
         if path and link_name:
@@ -233,7 +234,7 @@ print('ipaddress:',ipaddress)
 #start_path = r"\\131.188.117.94\antavia2013-1204to0103"#r"\\131.188.117.94\data\microbsCRO\2012"
 
 for root, dirs, files in os.walk(start_path, topdown=False):
-    print(root, files)
+    #print(root, files)
     loadConfigs(root)
 
     # differentiate between real root and network mountpoint root
@@ -243,14 +244,23 @@ for root, dirs, files in os.walk(start_path, topdown=False):
     folder_id = AddPathToDatabase(asSMBPath(ipaddress,smbcfg['mount_points'],root))
     print("folder_id", folder_id)
 
+    remove_files=True
     ## check if we're resuming a run
-    if os.path.isfile(os.path.join(root,'pathwalker.done')) and mode=="add":
-        print('have been here before - continue')
-        continue
+    if os.path.isfile(os.path.join(root,'.pathwalker.done')): 
+	if mode=="add":
+        	print('*.done exists - continue')
+        	continue
+	elif mode=="remove":
+		print('remove *.done file')
+		os.remove(os.path.join(root,'.pathwalker.done'))
+   		remove_files=True
 
+   
     ### delete entrys based in this folder
-    query = database.SQL_Files.delete().where(database.SQL_Files.path == folder_id)
-    print(query.execute(),"items deleted")
+    if remove_files==True:
+    	query = database.SQL_Files.delete().where(database.SQL_Files.path == folder_id)
+    	print(query.execute(),"items deleted")
+	
     if mode=='remove':
         continue
 
@@ -312,11 +322,15 @@ for root, dirs, files in os.walk(start_path, topdown=False):
         print(len(file_data),"items inserted")
 
     # create .done file for resume
-    fdone = open('pathwalker.done','w')
+    fdone = open(os.path.join(root,'.pathwalker.done'),'w')
+    print("write to:",os.path.join(root,'.pathwalker.done'))
     fdone.write(len(file_data))
     fdone.close()
 
-# on complete remove resume files
-for root, dirs, files in os.walk(start_path, topdown=False):
-    if os.path.isfile(os.path.join(root,'pathwalker.done')):
-        print(os.path.join(root,'pathwalker.done'))
+    #print("just caugth one of those pesty imageIO therad termination exceptions!")
+
+## on complete remove resume files
+#for root, dirs, files in os.walk(start_path, topdown=False):
+#    if os.path.isfile(os.path.join(root,'pathwalker.done')):
+#        print(os.path.join(root,'pathwalker.done'))
+
