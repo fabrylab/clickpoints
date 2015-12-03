@@ -52,9 +52,9 @@ def getFrameNumber(path):
 
 def AddPathToDatabase(root):
     root = os.path.normpath(root)
-    folder_list = [x for x in root.split("\\") if x != ""]
+    folder_list = [x for x in root.split(os.sep) if x != ""]
     parent_id = 0
-    print(folder_list)
+    #print(folder_list)
     for folder in folder_list[:]:
         parent_id = database.savePath(folder, parent_id)
     return parent_id
@@ -131,16 +131,16 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
         if line.startswith("["):
             reg=re.search('\[(.*)\]',line.strip())
             link_name = reg.group(1)
-            print(line.strip(),link_name)
+            #print(line.strip(),link_name)
             #link_name_available=True
 
 
         if line.startswith("path="):
             path=line.strip().replace("path=","")
-            print("path:",path)
+            #print("path:",path)
 
         if path and link_name:
-            print(path, link_name)
+            #print(path, link_name)
             smbcfg['mount_points'][path]=link_name
             path=[]
             link_name=[]
@@ -148,7 +148,7 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
         if line.startswith("interfaces"):
             tokens=line.strip().split(" ")
             interface = tokens[-1]
-            print("interface:",interface)
+            #print("interface:",interface)
             smbcfg['interface']=interface
 
 
@@ -157,7 +157,7 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
 def asSMBPath(ip,mountpoints,path):
     for key in mountpoints:
         if path.startswith(key):
-            print('match',key,mountpoints[key])
+            #print('match',key,mountpoints[key])
             # replace real path with smb mount point
             path=path.replace(key,os.sep+mountpoints[key]+ os.sep)
             # remove leading /
@@ -222,6 +222,7 @@ print('Sambacfg:\n',smbcfg)
 print('ipaddress:',ipaddress)
 
 
+#raise Exception('test done')
 # for root, dirs, files in os.walk(start_path, topdown=False):
 #     print('root:',root)
 #     print('dirs:',dirs)
