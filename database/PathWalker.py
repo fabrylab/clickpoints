@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import os
 import sys
+from sys import platform as _platform
 import re
 import glob
 import numpy as np
@@ -105,7 +106,68 @@ def printUsage():
     print("\t\tremove\t- removes files in path")
     print("\tpath:\ttarget path (relative or absolut)")
 
+# get ip adress of unix system by ethX
 
+def getIpAddress(nic):
+    if _platform == "linux" or _platform == "linux2":
+        a=os.popen(u"ifconfig %s | grep \"inet\ addr\" | cut -d: -f2 | cut -d\" \" -f1" % str(nic))
+        return a.read().strip()
+    else:
+        raise Exception("Function: getIpAdress(nic) not implemented for your system!")
+
+
+def getSMBConfig(filename=u"/etc/samba/smb.conf"):
+    with open(filename) as f:
+        content = f.readlines()
+
+    # search for definition blocks
+    smbcfg={}
+    smbcfg['mount_points']={}
+    #link_name_available=False
+    path=[]
+    link_name=[]
+
+    for line in content:
+        if line.startswith("["):
+            reg=re.search('\[(.*)\]',line.strip())
+            link_name = reg.group(1)
+            print(line.strip(),link_name)
+            #link_name_available=True
+
+
+        if line.startswith("path="):
+            path=line.strip().replace("path=","")
+            print("path:",path)
+
+        if path and link_name:
+            print(path, link_name)
+            smbcfg['mount_points'][path]=link_name
+            path=[]
+            link_name=[]
+
+        if line.startswith("interfaces"):
+            tokens=line.strip().split(" ")
+            interface = tokens[-1]
+            print("interface:",interface)
+            smbcfg['interface']=interface
+
+
+    return smbcfg
+
+def asSMBPath(ip,mountpoints,path):
+    for key in mountpoints:
+        if path.startswith(key):
+            print('match',key,mountpoints[key])
+            # replace real path with smb mount point
+            path=path.replace(key,os.sep+mountpoints[key]+ os.sep)
+            # remove leading /
+            path=path.replace(os.sep,'',1)
+            # add base ip
+            path= os.path.join(os.sep,ip,path)
+
+
+            return path
+    return 0
 #endregion
 
 filename_data_regex = r''
@@ -152,6 +214,13 @@ else:
     print("Path %s does not exist"%tmp)
     sys.exit(1)
 
+# get smb and nic config for mount points
+smbcfg=getSMBConfig()
+ipaddress=getIpAddress(smbcfg['interface'])
+
+print('Sambacfg:\n',smbcfg)
+print('ipaddress:',ipaddress)
+
 
 # for root, dirs, files in os.walk(start_path, topdown=False):
 #     print('root:',root)
@@ -165,7 +234,12 @@ else:
 for root, dirs, files in os.walk(start_path, topdown=False):
     print(root, files)
     loadConfigs(root)
-    folder_id = AddPathToDatabase(root)
+
+    # differentiate between real root and network mountpoint root
+    # all login files must be associated by their network mountpoint root
+    # not their root on the file system!
+
+    folder_id = AddPathToDatabase(asSMBPath(ipaddress,smbcfg['mount_points'],root))
     print("folder_id", folder_id)
 
     ## check if we're resuming a run
