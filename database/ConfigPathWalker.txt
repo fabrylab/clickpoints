@@ -5,3 +5,4 @@ fps = 0
 delta_t = 0
 system_name = ""
 device_name = ""
+ignore=False
