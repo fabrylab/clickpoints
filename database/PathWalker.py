@@ -7,6 +7,9 @@ import glob
 import numpy as np
 
 from datetime import datetime, timedelta
+
+from ggplot.scales.scale_y_continuous import currency
+
 from databaseFiles import DatabaseFiles, config
 from PIL import Image
 import PIL.ExifTags
@@ -78,6 +81,20 @@ def loadConfigs(folder_path):
     if fps != 0:
         delta_t = 1./fps
 
+# def checkForIgnore(currentPath,basePath):
+#     path_list = []
+#     path = os.path.normpath(currentPath)
+#     path_list.append(path)
+#     while path != basePath:
+#         path = os.path.normpath(os.path.join(path,'..'))
+#         path_list.append(path)
+#     print(path_list)
+#
+#     for path in path_list:
+
+
+
+
 ## experimental
 def EstimateFps(folder):
     files = sorted(glob.glob(folder))
@@ -123,7 +140,7 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
     # search for definition blocks
     smbcfg={}
     smbcfg['mount_points']={}
-    #link_name_available=False
+    # link_name_available=False
     path=[]
     link_name=[]
 
@@ -131,17 +148,17 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
         if line.startswith("["):
             reg=re.search('\[(.*)\]',line.strip())
             link_name = reg.group(1)
-            #print(line.strip(),link_name)
-            #link_name_available=True
+            # print(line.strip(),link_name)
+            # link_name_available=True
 
 
         if line.startswith("path="):
-            #path=line.strip().replace("path=","")
+            # path=line.strip().replace("path=","")
             path=line.split("=")[-1].strip()
-            #print("path:",path)
+            # print("path:",path)
 
         if path and link_name:
-            #print(path, link_name)
+            # print(path, link_name)
             smbcfg['mount_points'][path]=link_name
             path=[]
             link_name=[]
@@ -149,7 +166,7 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
         if line.startswith("interfaces"):
             tokens=line.strip().split(" ")
             interface = tokens[-1]
-            #print("interface:",interface)
+            # print("interface:",interface)
             smbcfg['interface']=interface
 
 
@@ -178,6 +195,7 @@ fps = 0
 delta_t = 0
 system_name = ""
 device_name = ""
+ignore=False
 mode="add"
 start_path=""
 
@@ -237,6 +255,11 @@ for root, dirs, files in os.walk(start_path, topdown=False):
     #print(root, files)
     loadConfigs(root)
 
+    if ignore:
+        print("Ignoring folder:", root)
+        continue
+
+
     # differentiate between real root and network mountpoint root
     # all login files must be associated by their network mountpoint root
     # not their root on the file system!
@@ -247,20 +270,20 @@ for root, dirs, files in os.walk(start_path, topdown=False):
     remove_files=True
     ## check if we're resuming a run
     if os.path.isfile(os.path.join(root,'.pathwalker.done')): 
-	if mode=="add":
-        	print('*.done exists - continue')
-        	continue
-	elif mode=="remove":
-		print('remove *.done file')
-		os.remove(os.path.join(root,'.pathwalker.done'))
-   		remove_files=True
+        if mode=="add":
+                print('*.done exists - continue')
+                continue
+        elif mode=="remove":
+            print('remove *.done file')
+            os.remove(os.path.join(root,'.pathwalker.done'))
+            remove_files=True
 
    
     ### delete entrys based in this folder
     if remove_files==True:
-    	query = database.SQL_Files.delete().where(database.SQL_Files.path == folder_id)
-    	print(query.execute(),"items deleted")
-	
+        query = database.SQL_Files.delete().where(database.SQL_Files.path == folder_id)
+        print(query.execute(),"items deleted")
+
     if mode=='remove':
         continue
 
