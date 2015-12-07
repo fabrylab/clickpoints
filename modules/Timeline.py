@@ -242,9 +242,11 @@ class TimeLineSlider(QGraphicsView):
 
     def setStartValue(self, value):
         self.slider_start.setValue(BoundBy(value, self.min_value, self.max_value))
+        self.updatePlayRange()
 
     def setEndValue(self, value):
         self.slider_end.setValue(BoundBy(value, self.min_value, self.max_value))
+        self.updatePlayRange()
 
     def PixelToValue(self, pixel):
         return Remap(pixel, [0, self.length], [self.min_value, self.max_value])
@@ -255,11 +257,14 @@ class TimeLineSlider(QGraphicsView):
     def slider_start_changed(self):
         if self.slider_start.value > self.slider_end.value:
             self.slider_end.setValue(self.slider_start.value)
-        self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
+        self.updatePlayRange()
 
     def slider_end_changed(self):
         if self.slider_start.value > self.slider_end.value:
             self.slider_start.setValue(self.slider_end.value)
+        self.updatePlayRange()
+
+    def updatePlayRange(self):
         self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
 
     def value(self):
@@ -485,6 +490,13 @@ class Timeline:
             self.current_fps = None
             self.last_time = time.time()
             self.button_play.toggle()
+
+        # @key B: move start marker here
+        if event.key() == QtCore.Qt.Key_B:
+            self.frameSlider.setStartValue(self.media_handler.get_index())
+        # @key N: move start marker here
+        if event.key() == QtCore.Qt.Key_N:
+            self.frameSlider.setEndValue(self.media_handler.get_index())
 
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left and event.modifiers() & Qt.ControlModifier:
