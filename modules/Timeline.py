@@ -4,6 +4,7 @@ import os
 import glob
 import time
 import numpy as np
+import thread
 
 try:
     from PyQt5 import QtGui, QtCore
@@ -289,6 +290,35 @@ class TimeLineSlider(QGraphicsView):
         return
 
 
+class PreciseTimer(QObject):
+    timeout = pyqtSignal()
+
+    def __init__(self, ):
+        QObject.__init__(self)
+        self.thread = None
+        self.delta = 1
+        self.timer_start = time.time()
+        self.count = 1
+        self.run = False
+
+    def start(self, delta=None):
+        if delta is not None:
+            self.delta = delta
+        self.timer_start = time.time()
+        self.count = 1
+        if not self.run:
+            self.run = True
+            thread.start_new_thread(self.thread_timer, tuple())
+
+    def stop(self):
+        self.run = False
+
+    def thread_timer(self):
+        while self.run:
+            if (time.time()-self.timer_start)*1e3 > self.delta*self.count:
+                self.count += 1
+                self.timeout.emit()
+
 class Timeline:
     def __init__(self, window, media_handler, layout, outputpath, config, modules):
         self.window = window
@@ -370,7 +400,7 @@ class Timeline:
         # video replay
         self.current_fps = 0
         self.last_time = time.time()
-        self.tUpdate = QtCore.QTimer()
+        self.tUpdate = PreciseTimer()
         self.tUpdate.timeout.connect(self.htUpdate)
 
 
