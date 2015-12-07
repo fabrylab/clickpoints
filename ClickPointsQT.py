@@ -34,12 +34,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 from mediahandler import MediaHandler
 
 from update import Updater
+from Database import DataFile
 
 used_modules = []#[MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText, AnnotationHandler]
 used_huds = []#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
-used_modules = [Timeline]
-used_huds = [""]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
+used_modules = [Timeline, MarkerHandler]
+used_huds = ["", "hud"]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
@@ -75,8 +76,11 @@ class ClickPointsWindow(QWidget):
             exclude_ending = config.maskname_tag
         self.media_handler = MediaHandler(config.srcpath, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending)
 
+        # DataFile
+        self.data_file = DataFile()
+
         self.modules = []
-        arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__}
+        arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
         for mod, hud in zip(used_modules, used_huds):
             allowed = True
             if "can_create_module" in dir(mod):
@@ -96,6 +100,7 @@ class ClickPointsWindow(QWidget):
             if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
                 break
 
+        self.media_handler.set_index(0)
         self.UpdateImage()
 
         if config.rotation != 0:
@@ -107,10 +112,13 @@ class ClickPointsWindow(QWidget):
         return self.modules[index]
 
     def UpdateImage(self):
+        if not self.media_handler.get_file_entry():
+            return
         filename = self.media_handler.get_filename()
         frame_number = self.media_handler.get_index()
         self.setWindowTitle(filename)
         self.LoadImage()
+        self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame())
         BroadCastEvent(self.modules, "LoadImageEvent", filename, frame_number)
 
     def LoadImage(self):
