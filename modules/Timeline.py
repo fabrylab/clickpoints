@@ -454,8 +454,11 @@ class Timeline:
     def MaskAdded(self):
         self.frameSlider.addTickMarker(self.media_handler.get_index(), type=1)
 
-    def MarkerPointsAdded(self):
-        self.frameSlider.addTickMarker(self.media_handler.get_index(), type=1)
+    def MarkerPointsAdded(self, frame=None):
+        if frame:
+            self.frameSlider.addTickMarker(frame, type=1)
+        else:
+            self.frameSlider.addTickMarker(self.media_handler.get_index(), type=1)
 
     def MarkerPointsRemoved(self):
         self.frameSlider.removeTickMarker(self.media_handler.get_index(), type=1)

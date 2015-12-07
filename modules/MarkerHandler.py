@@ -46,72 +46,33 @@ point_display_type = 0
 
 
 class MarkerFile:
-    def __init__(self, database_filename='marker.db'):
-        exists = os.path.exists(database_filename)
-        db = SqliteDatabase(database_filename, threadlocals=True)
+    def __init__(self, datafile):
+        self.data_file = datafile
 
-        class BaseModel(Model):
-            class Meta:
-                database = db
-
-        class Images(BaseModel):
-            filename = CharField()
-            ext = CharField()
-            frame = IntegerField(default=0)
-            index = IntegerField()
-
-        class Tracks(BaseModel):
+        class Tracks(datafile.base_model):
             uid = CharField()
 
-        class Types(BaseModel):
+        class Types(datafile.base_model):
             name = CharField()
             color = CharField()
             mode = IntegerField()
 
-        class Marker(BaseModel):
-            image = ForeignKeyField(Images)
+        class Marker(datafile.base_model):
+            image = ForeignKeyField(datafile.table_images)
+            image_frame = IntegerField()
             x = IntegerField()
             y = IntegerField()
             type = ForeignKeyField(Types)
             processed = IntegerField(default=0)
-            partner_id = IntegerField(default=0, null=True)
+            partner_id = IntegerField(null=True)
             track = ForeignKeyField(Tracks, null=True)
 
         self.table_marker = Marker
-        self.table_images = Images
         self.table_tracks = Tracks
         self.table_types = Types
 
-        db.connect()
-        if not exists:
-            db.create_tables([self.table_marker, self.table_images, self.table_tracks, self.table_types])
-
-        self.image = None
-        self.next_image_index = 1
-        query = self.table_images.select().order_by(-self.table_images.id).limit(1)
-        for image in query:
-            self.next_image_index = image.id+1
-
-        self.image = None
-
-    def set_image(self, filename, index, frame=0):
-        #if self.image:
-        #    use = self.table_marker.select(fn.count(self.table_marker.id).alias('count')).where(self.table_marker.image == self.image)[0]
-        #    if use.count == 0:
-        #        if self.next_image_index == self.image.id+1:
-        #            self.next_image_index -= 1
-        #        self.image.delete_instance()
-        try:
-            self.image = self.table_images.get(self.table_images.filename == filename)
-        except DoesNotExist:
-            self.image = self.table_images(id=self.next_image_index)
-            self.next_image_index += 1
-            self.image.filename = filename
-            self.image.ext = os.path.splitext(filename)[1]
-            self.image.frame = frame
-            self.image.index = index
-            self.image.save(force_insert=True)
-        return self.image
+        if not datafile.exists:
+            datafile.db.create_tables([self.table_marker, self.table_tracks, self.table_types])
 
     def set_track(self):
         track = self.table_tracks(uid=uuid.uuid4().hex)
@@ -127,11 +88,11 @@ class MarkerFile:
         return type
 
     def add_marker(self, **kwargs):
-        kwargs.update(dict(image=self.image))
+        kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
         return self.table_marker(**kwargs)
 
     def get_marker_list(self):
-        return self.table_marker.select().where(self.table_marker.image == self.image)
+        return self.table_marker.select().where(self.table_marker.image == self.data_file.image.id, self.table_marker.image_frame == self.data_file.image_frame)
 
     def get_type_list(self):
         return self.table_types.select()
@@ -141,6 +102,9 @@ class MarkerFile:
 
     def get_track_points(self, track):
         return self.table_marker.select().where(self.table_marker.track == track)
+
+    def get_marker_frames(self):
+        return self.table_marker.select().group_by(self.table_marker.image.concat(self.table_marker.image_frame))
 
 
 def ReadTypeDict(string):
@@ -316,6 +280,11 @@ class MyTrackItem(MyMarkerItem):
     def __init__(self, marker_handler, points_data, track):
         MyMarkerItem.__init__(self, marker_handler, points_data[0])
         self.points_data = points_data
+        self.points_frames = []
+        for point in self.points_data:
+            frame = self.marker_handler.window.media_handler.get_frame_number_by_id(point.image.filename, point.image_frame)
+            self.points_frames.append(frame)
+
         self.track = track
 
         self.pathItem = QGraphicsPathItem(self.parent)
@@ -323,9 +292,9 @@ class MyTrackItem(MyMarkerItem):
 
         self.active = True
 
-    def FrameChanged(self, image):
+    def FrameChanged(self, image, image_frame):
         for point in self.points_data:
-            if point.image == image:
+            if point.image == image and point.image_frame == image_frame:
                 self.data = point
                 self.setPos(self.data.x, self.data.y)
                 self.UpdateLine()
@@ -333,16 +302,21 @@ class MyTrackItem(MyMarkerItem):
                 if self.partner and self.rectObj:
                     self.UpdateRect()
                 return
+        self.UpdateLine()
         self.SetTrackActive(False)
         self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track)
 
     def AddTrackPoint(self):
         self.points_data.append(self.data)
+        self.points_frames.append(self.marker_handler.window.media_handler.get_index())
         self.SetTrackActive(True)
+        BroadCastEvent(self.marker_handler.modules, "MarkerPointsAdded")
 
     def RemoveTrackPoint(self):
         try:
-            self.points_data.remove(self.data)
+            index = self.points_data.index(self.data)
+            self.points_data.pop(index)
+            self.points_frames.pop(index)
         except ValueError:
             pass
         self.data.delete_instance()
@@ -369,14 +343,15 @@ class MyTrackItem(MyMarkerItem):
 
     def UpdateLine(self):
         self.path = QPainterPath()
-        frames = sorted([point.image.index for point in self.points_data])
+        frame_indices = np.argsort(self.points_frames)
         circle_width = self.scale_value * 10
-        last_frame = frames[0]
-        for frame in frames:
+        last_frame = self.points_frames[frame_indices[0]]
+        for index in frame_indices:
+            frame = self.points_frames[index]
             if (self.config.tracking_show_trailing != -1 and frame < self.marker_handler.frame_number-self.config.tracking_show_trailing) or \
                (self.config.tracking_show_leading != -1 and frame > self.marker_handler.frame_number+self.config.tracking_show_leading):
                     continue
-            point = [point for point in self.points_data if point.image.index == frame][0]
+            point = self.points_data[index]
             if last_frame == frame-1:
                 self.path.lineTo(point.x, point.y)
             else:
@@ -591,7 +566,8 @@ class MyCounter(QGraphicsRectItem):
 
 
 class MarkerHandler:
-    def __init__(self, parent, parent_hud, view, image_display, config, modules):
+    def __init__(self, window, parent, parent_hud, view, image_display, config, modules, datafile):
+        self.window = window
         self.view = view
         self.parent_hud = parent_hud
         self.modules = modules
@@ -599,12 +575,10 @@ class MarkerHandler:
         self.counter = []
         self.scale = 1
         self.config = config
+        self.data_file = datafile
 
-        self.marker_file = MarkerFile()
+        self.marker_file = MarkerFile(datafile)
 
-        self.current_logname = None
-        self.last_logname = None
-        self.PointsUnsaved = False
         self.active = False
         self.frame_number = None
         self.hidden = False
@@ -621,6 +595,12 @@ class MarkerHandler:
 
         self.UpdateCounter()
         self.active_type = self.counter[self.counter.keys()[0]].type
+
+        # place tick marks for already present markers
+        for item in self.marker_file.get_marker_frames():
+            frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
+            if frame is not None:
+                BroadCastEvent(self.modules, "MarkerPointsAdded", frame)
 
     def drawToImage(self, image, start_x, start_y):
         # TODO check if marker is outside of image
@@ -649,26 +629,22 @@ class MarkerHandler:
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
 
-    def GetLogName(self, filename):
-        base_filename = os.path.splitext(filename)[0]
-        return os.path.join(self.config.outputpath, base_filename + self.config.logname_tag)
-
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
-        image = self.marker_file.set_image(filename, framenumber)
+        image = self.data_file.image
+        image_frame = self.data_file.image_frame
         if self.config.tracking:
             if len(self.points) == 0:
                 self.LoadTracks()
             else:
                 for track in self.points:
-                    track.FrameChanged(image)
+                    track.FrameChanged(image, image_frame)
         else:
-            self.LoadLog("")
+            self.LoadLog()
 
     def FolderChangeEvent(self):
         while len(self.points):
             self.RemovePoint(self.points[0], no_notice=True)
-        self.PointsUnsaved = False
 
     def LoadTracks(self):
         track_list = self.marker_file.get_track_list()
@@ -677,18 +653,18 @@ class MarkerHandler:
             if len(data):
                 self.points.append(MyTrackItem(self, data, track))
 
-    def LoadLog(self, logname):
+    def LoadLog(self):
         while len(self.points):
             self.RemovePoint(self.points[0], no_notice=True)
         marker_list = self.marker_file.get_marker_list()
         for marker in marker_list:
             self.points.append(MyMarkerItem(self, marker))
+            self.points[-1].setScale(1 / self.scale)
 
     def RemovePoint(self, point, no_notice=False):
         point.OnRemove()
         self.points.remove(point)
         self.view.scene.removeItem(point)
-        self.PointsUnsaved = True
         if len(self.points) == 0 and no_notice is False:
             BroadCastEvent(self.modules, "MarkerPointsRemoved")
 
@@ -780,8 +756,7 @@ class MarkerHandler:
         self.hidden = not self.hidden
 
     def loadLast(self):
-        self.LoadLog(self.last_logname)
-        self.PointsUnsaved = True
+        return("ERROR: not implemented at the moment")
 
     def canLoadLast(self):
         return self.last_logname is not None
