@@ -37,8 +37,11 @@ from mediahandler import MediaHandler
 sys.path.append(os.path.join(os.path.dirname(__file__), "update"))
 import updateHandler as uh
 
-used_modules = [MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText, AnnotationHandler]
-used_huds = ["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
+used_modules = []#[MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText, AnnotationHandler]
+used_huds = []#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
+
+used_modules = [Timeline]
+used_huds = [""]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 
@@ -50,7 +53,6 @@ class ClickPointsWindow(QWidget):
 
     def __init__(self, parent=None):
         super(QWidget, self).__init__(parent)
-        self.setWindowTitle('Select Window')
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
 
         self.move(50,50)
@@ -107,34 +109,32 @@ class ClickPointsWindow(QWidget):
         return self.modules[index]
 
     def UpdateImage(self):
-        filename = self.media_handler.getCurrentFilename()[1]
-        frame_number = self.media_handler.getCurrentPos()
-
+        filename = self.media_handler.get_filename()
+        frame_number = self.media_handler.get_index()
         self.setWindowTitle(filename)
-
         self.LoadImage()
         BroadCastEvent(self.modules, "LoadImageEvent", filename, frame_number)
 
     def LoadImage(self):
-        self.ImageDisplay.SetImage(self.media_handler.getCurrentImg())
+        self.ImageDisplay.SetImage(self.media_handler.get_file())
 
     def save(self):
         BroadCastEvent(self.modules, "save")
 
-    def JumpFrames(self, amount):
-        self.JumpToFrame(self.media_handler.getCurrentPos() + amount)
+    def JumpFrames(self, amount, next_amount=None):
+        if next_amount:
+            self.JumpToFrame(self.media_handler.get_index() + amount, self.media_handler.get_index() + amount + next_amount)
+        else:
+            self.JumpToFrame(self.media_handler.get_index() + amount)
 
     # jump absolute
-    def JumpToFrame(self, targetid):
-        #QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-
+    def JumpToFrame(self, target_id, next_id=None):
         self.save()
-        if self.media_handler.setCurrentPos(targetid):
-            self.UpdateImage()
-        for module in self.modules:
-            if "FrameChangeEvent" in dir(module):
-                module.FrameChangeEvent()
-        #QApplication.restoreOverrideCursor()
+        self.media_handler.set_index(target_id)
+        #if next_id is not None:
+        #    self.media_handler.buffer_frame_threaded(next_id)
+        self.UpdateImage()
+        BroadCastEvent(self.modules, "FrameChangeEvent")
 
     def closeEvent(self, QCloseEvent):
         self.save()
@@ -191,17 +191,6 @@ class ClickPointsWindow(QWidget):
                     print('Loading data of last image ...')
                     BroadCastEvent(self.modules, "loadLast")
 
-        if event.key() == QtCore.Qt.Key_Delete:
-            # @key Delete: close window
-            path, name = self.media_handler.getCurrentFilename()
-            path = os.path.join(path, name)
-            if os.path.isfile(path):
-                reply = QMessageBox.question(None, 'Warning', 'Do you really want to delete %s from your hard drive?' % path, QMessageBox.Yes,
-                                             QMessageBox.No)
-                if reply == QMessageBox.Yes:
-                    print('Deleting file %s' % path)
-                    os.remove(path)
-
         # @key ---- Modules ----
         if event.key() == QtCore.Qt.Key_P:
             # @key P: change active module
@@ -234,7 +223,7 @@ class ClickPointsWindow(QWidget):
                 self.JumpToFrame(0)
             if event.key() == QtCore.Qt.Key_End:
                 # @key End: jump to end
-                self.JumpToFrame(self.media_handler.totalNr-1)
+                self.JumpToFrame(self.media_handler.get_frame_count()-1)
 
             # JUMP keys
             # @key Numpad 2,3: Jump -/+ 1 frame

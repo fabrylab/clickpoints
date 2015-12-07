@@ -298,7 +298,7 @@ class Timeline:
         self.layout = layout
         self.modules = modules
 
-        self.fps = self.media_handler.fps
+        self.fps = 0#self.media_handler.fps
         if self.fps == 0:
             self.fps = 25
         if self.config.fps != 0:
@@ -325,23 +325,23 @@ class Timeline:
         self.frameSlider.slider_position.signal.sliderPressed.connect(self.hfPressSlider)
         self.frameSlider.slider_position.signal.sliderReleased.connect(self.hfReleaseSlider)
         self.frameSlider.setMinimum(0)
-        self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
-        self.frameSlider.setValue(self.media_handler.currentPos)
+        self.frameSlider.setMaximum(self.media_handler.get_frame_count() - 1)
+        self.frameSlider.setValue(self.media_handler.get_index())
         if self.config.play_start is not None:
             # if >1 its a frame nr if < 1 its a fraction
             if self.config.play_start >= 1:
                 self.frameSlider.setStartValue(self.config.play_start)
                 print(self.config.play_start)
             else:
-                self.frameSlider.setStartValue(int(self.media_handler.totalNr*self.config.play_start))
-                print(int(self.media_handler.totalNr*self.config.play_start))
+                self.frameSlider.setStartValue(int(self.media_handler.get_frame_count()*self.config.play_start))
+                print(int(self.media_handler.get_frame_count()*self.config.play_start))
         if self.config.play_end is not None:
             if self.config.play_end > 1:
                 self.frameSlider.setEndValue(self.config.play_end)
                 print(self.config.play_end)
             else:
-                self.frameSlider.setEndValue(int(self.media_handler.totalNr*self.config.play_end))
-                print(int(self.media_handler.totalNr*self.config.play_end))
+                self.frameSlider.setEndValue(int(self.media_handler.get_frame_count()*self.config.play_end))
+                print(int(self.media_handler.get_frame_count()*self.config.play_end))
         self.fsl_update = True
         self.layoutCtrl.addWidget(self.frameSlider)
 
@@ -349,14 +349,14 @@ class Timeline:
         self.sbFPS.setMinimum(1)
         self.sbFPS.setMaximum(1000)
         self.sbFPS.setValue(self.fps)
-        self.sbFPS.valueChanged.connect(self.hsbFPS)
+        self.sbFPS.valueChanged.connect(self.changed_fps)
         self.layoutCtrl.addWidget(self.sbFPS)
 
         self.sbSkip = QtGui.QSpinBox()
         self.sbSkip.setMinimum(0)
         self.sbSkip.setMaximum(1000)
         self.sbSkip.setValue(self.skip)
-        self.sbSkip.valueChanged.connect(self.hsbSkip)
+        self.sbSkip.valueChanged.connect(self.changed_skip)
         self.layoutCtrl.addWidget(self.sbSkip)
 
         # widget list for control
@@ -373,6 +373,7 @@ class Timeline:
         self.tUpdate = QtCore.QTimer()
         self.tUpdate.timeout.connect(self.htUpdate)
 
+
         self.hpbPlay(self.config.playing)
 
         self.hidden = True
@@ -387,13 +388,14 @@ class Timeline:
             if self.config.play_end > 1:
                 self.frameSlider.setEndValue(self.config.play_end)
             else:
-                self.frameSlider.setEndValue(int(self.media_handler.totalNr*self.config.play_end))
+                self.frameSlider.setEndValue(int(self.media_handler.get_frame_count()*self.config.play_end))
         else:
-            self.frameSlider.setMaximum(self.media_handler.totalNr - 1)
+            self.frameSlider.setMaximum(self.media_handler.get_frame_count() - 1)
         self.updateLabel()
 
         self.frameSlider.clearTickMarker()
 
+        """
         self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
         # add marker in time line for marker and masks
@@ -429,14 +431,14 @@ class Timeline:
                 pass
             else:
                 self.frameSlider.addTickMarker(index, type=0)
+        """
 
-    def hsbSkip(self):
+    def changed_skip(self):
         self.skip = self.sbSkip.value()
 
-    def hsbFPS(self):
+    def changed_fps(self):
         self.fps = self.sbFPS.value()
         if self.playing:
-            self.tUpdate.stop()
             self.tUpdate.start(1000 / self.fps)
 
     def hfReleaseSlider(self):
@@ -465,45 +467,43 @@ class Timeline:
         if nr != -1:
             self.window.JumpToFrame(nr)
         else:
-            if self.media_handler.currentPos < self.frameSlider.startValue() or self.media_handler.currentPos >= self.frameSlider.endValue():
-                self.window.JumpToFrame(self.frameSlider.startValue())
+            if self.media_handler.get_index() < self.frameSlider.startValue() or self.media_handler.get_index()+1+self.skip > self.frameSlider.endValue():
+                self.window.JumpToFrame(self.frameSlider.startValue(), self.frameSlider.startValue()+1+self.skip)
             else:
-                self.window.JumpFrames(1+self.skip)
+                self.window.JumpFrames(1+self.skip, 1+self.skip)
 
     def updateLabel(self):
         if self.fsl_update:
-            self.frameSlider.setValue(self.media_handler.currentPos)
-            self.lbCFrame.setText('%d/%d  %.1ffps' % (self.media_handler.currentPos, (self.media_handler.totalNr-1), self.current_fps))
+            self.frameSlider.setValue(self.media_handler.get_index())
+            digits = "%d" % np.ceil(np.log10(self.media_handler.get_frame_count()))
+            format_string = ('%0'+digits+'d/%d  %.1ffps')
+            self.lbCFrame.setText(format_string % (self.media_handler.get_index(), (self.media_handler.get_frame_count()-1), self.current_fps))
 
     def FrameChangeEvent(self):
         dt = time.time()-self.last_time
+        self.last_time = time.time()
         if self.current_fps is None:
             self.current_fps = 1/dt
         else:
             a = np.exp(-dt)
             self.current_fps = a*self.current_fps + (1-a) * 1/dt
-        self.last_time = time.time()
 
-        if self.media_handler.valid:
-            self.updateLabel()
-        else:
-            # stop timer
-            self.pbPlay.setChecked(False)
+        self.updateLabel()
 
     def MaskAdded(self):
-        self.frameSlider.addTickMarker(self.media_handler.currentPos, type=1)
+        self.frameSlider.addTickMarker(self.media_handler.get_index(), type=1)
 
     def MarkerPointsAdded(self):
-        self.frameSlider.addTickMarker(self.media_handler.currentPos, type=1)
+        self.frameSlider.addTickMarker(self.media_handler.get_index(), type=1)
 
     def MarkerPointsRemoved(self):
-        self.frameSlider.removeTickMarker(self.media_handler.currentPos, type=1)
+        self.frameSlider.removeTickMarker(self.media_handler.get_index(), type=1)
 
     def AnnotationAdded(self, *args):
-        self.frameSlider.addTickMarker(self.media_handler.currentPos, type=0)
+        self.frameSlider.addTickMarker(self.media_handler.get_index(), type=0)
 
     def AnnotationRemoved(self, *args):
-        self.frameSlider.removeTickMarker(self.media_handler.currentPos, type=0)
+        self.frameSlider.removeTickMarker(self.media_handler.get_index(), type=0)
 
     def AnnotationMarkerAdd(self, position, *args):
         self.frameSlider.addTickMarker(position, type=0)
@@ -532,11 +532,11 @@ class Timeline:
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left and event.modifiers() & Qt.ControlModifier:
             # @key Ctrl+Left: previous annotated image
-            tick = self.frameSlider.getNextTick(self.media_handler.currentPos, back=True)
+            tick = self.frameSlider.getNextTick(self.media_handler.get_index(), back=True)
             self.window.JumpToFrame(tick)
         if event.key() == QtCore.Qt.Key_Right and event.modifiers() & Qt.ControlModifier:
             # @key Ctrl+Right: next annotated image
-            tick = self.frameSlider.getNextTick(self.media_handler.currentPos)
+            tick = self.frameSlider.getNextTick(self.media_handler.get_index())
             self.window.JumpToFrame(tick)
 
     @staticmethod
