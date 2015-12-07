@@ -16,17 +16,16 @@ from Tools import HelpText, BroadCastEvent, rotate_list
 from ConfigLoad import LoadConfig
 from ToolsForClickPoints import BigImageDisplay
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "modules"))
-from MaskHandler import MaskHandler
-from MarkerHandler import MarkerHandler
-from Timeline import Timeline
-from AnnotationHandler import AnnotationHandler
-from GammaCorrection import GammaCorrection
-from FolderBrowser import FolderBrowser
-from ScriptLauncher import ScriptLauncher
-from VideoExporter import VideoExporter
-from InfoHud import InfoHud
-from Overview import Overview
+from modules import MaskHandler
+from modules import MarkerHandler
+from modules import Timeline
+from modules import AnnotationHandler
+from modules import GammaCorrection
+from modules import FolderBrowser
+from modules import ScriptLauncher
+from modules import VideoExporter
+from modules import InfoHud
+from modules import Overview
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
 from QExtendedGraphicsView import QExtendedGraphicsView
@@ -34,8 +33,7 @@ from QExtendedGraphicsView import QExtendedGraphicsView
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
 from mediahandler import MediaHandler
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "update"))
-import updateHandler as uh
+from update import Updater
 
 used_modules = []#[MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText, AnnotationHandler]
 used_huds = []#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
@@ -57,7 +55,7 @@ class ClickPointsWindow(QWidget):
 
         self.move(50,50)
 
-        self.updater = uh.Updater(self)
+        self.updater = Updater(self)
 
         self.layout = QtGui.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
