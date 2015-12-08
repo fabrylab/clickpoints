@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import os
+import peewee
 
 try:
     from PyQt5 import QtGui, QtCore
@@ -18,6 +19,33 @@ from qimage2ndarray import array2qimage
 
 from Tools import GraphicsItemEventFilter, BroadCastEvent
 
+
+class MaskFile:
+    def __init__(self, datafile):
+        self.data_file = datafile
+
+        class Mask(datafile.base_model):
+            image = peewee.ForeignKeyField(datafile.table_images)
+            image_frame = peewee.IntegerField()
+            filename = peewee.CharField()
+
+        self.table_mask = Mask
+
+        if not datafile.exists:
+            datafile.db.create_tables([self.table_mask])
+
+    def add_mask(self, **kwargs):
+        kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
+        return self.table_mask(**kwargs)
+
+    def get_mask(self):
+        try:
+            return self.table_mask.get(self.table_mask.image == self.data_file.image.id, self.table_mask.image_frame == self.data_file.image_frame)
+        except peewee.DoesNotExist:
+            return None
+
+    def get_mask_frames(self):
+        return self.table_mask.select().group_by(self.table_mask.image.concat(self.table_mask.image_frame))
 
 class BigPaintableImageDisplay:
     def __init__(self, origin, max_image_size=2**12, config=None):
@@ -186,7 +214,8 @@ class MyCounter2(QGraphicsRectItem):
 
 
 class MaskHandler:
-    def __init__(self, parent, parent_hud, view, image_display, config, modules):
+    def __init__(self, window, parent, parent_hud, view, image_display, config, modules, datafile):
+        self.window = window
         self.view = view
         self.parent_hud = parent_hud
         self.ImageDisplay = image_display
@@ -196,6 +225,9 @@ class MaskHandler:
         self.DrawCursorSize = 10
         self.drawPathItem = QGraphicsPathItem(parent)
         self.drawPathItem.setBrush(QBrush(QColor(255, 255, 255)))
+        self.data_file = datafile
+
+        self.mask_file = MaskFile(datafile)
 
         self.active_draw_type = 1
 
@@ -232,6 +264,12 @@ class MaskHandler:
         self.counter = []
         self.UpdateCounter()
 
+        # place tick marks for already present masks
+        for item in self.mask_file.get_mask_frames():
+            frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
+            if frame is not None:
+                BroadCastEvent(self.modules, "MarkerPointsAdded", frame)
+
     def UpdateCounter(self):
         for counter in self.counter:
             self.view.scene.removeItem(counter)
@@ -249,10 +287,27 @@ class MaskHandler:
         self.current_maskname = os.path.join(self.config.outputpath, base_filename + self.config.maskname_tag)
         self.LoadMask(self.current_maskname)
 
+    def LoadImageEvent(self, filename, framenumber):
+        self.frame_number = framenumber
+        image = self.data_file.image
+        image_frame = self.data_file.image_frame
+        mask_entry = self.mask_file.get_mask()
+        if mask_entry:
+            self.current_maskname = mask_entry.filename
+            self.LoadMask(mask_entry.filename)
+        else:
+            if image.frames > 1:
+                number = ("%"+"%d" % np.ceil(np.log10(image.frames))+"d") % image_frame
+            else:
+                number = ""
+            basename, ext = os.path.splitext(image.filename)
+            self.current_maskname = os.path.join(self.config.outputpath, basename + "_" + ext[1:] + "_" + number + self.config.maskname_tag)
+            self.LoadMask(None)
+
     def LoadMask(self, maskname):
         mask_valid = False
         #print("Loading " + maskname)
-        if os.path.exists(maskname):
+        if maskname and os.path.exists(maskname):
             print("Load Mask")
             try:
                 self.image_mask_full = Image.open(maskname)
@@ -294,6 +349,11 @@ class MaskHandler:
 
     def save(self):
         if self.MaskUnsaved:
+            mask_entry = self.mask_file.get_mask()
+            if mask_entry is None:
+                mask_entry = self.mask_file.add_mask()
+            mask_entry.filename = self.current_maskname
+            mask_entry.save()
             self.MaskDisplay.save(self.current_maskname)
             print(self.current_maskname + " saved")
             self.MaskUnsaved = False
