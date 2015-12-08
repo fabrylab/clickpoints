@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import os
 import re
-from peewee import *
+import peewee
 
 try:
     from PyQt5 import QtGui, QtCore
@@ -50,22 +50,22 @@ class MarkerFile:
         self.data_file = datafile
 
         class Tracks(datafile.base_model):
-            uid = CharField()
+            uid = peewee.CharField()
 
         class Types(datafile.base_model):
-            name = CharField()
-            color = CharField()
-            mode = IntegerField()
+            name = peewee.CharField()
+            color = peewee.CharField()
+            mode = peewee.IntegerField()
 
         class Marker(datafile.base_model):
-            image = ForeignKeyField(datafile.table_images)
-            image_frame = IntegerField()
-            x = IntegerField()
-            y = IntegerField()
-            type = ForeignKeyField(Types)
-            processed = IntegerField(default=0)
-            partner_id = IntegerField(null=True)
-            track = ForeignKeyField(Tracks, null=True)
+            image = peewee.ForeignKeyField(datafile.table_images)
+            image_frame = peewee.IntegerField()
+            x = peewee.IntegerField()
+            y = peewee.IntegerField()
+            type = peewee.ForeignKeyField(Types)
+            processed = peewee.IntegerField(default=0)
+            partner_id = peewee.IntegerField(null=True)
+            track = peewee.ForeignKeyField(Tracks, null=True)
 
         self.table_marker = Marker
         self.table_tracks = Tracks
@@ -82,7 +82,7 @@ class MarkerFile:
     def set_type(self, id, name, rgb_tuple, mode):
         try:
             type = self.table_types.get(self.table_types.id == id)
-        except DoesNotExist:
+        except peewee.DoesNotExist:
             type = self.table_types(id=id, name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), mode=mode)
             type.save(force_insert=True)
         return type
