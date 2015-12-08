@@ -291,6 +291,7 @@ class PreciseTimer(QObject):
         self.timer_start = time.time()
         self.count = 1
         self.run = False
+        self.active = 1
 
     def start(self, delta=None):
         if delta is not None:
@@ -304,11 +305,15 @@ class PreciseTimer(QObject):
     def stop(self):
         self.run = False
 
+    def allow_next(self):
+        self.active = 1
+
     def thread_timer(self):
         while self.run:
-            if (time.time()-self.timer_start)*1e3 > self.delta*self.count:
+            if (time.time()-self.timer_start)*1e3 > self.delta*self.count and self.active:
                 self.count += 1
                 self.timeout.emit()
+                self.active = 0
 
 class Timeline:
     def __init__(self, window, media_handler, layout, outputpath, config, modules):
@@ -431,6 +436,7 @@ class Timeline:
                 self.window.JumpToFrame(self.frameSlider.startValue(), self.frameSlider.startValue()+1+self.skip)
             else:
                 self.window.JumpFrames(1+self.skip, 1+self.skip)
+        self.timer.allow_next()
 
     def updateLabel(self):
         if self.slider_update:
