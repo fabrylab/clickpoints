@@ -78,7 +78,7 @@ def loadConfigs(folder_path):
     for path in path_list[::-1]:
         if os.path.exists(path):
             with open(path) as f:
-                print(path)
+                #print(path)
                 code = compile(f.read(), path, 'exec')
                 exec(code, globals())
     if fps != 0:
@@ -225,7 +225,7 @@ else:
 
 # check for keyword parameters
 for item in sys.argv[3::]:
-    if item=='verbose':
+    if item=='--verbose':
         verbose=True
         print('verbose-mode enabled')
 
@@ -277,7 +277,7 @@ if mode=='add':
         # all login files must be associated by their network mountpoint root
         # not their root on the file system!
         folder_id = AddPathToDatabase(asSMBPath(ipaddress,smbcfg['mount_points'],root))
-        print("folder_id", folder_id)
+        print("Processing path:",root, folder_id)
 
         ## check if we're resuming a run
         if os.path.isfile(os.path.join(root,'.pathwalker.done')):
@@ -352,13 +352,13 @@ if mode=='add':
             # create .done file for resume
             for done in path_done_list:
                 fdone = open(done,'w')
-                print("write to:",os.path.join(root,'.pathwalker.done'))
+                print("write to:",done)
                 fdone.close()
             path_done_list=[]
 
             # some runtime information
             time_stop=time.time()
-            print("%.2f files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
+            print("%.2fk files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
 
 
     # write entries to DB on final pass
@@ -371,7 +371,7 @@ if mode=='add':
         # create .done file for resume
         for done in path_done_list:
             fdone = open(done,'w')
-            print("write to:",os.path.join(root,'.pathwalker.done'))
+            print("write to:",done)
             fdone.close()
         path_done_list=[]
 
