@@ -226,7 +226,7 @@ ipaddress=getIpAddress(smbcfg['interface'])
 # differentiate between real root and network mountpoint root
 # all login files must be associated by their network mountpoint root
 # not their root on the file system!
-smb_start_path=asSMBPath(ipaddress,smbcfg['mountpoints'],start_path)
+smb_start_path=asSMBPath(ipaddress,smbcfg['mount_points'],start_path)
 
 print('Sambacfg:\n',smbcfg)
 print('ipaddress:',ipaddress)
