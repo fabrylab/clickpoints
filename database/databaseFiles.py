@@ -317,6 +317,7 @@ class DatabaseFiles:
 
         # DELETE all path entries
         query = db.SQL_Folder.delete().where(db.SQL_Folder.id.in_(path_id_list))
+        print(query.execute(),'path segments deleted!')
 
     def saveFiles(self, files):
         with self.db.atomic():
