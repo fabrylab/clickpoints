@@ -7,8 +7,7 @@ import glob
 import numpy as np
 
 from datetime import datetime, timedelta
-
-from ggplot.scales.scale_y_continuous import currency
+import time
 
 from databaseFiles import DatabaseFiles, config
 from PIL import Image
@@ -81,20 +80,6 @@ def loadConfigs(folder_path):
     if fps != 0:
         delta_t = 1./fps
 
-# def checkForIgnore(currentPath,basePath):
-#     path_list = []
-#     path = os.path.normpath(currentPath)
-#     path_list.append(path)
-#     while path != basePath:
-#         path = os.path.normpath(os.path.join(path,'..'))
-#         path_list.append(path)
-#     print(path_list)
-#
-#     for path in path_list:
-
-
-
-
 ## experimental
 def EstimateFps(folder):
     files = sorted(glob.glob(folder))
@@ -151,7 +136,6 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
             # print(line.strip(),link_name)
             # link_name_available=True
 
-
         if line.startswith("path="):
             # path=line.strip().replace("path=","")
             path=line.split("=")[-1].strip()
@@ -199,6 +183,8 @@ ignore=False
 mode="add"
 start_path=""
 
+max_block_commit_size=10000
+
 # load mysqlDB
 database = DatabaseFiles(config())
 
@@ -237,123 +223,127 @@ else:
 smbcfg=getSMBConfig()
 ipaddress=getIpAddress(smbcfg['interface'])
 
+# differentiate between real root and network mountpoint root
+# all login files must be associated by their network mountpoint root
+# not their root on the file system!
+smb_start_path=asSMBPath(ipaddress,smbcfg['mountpoints'],start_path)
+
 print('Sambacfg:\n',smbcfg)
 print('ipaddress:',ipaddress)
 
+if mode=='remove':
+    ### 1) remove all child files and folders from DB
+    # get path ids - based on the checked in smb path
 
-#raise Exception('test done')
-# for root, dirs, files in os.walk(start_path, topdown=False):
-#     print('root:',root)
-#     print('dirs:',dirs)
-#     print('files:',files)
-#
-# sys.exit(1)
+    path_id_list=database.getIdListForPath(smb_start_path)
+    path_id = path_id_list[-1]
 
-#start_path = r"\\131.188.117.94\antavia2013-1204to0103"#r"\\131.188.117.94\data\microbsCRO\2012"
+    # delete file and path entries from DB
+    database.deleteFilesByPathID(path_id)
 
-for root, dirs, files in os.walk(start_path, topdown=False):
-    #print(root, files)
-    loadConfigs(root)
+    ### 2) remove all check in *.done files
+    for root, dirs, files in os.walk(start_path, topdown=False):
+        # check for *.done files and remove them
+        done_file = os.path.join(root,'.pathwalker.done')
+        if os.path.exists(done_file):
+            os.remove(done_file)
+            print('removing *.done:',done_file)
 
-    if ignore:
-        print("Ignoring folder:", root)
-        continue
+if mode=='add':
+    file_counter=0
+    path_done_list = []
+    file_list = []
+    time_start=time.time()
+    for root, dirs, files in os.walk(start_path, topdown=False):
+        #print(root, files)
+        loadConfigs(root)
 
-
-    # differentiate between real root and network mountpoint root
-    # all login files must be associated by their network mountpoint root
-    # not their root on the file system!
-
-    folder_id = AddPathToDatabase(asSMBPath(ipaddress,smbcfg['mount_points'],root))
-    print("folder_id", folder_id)
-
-    remove_files=True
-    ## check if we're resuming a run
-    if os.path.isfile(os.path.join(root,'.pathwalker.done')): 
-        if mode=="add":
-                print('*.done exists - continue')
-                continue
-        elif mode=="remove":
-            print('remove *.done file')
-            os.remove(os.path.join(root,'.pathwalker.done'))
-            remove_files=True
-
-   
-    ### delete entrys based in this folder
-    if remove_files==True:
-        query = database.SQL_Files.delete().where(database.SQL_Files.path == folder_id)
-        print(query.execute(),"items deleted")
-
-    if mode=='remove':
-        continue
-
-    ### add entrys
-    file_data = []
-    for file in files:
-        # extract Meta
-        basename, ext = os.path.splitext(file)
-        match = re.match(filename_data_regex, os.path.basename(file))
-        if not match:
+        if ignore:
+            print("Ignoring folder:", root)
             continue
-        data = match.groupdict()
 
-        # Frames
-        try:
-            frames = getFrameNumber(os.path.join(root, file))
-        except:
-            frames = 1
 
-        # First timestamp
-        if "timestamp" in data:
-            tstamp = datetime.strptime(data["timestamp"], time_format)
-            if "micros" in data:
-                tstamp = tstamp + timedelta(microseconds=int(data["micros"])*1e5)
-        elif time_from_exif:
-            tstamp = getExifTime(os.path.join(root, file))
-        else:
-            raise NameError("No time information available. Use timestamp in regex or use time_from_exif")
+        # differentiate between real root and network mountpoint root
+        # all login files must be associated by their network mountpoint root
+        # not their root on the file system!
+        folder_id = AddPathToDatabase(asSMBPath(ipaddress,smbcfg['mount_points'],root))
+        print("folder_id", folder_id)
 
-        # Second timestamp
-        if "timestamp2" in data:
-            tstamp2 = datetime.strptime(data["timestamp2"], time_format)
-            if "micros2" in data:
-                tstamp2 = tstamp2 + timedelta(microseconds=int(data["micros2"])*1e5)
-        elif delta_t != 0:
-            tstamp2 = tstamp + timedelta(seconds=delta_t)*frames
-        else:
-            tstamp2 = tstamp
+        ## check if we're resuming a run
+        if os.path.isfile(os.path.join(root,'.pathwalker.done')):
+            print('*.done exists - continue')
+            continue
 
-        # System id
-        try:
-            system_id = database.getSystemId(system_name)
-        except KeyError:
-            system_id = database.newSystem(system_name)
+        ### add entrys
+        for file in files:
+            # extract Meta
+            basename, ext = os.path.splitext(file)
+            match = re.match(filename_data_regex, os.path.basename(file))
+            if not match:
+                continue
+            data = match.groupdict()
 
-        # Device id
-        try:
-            device_id = database.getDeviceId(system_name, device_name)
-        except KeyError:
-            device_id = database.newDevice(system_id, device_name)
+            # Frames
+            try:
+                frames = getFrameNumber(os.path.join(root, file))
+            except:
+                frames = 1
 
-        # Append to list
-        print("frames", frames)
-        file_data.append(dict(timestamp=tstamp, timestamp2=tstamp2, frames=frames, system=system_id, device=device_id, basename=basename, path=folder_id, extension=ext))
+            # First timestamp
+            if "timestamp" in data:
+                tstamp = datetime.strptime(data["timestamp"], time_format)
+                if "micros" in data:
+                    tstamp = tstamp + timedelta(microseconds=int(data["micros"])*1e5)
+            elif time_from_exif:
+                tstamp = getExifTime(os.path.join(root, file))
+            else:
+                raise NameError("No time information available. Use timestamp in regex or use time_from_exif")
 
-    # write entries to DB
-    if len(file_data):
-        database.saveFiles(file_data)
-        print(len(file_data),"items inserted")
+            # Second timestamp
+            if "timestamp2" in data:
+                tstamp2 = datetime.strptime(data["timestamp2"], time_format)
+                if "micros2" in data:
+                    tstamp2 = tstamp2 + timedelta(microseconds=int(data["micros2"])*1e5)
+            elif delta_t != 0:
+                tstamp2 = tstamp + timedelta(seconds=delta_t)*frames
+            else:
+                tstamp2 = tstamp
 
-    # create .done file for resume
-    fdone = open(os.path.join(root,'.pathwalker.done'),'w')
-    print("write to:",os.path.join(root,'.pathwalker.done'))
-    fdone.write(len(file_data))
-    fdone.close()
+            # System id
+            try:
+                system_id = database.getSystemId(system_name)
+            except KeyError:
+                system_id = database.newSystem(system_name)
 
-    #print("just caugth one of those pesty imageIO therad termination exceptions!")
+            # Device id
+            try:
+                device_id = database.getDeviceId(system_name, device_name)
+            except KeyError:
+                device_id = database.newDevice(system_id, device_name)
 
-## on complete remove resume files
-#for root, dirs, files in os.walk(start_path, topdown=False):
-#    if os.path.isfile(os.path.join(root,'pathwalker.done')):
-#        print(os.path.join(root,'pathwalker.done'))
+            # Append to list
+            print("frames", frames)
+            file_list.append(dict(timestamp=tstamp, timestamp2=tstamp2, frames=frames, system=system_id, device=device_id, basename=basename, path=folder_id, extension=ext))
+
+            # append to done_list ti write done files after commit to DB
+            path_done_list.append(os.path.join(root,'.pathwalker.done'))
+
+        # write entries to DB in larger blocks
+        if len(file_list) > max_block_commit_size:
+            database.saveFiles(file_list)
+            print(len(file_list), "items inserted")
+            file_counter+=len(file_list)
+            file_list=[]
+
+            # create .done file for resume
+            for done in path_done_list:
+                fdone = open(done,'w')
+                print("write to:",os.path.join(root,'.pathwalker.done'))
+                fdone.close()
+            path_done_list=[]
+
+            # some runtime information
+            time_stop=time.time()
+            print("%.2f files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
+
 
