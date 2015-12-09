@@ -132,7 +132,7 @@ class DatabaseFiles:
         return self.system_dict[system_name]
 
     def getSystemName(self, id):
-        system_dict_byname = { v:k for k, v in self.system_dict.items()}
+        system_dict_byname = { v:k for k, v in self.system_dict.query()}
         return system_dict_byname[id]
 
     def getSystemIdByAlias(self,system_name):
@@ -208,11 +208,11 @@ class DatabaseFiles:
         return self.device_dict[system_name+"_"+device_name]
 
     def getDeviceName(self, id):
-        device_dict_byname = { v:k for k, v in self.device_dict_plain.items()}
+        device_dict_byname = { v:k for k, v in self.device_dict_plain.query()}
         return device_dict_byname[id]
 
     def getDeviceIdByAlias(self,device_name):
-        #device_dict_plain_reverse = { v:k for k, v in self.device_dict_plain.items()}
+        #device_dict_plain_reverse = { v:k for k, v in self.device_dict_plain.query()}
         return self.devicealias_dict[device_name]
 
     def newDevice(self, system_id, device_name):
@@ -253,6 +253,70 @@ class DatabaseFiles:
             item.save()
         return item.id
 
+    def getIdListForPath(self,path):
+        # get id based on path
+        clean_path = path.strip(os.sep)     # remove trailing/leading seperators '//' '/' '\\' '\' etc
+        token = clean_path.split(os.sep)    # tokenize on seperator
+
+        # get base path_id
+        path_id_list = [0]
+        item = db.SQL_Folder.get(db.SQL_Folder.name == token[0])
+        if not item.parent_id == 0:
+            raise Exception(" \"%s\" is not a top level path - specified path must be absolute!" % item.name)
+        else:
+            path_id_list.append(item.id)
+
+        # itterate through tokens and extract paths with correct name and parent_id
+        for t in token[1::]:
+            try:
+                item = db.SQL_Folder.get(db.SQL_Folder.name == t, db.SQL_Folder.parent_id == path_id_list[-1])
+                path_id_list.append(item.id)
+                # print(item.id,item.name,item.parent_id)
+            except:
+                raise Exception('Path: \'%s\' in \'%s\' does not exist in the folder table'%(t,path))
+                return False
+
+        return path_id_list
+
+    def deleteFilesByPathID(self,cpath_id):
+        # get list of folders ids included start id
+        path_id_list = [cpath_id]   # first path entry is the start path
+
+        done=False
+        name_list=[]
+        nextsearch_path_id_list = [cpath_id]
+        while not done:
+            tmp_list = []
+            for id in nextsearch_path_id_list:
+                print("search children for id:",id)
+                try:
+                    query = db.SQL_Folder.select().where(db.SQL_Folder.parent_id == id)
+
+                    # add new paths to search for next itteration
+                    for item in query:
+                        tmp_list.append(item.id)
+                        print(id)
+                        print(item.id,item.name,item.parent_id)
+                        name_list.append(item.name)
+
+                    # found children - add to final list
+                    path_id_list.append(id)
+                except:
+                    # no more children found - add to final list
+                    path_id_list.append(id)
+
+            nextsearch_path_id_list = tmp_list
+
+            if nextsearch_path_id_list == []:
+                done=True
+
+        # request file list for all files connected to folders in path_id_list
+        # DELETE all file entries
+        query = db.SQL_Files.delete().where(db.SQL_Files.path.in_(path_id_list))
+        print(query.execute(),'files deleted!')
+
+        # DELETE all path entries
+        query = db.SQL_Folder.delete().where(db.SQL_Folder.id.in_(path_id_list))
 
     def saveFiles(self, files):
         with self.db.atomic():
@@ -284,4 +348,42 @@ class DatabaseFiles:
         #print('update')
 
 if __name__ == '__main__':
-    database = DatabaseFiles(config())
+    db = DatabaseFiles(config())
+
+
+    # test code for folder based wipe
+    #
+    # path=os.path.normpath(r'\\131.188.117.94\data\microbsCRO\2012')
+    #
+    #
+    # path_id_list=db.getIdListForPath(path)
+    # current_path_id = path_id_list[-1]
+    #
+    # db.deleteFilesByPathID(current_path_id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
