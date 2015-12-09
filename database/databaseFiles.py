@@ -132,7 +132,7 @@ class DatabaseFiles:
         return self.system_dict[system_name]
 
     def getSystemName(self, id):
-        system_dict_byname = { v:k for k, v in self.system_dict.query()}
+        system_dict_byname = { v:k for k, v in self.system_dict.items()}
         return system_dict_byname[id]
 
     def getSystemIdByAlias(self,system_name):
@@ -208,7 +208,7 @@ class DatabaseFiles:
         return self.device_dict[system_name+"_"+device_name]
 
     def getDeviceName(self, id):
-        device_dict_byname = { v:k for k, v in self.device_dict_plain.query()}
+        device_dict_byname = { v:k for k, v in self.device_dict_plain.items()}
         return device_dict_byname[id]
 
     def getDeviceIdByAlias(self,device_name):
@@ -260,7 +260,7 @@ class DatabaseFiles:
 
         # get base path_id
         path_id_list = [0]
-        item = db.SQL_Folder.get(db.SQL_Folder.name == token[0])
+        item = self.SQL_Folder.get(self.SQL_Folder.name == token[0])
         if not item.parent_id == 0:
             raise Exception(" \"%s\" is not a top level path - specified path must be absolute!" % item.name)
         else:
@@ -269,12 +269,12 @@ class DatabaseFiles:
         # itterate through tokens and extract paths with correct name and parent_id
         for t in token[1::]:
             try:
-                item = db.SQL_Folder.get(db.SQL_Folder.name == t, db.SQL_Folder.parent_id == path_id_list[-1])
+                item = self.SQL_Folder.get(self.SQL_Folder.name == t, self.SQL_Folder.parent_id == path_id_list[-1])
                 path_id_list.append(item.id)
                 # print(item.id,item.name,item.parent_id)
             except:
                 raise Exception('Path: \'%s\' in \'%s\' does not exist in the folder table'%(t,path))
-                return False
+
 
         return path_id_list
 
@@ -290,7 +290,7 @@ class DatabaseFiles:
             for id in nextsearch_path_id_list:
                 print("search children for id:",id)
                 try:
-                    query = db.SQL_Folder.select().where(db.SQL_Folder.parent_id == id)
+                    query = self.SQL_Folder.select().where(self.SQL_Folder.parent_id == id)
 
                     # add new paths to search for next itteration
                     for item in query:
@@ -312,11 +312,11 @@ class DatabaseFiles:
 
         # request file list for all files connected to folders in path_id_list
         # DELETE all file entries
-        query = db.SQL_Files.delete().where(db.SQL_Files.path.in_(path_id_list))
+        query = self.SQL_Files.delete().where(self.SQL_Files.path.in_(path_id_list))
         print(query.execute(),'files deleted!')
 
         # DELETE all path entries
-        query = db.SQL_Folder.delete().where(db.SQL_Folder.id.in_(path_id_list))
+        query = self.SQL_Folder.delete().where(self.SQL_Folder.id.in_(path_id_list))
         print(query.execute(),'path segments deleted!')
 
     def saveFiles(self, files):
