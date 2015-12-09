@@ -36,7 +36,7 @@ def getExifTime(path):
 # name_scheme = TS1(_TS2)_SYSTEM_DEVICE_DIV.ext
 timestamp_scheme= '%Y%m%d-%H%M%S'
 name_scheme = '{timestamp}_{system}_{device}{ext}'
-path_scheme = os.path.join('{basepath}','{year}','{system}','{device}','{yearmonthday}','{hour}')
+path_scheme = os.path.join('{basepath}','{system}','{device}','{year}','{yearmonthday}','{hour}')
 
 #input_folder =
 #output_folder=
