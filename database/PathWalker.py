@@ -17,9 +17,13 @@ import PIL.ExifTags
 # import imageio or opencv
 imageio_loaded=False
 opencv_loaded=False
+imgformats = []
 try:
     import imageio
     imageio_loaded=True
+    for format in imageio.formats:
+        if 'i' in format.modes:
+            imgformats.extend(format._extensions)
 except:
     print("Image IO not available")
 
@@ -284,9 +288,12 @@ if mode=='add':
             data = match.groupdict()
 
             # Frames
-            try:
-                frames = getFrameNumber(os.path.join(root, file))
-            except:
+            if not ext in imgformats:
+                try:
+                    frames = getFrameNumber(os.path.join(root, file))
+                except:
+                    frames = 1
+            else:
                 frames = 1
 
             # First timestamp
