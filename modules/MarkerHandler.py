@@ -71,8 +71,9 @@ class MarkerFile:
         self.table_tracks = Tracks
         self.table_types = Types
 
-        if not datafile.exists:
-            datafile.db.create_tables([self.table_marker, self.table_tracks, self.table_types])
+        for table in [self.table_marker, self.table_tracks, self.table_types]:
+            if not table.table_exists():
+                table.create_table()
 
     def set_track(self):
         track = self.table_tracks(uid=uuid.uuid4().hex)

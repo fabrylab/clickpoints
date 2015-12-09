@@ -31,8 +31,8 @@ class MaskFile:
 
         self.table_mask = Mask
 
-        if not datafile.exists:
-            datafile.db.create_tables([self.table_mask])
+        if not self.table_mask.table_exists():
+            self.table_mask.create_table()
 
     def add_mask(self, **kwargs):
         kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))

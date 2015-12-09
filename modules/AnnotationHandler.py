@@ -18,6 +18,7 @@ from abc import abstractmethod
 
 #TODO conditional export based on config?
 from peewee import *
+import peewee
 from datetime import datetime
 
 
@@ -35,45 +36,75 @@ def UpdateDictWith(x, y):
     return z
 
 
-def ReadAnnotation(filename):
-    # default values
-    results = dict(timestamp='', system='', camera='', tags='', rating=0)
-    result_types = dict(timestamp='str', system='str', camera='str', tags='list', rating='int')
-    comment = ""
+class AnnotationFile:
+    def __init__(self, datafile):
+        self.data_file = datafile
 
-    with open(filename, 'r') as fp:
-        # get key value pairs
-        section = ""
+        class Annotation(datafile.base_model):
+            image = peewee.ForeignKeyField(datafile.table_images)
+            image_frame = peewee.IntegerField()
+            comment = peewee.TextField(default="")
+            rating = peewee.IntegerField(default=0)
 
-        for line_raw in fp.readlines():
-            line = line_raw.strip()
-            if len(line) > 0 and line[0] == '[' and line[-1] == ']':
-                section = line[1:-1]
-                continue
-            if section == "data":
-                # extract key value pairs
-                if line.find('=') != -1:
-                    key, value = line.split("=")
+        class Tags(datafile.base_model):
+            name = peewee.CharField()
 
-                    if key in result_types.keys():
-                        if result_types[key] == 'list':
-                            value = [elem.strip() for elem in value.split(",")]
-                        if result_types[key] == 'int':
-                            value = int(value)
+        class Tagassociation(datafile.base_model):
+            annotation = peewee.ForeignKeyField(Annotation)
+            tag = peewee.ForeignKeyField(Tags)
 
-                    results[key] = value
-            if section == "comment":
-                comment += line_raw
+        self.table_annotation = Annotation
+        self.table_tags = Tags
+        self.table_tagassociation = Tagassociation
 
-    # backward compatibility for old files
-    if results['timestamp'] == '':
-        path, fname = os.path.split(filename)
-        results['timestamp'] = fname[0:15]
-    if comment == '' and results['tags'] == '':
-        with open(filename, 'r') as fp:
-            comment = fp.read()
+        for table in [self.table_annotation, self.table_tags, self.table_tagassociation]:
+            if not table.table_exists():
+                table.create_table()
 
-    return results, comment
+        self.annotation = None
+
+    def add_annotation(self, **kwargs):
+        kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
+        self.annotation = self.table_annotation(**kwargs)
+        return self.annotation
+
+    def getAnnotation(self):
+        try:
+            self.annotation = self.table_annotation.get(self.table_annotation.image == self.data_file.image.id, self.table_annotation.image_frame == self.data_file.image_frame)
+        except peewee.DoesNotExist:
+            self.annotation = None
+        return self.annotation
+
+    def getTagList(self):
+        return [tag.name for tag in self.table_tags.select()]
+
+    def getTagsFromAnnotation(self):
+        return [tag.name for tag in self.table_tags.select().join(self.table_tagassociation).join(self.table_annotation).where(self.table_annotation.id == self.annotation)]
+
+    def setTags(self, tags):
+        ids = []
+        for tag in tags:
+            try:
+                tag_entry = self.table_tags.get(self.table_tags.name == tag)
+            except peewee.DoesNotExist:
+                tag_entry = self.table_tags(name=tag)
+                tag_entry.save()
+            ids.append(tag_entry.id)
+        current_associations = self.table_tagassociation.select().join(self.table_annotation).where(self.table_annotation.id == self.annotation)
+        for association in current_associations:
+            if association.tag_id in ids:
+                ids.remove(association.tag_id)
+            else:
+                association.delete_instance()
+        for id in ids:
+            association = self.table_tagassociation(tag=id, annotation=self.annotation.id)
+            association.save()
+
+    def get_annotation_frames(self):
+        return self.table_annotation.select().group_by(self.table_annotation.image.concat(self.table_annotation.image_frame))
+
+    def getAnnotationsByIds(self, id_list):
+        return self.table_annotation.select(SQL("*"), SQL("GROUP_CONCAT(t3.name, ', ') as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tags, join_type="LEFT JOIN").group_by(self.table_annotation.id)
 
 class pyQtTagSelector(QWidget):
 
@@ -335,36 +366,12 @@ class AddMetaDevice(AddMetaTemplate):
 
 
 class AnnotationEditor(QWidget):
-    def __init__(self, filename,filenr, outputpath, modules, config):
+    def __init__(self, filename, image_frame, filenr, db, modules, config):
         QWidget.__init__(self)
 
         # default settings and parameters
         self.reffilename = filename
-        self.outputpath = outputpath
-        # init default values
-        self.results = dict({'timestamp': '',
-                             'system': '',
-                             'camera': '',
-                             'tags': '',
-                             'rating': 0
-                             })
-        self.comment = ''
-
-
-        self.fid=0
-        self.aid=0
-        self.validFID=False
-        self.validAID=False
-        if not config.file_ids==[]:
-            self.fid = config.file_ids[filenr]
-            if not self.fid==0: self.validFID=True
-        if not config.annotation_ids==[]:
-            self.aid = config.annotation_ids[filenr]
-            if not self.aid==0: self.varlidAID=True
-
-
-        print('FileID: %d AnnotationID: %d' % (self.fid,self.aid))
-
+        self.db = db
         self.modules = modules
         self.config = config
 
@@ -372,127 +379,115 @@ class AnnotationEditor(QWidget):
         self.regFromFNameString = self.config.filename_data_regex
         self.regFromFName = re.compile(self.regFromFNameString)
 
-        basename, ext = os.path.splitext(filename[1])
-        self.basename = basename
-        self.ext = ext
-
-        self.annotfilename = basename + self.config.annotation_tag
-
-        if self.outputpath == '':
-            self.fname = os.path.join(self.reffilename[0], self.annotfilename)
+        self.annotation = self.db.getAnnotation()
+        if self.annotation is None:
+            # extract relevant values, store in dict
+            match = self.regFromFName.match(filename)
+            if not match:
+                print('warning - no match for regexp')
+                re_dict = {}
+            else:
+                re_dict = match.groupdict()
+            self.annotation = self.db.add_annotation(**re_dict)
+            exists = False
         else:
-            self.fname = os.path.join(self.outputpath, self.annotfilename)
+            exists = True
 
         # widget layout and ellements
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
-        self.setWindowTitle(self.reffilename[1])
+        self.setWindowTitle("Annotation")
         self.layout = QGridLayout(self)
 
         self.layout.addWidget(QLabel('AFile Name:'), 0, 0)
-        self.leAName = QLineEdit(self.annotfilename, self)
+        self.leAName = QLineEdit(self.reffilename, self)
         self.leAName.setEnabled(False)
         self.layout.addWidget(self.leAName, 0, 1, 1, 3)
 
-        self.layout.addWidget(QLabel('Time:', self), 1, 0)
-        self.leTStamp = QLineEdit('uninit', self)
-        self.leTStamp.setEnabled(False)
-        self.layout.addWidget(self.leTStamp, 1, 1)
+        if self.config.sql_annotation is True:
+            self.layout.addWidget(QLabel('Time:', self), 1, 0)
+            self.leTStamp = QLineEdit('uninit', self)
+            self.leTStamp.setEnabled(False)
+            self.layout.addWidget(self.leTStamp, 1, 1)
 
-        self.layout.addWidget(QLabel('System:', self), 3, 0)
-        self.leSystem = QLineEdit('uninit', self)
-        self.leSystem.setEnabled(False)
-        self.layout.addWidget(self.leSystem, 3, 1)
+            self.layout.addWidget(QLabel('System:', self), 3, 0)
+            self.leSystem = QLineEdit('uninit', self)
+            self.leSystem.setEnabled(False)
+            self.layout.addWidget(self.leSystem, 3, 1)
 
-        self.layout.addWidget(QLabel('Camera:', self), 3, 2)
-        self.leCamera = QLineEdit('uninit', self)
-        self.leCamera.setEnabled(False)
-        self.layout.addWidget(self.leCamera, 3, 3)
+            self.layout.addWidget(QLabel('Camera:', self), 3, 2)
+            self.leCamera = QLineEdit('uninit', self)
+            self.leCamera.setEnabled(False)
+            self.layout.addWidget(self.leCamera, 3, 3)
 
         self.laTag = QLabel('Tag:', self)
-        self.laTag.setContentsMargins(0,4,0,0)
-        self.layout.addWidget(self.laTag, 4, 0,Qt.AlignTop)
+        self.laTag.setContentsMargins(0, 4, 0, 0)
+        self.layout.addWidget(self.laTag, 4, 0, Qt.AlignTop)
 
-        self.leTag=[]
-        if self.config.sql_annotation==True:
-            print("run TagSelector")
-            self.leTag = pyQtTagSelector()
-            self.layout.addWidget(self.leTag, 4, 1)
-        else:
-            print("run LineEdit")
-            self.leTag = QLineEdit('uninit', self)
-            self.layout.addWidget(self.leTag, 4, 1)
+        self.leTag = pyQtTagSelector()
+        self.layout.addWidget(self.leTag, 4, 1)
 
         self.laRating = QLabel('Rating:', self)
-        self.laRating.setContentsMargins(0,4,0,0)
+        self.laRating.setContentsMargins(0, 4, 0, 0)
         self.layout.addWidget(self.laRating, 4, 2, Qt.AlignTop)
         self.leRating = QComboBox(self)
-        for index, basename in enumerate(['0 - none', '1 - bad', '2', '3', '4', '5 - good']):
-            self.leRating.insertItem(index, basename)
+        for index, text in enumerate(['0 - none', '1 - bad', '2', '3', '4', '5 - good']):
+            self.leRating.insertItem(index, text)
         self.leRating.setInsertPolicy(QComboBox.NoInsert)
-        self.leRating.setContentsMargins(0,5,0,0)
-        self.layout.addWidget(self.leRating, 4, 3,Qt.AlignTop)
-
-        self.ah=[]
-        # check for sql or file mode
-        if self.config.sql_annotation==True:
-            print('SQL Mode enabled')
-            self.ah=AnnotationHandlerSQL(config,self)
-
-        else:
-            print('local text mode enabled')
-            self.ah=AnnotationHandlerTXT(config,self)
-
+        self.leRating.setContentsMargins(0, 5, 0, 0)
+        self.layout.addWidget(self.leRating, 4, 3, Qt.AlignTop)
 
         self.pbConfirm = QPushButton('C&onfirm', self)
-        self.pbConfirm.pressed.connect(self.ah.saveAnnotation)
+        self.pbConfirm.pressed.connect(self.saveAnnotation)
         self.layout.addWidget(self.pbConfirm, 0, 4)
 
         self.pbDiscard = QPushButton('&Discard', self)
-        self.pbDiscard.pressed.connect(self.ah.discardAnnotation)
+        self.pbDiscard.pressed.connect(self.close)
         self.layout.addWidget(self.pbDiscard, 1, 4)
 
-        if self.ah.annotationExists():
+        if exists:
             self.pbRemove = QPushButton('&Remove', self)
-            self.pbRemove.pressed.connect(self.ah.removeAnnotation)
+            self.pbRemove.pressed.connect(self.removeAnnotation)
             self.layout.addWidget(self.pbRemove, 2, 4)
 
         self.pteAnnotation = QPlainTextEdit(self)
         self.pteAnnotation.setFocus()
         self.layout.addWidget(self.pteAnnotation, 5, 0, 5, 4)
 
-
-        if self.ah.annotationExists():
-            self.results, self.comment = self.ah.getAnnotation()
-        else:
-            # extract relevant values, store in dict
-            fname, ext = os.path.splitext(self.reffilename[1])
-            match = self.regFromFName.match(fname)
-            if not match:
-                print('warning - no match for regexp')
-            else:
-                re_dict = match.groupdict()
-
-                # update results
-                self.results = UpdateDictWith(self.results, re_dict)
-
-        # update gui
-        # update meta
-        self.leTStamp.setText(self.results['timestamp'])
-        self.leSystem.setText(self.results['system'])
-        self.leCamera.setText(self.results['camera'])
-        self.leRating.setCurrentIndex(int(self.results['rating']))
-        self.pteAnnotation.setPlainText(self.comment)
+        # fill gui entries
+        if self.config.sql_annotations is True:
+            self.leTStamp.setText(self.annotation.timestamp)
+            self.leSystem.setText(self.annotation.system)
+            self.leCamera.setText(self.annotation.camera)
+        if self.annotation.rating:
+            self.leRating.setCurrentIndex(self.annotation.rating)
+        self.leRating.currentIndexChanged.connect(lambda x: setattr(self.annotation, "rating", x))
+        if self.annotation.comment:
+            self.pteAnnotation.setPlainText(self.annotation.comment)
+        self.pteAnnotation.textChanged.connect(lambda: setattr(self.annotation, "comment", self.pteAnnotation.toPlainText()))
 
         # update active tags
-        if self.config.sql_annotation==True:
-            self.leTag.setActiveTagList(self.results['tags'])
-        else:
-            self.leTag.setText(", ".join(self.results['tags']))
+        self.leTag.setStringList(db.getTagList())
+        self.leTag.setActiveTagList(db.getTagsFromAnnotation())
 
+    def saveAnnotation(self):
+        # save the annotation
+        self.db.annotation.save()
+        # get table list from selecttag widget
+        taglist = self.leTag.getTagList()
+        # update tag association table
+        self.db.setTags(taglist)
+        self.close()
 
+    def removeAnnotation(self):
+        self.annotation.delete_instance()
+        self.close()
 
-
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.close()
+        if event.key() == QtCore.Qt.Key_S and event.modifiers() & Qt.ControlModifier:
+            self.saveAnnotation()
 
 
 class AnnotationHandlerSQL:
@@ -655,7 +650,7 @@ class AnnotationHandlerSQL:
         return found
 
 
-    def getAnnotation(self):
+    def getAnnotation(self, filename, file_frame):
         # qerry db for matching reffilename
         # path,file = os.path.split(refname)
         # basename,ext = os.path.splitext(file)
@@ -675,93 +670,10 @@ class AnnotationHandlerSQL:
         self.parent.close()
 
 
-class AnnotationHandlerTXT:
-    def __init__(self,config,parent):
-        self.config = config
-        self.parent = parent
-
-    def saveAnnotation(self):
-        print("SAVE")
-        if self.parent.outputpath == '':
-            filename = os.path.join(self.parent.reffilename[0], self.parent.annotfilename)
-            f = QFile(filename)
-            print(filename)
-        else:
-            filename = os.path.join(self.parent.outputpath, self.parent.annotfilename)
-            f = QFile(filename)
-        f.open(QFile.Truncate | QFile.ReadWrite)
-
-        if not f.isOpen():
-            print("WARNING - cant open file")
-        else:
-            # new output format
-            # extract relevant values, store in dict
-            fname, ext = os.path.splitext(self.parent.reffilename[1])
-            match = self.parent.regFromFName.match(fname)
-            if not match:
-                print('warning - no match for regexp')
-            else:
-                re_dict = match.groupdict()
-
-                # update results
-                self.parent.results = UpdateDictWith(self.parent.results, re_dict)
-
-            # update with gui changes
-            self.parent.results['tags'] = self.parent.leTag.text()
-            self.parent.results['rating'] = self.parent.leRating.currentIndex()
-
-            # write to file
-            out = QTextStream(f)
-            # write header
-            out << '[data]\n'
-            # write header info
-            for field in self.parent.results:
-                out << "%s=%s\n" % (field, self.parent.results.get(field))
-
-            # # write data
-            comment = self.parent.pteAnnotation.toPlainText()
-            out << '\n[comment]\n'
-            out << comment
-
-            f.close()
-            self.parent.close()
-
-            results, comment = ReadAnnotation(filename)
-            BroadCastEvent(self.parent.modules, "AnnotationAdded", self.parent.basename, results, comment)
-
-    def removeAnnotation(self):
-        if self.parent.outputpath == '':
-            f = os.path.join(self.parent.reffilename[0], self.parent.annotfilename)
-            print(os.path.join(self.parent.reffilename[0], self.parent.annotfilename))
-        else:
-            f = os.path.join(self.parent.outputpath, self.parent.annotfilename)
-        os.remove(f)
-        BroadCastEvent(self.parent.modules, "AnnotationRemoved", self.parent.basename)
-
-        self.parent.close()
-
-    def annotationExists(self):
-        if os.path.exists(self.parent.fname):
-            return True
-        else:
-            return False
-
-    def getAnnotation(self):
-        f = QFile(self.parent.fname)
-        # read values from exisiting file
-        if f.exists():
-            self.parent.results, self.parent.comment = ReadAnnotation(self.parent.fname)
-
-            return self.parent.results,self.parent.comment
-
-    def discardAnnotation(self):
-        print("DISCARD")
-        self.parent.close()
-
 
 
 class AnnotationOverview(QWidget):
-    def __init__(self, window, annotations, frame_list):
+    def __init__(self, window, annoation_ids, db):
         QWidget.__init__(self)
 
         # widget layout and elements
@@ -769,14 +681,15 @@ class AnnotationOverview(QWidget):
         self.setMinimumHeight(300)
         self.setWindowTitle('Annotations')
         self.layout = QGridLayout(self)
-        self.annotations = annotations
+        self.annoation_ids = annoation_ids
         self.window = window
-        self.frame_list = frame_list
+        self.db = db
 
-        self.table = QTableWidget(0, 7, self)
+        self.table = QTableWidget(0, 8, self)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setHorizontalHeaderLabels(QStringList(['Date', 'Tag', 'Comment', 'R', 'System', 'Cam', 'file']))
+        self.table.setHorizontalHeaderLabels(QStringList(['Date', 'Tag', 'Comment', 'R', 'System', 'Cam', 'image', 'image_frame']))
         self.table.hideColumn(6)
+        self.table.hideColumn(7)
         self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setResizeMode(2, QHeaderView.Stretch)
         self.table.verticalHeader().hide()
@@ -784,13 +697,9 @@ class AnnotationOverview(QWidget):
 
         self.table.doubleClicked.connect(self.JumpToAnnotation)
 
-        for i, basename in enumerate(self.annotations):
-            # read annotation file
-            data = self.annotations[basename]["data"]
-            comment = self.annotations[basename]["comment"]
-
+        for index, annotation in enumerate(self.db.getAnnotationsByIds(self.annoation_ids)):
             # populate table
-            self.UpdateRow(i, basename, data, comment)
+            self.UpdateRow(index, annotation.image, annotation, annotation.comment)
 
         # fit column to context
         self.table.resizeColumnToContents(0)
@@ -798,26 +707,29 @@ class AnnotationOverview(QWidget):
 
     def JumpToAnnotation(self, idx):
         # get file basename
-        basename = self.table.item(idx.row(), 6).text()
+        image_name = self.table.item(idx.row(), 6).text()
+        image_frame = int(self.table.item(idx.row(), 7).text())
 
-        # find match in file list
-        try:
-            index = self.frame_list.index(basename)
-        except ValueError:
-            print('no matching file found for ' + basename)
-        else:
-            self.window.JumpToFrame(index)
+        frame = self.window.media_handler.get_frame_number_by_id(image_name, image_frame)
+        if frame is not None:
+            self.window.JumpToFrame(frame)
 
     def UpdateRow(self, row, basename, data, comment, sort_if_new=False):
         new = False
         if self.table.rowCount() <= row:
             self.table.insertRow(self.table.rowCount())
-            for j in range(7):
+            for j in range(8):
                 self.table.setItem(row, j, QTableWidgetItem())
             new = True
-        texts = [data['timestamp'], ", ".join(data['tags']), comment, str(data['rating']), data['system'],
+        if 0:
+            texts = [data['timestamp'], ", ".join(data['tags']), comment, str(data['rating']), data['system'],
                  data['camera'], basename]
+        else:
+            if data.tags is None:
+                data.tags = ""
+            texts = ["", data.tags, data.comment, str(data.rating), "", "", str(data.image.filename), str(data.image_frame)]
         for index, text in enumerate(texts):
+            print(index, text)
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
             self.table.sortByColumn(0, Qt.AscendingOrder)
@@ -837,42 +749,34 @@ class AnnotationOverview(QWidget):
                 break
 
 
-class AnnotationHandler():
-    def __init__(self, window, media_handler, modules, config=None):
+class AnnotationHandler:
+    def __init__(self, window, media_handler, modules, datafile, config=None):
         self.config = config
 
         # default settings and parameters
-        self.outputpath = config.outputpath
         self.window = window
         self.media_handler = media_handler
         self.config = config
         self.modules = modules
 
-        self.frame_list = self.media_handler.getImgList(extension=False, path=False)
+        #self.frame_list = self.media_handler.getImgList(extension=False, path=False)
 
         self.annoations = {}
         self.db=[]
 
-        if self.config.sql_annotation==False:
-            ## LOCAL version
-            if self.outputpath == '':
-                searchpath,fname=os.path.split(self.media_handler.filelist[0])
-            else:
-                searchpath=self.outputpath
-            # TODO: this is a band aid fix for choosing files with the file dialogue, this will break for recursive foulder structures!
+        self.annoation_ids = []
 
-            # get list of files
-            annotation_glob_string = os.path.join(searchpath, '*' + self.config.annotation_tag)
-            self.filelist = glob.glob(annotation_glob_string)
+        if self.config.sql_annotation==False:  # TODO rename to server_annotation
+            self.data_file = datafile
+            self.annotation_file = AnnotationFile(datafile)
 
-            for i, file in enumerate(self.filelist):
-                # read annotation file
-                results, comment = ReadAnnotation(file)
-
-                # get file basename
-                filename = os.path.split(file)[1]
-                basename = filename[:-len(self.config.annotation_tag)]
-                self.annoations[basename] = dict(data=results, comment=comment)
+            # place tick marks for already present masks
+            for item in self.annotation_file.get_annotation_frames():
+                frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
+                if frame is not None:
+                    BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
+                    self.annoation_ids.append(item.id)
+            self.db = self.annotation_file
         else:
             ## MYSQL version
             # init db connection
@@ -883,6 +787,7 @@ class AnnotationHandler():
             if self.config.annotation_ids==[]:
             # brute force version
                 print("brute force")
+                """
                 for file in self.media_handler.filelist:
                     # extract base name
                     path,filename = os.path.split(file)
@@ -898,6 +803,7 @@ class AnnotationHandler():
                     except DoesNotExist:
                         print('no annotation for file:',file)
                         pass
+                """
 
             else:
             # SQL File & Annotation version
@@ -919,29 +825,23 @@ class AnnotationHandler():
         self.AnnotationOverviewWindow = None
 
     def AnnotationAdded(self, basename, data, comment):
-        self.annoations[basename] = dict(data=data, comment=comment)
         if self.AnnotationOverviewWindow:
             self.AnnotationOverviewWindow.AnnotationAdded(basename, data, comment)
 
     def AnnotationRemoved(self, basename):
-        del self.annoations[basename]
         if self.AnnotationOverviewWindow:
             self.AnnotationOverviewWindow.AnnotationRemoved(basename)
-
-    def getAnnotations(self):
-        return self.annoations
 
     def keyPressEvent(self, event):
         # @key A: add/edit annotation
         if event.key() == Qt.Key_A:
-            self.AnnotationEditorWindow = AnnotationEditor(self.media_handler.getCurrentFilename(),
-                                                           self.media_handler.getCurrentPos(),
-                                                           outputpath=self.outputpath, modules=self.modules,
-                                                           config=self.config)
+            self.AnnotationEditorWindow = AnnotationEditor(self.media_handler.get_filename(),
+                                                           self.media_handler.get_file_frame(), self.media_handler.get_index(), self.db,
+                                                           modules=self.modules, config=self.config)
             self.AnnotationEditorWindow.show()
         # @key Y: show annotation overview
         if event.key() == Qt.Key_Y:
-            self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.annoations, self.frame_list)
+            self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.annoation_ids, self.db)
             self.AnnotationOverviewWindow.show()
 
     def closeEvent(self, event):
