@@ -347,3 +347,20 @@ if mode=='add':
             print("%.2f files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
 
 
+    # write entries to DB on final pass
+    if len(file_list) > 0:
+        database.saveFiles(file_list)
+        print(len(file_list), "items inserted")
+        file_counter+=len(file_list)
+        file_list=[]
+
+        # create .done file for resume
+        for done in path_done_list:
+            fdone = open(done,'w')
+            print("write to:",os.path.join(root,'.pathwalker.done'))
+            fdone.close()
+        path_done_list=[]
+
+        # some runtime information
+        time_stop=time.time()
+        print("%.2f files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
