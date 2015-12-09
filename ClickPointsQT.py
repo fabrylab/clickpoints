@@ -39,8 +39,8 @@ from Database import DataFile
 used_modules = []#[MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText, AnnotationHandler]
 used_huds = []#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
-used_modules = [Timeline, MarkerHandler, MaskHandler]
-used_huds = ["", "hud", "hud_upperRight"]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
+used_modules = [Timeline, MarkerHandler, MaskHandler, AnnotationHandler]
+used_huds = ["", "hud", "hud_upperRight", ""]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 

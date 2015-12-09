@@ -86,7 +86,7 @@ annotation_tag = '_annot.txt'
 
 
 # @config `sql_annotation=` weather to use local or sql based annotation stoarage
-sql_annotation=True
+sql_annotation=False
 # @config `sql_dbname=` database name e.g. annotations
 sql_dbname='annotation'
 # @config `sql_host=` ip adress of the server
