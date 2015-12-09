@@ -188,6 +188,7 @@ mode="add"
 start_path=""
 
 max_block_commit_size=10000
+verbose = False
 
 # load mysqlDB
 database = DatabaseFiles(config())
@@ -212,7 +213,6 @@ else:
         printUsage()
         sys.exit(1)
 
-
 # get target path
 tmp=sys.argv[2]
 if os.path.exists(tmp):
@@ -222,6 +222,12 @@ if os.path.exists(tmp):
 else:
     print("Path %s does not exist"%tmp)
     sys.exit(1)
+
+# check for keyword parameters
+for item in sys.argv[3::]:
+    if item=='verbose':
+        verbose=True
+        print('verbose-mode enabled')
 
 # get smb and nic config for mount points
 smbcfg=getSMBConfig()
@@ -329,7 +335,8 @@ if mode=='add':
                 device_id = database.newDevice(system_id, device_name)
 
             # Append to list
-            print("frames", frames)
+            if verbose:
+                print("Adding: %s %d" % (file,frames))
             file_list.append(dict(timestamp=tstamp, timestamp2=tstamp2, frames=frames, system=system_id, device=device_id, basename=basename, path=folder_id, extension=ext))
 
         # append to done_list to write done files after commit to DB
