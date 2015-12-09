@@ -332,8 +332,8 @@ if mode=='add':
             print("frames", frames)
             file_list.append(dict(timestamp=tstamp, timestamp2=tstamp2, frames=frames, system=system_id, device=device_id, basename=basename, path=folder_id, extension=ext))
 
-            # append to done_list ti write done files after commit to DB
-            path_done_list.append(os.path.join(root,'.pathwalker.done'))
+        # append to done_list to write done files after commit to DB
+        path_done_list.append(os.path.join(root,'.pathwalker.done'))
 
         # write entries to DB in larger blocks
         if len(file_list) > max_block_commit_size:
