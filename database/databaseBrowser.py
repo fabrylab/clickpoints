@@ -34,6 +34,7 @@ import calendar
 
 from databaseFiles import DatabaseFiles
 from databaseAnnotation import DatabaseAnnotation, config
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "modules"))
 from AnnotationHandler import pyQtTagSelector
 

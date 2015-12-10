@@ -37,40 +37,75 @@ def UpdateDictWith(x, y):
 
 
 class AnnotationFile:
-    def __init__(self, datafile):
+    def __init__(self, datafile, server=None):
         self.data_file = datafile
+        self.server = server
 
-        class Annotation(datafile.base_model):
-            image = peewee.ForeignKeyField(datafile.table_images)
-            image_frame = peewee.IntegerField()
-            comment = peewee.TextField(default="")
-            rating = peewee.IntegerField(default=0)
+        if server:
+            class BaseModel(Model):
+                class Meta:
+                    database = server
+            base_model = BaseModel
+        else:
+            base_model = datafile.base_model
 
-        class Tags(datafile.base_model):
+        if server:
+            class SqlAnnotation(base_model):
+                reffilename = peewee.CharField()
+                reffileext = peewee.CharField()
+                fileid = peewee.IntegerField(null=True)
+                image_frame = peewee.IntegerField()
+                comment = peewee.TextField(default="")
+                rating = peewee.IntegerField(default=0)
+                tag_type = peewee.CharField(default="SQLTags")
+                timestamp = peewee.DateTimeField(default=0)
+                system = peewee.IntegerField(null=True)
+                device = peewee.IntegerField(null=True)
+            self.table_annotation = SqlAnnotation
+        else:
+            class Annotation(base_model):
+                image = peewee.ForeignKeyField(datafile.table_images)
+                image_frame = peewee.IntegerField()
+                comment = peewee.TextField(default="")
+                rating = peewee.IntegerField(default=0)
+            self.table_annotation = Annotation
+
+        class Tags(base_model):
             name = peewee.CharField()
 
-        class Tagassociation(datafile.base_model):
-            annotation = peewee.ForeignKeyField(Annotation)
+        class Tagassociation(base_model):
+            annotation = peewee.ForeignKeyField(self.table_annotation)
             tag = peewee.ForeignKeyField(Tags)
 
-        self.table_annotation = Annotation
         self.table_tags = Tags
         self.table_tagassociation = Tagassociation
 
-        for table in [self.table_annotation, self.table_tags, self.table_tagassociation]:
-            if not table.table_exists():
-                table.create_table()
+        if not self.server:
+            for table in [self.table_annotation, self.table_tags, self.table_tagassociation]:
+                if not table.table_exists():
+                    table.create_table()
 
         self.annotation = None
 
     def add_annotation(self, **kwargs):
-        kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
+        if self.server:
+            print("Add fildid", self.data_file.image.external_id)
+            kwargs.update(dict(reffilename=self.data_file.image.filename, reffileext=self.data_file.image.ext, fileid=self.data_file.image.external_id))
+        else:
+            kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
         self.annotation = self.table_annotation(**kwargs)
         return self.annotation
 
     def getAnnotation(self):
         try:
-            self.annotation = self.table_annotation.get(self.table_annotation.image == self.data_file.image.id, self.table_annotation.image_frame == self.data_file.image_frame)
+            if self.server:
+                if self.data_file.image.external_id is not None:
+                    print("GET Ann external", self.data_file.image.external_id)
+                    self.annotation = self.table_annotation.get(self.table_annotation.fileid == self.data_file.image.external_id, self.table_annotation.image_frame == self.data_file.image_frame)
+                else:
+                    self.annotation = self.table_annotation.get(self.table_annotation.reffilename == self.data_file.image.filename, self.table_annotation.image_frame == self.data_file.image_frame)
+            else:
+                self.annotation = self.table_annotation.get(self.table_annotation.image == self.data_file.image.id, self.table_annotation.image_frame == self.data_file.image_frame)
         except peewee.DoesNotExist:
             self.annotation = None
         return self.annotation
@@ -82,29 +117,38 @@ class AnnotationFile:
         return [tag.name for tag in self.table_tags.select().join(self.table_tagassociation).join(self.table_annotation).where(self.table_annotation.id == self.annotation)]
 
     def setTags(self, tags):
-        ids = []
-        for tag in tags:
-            try:
-                tag_entry = self.table_tags.get(self.table_tags.name == tag)
-            except peewee.DoesNotExist:
-                tag_entry = self.table_tags(name=tag)
-                tag_entry.save()
-            ids.append(tag_entry.id)
-        current_associations = self.table_tagassociation.select().join(self.table_annotation).where(self.table_annotation.id == self.annotation)
-        for association in current_associations:
-            if association.tag_id in ids:
-                ids.remove(association.tag_id)
+        if len(tags):
+            # Add new tags
+            if self.server:  # MySQL has no WITH statements :-(
+                for tag in tags:
+                    try:
+                        self.table_tags.get(self.table_tags.name == tag)
+                    except peewee.DoesNotExist:
+                        self.table_tags(name=tag).save()
             else:
-                association.delete_instance()
-        for id in ids:
-            association = self.table_tagassociation(tag=id, annotation=self.annotation.id)
-            association.save()
+                query = self.table_tags.raw("WITH check_tags(name) AS ( VALUES %s ) SELECT check_tags.name, tags.id FROM check_tags LEFT JOIN tags ON check_tags.name = tags.name" % ",".join('("%s")' % x for x in tags))
+                self.table_tags.insert_many([dict(name=tag.name) for tag in query if tag.id is None]).execute()
+            # Get ids of tags
+            query = self.table_tags.select().where(self.table_tags.name << tags)
+            ids = [tag.id for tag in query]
+            # Delete unused old tag associations
+            self.table_tagassociation.delete().where(~ self.table_tagassociation.id << ids, self.table_tagassociation.annotation == self.annotation).execute()
+            # Add new associations
+            query = self.table_tagassociation.select().where(self.table_tagassociation.annotation == self.annotation)
+            current_ids = [a.tag_id for a in query]
+            self.table_tagassociation.insert_many([dict(tag=id, annotation=self.annotation.id) for id in ids if id not in current_ids]).execute()
+        else:
+            # Delete all old tag associations
+            self.table_tagassociation.delete().where(self.table_tagassociation.annotation == self.annotation).execute()
+
 
     def get_annotation_frames(self):
+        if self.server:
+            return self.table_annotation.select()#.group_by(self.table_annotation.reffilename.concat(self.table_annotation.image_frame))
         return self.table_annotation.select().group_by(self.table_annotation.image.concat(self.table_annotation.image_frame))
 
     def getAnnotationsByIds(self, id_list):
-        return self.table_annotation.select(SQL("*"), SQL("GROUP_CONCAT(t3.name, ', ') as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tags, join_type="LEFT JOIN").group_by(self.table_annotation.id)
+        return self.table_annotation.select(SQL("*"), SQL("GROUP_CONCAT(t3.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tags, join_type="LEFT JOIN").group_by(self.table_annotation.id)
 
 class pyQtTagSelector(QWidget):
 
@@ -388,6 +432,7 @@ class AnnotationEditor(QWidget):
                 re_dict = {}
             else:
                 re_dict = match.groupdict()
+            re_dict = {}
             self.annotation = self.db.add_annotation(**re_dict)
             exists = False
         else:
@@ -673,7 +718,7 @@ class AnnotationHandlerSQL:
 
 
 class AnnotationOverview(QWidget):
-    def __init__(self, window, annoation_ids, db):
+    def __init__(self, window, config, annoation_ids, db):
         QWidget.__init__(self)
 
         # widget layout and elements
@@ -683,6 +728,7 @@ class AnnotationOverview(QWidget):
         self.layout = QGridLayout(self)
         self.annoation_ids = annoation_ids
         self.window = window
+        self.config = config
         self.db = db
 
         self.table = QTableWidget(0, 8, self)
@@ -699,7 +745,7 @@ class AnnotationOverview(QWidget):
 
         for index, annotation in enumerate(self.db.getAnnotationsByIds(self.annoation_ids)):
             # populate table
-            self.UpdateRow(index, annotation.image, annotation, annotation.comment)
+            self.UpdateRow(index, annotation)
 
         # fit column to context
         self.table.resizeColumnToContents(0)
@@ -714,22 +760,21 @@ class AnnotationOverview(QWidget):
         if frame is not None:
             self.window.JumpToFrame(frame)
 
-    def UpdateRow(self, row, basename, data, comment, sort_if_new=False):
+    def UpdateRow(self, row, data, sort_if_new=False):
         new = False
         if self.table.rowCount() <= row:
             self.table.insertRow(self.table.rowCount())
             for j in range(8):
                 self.table.setItem(row, j, QTableWidgetItem())
             new = True
-        if 0:
-            texts = [data['timestamp'], ", ".join(data['tags']), comment, str(data['rating']), data['system'],
-                 data['camera'], basename]
+        if self.config.sql_annotation is True:
+            filename = data.reffilename
         else:
-            if data.tags is None:
-                data.tags = ""
-            texts = ["", data.tags, data.comment, str(data.rating), "", "", str(data.image.filename), str(data.image_frame)]
+            filename = data.image.filename
+        if data.tags is None:
+            data.tags = ""
+        texts = ["", data.tags, data.comment, str(data.rating), "", "", filename, str(data.image_frame)]
         for index, text in enumerate(texts):
-            print(index, text)
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
             self.table.sortByColumn(0, Qt.AscendingOrder)
@@ -759,67 +804,35 @@ class AnnotationHandler:
         self.config = config
         self.modules = modules
 
-        #self.frame_list = self.media_handler.getImgList(extension=False, path=False)
-
-        self.annoations = {}
-        self.db=[]
-
         self.annoation_ids = []
 
-        if self.config.sql_annotation==False:  # TODO rename to server_annotation
-            self.data_file = datafile
-            self.annotation_file = AnnotationFile(datafile)
+        if self.config.sql_annotation:
+            import peewee
+            self.server = peewee.MySQLDatabase(self.config.sql_dbname,
+                                host=self.config.sql_host,
+                                port=self.config.sql_port,
+                                user=self.config.sql_user,
+                                passwd=self.config.sql_pwd)
+            self.db = AnnotationFile(datafile, self.server)
 
             # place tick marks for already present masks
-            for item in self.annotation_file.get_annotation_frames():
+            for item in self.db.get_annotation_frames():
+                print(item)
+                frame = self.window.media_handler.get_frame_number_by_id(item.reffilename, item.image_frame)
+                if frame is not None:
+                    BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
+                    self.annoation_ids.append(item.id)
+
+        else:
+            self.data_file = datafile
+            self.db = AnnotationFile(datafile)
+
+            # place tick marks for already present masks
+            for item in self.db.get_annotation_frames():
                 frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
                 if frame is not None:
                     BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
                     self.annoation_ids.append(item.id)
-            self.db = self.annotation_file
-        else:
-            ## MYSQL version
-            # init db connection
-            self.db = DatabaseAnnotation(self.config)
-
-            # TODO performance concerns - how to poll the DB in a clever way ?
-
-            if self.config.annotation_ids==[]:
-            # brute force version
-                print("brute force")
-                """
-                for file in self.media_handler.filelist:
-                    # extract base name
-                    path,filename = os.path.split(file)
-                    basename,ext = os.path.splitext(filename)
-
-                    results = {}
-                    comment=''
-
-                    try:
-                        results,comment=self.db.getAnnotationByBasename(basename)
-                        self.annoations[basename] = dict(data=results, comment=comment)
-                        BroadCastEvent(self.modules, "AnnotationAdded", basename, results, comment)
-                    except DoesNotExist:
-                        print('no annotation for file:',file)
-                        pass
-                """
-
-            else:
-            # SQL File & Annotation version
-                print('annotation ids version')
-                for nr,annotation_ID in enumerate(self.config.annotation_ids):
-                    if not annotation_ID == 0: # is not empty
-                        print(nr,annotation_ID)
-                        try:
-                            results,comment=self.db.getAnnotationByID(annotation_ID)
-                            self.annoations[self.frame_list[nr]] = dict(data=results, comment=comment)
-                            BroadCastEvent(self.modules, "AnnotationMarkerAdd", nr)
-                            BroadCastEvent(self.modules, "AnnotationAdded", self.frame_list[nr], results, comment)
-                        except:
-                            print('no annotation for file:',self.frame_list[nr])
-
-
 
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
@@ -841,7 +854,7 @@ class AnnotationHandler:
             self.AnnotationEditorWindow.show()
         # @key Y: show annotation overview
         if event.key() == Qt.Key_Y:
-            self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.annoation_ids, self.db)
+            self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.config, self.annoation_ids, self.db)
             self.AnnotationOverviewWindow.show()
 
     def closeEvent(self, event):

@@ -74,7 +74,7 @@ class ClickPointsWindow(QWidget):
         exclude_ending = None
         if len(config.draw_types):
             exclude_ending = config.maskname_tag
-        self.media_handler = MediaHandler(config.srcpath, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending)
+        self.media_handler = MediaHandler(config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending)
 
         # DataFile
         self.data_file = DataFile()
