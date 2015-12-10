@@ -2,11 +2,12 @@ from __future__ import division, print_function
 import os
 import re
 from peewee import *
+from playhouse import apsw_ext
 
 class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
         self.exists = os.path.exists(database_filename)
-        self.db = SqliteDatabase(database_filename, threadlocals=True)
+        self.db = apsw_ext.APSWDatabase(database_filename)
 
         class BaseModel(Model):
             class Meta:
@@ -16,6 +17,7 @@ class DataFile:
             filename = CharField()
             ext = CharField()
             frames = IntegerField(default=0)
+            external_id = IntegerField(null=True)
 
         self.base_model = BaseModel
         self.table_images = Images
@@ -48,6 +50,7 @@ class DataFile:
             self.image.filename = file_entry.filename
             self.image.ext = file_entry.extension
             self.image.frames = file_entry.frames
+            self.image.external_id = file_entry.external_id
             self.image.save(force_insert=True)
         self.image_frame = frame
         return self.image
