@@ -18,6 +18,7 @@ class DataFile:
             ext = CharField()
             frames = IntegerField(default=0)
             external_id = IntegerField(null=True)
+            timestamp = DateTimeField(null=True)
 
         self.base_model = BaseModel
         self.table_images = Images
@@ -34,8 +35,9 @@ class DataFile:
 
         self.image = None
         self.image_frame = 0
+        self.timestamp = 0
 
-    def set_image(self, file_entry, frame):
+    def set_image(self, file_entry, frame, timestamp):
         #if self.image:
         #    use = self.table_marker.select(fn.count(self.table_marker.id).alias('count')).where(self.table_marker.image == self.image)[0]
         #    if use.count == 0:
@@ -53,4 +55,5 @@ class DataFile:
             self.image.external_id = file_entry.external_id
             self.image.save(force_insert=True)
         self.image_frame = frame
+        self.timestamp = timestamp
         return self.image
