@@ -51,6 +51,7 @@ class AnnotationFile:
 
         if server:
             class SqlAnnotation(base_model):
+                timestamp = peewee.DateTimeField()
                 reffilename = peewee.CharField()
                 reffileext = peewee.CharField()
                 fileid = peewee.IntegerField(null=True)
@@ -58,7 +59,6 @@ class AnnotationFile:
                 comment = peewee.TextField(default="")
                 rating = peewee.IntegerField(default=0)
                 tag_type = peewee.CharField(default="SQLTags")
-                timestamp = peewee.DateTimeField(default=0)
                 system = peewee.IntegerField(null=True)
                 device = peewee.IntegerField(null=True)
             self.table_annotation = SqlAnnotation
@@ -90,13 +90,14 @@ class AnnotationFile:
     def add_annotation(self, **kwargs):
         if self.server:
             print("Add fildid", self.data_file.image.external_id)
-            kwargs.update(dict(reffilename=self.data_file.image.filename, reffileext=self.data_file.image.ext, fileid=self.data_file.image.external_id))
+            kwargs.update(dict(timestamp=self.data_file.timestamp, reffilename=self.data_file.image.filename, reffileext=self.data_file.image.ext, fileid=self.data_file.image.external_id))
         else:
             kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
         self.annotation = self.table_annotation(**kwargs)
         return self.annotation
 
     def getAnnotation(self):
+        print("self.data_file.image.external_id", self.data_file.image.external_id)
         try:
             if self.server:
                 if self.data_file.image.external_id is not None:
@@ -449,11 +450,12 @@ class AnnotationEditor(QWidget):
         self.leAName.setEnabled(False)
         self.layout.addWidget(self.leAName, 0, 1, 1, 3)
 
-        if self.config.sql_annotation is True:
-            self.layout.addWidget(QLabel('Time:', self), 1, 0)
-            self.leTStamp = QLineEdit('uninit', self)
-            self.leTStamp.setEnabled(False)
-            self.layout.addWidget(self.leTStamp, 1, 1)
+        self.layout.addWidget(QLabel('Time:', self), 1, 0)
+        self.leTStamp = QLineEdit('uninit', self)
+        self.leTStamp.setEnabled(False)
+        self.layout.addWidget(self.leTStamp, 1, 1)
+
+        if 0 and self.config.sql_annotation is True:
 
             self.layout.addWidget(QLabel('System:', self), 3, 0)
             self.leSystem = QLineEdit('uninit', self)
@@ -482,18 +484,18 @@ class AnnotationEditor(QWidget):
         self.leRating.setContentsMargins(0, 5, 0, 0)
         self.layout.addWidget(self.leRating, 4, 3, Qt.AlignTop)
 
-        self.pbConfirm = QPushButton('C&onfirm', self)
+        self.pbConfirm = QPushButton('S&ave', self)
         self.pbConfirm.pressed.connect(self.saveAnnotation)
         self.layout.addWidget(self.pbConfirm, 0, 4)
 
-        self.pbDiscard = QPushButton('&Discard', self)
+        self.pbDiscard = QPushButton('&Cancel', self)
         self.pbDiscard.pressed.connect(self.close)
         self.layout.addWidget(self.pbDiscard, 1, 4)
 
         if exists:
             self.pbRemove = QPushButton('&Remove', self)
             self.pbRemove.pressed.connect(self.removeAnnotation)
-            self.layout.addWidget(self.pbRemove, 2, 4)
+            self.layout.addWidget(self.pbRemove, 4, 4, Qt.AlignTop)
 
         self.pteAnnotation = QPlainTextEdit(self)
         self.pteAnnotation.setFocus()
@@ -504,6 +506,8 @@ class AnnotationEditor(QWidget):
             self.leTStamp.setText(self.annotation.timestamp)
             self.leSystem.setText(self.annotation.system)
             self.leCamera.setText(self.annotation.camera)
+        if self.annotation.timestamp:
+            self.leTStamp.setText(datetime.strftime(self.annotation.timestamp, '%Y%m%d-%H%M%S'))
         if self.annotation.rating:
             self.leRating.setCurrentIndex(self.annotation.rating)
         self.leRating.currentIndexChanged.connect(lambda x: setattr(self.annotation, "rating", x))
@@ -516,6 +520,7 @@ class AnnotationEditor(QWidget):
         self.leTag.setActiveTagList(db.getTagsFromAnnotation())
 
     def saveAnnotation(self):
+        print(self.db.annotation.timestamp)
         # save the annotation
         self.db.annotation.save()
         # get table list from selecttag widget

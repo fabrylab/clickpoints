@@ -118,7 +118,7 @@ class ClickPointsWindow(QWidget):
         frame_number = self.media_handler.get_index()
         self.setWindowTitle(filename)
         self.LoadImage()
-        self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame())
+        self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame(), self.media_handler.get_timestamp())
         BroadCastEvent(self.modules, "LoadImageEvent", filename, frame_number)
 
     def LoadImage(self):
