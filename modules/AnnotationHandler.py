@@ -41,6 +41,7 @@ class AnnotationFile:
             self.table_annotation = SqlAnnotation
         else:
             class Annotation(base_model):
+                timestamp = peewee.DateTimeField()
                 image = peewee.ForeignKeyField(datafile.table_images)
                 image_frame = peewee.IntegerField()
                 comment = peewee.TextField(default="")
@@ -68,7 +69,7 @@ class AnnotationFile:
         if self.server:
             kwargs.update(dict(timestamp=self.data_file.timestamp, reffilename=self.data_file.image.filename, reffileext=self.data_file.image.ext, fileid=self.data_file.image.external_id))
         else:
-            kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
+            kwargs.update(dict(timestamp=self.data_file.timestamp, image=self.data_file.image, image_frame=self.data_file.image_frame))
         self.annotation = self.table_annotation(**kwargs)
         return self.annotation
 
@@ -291,9 +292,12 @@ class AnnotationEditor(QWidget):
         self.db.annotation.save()
         # update tag association table
         self.db.setTags(self.leTag.getTagList())
+        self.db.annotation.tags = ",".join(self.leTag.getTagList())
         self.close()
+        BroadCastEvent(self.modules, "AnnotationAdded", self.db.annotation)
 
     def removeAnnotation(self):
+        BroadCastEvent(self.modules, "AnnotationRemoved", self.db.annotation)
         self.annotation.delete_instance()
         self.close()
 
@@ -318,11 +322,12 @@ class AnnotationOverview(QWidget):
         self.config = config
         self.db = db
 
-        self.table = QTableWidget(0, 6, self)
+        self.table = QTableWidget(0, 7, self)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setHorizontalHeaderLabels(QStringList(['Date', 'Tag', 'Comment', 'R', 'image', 'image_frame']))
+        self.table.setHorizontalHeaderLabels(QStringList(['Date', 'Tag', 'Comment', 'R', 'image', 'image_frame', 'id']))
         self.table.hideColumn(4)
         self.table.hideColumn(5)
+        self.table.hideColumn(6)
         self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setResizeMode(2, QHeaderView.Stretch)
         self.table.verticalHeader().hide()
@@ -332,6 +337,7 @@ class AnnotationOverview(QWidget):
 
         for index, annotation in enumerate(self.db.getAnnotationsByIds(self.annoation_ids)):
             # populate table
+            annotation.id = self.annoation_ids[index]
             self.UpdateRow(index, annotation)
 
         # fit column to context
@@ -351,7 +357,7 @@ class AnnotationOverview(QWidget):
         new = False
         if self.table.rowCount() <= row:
             self.table.insertRow(self.table.rowCount())
-            for j in range(6):
+            for j in range(7):
                 self.table.setItem(row, j, QTableWidgetItem())
             new = True
         if self.config.sql_annotation is True:
@@ -360,27 +366,29 @@ class AnnotationOverview(QWidget):
             filename = annotation.image.filename
         if annotation.tags is None:
             annotation.tags = ""
-        if annotation.timestamp is not None:
+        if annotation.timestamp is not None and annotation.timestamp:
             timestamp = datetime.strftime(annotation.timestamp, '%Y%m%d-%H%M%S')
         else:
             timestamp = ""
-        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(annotation.image_frame)]
+        print(annotation, annotation.id)
+        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(annotation.image_frame), str(annotation.id)]
         for index, text in enumerate(texts):
+            print(index, text)
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
             self.table.sortByColumn(0, Qt.AscendingOrder)
 
-    def AnnotationAdded(self, basename, data, comment):
+    def AnnotationAdded(self, annotation):
         row = self.table.rowCount()
         for i in range(self.table.rowCount()):
-            if self.table.item(i, 4).text() == basename:
+            if int(self.table.item(i, 6).text()) == annotation.id:
                 row = i
                 break
-        self.UpdateRow(row, basename, data, comment, sort_if_new=True)
+        self.UpdateRow(row, annotation, sort_if_new=True)
 
-    def AnnotationRemoved(self, basename):
+    def AnnotationRemoved(self, annotation):
         for i in range(self.table.rowCount()):
-            if self.table.item(i, 4).text() == basename:
+            if int(self.table.item(i, 6).text()) == annotation.id:
                 self.table.removeRow(i)
                 break
 
@@ -432,13 +440,16 @@ class AnnotationHandler:
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
 
-    def AnnotationAdded(self, basename, data, comment):
+    def AnnotationAdded(self, annotation):
+        if annotation.id not in self.annoation_ids:
+            self.annoation_ids.append(annotation.id)
         if self.AnnotationOverviewWindow:
-            self.AnnotationOverviewWindow.AnnotationAdded(basename, data, comment)
+            self.AnnotationOverviewWindow.AnnotationAdded(annotation)
 
-    def AnnotationRemoved(self, basename):
+    def AnnotationRemoved(self, annotation):
+        self.annoation_ids.remove(annotation.id)
         if self.AnnotationOverviewWindow:
-            self.AnnotationOverviewWindow.AnnotationRemoved(basename)
+            self.AnnotationOverviewWindow.AnnotationRemoved(annotation)
 
     def keyPressEvent(self, event):
         # @key A: add/edit annotation
