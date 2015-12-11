@@ -142,12 +142,22 @@ def LoadConfig():
                     print("ERROR: path",value,"does not exist.")
                     sys.exit(-1)
 
+    # if no srcpath is given, ask for one
+    if srcpath is "":
+        srcpath = str(QFileDialog.getExistingDirectory(None, "Choose Image", os.getcwd()))
+        if srcpath is "":
+            print("No path selected")
+            sys.exit(1)
+        if not os.path.exists(srcpath):
+            print("ERROR: path",srcpath,"does not exist.")
+            sys.exit(-1)
+
     # if srcpath is a filelist load it
     dont_process_filelist = False
     file_ids=[]
     annotation_ids=[]
     # extract file pahts and ids if applicable
-    if type(srcpath) == type("") and srcpath[-4:] == ".txt":
+    if isinstance(srcpath, basestring) == type("") and srcpath[-4:] == ".txt":
         try:
             with open(srcpath, "r") as fp:
                 srcpath,file_ids,annotation_ids = zip(*[line.strip().split() for line in fp.readlines()])
@@ -161,16 +171,6 @@ def LoadConfig():
             dont_process_filelist = True
             print("filelist: path")
 
-    # if no srcpath is given, ask for one
-    if srcpath is "":
-        srcpath = str(QFileDialog.getExistingDirectory(None, "Choose Image", os.getcwd()))
-        if srcpath is "":
-            print("No path selected")
-            sys.exit(1)
-        if not os.path.exists(srcpath):
-            print("ERROR: path",srcpath,"does not exist.")
-            sys.exit(-1)
-
     """ Get config data """
 
     # Search config recursive in the folder tree or from the command line
@@ -183,10 +183,11 @@ def LoadConfig():
 
             basepath = srcpath
             path = srcpath
-        else:
-        # else extract the base path
+            os.chdir(srcpath)
+        else:  # else extract the base path
             path = os.path.normpath(os.path.dirname(srcpath))
             basepath = path
+            os.chdir(basepath)
     elif len(srcpath) > 0:
         path = os.path.normpath(os.path.dirname(srcpath[0]))
         basepath = path
