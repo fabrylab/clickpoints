@@ -10,22 +10,13 @@ from matplotlib.colors import LinearSegmentedColormap
 
 try:
     from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox
+    from PyQt5.QtWidgets import QWidget, QTextStream, QGridLayout, QProgressBar
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox
-    from PyQt4.QtCore import Qt
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QTextStream, QGridLayout
-    from PyQt5.QtCore import Qt
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QSizePolicy,QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox, QTabWidget, QSpacerItem
+    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QIcon, QMessageBox, QSizePolicy,QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox, QTabWidget, QSpacerItem, QProgressBar
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList, QObject, SIGNAL
 
-import peewee
 from peewee import fn
 import re
 
@@ -64,6 +55,20 @@ def ShortenNumber(value):
         return ("%.1f" % value+postfix[power2])[1:]
     value /= 10**(power*3)
     return "%d" % value+postfix[power]
+
+
+class queryThread(QtCore.QThread):
+    sig = QtCore.pyqtSignal()
+
+    def __init__(self, parent, query):
+        super(QtCore.QThread, self).__init__()
+        self.parent = parent
+        self.query = query
+
+    def run(self):
+        self.query.execute()
+        self.sig.emit()
+
 
 class DatabaseTabTemplate(QWidget):
     def __init__(self,parent):
@@ -591,6 +596,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
         QMessageBox.question(None, 'Saved', 'The file list fielist.txt has been saved with %d entries.' % count, QMessageBox.Ok)
         return
 
+
 class DatabaseByAnnotation(DatabaseTabTemplate):
     def __init__(self, parent):
         DatabaseTabTemplate.__init__(self, parent)
@@ -658,6 +664,7 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         self.data_timestop = 0
 
         self.active_row = None
+        self.thread = None
 
     def post_init(self):
         self.updateSpinBoxState()
@@ -723,6 +730,7 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         self.updateDataTS()
 
     def onConfirm(self):
+        self.parent.progress_bar.setRange(0, 0)
         if self.ComboBoxDevice.currentIndex() == 0:
             device_id = 0
         else:
@@ -764,11 +772,13 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         self.table.setRowCount(0)
         for index, item in enumerate(query):
             self.UpdateRow(index, item)
+        self.parent.progress_bar.setRange(0, 100)
 
-    def doSaveFilelist(self):
+    def doSaveFilelist(self, doshow=False):
         if self.active_row is None:
             QMessageBox.question(None, 'Warning', 'No annotations selected.', QMessageBox.Ok)
             return None
+
         # retrieve system and device
         system_name = self.table.item(self.active_row, 4).text()
         system_id = database.getSystemId(str(system_name))
@@ -783,15 +793,26 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
                         database.SQL_Files.timestamp >= start_time, database.SQL_Files.timestamp <= end_time)
                  .order_by(database.SQL_Files.timestamp)
                  )
+        if self.thread is not None:
+            self.thread.terminate()
+        self.thread = queryThread(self, query)
+        self.thread.sig.connect(lambda: self.doSaveFilelist2(doshow))
+        self.parent.progress_bar.setRange(0, 0)
+        self.thread.start()
+
+    def doSaveFilelist2(self, doshow):
+        query = self.thread.query
+        self.parent.progress_bar.setRange(0, 100)
         counter = 0
         with open("files.txt", "w") as fp:
             for item in query:
                 fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
                 counter += 1
+        if doshow:
+            return self.showData(counter)
         return counter
 
-    def showData(self):
-        count = self.doSaveFilelist()
+    def showData(self, count):
         if count is None:
             return
         if count == 0:
@@ -853,7 +874,7 @@ class DatabaseBrowser(QWidget):
         self.layout_vert.addWidget(self.pbConfirm)
 
         self.pbShow = QPushButton('&Show', self)
-        self.pbShow.pressed.connect(self.fWidget.showData)
+        self.pbShow.pressed.connect(lambda: self.fWidget.doSaveFilelist(True))
         self.layout_vert.addWidget(self.pbShow)
 
         self.pbFilelist = QPushButton('&Filelist', self)
@@ -867,13 +888,15 @@ class DatabaseBrowser(QWidget):
         self.EditEnd = QLineEdit('', self)
         self.layout_vert.addWidget(self.EditEnd)
 
-
         self.fWidget.update_timerange()
 
         for key,tabWidget in self.tab_dict.iteritems():
             tabWidget.post_init()
 
         self.tabWidget.setCurrentIndex(1)
+
+        self.progress_bar = QProgressBar()
+        self.layout_vert.addWidget(self.progress_bar)
 
 
     def setFocusTab(self,n):
@@ -891,7 +914,7 @@ class DatabaseBrowser(QWidget):
         self.pbConfirm.pressed.disconnect()
         self.pbConfirm.pressed.connect(self.fWidget.onConfirm)
         self.pbShow.pressed.disconnect()
-        self.pbShow.pressed.connect(self.fWidget.showData)
+        self.pbShow.pressed.connect(lambda : self.fWidget.doSaveFilelist(True))
         self.pbFilelist.pressed.disconnect()
         self.pbFilelist.pressed.connect(self.fWidget.doSaveFilelist)
 
