@@ -157,7 +157,7 @@ def LoadConfig():
     file_ids=[]
     annotation_ids=[]
     # extract file pahts and ids if applicable
-    if isinstance(srcpath, basestring) == type("") and srcpath[-4:] == ".txt":
+    if isinstance(srcpath, basestring) and srcpath[-4:] == ".txt":
         try:
             with open(srcpath, "r") as fp:
                 srcpath,file_ids,annotation_ids = zip(*[line.strip().split() for line in fp.readlines()])
