@@ -58,7 +58,7 @@ def ShortenNumber(value):
 
 
 class queryThread(QtCore.QThread):
-    sig = QtCore.pyqtSignal()
+    sig = QtCore.pyqtSignal(QtCore.QThread)
 
     def __init__(self, parent, query):
         super(QtCore.QThread, self).__init__()
@@ -67,7 +67,7 @@ class queryThread(QtCore.QThread):
 
     def run(self):
         self.query.execute()
-        self.sig.emit()
+        self.sig.emit(self)
 
 
 class DatabaseTabTemplate(QWidget):
@@ -398,6 +398,8 @@ class DatabaseByFiles(DatabaseTabTemplate):
 
 
         self.CreateColorMaps()
+        self.list_query_thread = None
+        self.draw_query_threads = []
 
     def post_init(self):
         self.updateSpinBoxState()
@@ -414,26 +416,33 @@ class DatabaseByFiles(DatabaseTabTemplate):
         self.cmaps = [cmap_b, cmap_r, cmap_g, cmap_r2, cmap_g2, cmap_b2]
 
     def onConfirm(self):
+        for thread in self.draw_query_threads:
+            thread.terminate()
+        self.draw_query_threads = []
+
         system_id = self.systems[self.ComboBoxSystem.currentIndex()].id
         if self.ComboBoxDevice.currentIndex() == -1:
             return
         self.axes1.cla()
         self.plot_list = []
         self.plot_list_names = []
+        self.axes2.legend(self.plot_list, self.plot_list_names, loc="lower left", bbox_to_anchor=(-0.1, 0))
+        self.plot2.draw()
         if self.ComboBoxDevice.currentIndex() != 0:
             device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
             device_name = self.devices[self.ComboBoxDevice.currentIndex()-1].name
+            self.plot_list_names = [device_name]
+            self.plot_list = [None]
             self.DrawData(device_id)
-            self.axes2.legend(self.plot_list, [device_name], loc="lower left", bbox_to_anchor=(-0.1, 0))
-            self.plot2.draw()
         else:
             for index, device in enumerate(self.devices):
                 self.plot_list_names.append(device.name)
-                self.DrawData(device.id, offset=index/(self.devices.count()+1), color=index, max_count=(self.devices.count()+1))
-                self.plot.draw()
-                self.axes2.legend(self.plot_list, self.plot_list_names, loc="lower left", scatterpoints=1, bbox_to_anchor=(-0.1, 0))
-                print(self.plot_list, self.plot_list_names)
-                self.plot2.draw()
+                self.plot_list.append(None)
+                self.DrawData(device.id, offset=index/(self.devices.count()+1), index=index, max_count=(self.devices.count()+1))
+                #self.plot.draw()
+                #self.axes2.legend(self.plot_list, self.plot_list_names, loc="lower left", scatterpoints=1, bbox_to_anchor=(-0.1, 0))
+                #print(self.plot_list, self.plot_list_names)
+                #self.plot2.draw()
         cur_ylim = self.axes1.get_ylim(); self.axes1.set_ylim([0, cur_ylim[1]])
         self.plot.draw()
 
@@ -441,15 +450,16 @@ class DatabaseByFiles(DatabaseTabTemplate):
         if self.ComboBoxDevice.currentIndex() == 0:
             QMessageBox.question(None, 'Warning', 'You have to select a single device to display images.', QMessageBox.Ok)
             return
-        count = self.SaveFileList()
+        self.SaveFileList(self.showData2)
+
+    def showData2(self, count):
         if count == 0:
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
         print("Selected %d images." % count)
         os.system(r"python.exe ..\ClickPointsQT.py ConfigClickPoints.txt -srcpath=files.txt")
 
-    def DrawData(self, device_id, offset=0, color=0, max_count=1):
-        cmap = self.cmaps[color % len(self.cmaps)]
+    def DrawData(self, device_id, offset=0, index=0, max_count=1):
         year = self.SpinBoxYearStart.value()
         month = self.SpinBoxMonthStart.value()
         if month:
@@ -461,15 +471,51 @@ class DatabaseByFiles(DatabaseTabTemplate):
         else:
             day = 0
         if year == 0:
-            t = time.time()
             query = (database.SQL_Files
                      .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
                              fn.year(database.SQL_Files.timestamp).alias('year'),
                              fn.month(database.SQL_Files.timestamp).alias('month'))
                      .where(database.SQL_Files.device == device_id)
                      .group_by(fn.year(database.SQL_Files.timestamp)*13+fn.month(database.SQL_Files.timestamp)))
-            query.execute()
-            print("Query Time:", time.time()-t)
+        elif month == 0:
+            query = (database.SQL_Files
+                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
+                             fn.day(database.SQL_Files.timestamp).alias('day'),
+                             fn.month(database.SQL_Files.timestamp).alias('month'))
+                     .where(database.SQL_Files.device == device_id,
+                            fn.year(database.SQL_Files.timestamp) == year)
+                     .group_by(fn.dayofyear(database.SQL_Files.timestamp)))
+        elif day == 0:
+            query = (database.SQL_Files
+                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
+                             fn.day(database.SQL_Files.timestamp).alias('day'),
+                             fn.hour(database.SQL_Files.timestamp).alias('hour'))
+                     .where(database.SQL_Files.device == device_id,
+                            fn.year(database.SQL_Files.timestamp) == year,
+                            fn.month(database.SQL_Files.timestamp) == month)
+                     .group_by(fn.dayofyear(database.SQL_Files.timestamp) * 24 + fn.hour(database.SQL_Files.timestamp)))
+        else:
+            query = (database.SQL_Files
+                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
+                             fn.hour(database.SQL_Files.timestamp).alias('hour'))
+                     .where(database.SQL_Files.device == device_id,
+                            fn.year(database.SQL_Files.timestamp) == year,
+                            fn.month(database.SQL_Files.timestamp) == month,
+                            fn.day(database.SQL_Files.timestamp) == day)
+                     .group_by(fn.hour(database.SQL_Files.timestamp)))
+
+        thread = queryThread(self, query)
+        thread.sig.connect(lambda thread: self.DrawData2(year, month, day, thread.query, offset=offset, index=index, max_count=max_count))
+        self.parent.progress_bar.setRange(0, 0)
+        self.draw_query_threads.append(thread)
+        thread.start()
+
+    def DrawData2(self, year, month, day, query, offset=0, index=0, max_count=1):
+        running_threads = sum(1 if thread.isRunning() else 0 for thread in self.draw_query_threads)
+        if running_threads == 0:
+            self.parent.progress_bar.setRange(0, 100)
+        cmap = self.cmaps[index % len(self.cmaps)]
+        if year == 0:
             years = np.unique([item.year for item in query])
             year_count = max(years)-min(years)+1
             print("years", years, year_count)
@@ -479,7 +525,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
             x, y = np.meshgrid(np.arange(0, year_count), np.arange(1, 13))
             self.axes1.scatter(x+offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
             p = self.axes1.scatter([-2,-2], [0,0], c=[1,0], cmap=cmap, lw=0)
-            self.plot_list.append(p)
+            self.plot_list[index] = p
             for year in range(year_count):
                 self.axes1.text(year+offset, 12.2, ShortenNumber(np.sum(count[year,:])), ha="center")
             self.axes1.set_xlim(-0.5,year_count-0.5+(1 if max_count > 2 else 0))
@@ -494,22 +540,12 @@ class DatabaseByFiles(DatabaseTabTemplate):
             self.axes1.set_ylabel("month")
         elif month == 0:
             count = np.zeros((12, 31))
-            t = time.time()
-            query = (database.SQL_Files
-                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
-                             fn.day(database.SQL_Files.timestamp).alias('day'),
-                             fn.month(database.SQL_Files.timestamp).alias('month'))
-                     .where(database.SQL_Files.device == device_id,
-                            fn.year(database.SQL_Files.timestamp) == year)
-                     .group_by(fn.dayofyear(database.SQL_Files.timestamp)))
-            query.execute()
-            print("Query Time:", time.time()-t)
             for item in query:
                 count[item.month-1, item.day-1] = item.count
             x, y = np.meshgrid(np.arange(1, 13), np.arange(1, 32))
             self.axes1.scatter(x+offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
             p = self.axes1.scatter([0,0], [0,0], c=[1,0], cmap=cmap, lw=0)
-            self.plot_list.append(p)
+            self.plot_list[index] = p
             for month in range(12):
                 self.axes1.text(month+1, 32, ShortenNumber(np.sum(count[month,:])), ha="center")
             self.axes1.set_xticks(np.arange(1,13))
@@ -522,53 +558,35 @@ class DatabaseByFiles(DatabaseTabTemplate):
             self.axes1.set_ylabel("day")
         elif day == 0:
             count = np.zeros((31,24))
-            t = time.time()
-            query = (database.SQL_Files
-                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
-                             fn.day(database.SQL_Files.timestamp).alias('day'),
-                             fn.hour(database.SQL_Files.timestamp).alias('hour'))
-                     .where(database.SQL_Files.device == device_id,
-                            fn.year(database.SQL_Files.timestamp) == year,
-                            fn.month(database.SQL_Files.timestamp) == month)
-                     .group_by(fn.dayofyear(database.SQL_Files.timestamp) * 24 + fn.hour(database.SQL_Files.timestamp)))
-            query.execute()
-            print("Query Time:", time.time()-t)
             for item in query:
                 count[item.day-1,item.hour-1] = item.count
             x, y = np.meshgrid(np.arange(1,32),np.arange(1,25))
             self.axes1.scatter(x+offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
             p = self.axes1.scatter([0,0], [0,0], c=[1,0], cmap=cmap, lw=0)
-            self.plot_list.append(p)
+            self.plot_list[index] = p
             for day in range(31):
                 self.axes1.text(day+1, 27, ShortenNumber(np.sum(count[day,:])), ha="center", va="top", rotation=90)
+            daycount = calendar.monthrange(year,month)[1]
             self.axes1.set_xlim(0.5, daycount+0.5)
             self.axes1.set_title("%s %d" % (["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
             self.axes1.set_xlabel("day")
             self.axes1.set_ylabel("hour")
         else:
             count = np.zeros(24)
-            t = time.time()
-            query = (database.SQL_Files
-                     .select((fn.count(database.SQL_Files.id)*database.SQL_Files.frames).alias('count'),
-                             fn.hour(database.SQL_Files.timestamp).alias('hour'))
-                     .where(database.SQL_Files.device == device_id,
-                            fn.year(database.SQL_Files.timestamp) == year,
-                            fn.month(database.SQL_Files.timestamp) == month,
-                            fn.day(database.SQL_Files.timestamp) == day)
-                     .group_by(fn.hour(database.SQL_Files.timestamp)))
-            query.execute()
-            print("Query Time:", time.time()-t)
             for item in query:
                 count[item.hour-1] = item.count
             p = self.axes1.bar(np.arange(0.6,24)+offset, count, width=1/max_count, color=cmap(255))
-            self.plot_list.append(p)
+            self.plot_list[index] = p
             self.axes1.set_xlim(0.5,24.5)
             self.axes1.set_title("%d. %s %d" % (day, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month-1],year))
             self.axes1.set_xlabel("hour")
             self.axes1.set_ylabel("count")
+        print(self.plot_list, self.plot_list_names, index)
+        self.axes2.legend(self.plot_list, self.plot_list_names, loc="lower left", bbox_to_anchor=(-0.1, 0))
+        self.plot2.draw()
+        self.plot.draw()
 
-
-    def SaveFileList(self):
+    def SaveFileList(self, call=None):
         if self.ComboBoxDevice.currentIndex() == 0:
             print("No Device selected")
             return 0
@@ -581,18 +599,32 @@ class DatabaseByFiles(DatabaseTabTemplate):
                  .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id, database.SQL_Files.timestamp > start_time, database.SQL_Files.timestamp < end_time)
                  .order_by(database.SQL_Files.timestamp)
                  )
+        if self.list_query_thread is not None:
+            self.list_query_thread.terminate()
+        thread = queryThread(self, query)
+        thread.sig.connect(lambda thread: self.SaveFileList2(thread.query, call))
+        self.parent.progress_bar.setRange(0, 0)
+        self.list_query_thread = thread
+        thread.start()
+
+    def SaveFileList2(self, query, call):
+        self.parent.progress_bar.setRange(0, 100)
         counter = 0
         with open("files.txt","w") as fp:
             for item in query:
                 fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
                 counter += 1
+        if call:
+            call(counter)
         return counter
 
     def doSaveFilelist(self):
         if self.ComboBoxDevice.currentIndex() == 0:
             QMessageBox.question(None, 'Warning', 'You have to select a single device to write file list.', QMessageBox.Ok)
             return
-        count = self.SaveFileList()
+        self.SaveFileList(self.doSaveFilelist2)
+
+    def doSaveFilelist2(self, count):
         QMessageBox.question(None, 'Saved', 'The file list fielist.txt has been saved with %d entries.' % count, QMessageBox.Ok)
         return
 
@@ -796,12 +828,11 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         if self.thread is not None:
             self.thread.terminate()
         self.thread = queryThread(self, query)
-        self.thread.sig.connect(lambda: self.doSaveFilelist2(doshow))
+        self.thread.sig.connect(lambda thread: self.doSaveFilelist2(doshow, thread.query))
         self.parent.progress_bar.setRange(0, 0)
         self.thread.start()
 
-    def doSaveFilelist2(self, doshow):
-        query = self.thread.query
+    def doSaveFilelist2(self, doshow, query):
         self.parent.progress_bar.setRange(0, 100)
         counter = 0
         with open("files.txt", "w") as fp:
@@ -809,10 +840,13 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
                 fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
                 counter += 1
         if doshow:
-            return self.showData(counter)
+            return self.showData2(counter)
         return counter
 
-    def showData(self, count):
+    def showData(self):
+        self.doSaveFilelist(True)
+
+    def showData2(self, count):
         if count is None:
             return
         if count == 0:
@@ -914,7 +948,7 @@ class DatabaseBrowser(QWidget):
         self.pbConfirm.pressed.disconnect()
         self.pbConfirm.pressed.connect(self.fWidget.onConfirm)
         self.pbShow.pressed.disconnect()
-        self.pbShow.pressed.connect(lambda : self.fWidget.doSaveFilelist(True))
+        self.pbShow.pressed.connect(self.fWidget.showData)
         self.pbFilelist.pressed.disconnect()
         self.pbFilelist.pressed.connect(self.fWidget.doSaveFilelist)
 
