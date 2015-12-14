@@ -51,6 +51,22 @@ class folder(Model):
     parent_id = IntegerField()#ForeignKeyField(folder)
     name = CharField()
 
+class SQLAnnotation(Model):
+    timestamp = DateTimeField()
+    tag_type = CharField()
+    rating = IntegerField()
+    reffilename = CharField()
+    reffileext = CharField()
+    comment = TextField()
+    file = ForeignKeyField(files)
+
+class tags(Model):
+    name = CharField()
+
+class tagassociation(Model):
+    annotation = ForeignKeyField(SQLAnnotation)
+    tag = ForeignKeyField(tags)
+
 # TODO: make sure this doesn't overwrite actual config!
 class config:
     def __init__(self):
@@ -92,6 +108,13 @@ class DatabaseFiles:
         self.SQL_Files._meta.database = self.db
         self.SQL_Folder = folder
         self.SQL_Folder._meta.database = self.db
+
+        self.SQL_Annotation = SQLAnnotation
+        self.SQL_Annotation._meta.database = self.db
+        self.SQL_TagAssociation = tagassociation
+        self.SQL_TagAssociation._meta.database = self.db
+        self.SQL_Tags = tags
+        self.SQL_Tags._meta.database = self.db
 
         self.system_dict = {}
         self.updateSystemDict()

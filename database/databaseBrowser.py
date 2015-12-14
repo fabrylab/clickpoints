@@ -25,6 +25,7 @@ except ImportError:
     from PyQt4.QtGui import QWidget, QSizePolicy,QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QSpinBox, QTabWidget, QSpacerItem
     from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList, QObject, SIGNAL
 
+import peewee
 from peewee import fn
 import re
 
@@ -589,7 +590,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
         return
 
 class DatabaseByAnnotation(DatabaseTabTemplate):
-    def __init__(self,parent):
+    def __init__(self, parent):
         DatabaseTabTemplate.__init__(self, parent)
 
         # init db
@@ -601,11 +602,11 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         print(self.dbAnot.tag_dict_byID)
 
         # list of shared toggle widgets
-        self.toggle_widgets=[]
+        self.toggle_widgets = []
 
         layout_horizontal = QHBoxLayout()
-        self.layout_top.addLayout(layout_horizontal,2,0)
-        label=QLabel("Tag:")
+        self.layout_top.addLayout(layout_horizontal, 2, 0)
+        label = QLabel("Tag:")
         label.setAlignment(Qt.AlignTop)
         # sizePolicy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
         # sizePolicy.setHorizontalStretch(0)
@@ -655,14 +656,14 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         self.toggle_widgets.append(self.leTimeAfter)
         self.leTimeAfter.textChanged.connect(self.hLETimeAfter)
 
-        self.time_after=relativedelta(0)
-        self.time_before=relativedelta(0)
+        self.time_after = relativedelta(0)
+        self.time_before = relativedelta(0)
 
-        self.ts=0
-        self.data_timestart=0
-        self.data_timestop=0
+        self.ts = 0
+        self.data_timestart = 0
+        self.data_timestop = 0
 
-
+        self.active_row = None
 
     def post_init(self):
         self.updateSpinBoxState()
@@ -675,22 +676,21 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         self.parent.layout_vert.addWidget(self.leTimeAfter)
         self.parent.layout_vert.addStretch()
 
-    def hCellClicked(self,row,col):
+    def hCellClicked(self, row, col):
 
         self.active_row=row
         # get time stamp
-        self.ts = datetime.strptime(str(self.table.item(row,0).text()),'%Y%m%d-%H%M%S')
-        print(self.ts,self.time_before, self.time_after)
+        self.ts = datetime.strptime(str(self.table.item(row, 0).text()), '%Y%m%d-%H%M%S')
+        print(self.ts, self.time_before, self.time_after)
         self.updateDataTS()
 
     def updateDataTS(self):
         if self.ts:
-            self.data_timestart=self.ts-self.time_before
-            self.data_timestop=self.ts+self.time_after
+            self.data_timestart = self.ts-self.time_before
+            self.data_timestop = self.ts+self.time_after
 
             self.leTimeBStart.setText(str(self.ts-self.time_before))
             self.leTimeBEnd.setText(str(self.ts+self.time_after))
-
 
     def processLineEidtTimeDelta(self,text):
         reg = re.compile("^(?:\D*(?P<year>\d{1,4})y)?(?:\D*(?P<month>\d{1,4})m)?(?:\D*(?P<day>\d{1,4})d)?(?:\D*(?P<hour>\d{1,4})H)?(?:\D*(?P<minute>\d{1,4})M)?(?:\D*(?P<second>\d{1,4})S)?")
@@ -699,12 +699,12 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         regdict = res.groupdict()
 
         # replace none with 0, convert string to int
-        return_dict={}
-        for k,v in regdict.iteritems():
-            if (v==None):
-                return_dict[k]=0
+        return_dict = {}
+        for k, v in regdict.iteritems():
+            if v is None:
+                return_dict[k] = 0
             else:
-                return_dict[k]=int(v)
+                return_dict[k] = int(v)
 
         return return_dict
 
@@ -712,28 +712,25 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         txt = self.leTimeAfter.text()
         res = self.processLineEidtTimeDelta(txt)
 
-        delta = relativedelta(years=res['year'],months=res['month'],days=res['day'],hours=res['hour'],minutes=res['minute'],seconds=res['second'])
+        delta = relativedelta(years=res['year'], months=res['month'], days=res['day'],
+                              hours=res['hour'], minutes=res['minute'], seconds=res['second'])
         print(delta)
         self.time_after = delta
         self.updateDataTS()
-
-
 
     def hLETimeBefore(self):
         txt = self.leTimeBefore.text()
         res = self.processLineEidtTimeDelta(txt)
 
-        delta = relativedelta(years=res['year'],months=res['month'],days=res['day'],hours=res['hour'],minutes=res['minute'],seconds=res['second'])
+        delta = relativedelta(years=res['year'], months=res['month'], days=res['day'],
+                              hours=res['hour'], minutes=res['minute'], seconds=res['second'])
         print(delta)
         self.time_before = delta
         self.updateDataTS()
 
-
-
     def onConfirm(self):
         if self.ComboBoxDevice.currentIndex() == 0:
-            print("No Device selected")
-            device_id=0
+            device_id = 0
         else:
             device_id = self.devices[self.ComboBoxDevice.currentIndex()-1].id
 
@@ -742,73 +739,58 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         end_time   = datetime.strptime(str(self.parent.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
         tag_list   = self.tagutil.getTagList()
 
-
-        # # old
-        # query = (self.dbAnot.SQLAnnotation.select()
-        #          .where(self.dbAnot.SQLAnnotation.system == system_id, self.dbAnot.SQLAnnotation.device == device_id, self.dbAnot.SQLAnnotation.timestamp > start_time, self.dbAnot.SQLAnnotation.timestamp < end_time)
-        #          .order_by(self.dbAnot.SQLAnnotation.timestamp)
-        #          )
-        #
-        print(system_id,device_id, start_time, end_time, tag_list)
-
-        query = self.dbAnot.SQLAnnotation.select(self.dbAnot.SQLAnnotation, self.dbAnot.SQLTagAssociation, self.dbAnot.SQLTags) \
-                            .join(self.dbAnot.SQLTagAssociation, join_type='LEFT OUTER') \
-                            .join(self.dbAnot.SQLTags, join_type='LEFT OUTER')
+        query = (self.dbFiles.SQL_Annotation.select(self.dbFiles.SQL_Annotation, self.dbFiles.SQL_TagAssociation,
+                                                    self.dbFiles.SQL_Tags,
+                                                    self.dbFiles.SQL_Files,
+                                                    self.dbFiles.SQL_Systems, self.dbFiles.SQL_Devices,
+                                                    fn.GROUP_CONCAT(self.dbFiles.SQL_Tags.name).alias("tags")
+                                                    )
+                       .join(self.dbFiles.SQL_TagAssociation, join_type='LEFT OUTER')
+                       .join(self.dbFiles.SQL_Tags, join_type='LEFT OUTER')
+                       .join(self.dbFiles.SQL_Files, on=self.dbFiles.SQL_Files.id == self.dbFiles.SQL_Annotation.file)
+                       .join(self.dbFiles.SQL_Systems)
+                       .join(self.dbFiles.SQL_Devices, on=self.dbFiles.SQL_Files.device == self.dbFiles.SQL_Devices.id)
+                 )
         if system_id:
-            query = query.where(self.dbAnot.SQLAnnotation.system == system_id)
+            query = query.where(self.dbFiles.SQL_Files.system == system_id)
         if device_id:
-            query = query.where(self.dbAnot.SQLAnnotation.device == device_id)
+            query = query.where(self.dbFiles.SQL_Files.device == device_id)
         if start_time:
-            query = query.where(self.dbAnot.SQLAnnotation.timestamp > start_time)
+            query = query.where(self.dbFiles.SQL_Annotation.timestamp > start_time)
         if end_time:
-            query = query.where(self.dbAnot.SQLAnnotation.timestamp < end_time)
+            query = query.where(self.dbFiles.SQL_Annotation.timestamp < end_time)
         if tag_list:
-            query = (query.switch(self.dbAnot.SQLAnnotation)
-                          .where(self.dbAnot.SQLTags.name.in_(tag_list)))
-
-        query = query.order_by(self.dbAnot.SQLAnnotation.timestamp)
-
-        # resort and accumulate tags for mutli tag annotations
-        last_id = None
-        results = []
-        for item in query:
-            if item.id != last_id:
-                results.append([item, [item.tagassociation.tag.name]])
-                last_id = item.id
-            else:
-                print(item.tagassociation.tag.name)
-                print(item.comment)
-                results[-1][1].append(item.tagassociation.tag.name)
+            query = (query.switch(self.dbFiles.SQL_Annotation)
+                          .where(self.dbFiles.SQL_Tags.name.in_(tag_list)))
+        query = query.group_by(self.dbFiles.SQL_Annotation.id)
+        query = query.order_by(self.dbFiles.SQL_Annotation.timestamp)
 
         # display results
+        self.active_row = None
         self.table.setRowCount(0)
-        for (i,res) in enumerate(results):
-            data,comment=self.dbAnot.readAnnotation(res[0])
-            if not res[1]==[None]:
-                data['tags']=res[1]
-            else:
-                data['tags']=['']
-            print("row %d tag %s" % (i,res[1]))
-            print("tags:", ", ".join(data['tags']))
-            self.UpdateRow(i,data['reffilename'],data,comment)
-
+        for index, item in enumerate(query):
+            self.UpdateRow(index, item)
 
     def doSaveFilelist(self):
+        if self.active_row is None:
+            QMessageBox.question(None, 'Warning', 'No annotations selected.', QMessageBox.Ok)
+            return None
         # retrieve system and device
-        system_name = self.table.item(self.active_row,4).text()
+        system_name = self.table.item(self.active_row, 4).text()
         system_id = self.dbFiles.getSystemId(str(system_name))
 
-        device_name = self.table.item(self.active_row,5).text()
-        device_id = self.dbFiles.getDeviceId(str(system_name),str(device_name))
+        device_name = self.table.item(self.active_row, 5).text()
+        device_id = self.dbFiles.getDeviceId(str(system_name), str(device_name))
 
         start_time = datetime.strptime(str(self.leTimeBStart.text()), '%Y-%m-%d %H:%M:%S')
         end_time   = datetime.strptime(str(self.leTimeBEnd.text()), '%Y-%m-%d %H:%M:%S')
         query = (self.dbFiles.SQL_Files.select()
-                 .where(self.dbFiles.SQL_Files.system == system_id, self.dbFiles.SQL_Files.device == device_id, self.dbFiles.SQL_Files.timestamp >= start_time, self.dbFiles.SQL_Files.timestamp <= end_time)
+                 .where(self.dbFiles.SQL_Files.system == system_id, self.dbFiles.SQL_Files.device == device_id,
+                        self.dbFiles.SQL_Files.timestamp >= start_time, self.dbFiles.SQL_Files.timestamp <= end_time)
                  .order_by(self.dbFiles.SQL_Files.timestamp)
                  )
         counter = 0
-        with open("files.txt","w") as fp:
+        with open("files.txt", "w") as fp:
             for item in query:
                 fp.write("\\\\"+os.path.join(self.getPath(item.path), item.basename+item.extension)+" "+str(item.id)+" "+str(item.annotation_id) +"\n")
                 counter += 1
@@ -816,22 +798,28 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
 
     def showData(self):
         count = self.doSaveFilelist()
-        if count==0:
+        if count is None:
+            return
+        if count == 0:
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
         print("Selected %d images." % count)
         os.system(r"python.exe ..\ClickPointsQT.py ConfigClickPoints.txt -srcpath=files.txt")
 
-    def UpdateRow(self, row, basename, data, comment, sort_if_new=False):
+    def UpdateRow(self, row, annotation, sort_if_new=False):
         new = False
         if self.table.rowCount() <= row:
             self.table.insertRow(self.table.rowCount())
             for j in range(7):
                 self.table.setItem(row, j, QTableWidgetItem())
             new = True
-        texts = [data['timestamp'], str(", ".join(data['tags'])), comment, str(data['rating']), data['system'],
-                 data['camera'], basename]
+        texts = [datetime.strftime(annotation.timestamp, '%Y%m%d-%H%M%S'), annotation.tags, annotation.comment,
+                 annotation.rating, annotation.file.system.name, annotation.file.device.name, annotation.reffilename]
         for index, text in enumerate(texts):
+            if text is None:
+                text = ""
+            if not isinstance(text, basestring):
+                text = str(text)
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
             self.table.sortByColumn(0, Qt.AscendingOrder)
