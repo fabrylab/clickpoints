@@ -41,6 +41,8 @@ from AnnotationHandler import pyQtTagSelector
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
+from Config import Config
+config = Config('sql.cnf').sql
 
 def add_months(sourcedate,months):
      month = sourcedate.month - 1 + months
@@ -593,14 +595,6 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
     def __init__(self, parent):
         DatabaseTabTemplate.__init__(self, parent)
 
-        # init db
-        # TODO replace with proper configuration
-        cfg = config()
-        self.dbAnot = DatabaseAnnotation(cfg)
-        self.dbFiles = DatabaseFiles(cfg)
-
-        print(self.dbAnot.tag_dict_byID)
-
         # list of shared toggle widgets
         self.toggle_widgets = []
 
@@ -613,7 +607,7 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         # label.setSizePolicy(sizePolicy)
         layout_horizontal.addWidget(label)
         self.tagutil = pyQtTagSelector()
-        self.tagutil.setStringList(self.dbAnot.getTagList())
+        self.tagutil.setStringList(database.getTagList())
         layout_horizontal.addWidget(self.tagutil)
         layout_horizontal.addSpacing(30)
         # layout_horizontal.setStretch(0,0)
@@ -739,31 +733,31 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         end_time   = datetime.strptime(str(self.parent.EditEnd.text()), '%Y-%m-%d %H:%M:%S')
         tag_list   = self.tagutil.getTagList()
 
-        query = (self.dbFiles.SQL_Annotation.select(self.dbFiles.SQL_Annotation, self.dbFiles.SQL_TagAssociation,
-                                                    self.dbFiles.SQL_Tags,
-                                                    self.dbFiles.SQL_Files,
-                                                    self.dbFiles.SQL_Systems, self.dbFiles.SQL_Devices,
-                                                    fn.GROUP_CONCAT(self.dbFiles.SQL_Tags.name).alias("tags")
+        query = (database.SQL_Annotation.select(database.SQL_Annotation, database.SQL_TagAssociation,
+                                                    database.SQL_Tags,
+                                                    database.SQL_Files,
+                                                    database.SQL_Systems, database.SQL_Devices,
+                                                    fn.GROUP_CONCAT(database.SQL_Tags.name).alias("tags")
                                                     )
-                       .join(self.dbFiles.SQL_TagAssociation, join_type='LEFT OUTER')
-                       .join(self.dbFiles.SQL_Tags, join_type='LEFT OUTER')
-                       .join(self.dbFiles.SQL_Files, on=self.dbFiles.SQL_Files.id == self.dbFiles.SQL_Annotation.file)
-                       .join(self.dbFiles.SQL_Systems)
-                       .join(self.dbFiles.SQL_Devices, on=self.dbFiles.SQL_Files.device == self.dbFiles.SQL_Devices.id)
+                       .join(database.SQL_TagAssociation, join_type='LEFT OUTER')
+                       .join(database.SQL_Tags, join_type='LEFT OUTER')
+                       .join(database.SQL_Files, on=database.SQL_Files.id == database.SQL_Annotation.file)
+                       .join(database.SQL_Systems)
+                       .join(database.SQL_Devices, on=database.SQL_Files.device == database.SQL_Devices.id)
                  )
         if system_id:
-            query = query.where(self.dbFiles.SQL_Files.system == system_id)
+            query = query.where(database.SQL_Files.system == system_id)
         if device_id:
-            query = query.where(self.dbFiles.SQL_Files.device == device_id)
+            query = query.where(database.SQL_Files.device == device_id)
         if start_time:
-            query = query.where(self.dbFiles.SQL_Annotation.timestamp > start_time)
+            query = query.where(database.SQL_Annotation.timestamp > start_time)
         if end_time:
-            query = query.where(self.dbFiles.SQL_Annotation.timestamp < end_time)
+            query = query.where(database.SQL_Annotation.timestamp < end_time)
         if tag_list:
-            query = (query.switch(self.dbFiles.SQL_Annotation)
-                          .where(self.dbFiles.SQL_Tags.name.in_(tag_list)))
-        query = query.group_by(self.dbFiles.SQL_Annotation.id)
-        query = query.order_by(self.dbFiles.SQL_Annotation.timestamp)
+            query = (query.switch(database.SQL_Annotation)
+                          .where(database.SQL_Tags.name.in_(tag_list)))
+        query = query.group_by(database.SQL_Annotation.id)
+        query = query.order_by(database.SQL_Annotation.timestamp)
 
         # display results
         self.active_row = None
@@ -777,17 +771,17 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
             return None
         # retrieve system and device
         system_name = self.table.item(self.active_row, 4).text()
-        system_id = self.dbFiles.getSystemId(str(system_name))
+        system_id = database.getSystemId(str(system_name))
 
         device_name = self.table.item(self.active_row, 5).text()
-        device_id = self.dbFiles.getDeviceId(str(system_name), str(device_name))
+        device_id = database.getDeviceId(str(system_name), str(device_name))
 
         start_time = datetime.strptime(str(self.leTimeBStart.text()), '%Y-%m-%d %H:%M:%S')
         end_time   = datetime.strptime(str(self.leTimeBEnd.text()), '%Y-%m-%d %H:%M:%S')
-        query = (self.dbFiles.SQL_Files.select()
-                 .where(self.dbFiles.SQL_Files.system == system_id, self.dbFiles.SQL_Files.device == device_id,
-                        self.dbFiles.SQL_Files.timestamp >= start_time, self.dbFiles.SQL_Files.timestamp <= end_time)
-                 .order_by(self.dbFiles.SQL_Files.timestamp)
+        query = (database.SQL_Files.select()
+                 .where(database.SQL_Files.system == system_id, database.SQL_Files.device == device_id,
+                        database.SQL_Files.timestamp >= start_time, database.SQL_Files.timestamp <= end_time)
+                 .order_by(database.SQL_Files.timestamp)
                  )
         counter = 0
         with open("files.txt", "w") as fp:
@@ -901,7 +895,7 @@ class DatabaseBrowser(QWidget):
         self.pbFilelist.pressed.disconnect()
         self.pbFilelist.pressed.connect(self.fWidget.doSaveFilelist)
 
-database = DatabaseFiles(config())
+database = DatabaseFiles(config)
 
 if __name__ == '__main__':
     if sys.platform[:3] == 'win':

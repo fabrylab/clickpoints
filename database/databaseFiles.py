@@ -67,25 +67,16 @@ class tagassociation(Model):
     annotation = ForeignKeyField(SQLAnnotation)
     tag = ForeignKeyField(tags)
 
-# TODO: make sure this doesn't overwrite actual config!
-class config:
-    def __init__(self):
-        self.sql_dbname = 'annotation'
-        self.sql_host = '131.188.117.94'
-        self.sql_port = 3306
-        self.sql_user = 'clickpoints'
-        self.sql_pwd = '123456'
-
 class DatabaseFiles:
-    def __init__(self,config):
+    def __init__(self, config):
         self.config = config
 
         # init db connection
-        self.db = MySQLDatabase(self.config.sql_dbname,
-                                host=self.config.sql_host,
-                                port=self.config.sql_port,
-                                user=self.config.sql_user,
-                                passwd=self.config.sql_pwd)
+        self.db = MySQLDatabase(self.config.database,
+                                host=self.config.host,
+                                port=self.config.port,
+                                user=self.config.user,
+                                passwd=self.config.password)
 
         self.db.connect()
 
@@ -252,6 +243,8 @@ class DatabaseFiles:
         except KeyError:
             raise Exception("The target device %s does not exist!"%device_name)
 
+    def getTagList(self):
+        return [tag.name for tag in self.SQL_Tags.select()]
 
     ''' PATH functions '''
     def getPath(self, path_id):
@@ -372,42 +365,6 @@ class DatabaseFiles:
         #print('update')
 
 if __name__ == '__main__':
-    db = DatabaseFiles(config())
-
-
-    # test code for folder based wipe
-    #
-    # path=os.path.normpath(r'\\131.188.117.94\data\microbsCRO\2012')
-    #
-    #
-    # path_id_list=db.getIdListForPath(path)
-    # current_path_id = path_id_list[-1]
-    #
-    # db.deleteFilesByPathID(current_path_id)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    from Config import Config
+    config = Config('sql.cnf').sql
+    db = DatabaseFiles(config)
