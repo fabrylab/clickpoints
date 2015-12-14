@@ -31,7 +31,7 @@ class AnnotationFile:
                 timestamp = peewee.DateTimeField()
                 reffilename = peewee.CharField()
                 reffileext = peewee.CharField()
-                fileid = peewee.IntegerField(null=True)
+                file_id = peewee.IntegerField(null=True)
                 image_frame = peewee.IntegerField()
                 comment = peewee.TextField(default="")
                 rating = peewee.IntegerField(default=0)
@@ -269,7 +269,7 @@ class AnnotationEditor(QWidget):
         self.layout.addWidget(self.pteAnnotation, 5, 0, 5, 4)
 
         # fill gui entries
-        if self.config.sql_annotations is True:
+        if self.config.server_annotationss is True:
             self.leTStamp.setText(self.annotation.timestamp)
             self.leSystem.setText(self.annotation.system)
             self.leCamera.setText(self.annotation.camera)
@@ -360,7 +360,7 @@ class AnnotationOverview(QWidget):
             for j in range(7):
                 self.table.setItem(row, j, QTableWidgetItem())
             new = True
-        if self.config.sql_annotation is True:
+        if self.config.server_annotations is True:
             filename = annotation.reffilename
         else:
             filename = annotation.image.filename
@@ -409,7 +409,7 @@ class AnnotationHandler:
 
         self.annoation_ids = []
 
-        if self.config.sql_annotation:
+        if self.config.server_annotations:
             import peewee
             self.server = peewee.MySQLDatabase(self.config.sql_dbname,
                                 host=self.config.sql_host,
