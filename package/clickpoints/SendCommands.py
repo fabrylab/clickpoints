@@ -27,6 +27,9 @@ def GetImageName(value):
 def GetMarkerName(value):
     return send2("GetMarkerName %d \n" % value)
 
+def updateHUD(value):
+    return send("updateHUD %s \n" % value)
+
 terminate_signal = False
 def CatchTerminateSignal():
     def signal_handler(signal, frame):
