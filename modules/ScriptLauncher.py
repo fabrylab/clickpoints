@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import division, print_function
 import os, sys
 import psutil
@@ -50,18 +51,24 @@ class ScriptLauncher(QObject):
         if cmd == "JumpToFrame":
             self.window.JumpToFrame(int(value))
         if cmd == "GetImageName":
-            name = self.window.media_handler.getCurrentFilename(int(value))
+            name = self.window.media_handler.get_filename()
+            print(name)
             if name[0] is None:
                 socket.sendto("", client_address)
             else:
-                socket.sendto(os.path.join(*name), client_address)
+                socket.sendto(name, client_address)
         if cmd == "GetMarkerName":
-            name = self.window.media_handler.getCurrentFilename(int(value))
+            name = self.window.media_handler.get_filename()
             if name[0] is None:
                 socket.sendto("", client_address)
             else:
                 name = self.window.GetModule("MarkerHandler").GetLogName(os.path.join(*name))
                 socket.sendto(name, client_address)
+        if cmd == "updateHUD":
+            try:
+                self.window.GetModule('InfoHud').updateHUD(value)
+            except ValueError:
+                print('Module InfoHud not available')
 
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
@@ -76,7 +83,7 @@ class ScriptLauncher(QObject):
                         process.send_signal(signal.SIGTERM)
                     continue
                 self.window.save()
-                args = [sys.executable, os.path.abspath(script), os.path.abspath(self.config.srcpath), str(self.media_handler.currentPos), str(self.PORT)]
+                args = [sys.executable, os.path.abspath(script), " ", str(self.media_handler.get_index()), str(self.PORT)]
                 if hasattr(os.sys, 'winver'):
                     process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
                 else:
