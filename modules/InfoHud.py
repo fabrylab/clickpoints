@@ -80,13 +80,14 @@ class InfoHud(QGraphicsRectItem):
         self.setZValue(19)
 
         self.font = QFont()
-        self.font.setPointSize(14)
+        self.font.setPointSize(12)
 
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setFont(self.font)
         self.text.setBrush(QBrush(QColor("white")))
         self.text.setZValue(10)
         self.text.setPos(5,10)
+        self.text.
 
         self.setRect(QRectF(0, 0, 110, 110))
         BoxGrabber(self)
@@ -98,7 +99,7 @@ class InfoHud(QGraphicsRectItem):
             self.hidden = True
 
     def LoadImageEvent(self, filename="", frame_number=0):
-        file = os.path.join(*self.window.media_handler.getCurrentFilename())
+        file = os.path.join(*self.window.media_handler.get_filename())
         regex = re.match(self.config.filename_data_regex, file)
         if regex:
             regex = regex.groupdict()
@@ -115,6 +116,14 @@ class InfoHud(QGraphicsRectItem):
     def ToggleInterfaceEvent(self):
         self.setVisible(self.hidden)
         self.hidden = not self.hidden
+
+    def updateHUD(self,info_string):
+        fmt=PartialFormatter()
+        self.text.setText(fmt.format(info_string))
+        rect = self.text.boundingRect()
+        rect.setWidth(rect.width() + 10)
+        rect.setHeight(rect.height() + 10)
+        self.setRect(rect)
 
     @staticmethod
     def can_create_module(config):
