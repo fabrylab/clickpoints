@@ -17,6 +17,15 @@ class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         self.server.signal.emit(self.request[0], self.request[1], self.client_address)
 
+def isPortInUse(type,ip,port_nr):
+    connection_list = psutil.net_connections(kind=type)
+    ipport_list = [[c[3][0],c[3][1]] for c in connection_list]
+
+    if [ip,port_nr] in ipport_list:
+        return True
+    else:
+        return False
+
 class ScriptLauncher(QObject):
     signal = pyqtSignal(str, socket._socketobject, tuple)
 
@@ -31,8 +40,11 @@ class ScriptLauncher(QObject):
         while True:
             try:
                 server = SocketServer.ThreadingUDPServer((self.HOST, self.PORT), ThreadedUDPRequestHandler)
+                # check private boradcast port as self.PORT +1
+                if isPortInUse('udp','127.0.0.1',self.PORT +1):
+                    raise socket.error
             except socket.error:
-                self.PORT += 1
+                self.PORT += 2
             else:
                 break
 
@@ -54,21 +66,40 @@ class ScriptLauncher(QObject):
             name = self.window.media_handler.get_filename()
             print(name)
             if name[0] is None:
-                socket.sendto("", client_address)
+                socket.sendto(cmd + "", client_address)
             else:
-                socket.sendto(name, client_address)
+                socket.sendto(cmd + " " + name, client_address)
         if cmd == "GetMarkerName":
             name = self.window.media_handler.get_filename()
             if name[0] is None:
-                socket.sendto("", client_address)
+                socket.sendto(cmd + "", client_address)
             else:
+                # TODO GetLogName doesnt exist in new version
                 name = self.window.GetModule("MarkerHandler").GetLogName(os.path.join(*name))
-                socket.sendto(name, client_address)
+                socket.sendto(cmd + " " + name, client_address)
         if cmd == "updateHUD":
             try:
                 self.window.GetModule('InfoHud').updateHUD(value)
             except ValueError:
                 print('Module InfoHud not available')
+
+    def LoadImageEvent(self, filename, framenumber):
+        # TODO add generic ports for multiple scripts
+        # for p in self.process:
+        #     port = p.
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.sendto("LoadImageEvent %s %d" % (filename,framenumber), ('127.0.0.1', self.PORT+1))
+        sock.close()
+
+    def PreLoadImageEvent(self, filename, framenumber):
+        print("ScriptLauncher PreLoadImage Event triggered")
+        # TODO add generic ports for multiple scripts
+        # for p in self.process:
+        #     port = p.
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.sendto("PreLoadImageEvent %s %d" % (filename,framenumber), ('127.0.0.1', self.PORT+1))
+        sock.close()
+
 
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
@@ -84,11 +115,13 @@ class ScriptLauncher(QObject):
                     continue
                 self.window.save()
                 args = [sys.executable, os.path.abspath(script), " ", str(self.media_handler.get_index()), str(self.PORT)]
+                print('arags:', args)
                 if hasattr(os.sys, 'winver'):
                     process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
                 else:
                     process = subprocess.Popen(args)
                 self.running_processes[index] = process
+                print("Process",process)
 
     @staticmethod
     def file():
