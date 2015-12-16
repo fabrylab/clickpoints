@@ -81,13 +81,14 @@ class InfoHud(QGraphicsRectItem):
 
         self.font = QFont()
         self.font.setPointSize(12)
+        self.font.setStyleHint(QFont.Monospace)
+        self.font.setFixedPitch(True)
 
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setFont(self.font)
         self.text.setBrush(QBrush(QColor("white")))
         self.text.setZValue(10)
         self.text.setPos(5,10)
-        self.text.
 
         self.setRect(QRectF(0, 0, 110, 110))
         BoxGrabber(self)
