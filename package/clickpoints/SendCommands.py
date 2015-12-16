@@ -10,10 +10,28 @@ def send(message):
     sock.sendto(message, (HOST, PORT))
 
 def send2(message):
+    cmd, value = str(message).split(" ", 1)
     HOST, PORT = "localhost", int(sys.argv[3])
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.sendto(message, (HOST, PORT))
-    return sock.recv(1024)
+    # blocking wait for answer
+    answer_received=False
+    while not answer_received:
+        ans=sock.recv(1024)
+        print("Received: %s" % ans)
+        if ans.startswith(cmd):
+            answer_received=True
+            print("correct command")
+    #split command value
+    # TODO is it better to send None instead of empty string ""
+    value=""
+    try:
+        cmd, value = str(ans).split(" ", 1)
+        print("cmd,value:",cmd,value)
+    except:
+        print("something went wrong")
+        pass
+    return value
 
 def JumpFrames(value):
     send("JumpFrames %d \n" % value)
