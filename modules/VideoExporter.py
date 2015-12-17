@@ -39,6 +39,7 @@ except ImportError:
 
 import numpy as np
 import re
+from PIL import ImageDraw, Image
 
 class VideoExporterDialog(QWidget):
     def __init__(self, parent, window, media_handler, config, modules):
@@ -199,9 +200,11 @@ class VideoExporterDialog(QWidget):
 
             if self.preview_slice.shape[2] == 1:
                 self.preview_slice = np.dstack((self.preview_slice,self.preview_slice,self.preview_slice))
+
+            draw = ImageDraw.Draw(Image.fromarray(self.preview_slice))
             if marker_handler:
                 print("MarkerHandler")
-                marker_handler.drawToImage(self.preview_slice, start_x, start_y)
+                marker_handler.drawToImage(draw, start_x, start_y)
             if self.cbType.currentIndex() == 0:
                 if writer == None:
                     writer = imageio.get_writer(path, **writer_params)

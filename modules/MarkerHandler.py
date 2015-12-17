@@ -612,12 +612,12 @@ class MarkerHandler:
         r2 = 10
         print("Saving", image.shape)
         for point in self.points:
-            color = np.array(self.config.types[point.type][1]).reshape(1, 1, 3)
+            color = (255,0,0)#np.array(self.config.types[point.type][1]).reshape(1, 1, 3)
             x, y = point.pos().x()-start_x, point.pos().y()-start_y
-            image[y-r2:y-b,x-w:x+w,:] = color
-            image[y+b:y+r2,x-w:x+w,:] = color
-            image[y-w:y+w,x-r2:x-b,:] = color
-            image[y-w:y+w,x+b:x+r2,:] = color
+            image.rectangle([x-w, y-r2, x+w, y-b], color)
+            image.rectangle([x-w, y+b, x+w, y+r2], color)
+            image.rectangle([x-r2, y-w, x-b, y+w], color)
+            image.rectangle([x+b, y-w, x+r2, y+w], color)
 
     def UpdateCounter(self):
         for counter in self.counter:
