@@ -86,10 +86,19 @@ class VideoExporterDialog(QWidget):
 
         Hlayout = QtGui.QHBoxLayout()
         Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Codec (fourcc code):'))
-        self.leCodec = QtGui.QLineEdit("XVID", self)
-        self.leCodec.setMaxLength(4)
+        Hlayout.addWidget(QtGui.QLabel('Codec:'))
+        self.leCodec = QtGui.QLineEdit("libx264", self)
         Hlayout.addWidget(self.leCodec)
+
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
+        Hlayout.addWidget(QtGui.QLabel('Quality (0 lowest, 10 highest):'))
+        self.sbQuality = QtGui.QSpinBox(self)
+        self.sbQuality.setValue(5)
+        self.sbQuality.setRange(0, 10)
+        Hlayout.addWidget(self.sbQuality)
+        Hlayout.addStretch()
+
         Vlayout.addStretch()
 
         """ Image """
@@ -172,7 +181,7 @@ class VideoExporterDialog(QWidget):
         writer = None
         if self.cbType.currentIndex() == 0:
             path = str(self.leAName.text())
-            writer_params = dict(format="avi", mode="I", fps=timeline.fps)
+            writer_params = dict(format="avi", mode="I", fps=timeline.fps, codec=str(self.leCodec.text()), quality=self.sbQuality.value())
         elif self.cbType.currentIndex() == 1:
             path = str(self.leANameI.text())
         elif self.cbType.currentIndex() == 2:
@@ -199,33 +208,25 @@ class VideoExporterDialog(QWidget):
             self.preview_slice = self.image[start_y:end_y, start_x:end_x, :]
 
             if self.preview_slice.shape[2] == 1:
-                self.preview_slice = np.dstack((self.preview_slice,self.preview_slice,self.preview_slice))
+                self.preview_slice = np.dstack((self.preview_slice, self.preview_slice, self.preview_slice))
 
-            draw = ImageDraw.Draw(Image.fromarray(self.preview_slice))
+            pil_image = Image.fromarray(self.preview_slice)
+            draw = ImageDraw.Draw(pil_image)
             if marker_handler:
-                print("MarkerHandler")
                 marker_handler.drawToImage(draw, start_x, start_y)
             if self.cbType.currentIndex() == 0:
                 if writer == None:
                     writer = imageio.get_writer(path, **writer_params)
-                writer.append_data(self.preview_slice)
-                """
-                if writer == None:
-                    fourcc = VideoWriter_fourcc(*str(self.leCodec.text()))
-                    writer = cv2.VideoWriter(path, fourcc, timeline.fps, (self.preview_slice.shape[1], self.preview_slice.shape[0]))
-                writer.write(cv2.cvtColor(self.preview_slice, COLOR_RGB2BGR))
-                """
+                writer.append_data(np.array(pil_image))
             elif self.cbType.currentIndex() == 1:
-                imsave(path % (frame-start), self.preview_slice)
+                pil_image.save(path % (frame-start))
             elif self.cbType.currentIndex() == 0 or self.cbType.currentIndex() == 2:
                 if writer == None:
                     writer = imageio.get_writer(path, **writer_params)
-                writer.append_data(self.preview_slice)
+                writer.append_data(np.array(pil_image))
         self.progressbar.setValue(end)
         if self.cbType.currentIndex() == 2 or self.cbType.currentIndex() == 0:
             writer.close()
-        #if self.cbType.currentIndex() == 0:
-        #    writer.release()
 
 class VideoExporter:
     def __init__(self, window, media_handler, modules, config=None):
