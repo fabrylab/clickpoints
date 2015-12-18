@@ -277,6 +277,24 @@ class MyMarkerItem(QGraphicsPathItem):
     def save(self):
         self.data.save()
 
+    def draw(self, image, start_x, start_y, scale=1):
+        w = 1.*scale
+        b = (10-7)*scale
+        r2 = 10*scale
+        color = (self.color.red(), self.color.green(), self.color.blue())
+        x, y = self.pos().x()-start_x, self.pos().y()-start_y
+        image.rectangle([x-w, y-r2, x+w, y-b], color)
+        image.rectangle([x-w, y+b, x+w, y+r2], color)
+        image.rectangle([x-r2, y-w, x-b, y+w], color)
+        image.rectangle([x+b, y-w, x+r2, y+w], color)
+        if self.rectObj:
+            x2, y2 = self.partner.pos().x()-start_x, self.partner.pos().y()-start_y
+            if self.data.type.mode == 1:
+                image.rectangle([x, y, x2, y2], outline=color)
+            if self.data.type.mode == 2:
+                image.line([x, y, x2, y2], color, width=2*scale)
+
+
 class MyTrackItem(MyMarkerItem):
     def __init__(self, marker_handler, points_data, track):
         MyMarkerItem.__init__(self, marker_handler, points_data[0])
@@ -361,6 +379,36 @@ class MyTrackItem(MyMarkerItem):
             self.path.addEllipse(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width, circle_width)
             self.path.moveTo(point.x, point.y)
         self.pathItem.setPath(self.path)
+
+    def draw(self, image, start_x, start_y, scale=1):
+        color = (self.color.red(), self.color.green(), self.color.blue())
+        frame_indices = np.argsort(self.points_frames)
+        circle_width = 10*scale
+        last_frame = self.points_frames[frame_indices[0]]
+        last_point = np.array([0, 0])
+        offset = np.array([start_x, start_y])
+        for index in frame_indices:
+            frame = self.points_frames[index]
+            if (self.config.tracking_show_trailing != -1 and frame < self.marker_handler.frame_number-self.config.tracking_show_trailing) or \
+               (self.config.tracking_show_leading != -1 and frame > self.marker_handler.frame_number+self.config.tracking_show_leading):
+                    continue
+            point = self.points_data[index]
+            print("--", point, offset)
+            point = np.array([point.x, point.y])-offset
+            print(point)
+
+            if last_frame == frame-1:
+                image.line(np.concatenate((last_point, point)).tolist(), color, width=2*scale)
+            try:
+                print(point)
+            except:
+                print("error")
+            print([point-.5*circle_width, point+.5*circle_width])
+            image.arc(np.concatenate((point-.5*circle_width, point+.5*circle_width)).tolist(), 0, 360, color)
+            last_point = point
+            last_frame = frame
+        if self.active:
+            MyMarkerItem.draw(self, image, start_x, start_y)
 
     def mouseRightClicked(self):
         self.RemoveTrackPoint()
@@ -603,21 +651,9 @@ class MarkerHandler:
             if frame is not None:
                 BroadCastEvent(self.modules, "MarkerPointsAdded", frame)
 
-    def drawToImage(self, image, start_x, start_y):
-        # TODO check if marker is outside of image
-        # TODO draw marker history in tracking mode
-        # TODO size settings for export
-        w = 1.
-        b = 10-7
-        r2 = 10
-        print("Saving", image.shape)
+    def drawToImage(self, image, start_x, start_y, scale=1):
         for point in self.points:
-            color = (255,0,0)#np.array(self.config.types[point.type][1]).reshape(1, 1, 3)
-            x, y = point.pos().x()-start_x, point.pos().y()-start_y
-            image.rectangle([x-w, y-r2, x+w, y-b], color)
-            image.rectangle([x-w, y+b, x+w, y+r2], color)
-            image.rectangle([x-r2, y-w, x-b, y+w], color)
-            image.rectangle([x+b, y-w, x+r2, y+w], color)
+            point.draw(image, start_x, start_y, scale)
 
     def UpdateCounter(self):
         for counter in self.counter:
