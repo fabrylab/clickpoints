@@ -281,18 +281,23 @@ class MyMarkerItem(QGraphicsPathItem):
         w = 1.*scale
         b = (10-7)*scale
         r2 = 10*scale
-        color = (self.color.red(), self.color.green(), self.color.blue())
         x, y = self.pos().x()-start_x, self.pos().y()-start_y
+        color = (self.color.red(), self.color.green(), self.color.blue())
+        if self.partner:
+            if self.rectObj:
+                x2, y2 = self.partner.pos().x()-start_x, self.partner.pos().y()-start_y
+                if self.data.type.mode == 1:
+                    image.line([x , y , x2, y ], color, width=3*scale)
+                    image.line([x , y2, x2, y2], color, width=3*scale)
+                    image.line([x , y , x , y2], color, width=3*scale)
+                    image.line([x2, y , x2, y2], color, width=3*scale)
+                if self.data.type.mode == 2:
+                    image.line([x, y, x2, y2], color, width=3*scale)
+            return
         image.rectangle([x-w, y-r2, x+w, y-b], color)
         image.rectangle([x-w, y+b, x+w, y+r2], color)
         image.rectangle([x-r2, y-w, x-b, y+w], color)
         image.rectangle([x+b, y-w, x+r2, y+w], color)
-        if self.rectObj:
-            x2, y2 = self.partner.pos().x()-start_x, self.partner.pos().y()-start_y
-            if self.data.type.mode == 1:
-                image.rectangle([x, y, x2, y2], outline=color)
-            if self.data.type.mode == 2:
-                image.line([x, y, x2, y2], color, width=2*scale)
 
 
 class MyTrackItem(MyMarkerItem):
@@ -381,6 +386,8 @@ class MyTrackItem(MyMarkerItem):
         self.pathItem.setPath(self.path)
 
     def draw(self, image, start_x, start_y, scale=1):
+        if self.partner:
+            return MyMarkerItem.draw(self, image, start_x, start_y)
         color = (self.color.red(), self.color.green(), self.color.blue())
         frame_indices = np.argsort(self.points_frames)
         circle_width = 10*scale
