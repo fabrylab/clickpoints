@@ -123,7 +123,9 @@ class ClickPointsWindow(QWidget):
         BroadCastEvent(self.modules, "LoadImageEvent", filename, frame_number)
 
     def LoadImage(self):
-        self.ImageDisplay.SetImage(self.media_handler.get_file())
+        im = self.media_handler.get_file()
+        self.ImageDisplay.SetImage(im)
+        self.view.setExtend(*im.shape[:2][::-1])
 
     def save(self):
         BroadCastEvent(self.modules, "save")
