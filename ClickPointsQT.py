@@ -43,6 +43,7 @@ used_modules = [Timeline, MarkerHandler, MaskHandler, AnnotationHandler]
 used_huds = ["", "hud", "hud_upperRight", ""]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
+clickpoints_path = os.path.dirname(__file__)
 
 class ClickPointsWindow(QWidget):
     def zoomEvent(self, scale, pos):
@@ -249,6 +250,8 @@ if __name__ == '__main__':
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     app = QApplication(sys.argv)
+    QtGui.QFontDatabase.addApplicationFont(os.path.join(clickpoints_path, "FantasqueSansMono-Regular.ttf"))
+    app.setFont(QtGui.QFont("FantasqueSansMono"))
 
     config = LoadConfig()
     for addon in config.addons:
