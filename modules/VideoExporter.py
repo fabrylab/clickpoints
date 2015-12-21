@@ -77,7 +77,7 @@ class VideoExporterDialog(QWidget):
         Hlayout = QtGui.QHBoxLayout()
         Vlayout.addLayout(Hlayout)
         Hlayout.addWidget(QtGui.QLabel('Filename:'))
-        self.leAName = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export.avi"), self)
+        self.leAName = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export/export.avi"), self)
         self.leAName.setEnabled(False)
         Hlayout.addWidget(self.leAName)
         button = QtGui.QPushButton("Choose File")
@@ -108,7 +108,7 @@ class VideoExporterDialog(QWidget):
         Hlayout = QtGui.QHBoxLayout()
         Vlayout.addLayout(Hlayout)
         Hlayout.addWidget(QtGui.QLabel('Filename:'))
-        self.leANameI = QtGui.QLineEdit(os.path.join(self.config.outputpath, "images%d.jpg"), self)
+        self.leANameI = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export/images%d.jpg"), self)
         self.leANameI.setEnabled(False)
         Hlayout.addWidget(self.leANameI)
         button = QtGui.QPushButton("Choose File")
@@ -124,7 +124,7 @@ class VideoExporterDialog(QWidget):
         Hlayout = QtGui.QHBoxLayout()
         Vlayout.addLayout(Hlayout)
         Hlayout.addWidget(QtGui.QLabel('Filename:'))
-        self.leANameG = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export.gif"), self)
+        self.leANameG = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export/export.gif"), self)
         self.leANameG.setEnabled(False)
         Hlayout.addWidget(self.leANameG)
         button = QtGui.QPushButton("Choose File")
@@ -187,6 +187,12 @@ class VideoExporterDialog(QWidget):
         elif self.cbType.currentIndex() == 2:
             path = str(self.leANameG.text())
             writer_params = dict(format="gif", mode="I", fps=timeline.fps)
+        if not os.path.exists(os.path.dirname(path)):
+            try:
+                os.mkdir(os.path.dirname(path))
+            except OSError:
+                print("ERROR: can't create folder %s", os.path.dirname(path))
+                return
         self.progressbar.setMinimum(start)
         self.progressbar.setMaximum(end)
         for frame in range(start, end+1, skip):
