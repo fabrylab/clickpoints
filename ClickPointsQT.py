@@ -253,7 +253,7 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     QtGui.QFontDatabase.addApplicationFont(os.path.join(clickpoints_path, "FantasqueSansMono-Regular.ttf"))
-    app.setFont(QtGui.QFont("FantasqueSansMono"))
+    app.setFont(QtGui.QFont("Fantasque Sans Mono"))
 
     config = LoadConfig()
     for addon in config.addons:
