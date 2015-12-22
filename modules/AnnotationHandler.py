@@ -70,6 +70,7 @@ class AnnotationFile:
             kwargs.update(dict(timestamp=self.data_file.timestamp, reffilename=self.data_file.image.filename, reffileext=self.data_file.image.ext, fileid=self.data_file.image.external_id))
         else:
             kwargs.update(dict(timestamp=self.data_file.timestamp, image=self.data_file.image, image_frame=self.data_file.image_frame))
+            self.data_file.image_uses += 1
         self.annotation = self.table_annotation(**kwargs)
         return self.annotation
 

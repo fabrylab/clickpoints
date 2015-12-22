@@ -90,6 +90,7 @@ class MarkerFile:
 
     def add_marker(self, **kwargs):
         kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
+        self.data_file.image_uses += 1
         return self.table_marker(**kwargs)
 
     def get_marker_list(self):
