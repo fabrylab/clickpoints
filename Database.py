@@ -36,6 +36,8 @@ class DataFile:
         self.image = None
         self.image_frame = 0
         self.timestamp = 0
+        self.image_uses = 0
+        self.image_saved = True
 
     def set_image(self, file_entry, frame, timestamp):
         #if self.image:
@@ -44,16 +46,22 @@ class DataFile:
         #        if self.next_image_index == self.image.id+1:
         #            self.next_image_index -= 1
         #        self.image.delete_instance()
+        if self.image and not self.image_saved:
+            if self.image_uses > 0:
+                self.image.save(force_insert=True)
+                self.next_image_index += 1
         try:
             self.image = self.table_images.get(self.table_images.filename == file_entry.filename)
+            self.image_saved = True
         except DoesNotExist:
             self.image = self.table_images(id=self.next_image_index)
-            self.next_image_index += 1
             self.image.filename = file_entry.filename
             self.image.ext = file_entry.extension
             self.image.frames = file_entry.frames
             self.image.external_id = file_entry.external_id
-            self.image.save(force_insert=True)
+            self.image.id = self.next_image_index
+            self.image_uses = 0
+            self.image_saved = False
         self.image_frame = frame
         self.timestamp = timestamp
         return self.image
