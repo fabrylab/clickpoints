@@ -3,11 +3,60 @@ import os
 import re
 from peewee import *
 from playhouse import apsw_ext
+import StringIO
+
+def SQLMemoryDBFromFile(filename, *args, **kwargs):
+
+    db_file = SqliteDatabase(filename, *args, **kwargs)
+
+    db_file.connect()
+    con = db_file.get_conn()
+    tempfile = StringIO.StringIO()
+    for line in con.iterdump():
+        tempfile.write('%s\n' % line)
+    tempfile.seek(0)
+
+    db_memory = SqliteDatabase(":memory:", *args, **kwargs)
+    db_memory.get_conn().cursor().executescript(tempfile.read())
+    db_memory.get_conn().commit()
+    return db_memory
+
+def SaveDB(db_memory, filename):
+    if os.path.exists(filename):
+        os.remove(filename)
+    db_file = SqliteDatabase(filename)
+    con_file = db_file.get_conn()
+    con_memory = db_memory.get_conn()
+
+    tempfile = StringIO.StringIO()
+    for line in con_memory.iterdump():
+        tempfile.write('%s\n' % line)
+    tempfile.seek(0)
+
+    con_file.cursor().executescript(tempfile.read())
+    con_file.commit()
+
+
+def SQLMemoryDBFromFileAPSW(filename):
+    db_file = apsw_ext.APSWDatabase(filename)
+    db_memory = apsw_ext.APSWDatabase(':memory:')
+    with db_memory.get_conn().backup("main", db_file.get_conn(), "main") as backup:
+        backup.step()  # copy whole database in one go
+    return db_memory
+
+def SaveDBAPSW(db_memory, filename):
+    db_file = apsw_ext.APSWDatabase(filename)
+    with db_file.get_conn().backup("main", db_memory.get_conn(), "main") as backup:
+        backup.step()  # copy whole database in one go
 
 class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
+        self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
-        self.db = apsw_ext.APSWDatabase(database_filename)
+        if self.exists:
+            self.db = apsw_ext.APSWDatabase(database_filename)
+        else:
+            self.db = apsw_ext.APSWDatabase(":memory:")
 
         class BaseModel(Model):
             class Meta:
@@ -19,6 +68,8 @@ class DataFile:
             frames = IntegerField(default=0)
             external_id = IntegerField(null=True)
             timestamp = DateTimeField(null=True)
+
+        self.tables = [BaseModel, Images]
 
         self.base_model = BaseModel
         self.table_images = Images
@@ -47,6 +98,12 @@ class DataFile:
         #            self.next_image_index -= 1
         #        self.image.delete_instance()
         if self.image and not self.image_saved:
+            if not self.exists:
+                SaveDBAPSW(self.db, self.database_filename)
+                self.db = apsw_ext.APSWDatabase(self.database_filename)
+                for table in self.tables:
+                    table._meta.db = self.db
+                self.exists = True
             if self.image_uses > 0:
                 self.image.save(force_insert=True)
                 self.next_image_index += 1

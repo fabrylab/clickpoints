@@ -70,6 +70,7 @@ class MarkerFile:
         self.table_marker = Marker
         self.table_tracks = Tracks
         self.table_types = Types
+        self.data_file.tables.extend([Marker, Tracks, Types])
 
         for table in [self.table_marker, self.table_tracks, self.table_types]:
             if not table.table_exists():

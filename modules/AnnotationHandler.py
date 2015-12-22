@@ -59,6 +59,7 @@ class AnnotationFile:
         self.table_tagassociation = Tagassociation
 
         if not self.server:
+            self.data_file.tables.extend([self.table_annotation, self.table_tags, self.table_tagassociation])
             for table in [self.table_annotation, self.table_tags, self.table_tagassociation]:
                 if not table.table_exists():
                     table.create_table()
