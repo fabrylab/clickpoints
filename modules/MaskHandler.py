@@ -30,6 +30,7 @@ class MaskFile:
             filename = peewee.CharField()
 
         self.table_mask = Mask
+        self.data_file.tables.extend([Mask])
 
         if not self.table_mask.table_exists():
             self.table_mask.create_table()
