@@ -314,6 +314,7 @@ class PreciseTimer(QObject):
                 self.count += 1
                 self.timeout.emit()
                 self.active = 0
+            time.sleep(0.01)
 
 class Timeline:
     def __init__(self, window, media_handler, layout, outputpath, config, modules):
