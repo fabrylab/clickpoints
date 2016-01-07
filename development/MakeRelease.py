@@ -32,7 +32,7 @@ def CheckIgnoreMatch(file):
             return True
     return False
 
-def CopyDirectory(directory):
+def CopyDirectory(directory, dest_directory):
     global myzip, file_list
     old_dir = os.getcwd()
     os.chdir(directory)
@@ -42,9 +42,10 @@ def CopyDirectory(directory):
         if CheckIgnoreMatch(file):
             continue
         print(file, os.path.join(directory, file))
+        dest_path = os.path.normpath(os.path.join(dest_directory, file))
         if file != "files.txt":
-            myzip.write(file, os.path.join(directory, file))
-        file_list.write(os.path.join(directory, file)+"\n")
+            myzip.write(file, dest_path)
+        file_list.write(dest_path+"\n")
     os.chdir(old_dir)
 
 def CheckForUncommitedChanges(directory):
@@ -57,8 +58,19 @@ def CheckForUncommitedChanges(directory):
     os.system("hg pull -u")
     os.chdir(old_dir)
 
+from optparse import OptionParser
+
+parser = OptionParser()
+parser.add_option("-v", "--version", action="store", type="string", dest="version")
+parser.add_option("-t", "--test", action="store_false", dest="release", default=False)
+parser.add_option("-r", "--release", action="store_true", dest="release")
+(options, args) = parser.parse_args()
+if options.version is None:
+    options.version = args[0]
+
 print("MakeRelease started ...")
 # go to parent directory ClickPointsProject
+os.chdir("..")
 os.chdir("..")
 path_to_clickpointsproject = os.getcwd()
 
@@ -68,6 +80,7 @@ zip_file = 'clickpoints_v%s.zip'
 version_file = os.path.join("clickpoints", "version.txt")
 
 paths = [".", "clickpoints", "mediahandler", "qextendedgraphicsview"]
+path_destinations = ["installation", ".", "includes", "includes"]
 
 """ Checks """
 # check for new version name as command line argument
@@ -86,14 +99,15 @@ with open(version_file, "r") as fp:
     old_version = fp.read().strip()
 
 # check if new version name differs
-if old_version == new_version:
+if options.release and old_version == new_version:
     print("ERROR: new version is the same as old version")
     sys.exit(1)
 
 # check for uncommited changes
-for path in paths:
-    CheckForUncommitedChanges(path)
-CheckForUncommitedChanges(path_to_website)
+if options.release:
+    for path in paths:
+        CheckForUncommitedChanges(path)
+    CheckForUncommitedChanges(path_to_website)
 
 """ Let's go """
 # write new version to version.txt
@@ -106,13 +120,13 @@ myzip = zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED)
 
 # Gather files repository files and add them to zip file
 ignore_pattern = LoadIgnorePatterns(os.path.join("clickpoints", ".releaseignore"))
-for path in paths:
-    CopyDirectory(path)
+for path, path_dest in zip(paths, path_destinations):
+    CopyDirectory(path, path_dest)
 
 print("finished zip")
 # Close
 file_list.close()
-myzip.write("files.txt", "files.txt")
+myzip.write("files.txt", "installation/files.txt")
 myzip.close()
 
 # Copy files to website
@@ -120,25 +134,26 @@ print("Move Files")
 shutil.move(zip_file, os.path.join(path_to_website, zip_file))
 shutil.copy(version_file, os.path.join(path_to_website, "version.html"))
 
-# Commit changes to ClickPoints
-os.chdir("clickpoints")
-os.system("hg commit -m \"set version to %s\"" % new_version)
-os.chdir("..")
+if options.release:
+    # Commit changes to ClickPoints
+    os.chdir("clickpoints")
+    os.system("hg commit -m \"set version to %s\"" % new_version)
+    os.chdir("..")
 
-# Commit changes in ClickPointsRelease
-os.system("hg commit -m \"Release v%s\"" % new_version)
-os.system("hg tag \"v%s\"" % new_version)
+    # Commit changes in ClickPointsRelease
+    os.system("hg commit -m \"Release v%s\"" % new_version)
+    os.system("hg tag \"v%s\"" % new_version)
 
-# Commit changes in website
-os.chdir(path_to_website)
-os.system("hg add "+zip_file)
-os.system("hg commit -m \"Release v%s\"" % new_version)
+    # Commit changes in website
+    os.chdir(path_to_website)
+    os.system("hg add "+zip_file)
+    os.system("hg commit -m \"Release v%s\"" % new_version)
 
-# Push everything
-os.system("hg push")
-os.chdir(path_to_clickpointsproject)
-os.system("hg push")
-os.chdir("clickpoints")
-os.system("hg push")
+    # Push everything
+    os.system("hg push")
+    os.chdir(path_to_clickpointsproject)
+    os.system("hg push")
+    os.chdir("clickpoints")
+    os.system("hg push")
 
 print("MakeRelease completed!")
