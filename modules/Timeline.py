@@ -437,7 +437,6 @@ class Timeline:
                 self.window.JumpToFrame(self.frameSlider.startValue(), self.frameSlider.startValue()+1+self.skip)
             else:
                 self.window.JumpFrames(1+self.skip, 1+self.skip)
-        self.timer.allow_next()
 
     def updateLabel(self):
         if self.slider_update:
@@ -457,6 +456,7 @@ class Timeline:
             self.current_fps = a*self.current_fps + (1-a) * 1/dt
 
         self.updateLabel()
+        self.timer.allow_next()
 
     def MaskAdded(self):
         self.frameSlider.addTickMarker(self.media_handler.get_index(), type=1)
