@@ -8,8 +8,8 @@ try:
 except ImportError:
     from PyQt4 import QtCore
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "mediahandler"))
-from mediahandler import MediaHandler
+#sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "mediahandler"))
+#from mediahandler import MediaHandler
 
 from Tools import BroadCastEvent
 

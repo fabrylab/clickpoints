@@ -12,9 +12,14 @@ except ImportError:
     from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox, QGraphicsSceneWheelEvent
     from PyQt4.QtCore import Qt
 
-from Tools import HelpText, BroadCastEvent, rotate_list
-from ConfigLoad import LoadConfig
-from ToolsForClickPoints import BigImageDisplay
+from includes import HelpText, BroadCastEvent, rotate_list
+from includes import LoadConfig
+from includes import BigImageDisplay
+from includes import QExtendedGraphicsView
+from includes import MediaHandler
+from includes import DataFile
+
+from update import Updater
 
 from modules import MaskHandler
 from modules import MarkerHandler
@@ -26,18 +31,6 @@ from modules import ScriptLauncher
 from modules import VideoExporter
 from modules import InfoHud
 from modules import Overview
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "qextendedgraphicsview"))
-from QExtendedGraphicsView import QExtendedGraphicsView
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "mediahandler"))
-from mediahandler import MediaHandler
-
-from update import Updater
-from Database import DataFile
-
-used_modules = []#[MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText, AnnotationHandler]
-used_huds = []#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
 used_modules = [Timeline, MarkerHandler, MaskHandler, AnnotationHandler, GammaCorrection, InfoHud, VideoExporter]
 used_huds = ["", "hud", "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft", ""]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
@@ -263,7 +256,7 @@ if __name__ == '__main__':
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     app = QApplication(sys.argv)
-    QtGui.QFontDatabase.addApplicationFont(os.path.join(clickpoints_path, "FantasqueSansMono-Regular.ttf"))
+    QtGui.QFontDatabase.addApplicationFont(os.path.join(clickpoints_path, "icons", "FantasqueSansMono-Regular.ttf"))
     app.setFont(QtGui.QFont("Fantasque Sans Mono"))
 
     config = LoadConfig()
