@@ -98,13 +98,13 @@ class DataFile:
         #            self.next_image_index -= 1
         #        self.image.delete_instance()
         if self.image and not self.image_saved:
-            if not self.exists:
-                SaveDBAPSW(self.db, self.database_filename)
-                self.db = apsw_ext.APSWDatabase(self.database_filename)
-                for table in self.tables:
-                    table._meta.db = self.db
-                self.exists = True
             if self.image_uses > 0:
+                if not self.exists:
+                    SaveDBAPSW(self.db, self.database_filename)
+                    self.db = apsw_ext.APSWDatabase(self.database_filename)
+                    for table in self.tables:
+                        table._meta.db = self.db
+                    self.exists = True
                 self.image.save(force_insert=True)
                 self.next_image_index += 1
         try:
