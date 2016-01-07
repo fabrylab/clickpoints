@@ -11,6 +11,10 @@ import numpy as np
 
 from qimage2ndarray import array2qimage, rgb_view
 
+
+class ImageDisplaySignal(QtCore.QObject):
+    display = QtCore.pyqtSignal()
+
 class BigImageDisplay:
     def __init__(self, origin, window, config):
         self.number_of_imagesX = 0
@@ -41,6 +45,9 @@ class BigImageDisplay:
 
         self.eventFilters = []
 
+        self.signal =ImageDisplaySignal()
+        self.signal.display.connect(self.UpdatePixmaps)
+
     def AddEventFilter(self, event_filter):
         self.eventFilters.append(event_filter)
         for pixmap in self.pixMapItems:
@@ -70,6 +77,10 @@ class BigImageDisplay:
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
+        import thread
+        thread.start_new_thread(self.SetImage2, (image,))
+
+    def SetImage2(self, image):
         if len(image.shape) == 2:
             image = image.reshape((image.shape[0], image.shape[1], 1))
         self.number_of_imagesX = int(np.ceil(image.shape[1] / self.config.max_image_size))
@@ -87,8 +98,12 @@ class BigImageDisplay:
                 self.ImageSlices[i] = image[start_y:end_y, start_x:end_x, :]
                 self.QImages[i] = array2qimage(image[start_y:end_y, start_x:end_x, :])
                 self.QImageViews[i] = rgb_view(self.QImages[i])
-                self.pixMapItems[i].setPixmap(QPixmap(self.QImages[i]))
                 self.pixMapItems[i].setOffset(start_x, start_y)
+        self.signal.display.emit()
+
+    def UpdatePixmaps(self):
+        for i in range(len(self.pixMapItems)):
+            self.pixMapItems[i].setPixmap(QPixmap(self.QImages[i]))
         self.preview_pixMapItem.setPixmap(QPixmap())
         self.preview_slice = None
         if self.preview_rect is not None:
