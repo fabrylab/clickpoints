@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "includes"))
 from MaskHandler import MaskHandler
 from MarkerHandler import MarkerHandler
 from Timeline import Timeline
