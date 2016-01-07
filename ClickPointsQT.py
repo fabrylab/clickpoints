@@ -39,8 +39,8 @@ from Database import DataFile
 used_modules = []#[MarkerHandler, MaskHandler, GammaCorrection, InfoHud, Overview, Timeline, FolderBrowser, ScriptLauncher, VideoExporter, HelpText, AnnotationHandler]
 used_huds = []#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
-used_modules = [Timeline, MarkerHandler, MaskHandler, AnnotationHandler]
-used_huds = ["", "hud", "hud_upperRight", ""]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
+used_modules = [Timeline, MarkerHandler, MaskHandler, AnnotationHandler, GammaCorrection, InfoHud, VideoExporter]
+used_huds = ["", "hud", "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft", ""]#["hud", "hud_upperRight", "hud_lowerRight", "hud_lowerLeft", "hud", "", "", "", "", "hud",""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
@@ -102,6 +102,7 @@ class ClickPointsWindow(QWidget):
                 break
 
         self.media_handler.set_index(0)
+        self.media_handler.signals.loaded.connect(self.FrameLoaded)
         self.UpdateImage()
 
         if config.rotation != 0:
@@ -123,6 +124,7 @@ class ClickPointsWindow(QWidget):
         BroadCastEvent(self.modules, "LoadImageEvent", filename, frame_number)
 
     def LoadImage(self):
+        global im
         im = self.media_handler.get_file()
         self.ImageDisplay.SetImage(im)
         self.view.setExtend(*im.shape[:2][::-1])
@@ -140,8 +142,17 @@ class ClickPointsWindow(QWidget):
     def JumpToFrame(self, target_id, next_id=None):
         self.save()
         self.media_handler.set_index(target_id)
+        self.UpdateImage()
+        BroadCastEvent(self.modules, "FrameChangeEvent")
+        #self.media_handler.buffer_frame_threaded(target_id)
+        #if next_id is not None:
+        #    self.media_handler.buffer_frame_threaded(next_id, call=False)
+
+    def FrameLoaded(self, frame_number):
+        print("FrameLoaded", frame_number)
         #if next_id is not None:
         #    self.media_handler.buffer_frame_threaded(next_id)
+        self.media_handler.set_index(frame_number)
         self.UpdateImage()
         BroadCastEvent(self.modules, "FrameChangeEvent")
 
