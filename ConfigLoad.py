@@ -22,7 +22,7 @@ filterparam = {}
 jumps = (-1, +1, -10, +10, -100, +100, -1000, +1000)
 
 # @config `max_image_size = ` the maximum size of one image before it is internally split into tiles
-max_image_size = 2 ** 12
+max_image_size = 2 ** 14
 
 # @config `rotation =` the rotation of the image when starting
 rotation = 0
