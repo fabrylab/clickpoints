@@ -721,7 +721,7 @@ class MarkerHandler:
     def SetActiveMarkerType(self, new_index):
         try:
             counter_list = [c for i, c in self.counter.iteritems() if c.index == new_index]
-            print(counter_list, [c for i, c in self.counter.iteritems()])
+            #print(counter_list, [c for i, c in self.counter.iteritems()])
             counter = counter_list[0]
         except IndexError:
             return
@@ -794,7 +794,7 @@ class MarkerHandler:
             
     def ToggleInterfaceEvent(self):
         for key in self.counter:
-            print(self.counter[key])
+            #(self.counter[key])
             try:
                 self.counter[key].setVisible(self.hidden)
             except:
