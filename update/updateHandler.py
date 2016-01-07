@@ -16,7 +16,7 @@ except ImportError:
     from PyQt4.QtCore import pyqtSignal
 
 import lastNotifiedLogger as nl
-logfile="lastnotified.log"
+logfile = os.path.join(os.path.dirname(__file__), "lastnotified.log")
 timeformat='%Y%m%d-%H%M%S'
 
 class updaterSignals(QObject):

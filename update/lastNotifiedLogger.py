@@ -2,8 +2,7 @@ __author__ = 'fox'
 import os
 import datetime
 
-
-logfile="lastnotified.log"
+logfile = os.path.join(os.path.dirname(__file__), "lastnotified.log")
 timeformat='%Y%m%d-%H%M%S'
 
 class lastNotifiedLogger:
