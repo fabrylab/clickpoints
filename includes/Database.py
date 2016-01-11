@@ -3,7 +3,10 @@ import os
 import re
 from peewee import *
 from playhouse import apsw_ext
-import StringIO
+try:
+    from StringIO import StringIO  # python 2
+except ImportError:
+    from io import StringIO  # python 3
 
 def SQLMemoryDBFromFile(filename, *args, **kwargs):
 

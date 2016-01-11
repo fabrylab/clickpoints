@@ -4,7 +4,10 @@ import os
 import glob
 import time
 import numpy as np
-import thread
+try:
+    import thread  # python 2
+except ImportError:
+    import _thread as thread  # python 3
 
 try:
     from PyQt5 import QtGui, QtCore

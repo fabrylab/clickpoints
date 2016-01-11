@@ -38,13 +38,19 @@ used_huds = ["", "hud", "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft",
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
 
+def GetModuleInitArgs(mod):
+    import inspect
+    return inspect.getargspec(mod.__init__).args
+
 class ClickPointsWindow(QWidget):
     def zoomEvent(self, scale, pos):
         for module in self.modules:
             if "zoomEvent" in dir(module):
                 module.zoomEvent(scale, pos)
 
-    def __init__(self, parent=None):
+    def __init__(self, my_config, parent=None):
+        global config
+        config = my_config
         super(QWidget, self).__init__(parent)
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
 
@@ -81,7 +87,7 @@ class ClickPointsWindow(QWidget):
                 allowed = mod.can_create_module(config)
             if allowed:
                 # Get a list of the arguments the function tages
-                arg_name_list = mod.__init__.func_code.co_varnames[:mod.__init__.func_code.co_argcount]
+                arg_name_list = GetModuleInitArgs(mod)
                 # Set the proper hud argument
                 if "parent_hud" in arg_name_list:
                     arg_dict["parent_hud"] = eval("self.view."+hud)
@@ -248,9 +254,7 @@ class ClickPointsWindow(QWidget):
                 if event.key() == key and event.modifiers() == Qt.KeypadModifier:
                     self.JumpFrames(jump)
                     print(jump)
-
-
-if __name__ == '__main__':
+def main():
     if sys.platform[:3] == 'win':
         myappid = 'fabrybiophysics.clickpoints' # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
@@ -265,6 +269,10 @@ if __name__ == '__main__':
             code = compile(f.read(), addon + ".py", 'exec')
             exec(code)
 
-    window = ClickPointsWindow()
+    window = ClickPointsWindow(config)
     window.show()
     app.exec_()
+
+if __name__ == '__main__':
+    main()
+    

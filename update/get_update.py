@@ -1,10 +1,15 @@
-from __future__ import division,print_function
+from __future__ import division, print_function
 import os
 import sys
 import subprocess
 import shutil
 import urllib
 import zipfile
+
+try:
+    from urllib import urlopen  # python 2
+except ImportError:
+    from urllib.request import urlopen  # python 3
 
 ## parameters
 link_server_version=r"http://fabry_biophysics.bitbucket.org/clickpoints/version.html"
@@ -33,7 +38,7 @@ def copytree(src, dst, symlinks=False, ignore=None):
 def checkForUpdate():
     """" executed from base """
     ## get server version
-    r=urllib.urlopen(link_server_version)
+    r=urlopen(link_server_version)
     if not r.getcode()==200:
         print('Can\'t reach server')
         return False, '',''
