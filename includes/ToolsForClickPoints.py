@@ -11,6 +11,10 @@ import numpy as np
 
 from qimage2ndarray import array2qimage, rgb_view
 
+try:
+    import thread  # python 2
+except ImportError:
+    import _thread as thread  # python 3
 
 class ImageDisplaySignal(QtCore.QObject):
     display = QtCore.pyqtSignal()
@@ -77,7 +81,6 @@ class BigImageDisplay:
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
-        import thread
         thread.start_new_thread(self.SetImage2, (image,))
 
     def SetImage2(self, image):

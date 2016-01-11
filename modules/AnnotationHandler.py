@@ -6,8 +6,11 @@ try:
 except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QWidget, QDialog, QGridLayout, QHBoxLayout, QVBoxLayout,QSizePolicy, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QRadioButton
-    from PyQt4.QtCore import Qt, QTextStream, QFile, QStringList
+    from PyQt4.QtCore import Qt, QTextStream, QFile
 
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "includes"))
 from Tools import BroadCastEvent
 import peewee
 from datetime import datetime
@@ -153,7 +156,7 @@ class pyQtTagSelector(QWidget):
         super(QWidget, self).__init__(parent)
 
         self.cbTag = QtGui.QComboBox(self)
-        self.cbTag.addItems(QStringList(['']))
+        self.cbTag.addItems([''])
         self.cbTag.setInsertPolicy(QtGui.QComboBox.InsertAtBottom)
         self.cbTag.setEditable(True)
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -184,7 +187,7 @@ class pyQtTagSelector(QWidget):
         self.cbTag.setEditText(string)
 
     def setStringList(self, string_list):
-        self.cbTag.addItems(QStringList(string_list))
+        self.cbTag.addItems(string_list)
 
     def setActiveTagList(self, string_list):
         for tag in string_list:
@@ -326,7 +329,7 @@ class AnnotationOverview(QWidget):
 
         self.table = QTableWidget(0, 7, self)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setHorizontalHeaderLabels(QStringList(['Date', 'Tag', 'Comment', 'R', 'image', 'image_frame', 'id']))
+        self.table.setHorizontalHeaderLabels(['Date', 'Tag', 'Comment', 'R', 'image', 'image_frame', 'id'])
         self.table.hideColumn(4)
         self.table.hideColumn(5)
         self.table.hideColumn(6)

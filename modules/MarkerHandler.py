@@ -124,7 +124,7 @@ def HTMLColorToRGB(colorstring):
     colorstring = colorstring.strip()
     if colorstring[0] == '#': colorstring = colorstring[1:]
     if len(colorstring) != 6:
-        raise ValueError, "input #%s is not in #RRGGBB format" % colorstring
+        raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
     r, g, b = colorstring[:2], colorstring[2:4], colorstring[4:]
     r, g, b = [int(n, 16) for n in (r, g, b)]
     return (r, g, b)
@@ -652,7 +652,7 @@ class MarkerHandler:
         self.Crosshair = Crosshair(parent, view, image_display, config)
 
         self.UpdateCounter()
-        self.active_type = self.counter[self.counter.keys()[0]].type
+        self.active_type = self.counter[list(self.counter.keys())[0]].type
 
         # place tick marks for already present markers
         for item in self.marker_file.get_marker_frames():
@@ -670,7 +670,7 @@ class MarkerHandler:
 
         type_list = [self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2]) for type_id, type_def in self.config.types.items()]
         self.counter = {type.id: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
-        self.active_type = self.counter[self.counter.keys()[0]].type
+        self.active_type = self.counter[list(self.counter.keys())[0]].type
 
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)

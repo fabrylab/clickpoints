@@ -20,7 +20,7 @@ class lastNotifiedLogger:
             #print(self.dt)
         else:
             # no file so we should ask anyway
-            self.dt=datetime.datetime(1970,01,01,0,0,0)
+            self.dt=datetime.datetime(1970,1,1,0,0,0)
 
     def timeElapsed(self):
         self.tl= datetime.datetime.now()-self.dt

@@ -14,7 +14,10 @@ from Tools import BoxGrabber
 
 from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
 
-import thread
+try:
+    import thread  # python 3
+except ImportError:
+    import _thread  # python 3
 
 from PIL import Image
 from PIL.ExifTags import TAGS

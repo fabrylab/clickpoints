@@ -11,7 +11,13 @@ except ImportError:
     from PyQt4 import QtCore
     from PyQt4.QtCore import pyqtSignal, QThread, QObject
 
-import SocketServer, socket, threading, subprocess
+import socket, threading, subprocess
+try:
+    import SocketServer  # python 2
+    socketobject = socket._socketobject
+except ImportError:
+    import socketserver as SocketServer  # python 3
+    socketobject = socket.socket
 
 class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -27,7 +33,7 @@ def isPortInUse(type,ip,port_nr):
         return False
 
 class ScriptLauncher(QObject):
-    signal = pyqtSignal(str, socket._socketobject, tuple)
+    signal = pyqtSignal(str, socketobject, tuple)
 
     def __init__(self, window, media_handler, config=None):
         QObject.__init__(self)

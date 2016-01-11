@@ -1,4 +1,4 @@
-from __future__ import division, print_function
+from __future__ import division, print_function, unicode_literals
 import sys
 import os
 import json
@@ -6,6 +6,14 @@ try:
     from PyQt5.QtWidgets import QApplication, QFileDialog
 except ImportError:
     from PyQt4.QtGui import QApplication, QFileDialog
+
+def isstring(object):
+    PY3 = sys.version_info[0] == 3
+
+    if PY3:
+        return isinstance(object, str)
+    else:
+        return isinstance(object, basestring)
 
 start_globals = globals().copy()
 
@@ -157,7 +165,7 @@ def LoadConfig():
     file_ids=[]
     annotation_ids=[]
     # extract file pahts and ids if applicable
-    if isinstance(srcpath, basestring) and srcpath[-4:] == ".txt":
+    if isstring(srcpath) and srcpath[-4:] == ".txt":
         try:
             with open(srcpath, "r") as fp:
                 srcpath,file_ids,annotation_ids = zip(*[line.strip().split() for line in fp.readlines()])
@@ -223,7 +231,7 @@ def LoadConfig():
             if key in globals():
                 if isinstance(globals()[key], type(True)):
                     value = type(True)(value)
-                elif not isinstance(globals()[key], type("")):
+                elif not isstring(globals()[key]):
                     value = json.loads(value)
                 globals()[key] = value
 
