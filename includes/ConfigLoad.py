@@ -43,6 +43,9 @@ hide_interfaces = True
 # @config `addons =` a list of additional python files to load
 addons = []
 
+threaded_image_display = False
+threaded_image_load = False
+
 """ @config Marker """
 # @config `logname_tag =` specifies what to append to the log file.
 logname_tag = '_pos.txt'
