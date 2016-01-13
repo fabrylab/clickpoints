@@ -1,9 +1,12 @@
 from __future__ import print_function, division
 import os, sys
 import shutil
+import glob
 import fnmatch
 import re
 import zipfile
+
+from jinja2 import Environment, FileSystemLoader
 
 def LoadIgnorePatterns(file):
     ignore_pattern = []
@@ -46,6 +49,40 @@ def CopyDirectory(directory, dest_directory):
         if file != "files.txt":
             myzip.write(file, dest_path)
         file_list.write(dest_path+"\n")
+        print(file, os.path.join(path_to_temporary_installer, dest_path))
+        if not os.path.exists(os.path.join(path_to_temporary_installer, os.path.dirname(dest_path))):
+            os.makedirs(os.path.join(path_to_temporary_installer, os.path.dirname(dest_path)))
+        shutil.copy(file, os.path.join(path_to_temporary_installer, dest_path))
+    os.chdir(old_dir)
+
+def CopyInstallerFiles(directory):
+    global myzip, file_list
+    old_dir = os.getcwd()
+    os.chdir("clickpoints")
+    subfolder = r"development\pynsist"
+
+    env = Environment(loader=FileSystemLoader(subfolder))
+
+    filelist = [file[2:] for file in os.popen("hg status -m -c").read().split("\n") if file != ""]
+    for file in filelist:
+        if not file.startswith(subfolder):
+            continue
+        target = file[len(subfolder)+1:]
+        if not os.path.exists(os.path.join(path_to_temporary_installer, os.path.dirname(target))):
+            os.makedirs(os.path.join(path_to_temporary_installer, os.path.dirname(target)))
+        if target.endswith(".nsi"):
+            template = env.get_template(target)
+            with open(os.path.join(path_to_temporary_installer, target), 'w') as fp:
+                fp.write(template.render(extension_list=[".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif", ".avi", ".mp4"]))
+        elif target.endswith(".cfg"):
+            template = env.get_template(target)
+            with open(os.path.join(path_to_temporary_installer, target), 'w') as fp:
+                fp.write(template.render(version=new_version))
+        else:
+            shutil.copy(file, os.path.join(path_to_temporary_installer, target))
+
+    os.chdir(path_to_temporary_installer)
+    os.system(sys.executable+" -m nsist installer.cfg")
     os.chdir(old_dir)
 
 def CheckForUncommitedChanges(directory):
@@ -65,7 +102,7 @@ parser.add_option("-v", "--version", action="store", type="string", dest="versio
 parser.add_option("-t", "--test", action="store_false", dest="release", default=False)
 parser.add_option("-r", "--release", action="store_true", dest="release")
 (options, args) = parser.parse_args()
-if options.version is None:
+if options.version is None and len(args):
     options.version = args[0]
 
 print("MakeRelease started ...")
@@ -73,6 +110,9 @@ print("MakeRelease started ...")
 os.chdir("..")
 os.chdir("..")
 path_to_clickpointsproject = os.getcwd()
+path_to_temporary_installer = os.path.normpath(os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints", "Installer"))
+if not os.path.exists(path_to_temporary_installer):
+    os.makedirs(path_to_temporary_installer)
 
 # define paths to website, zipfile and version file
 path_to_website = r"..\fabry_biophysics.bitbucket.org\clickpoints"
@@ -86,7 +126,7 @@ path_destinations = ["installation", ".", "includes", "includes"]
 # check for new version name as command line argument
 new_version = ""
 try:
-    new_version = sys.argv[1]
+    new_version = options.version
 except IndexError:
     pass
 if new_version == "":
@@ -123,6 +163,9 @@ ignore_pattern = LoadIgnorePatterns(os.path.join("clickpoints", ".releaseignore"
 for path, path_dest in zip(paths, path_destinations):
     CopyDirectory(path, path_dest)
 
+# Put installer files to temporary directory
+CopyInstallerFiles(os.path.join(path_to_clickpointsproject, "clickpoints", "development", "pynsist"))
+
 print("finished zip")
 # Close
 file_list.close()
@@ -133,6 +176,7 @@ myzip.close()
 print("Move Files")
 shutil.move(zip_file, os.path.join(path_to_website, zip_file))
 shutil.copy(version_file, os.path.join(path_to_website, "version.html"))
+shutil.copy(os.path.join(path_to_temporary_installer, "build", "nsis", "ClickPoints_v"+new_version+".exe" ), os.path.join(path_to_website, "ClickPoints_v"+new_version+".exe"))
 
 if options.release:
     # Commit changes to ClickPoints
