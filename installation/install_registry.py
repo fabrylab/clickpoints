@@ -10,31 +10,36 @@ Args:
 '''
 
 
-import _winreg,sys, ntpath, os
-def set_reg(basekey,reg_path,name, value, type= _winreg.REG_SZ):
+import sys, ntpath, os
+try:
+    import _winreg as winreg  # python 2
+except ImportError:
+    import winreg  # python 3
+
+def set_reg(basekey, reg_path, name, value, type=winreg.REG_SZ):
     try:
-        _winreg.CreateKey(basekey, reg_path)
-        registry_key = _winreg.OpenKey(basekey, reg_path, 0,
-                                       _winreg.KEY_WRITE)
-        _winreg.SetValueEx(registry_key, name, 0, type, value)
-        _winreg.CloseKey(registry_key)
+        winreg.CreateKey(basekey, reg_path)
+        registry_key = winreg.OpenKey(basekey, reg_path, 0,
+                                       winreg.KEY_WRITE)
+        winreg.SetValueEx(registry_key, name, 0, type, value)
+        winreg.CloseKey(registry_key)
         return True
     except WindowsError:
         return False
 
 def del_reg(basekey,reg_path):
     try:
-        _winreg.DeleteKey(basekey,reg_path)
+        winreg.DeleteKey(basekey,reg_path)
         return True
     except WindowsError:
         return False
 
 def get_reg(basekey,reg_path,name):
     try:
-        registry_key = _winreg.OpenKey(basekey, reg_path, 0,
-                                       _winreg.KEY_READ)
-        value, regtype = _winreg.QueryValueEx(registry_key, name)
-        _winreg.CloseKey(registry_key)
+        registry_key = winreg.OpenKey(basekey, reg_path, 0,
+                                       winreg.KEY_READ)
+        value, regtype = winreg.QueryValueEx(registry_key, name)
+        winreg.CloseKey(registry_key)
         return value
     except WindowsError:
         return None
@@ -56,32 +61,32 @@ if __name__ == '__main__':
         bat_path = ntpath.join(os.path.abspath(os.path.dirname(__file__)), "..", "ClickPoints.bat \"%1\"")
 
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\\"
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,"ClickPoints")
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,"icon", icon_path)
+        set_reg(winreg.HKEY_CURRENT_USER,reg_path,None,"ClickPoints")
+        set_reg(winreg.HKEY_CURRENT_USER,reg_path,"icon", icon_path)
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\command\\"
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None, bat_path)
+        set_reg(winreg.HKEY_CURRENT_USER,reg_path,None, bat_path)
 
         # ### add for specific file types
         # # create entry under HKEY_CLASSES_ROOT\SystemFileAssociations to show in dropdown menu for specific file types
         for ext in extension:
             print("install for extension:%s" % ext)
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\" + ext + r"\shell\1ClickPoint\\"
-            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,"ClickPoints")
-            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,"icon", icon_path)
+            set_reg(winreg.HKEY_CURRENT_USER,reg_path,None,"ClickPoints")
+            set_reg(winreg.HKEY_CURRENT_USER,reg_path,"icon", icon_path)
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\"  + ext + r"\shell\1ClickPoint\command\\"
-            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,bat_path)
+            set_reg(winreg.HKEY_CURRENT_USER,reg_path,None,bat_path)
 
         # ### add to open WithLIST # damn you ICON!
         # register application
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\open\command\\"
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,bat_path)
+        set_reg(winreg.HKEY_CURRENT_USER,reg_path,None,bat_path)
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\DefaultIcon\\"
-        set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,icon_path)
+        set_reg(winreg.HKEY_CURRENT_USER,reg_path,None,icon_path)
 
         for ext in extension:
             print("install for extension:%s" % ext)
             reg_path = r"SOFTWARE\Classes\\"  + ext + r"\OpenWithList\ClickPoints.bat\\"
-            set_reg(_winreg.HKEY_CURRENT_USER,reg_path,None,None)
+            set_reg(winreg.HKEY_CURRENT_USER,reg_path,None,None)
 
 
 
@@ -89,32 +94,32 @@ if __name__ == '__main__':
         ### remove from DIRECTORY
         print("remove for directory")
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\command\\"
-        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        del_reg(winreg.HKEY_CURRENT_USER,reg_path)
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\\"
-        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        del_reg(winreg.HKEY_CURRENT_USER,reg_path)
 
         ### remove from types
         for ext in extension:
             print("remove for extension:%s" % ext)
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\"  + ext + r"\shell\1ClickPoint\command\\"
-            del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+            del_reg(winreg.HKEY_CURRENT_USER,reg_path)
             reg_path = r"SOFTWARE\Classes\SystemFileAssociations\\"  + ext + r"\shell\1ClickPoint\\"
-            del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+            del_reg(winreg.HKEY_CURRENT_USER,reg_path)
 
         ## remove from OpenWithList
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\open\command\\"
-        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        del_reg(winreg.HKEY_CURRENT_USER,reg_path)
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\open\\"
-        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        del_reg(winreg.HKEY_CURRENT_USER,reg_path)
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\shell\\"
-        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        del_reg(winreg.HKEY_CURRENT_USER,reg_path)
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\DefaultIcon\\"
-        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        del_reg(winreg.HKEY_CURRENT_USER,reg_path)
         reg_path = r"Software\Classes\Applications\ClickPoints.bat\\"
-        del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+        del_reg(winreg.HKEY_CURRENT_USER,reg_path)
 
         for ext in extension:
             reg_path = r"SOFTWARE\Classes\\"  + ext + r"\OpenWithList\ClickPoints.bat\\"
-            del_reg(_winreg.HKEY_CURRENT_USER,reg_path)
+            del_reg(winreg.HKEY_CURRENT_USER,reg_path)
     else:
         raise Exception('Uknown mode: %s' % mode)
