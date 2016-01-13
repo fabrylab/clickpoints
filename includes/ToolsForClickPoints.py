@@ -81,7 +81,10 @@ class BigImageDisplay:
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
-        thread.start_new_thread(self.SetImage2, (image,))
+        if self.config.threaded_image_display:
+            thread.start_new_thread(self.SetImage2, (image,))
+        else:
+            self.SetImage2(image)
 
     def SetImage2(self, image):
         if len(image.shape) == 2:

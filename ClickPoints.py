@@ -140,9 +140,12 @@ class ClickPointsWindow(QWidget):
     # jump absolute
     def JumpToFrame(self, target_id, next_id=None):
         self.save()
-        self.media_handler.set_index(target_id)
-        self.UpdateImage()
-        BroadCastEvent(self.modules, "FrameChangeEvent")
+        if config.threaded_image_load:
+            self.media_handler.buffer_frame_threaded(target_id)
+        else:
+            self.media_handler.set_index(target_id)
+            self.UpdateImage()
+            BroadCastEvent(self.modules, "FrameChangeEvent")
         #self.media_handler.buffer_frame_threaded(target_id)
         #if next_id is not None:
         #    self.media_handler.buffer_frame_threaded(next_id, call=False)
