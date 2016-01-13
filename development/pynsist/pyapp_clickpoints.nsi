@@ -17,9 +17,11 @@ RequestExecutionLevel admin
 !define MUI_ABORTWARNING
 !define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
 
+;; ClickPoints
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "..\..\nsis.bmp" ; optional
-!define MUI_WELCOMEFINISHPAGE_BITMAP "..\..\win.bmp"
+!define MUI_HEADERIMAGE_BITMAP "..\..\header.bmp" ; optional
+!define MUI_WELCOMEFINISHPAGE_BITMAP "..\..\panel.bmp"
+;; end ClickPoints
 
 ; UI pages
 [% block ui_pages %]
@@ -104,11 +106,10 @@ Section "!${PRODUCT_NAME}" sec_app
                    "NoRepair" 1
                    
                    
-  ;WriteRegStr HKCU "test" "foo" "barX"                   
+  ;; ClickPoints                
   ClearErrors
   FileOpen $0 "$INSTDIR\ClickPoints.bat" w
   IfErrors done
-  FileWrite $0 ";;test$\r$\n"
   FileWrite $0 '"$INSTDIR\Python\python.exe" "$INSTDIR\ClickPoints.launch.py" -srcpath=%1$\r$\n'
   FileWrite $0 "pause$\r$\n"
   FileClose $0
@@ -124,10 +125,13 @@ Section "!${PRODUCT_NAME}" sec_app
   WriteRegStr HKCU "Software\Classes\Directory\shell\1${PRODUCT_NAME}" "icon" "${PATH_ICON}"
   WriteRegStr HKCU "Software\Classes\Directory\shell\1${PRODUCT_NAME}\command" "" '${PATH_BAT}'
   
-  WriteRegStr HKCU "SOFTWARE\Classes\SystemFileAssociations\.jpg\shell\1ClickPoint\" "" "ClickPoints"
-  WriteRegStr HKCU "SOFTWARE\Classes\SystemFileAssociations\.jpg\shell\1ClickPoint\" "icon" "${PATH_ICON}"
-  WriteRegStr HKCU "SOFTWARE\Classes\SystemFileAssociations\.jpg\shell\1ClickPoint\command" "" '${PATH_BAT}'
-  WriteRegStr HKCU "SOFTWARE\Classes\.jpg\OpenWithList\ClickPoints.bat\" "" ""                  
+  {% for extension in extension_list %}
+  WriteRegStr HKCU "SOFTWARE\Classes\SystemFileAssociations\{{extension}}\shell\1ClickPoint\" "" "ClickPoints"
+  WriteRegStr HKCU "SOFTWARE\Classes\SystemFileAssociations\{{extension}}\shell\1ClickPoint\" "icon" "${PATH_ICON}"
+  WriteRegStr HKCU "SOFTWARE\Classes\SystemFileAssociations\{{extension}}\shell\1ClickPoint\command" "" '${PATH_BAT}'
+  WriteRegStr HKCU "SOFTWARE\Classes\{{extension}}\OpenWithList\ClickPoints.bat\" "" ""  
+  {% endfor %}  
+  ;; end ClickPoints
 
   ; Check if we need to reboot
   IfRebootFlag 0 noreboot
@@ -141,6 +145,8 @@ Section "Uninstall"
   SetShellVarContext all
   Delete $INSTDIR\uninstall.exe
   Delete "$INSTDIR\${PRODUCT_ICON}"
+  Delete $INSTDIR\ClickPoints.bat
+  
   RMDir /r "$INSTDIR\pkgs"
   ; Uninstall files
   [% for file, destination in ib.install_files %]
@@ -162,6 +168,18 @@ Section "Uninstall"
   [% endblock uninstall_shortcuts %]
   RMDir $INSTDIR
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+  
+  ;; ClickPoints
+  DeleteRegKey HKCU "Software\Classes\Applications\ClickPoints.bat"
+  
+  DeleteRegKey HKCU "Software\Classes\Directory\shell\1${PRODUCT_NAME}"
+  
+  {% for extension in extension_list %}
+  DeleteRegKey HKCU "SOFTWARE\Classes\SystemFileAssociations\{{extension}}\shell\1ClickPoint\"
+  DeleteRegKey HKCU "SOFTWARE\Classes\{{extension}}\OpenWithList\ClickPoints.bat\" 
+  {% endfor %} 
+  ;; end ClickPoints
+  
 SectionEnd
 
 [% endblock sections %]
