@@ -299,11 +299,11 @@ class MaskHandler:
             self.LoadMask(mask_entry.filename)
         else:
             if image.frames > 1:
-                number = ("%"+"%d" % np.ceil(np.log10(image.frames))+"d") % image_frame
+                number = "_"+("%"+"%d" % np.ceil(np.log10(image.frames))+"d") % image_frame
             else:
                 number = ""
             basename, ext = os.path.splitext(image.filename)
-            self.current_maskname = os.path.join(self.config.outputpath, basename + "_" + ext[1:] + "_" + number + self.config.maskname_tag)
+            self.current_maskname = os.path.join(self.config.outputpath, basename + "_" + ext[1:] + number + self.config.maskname_tag)
             self.LoadMask(None)
 
     def LoadMask(self, maskname):
