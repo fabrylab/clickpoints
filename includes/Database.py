@@ -94,19 +94,13 @@ class DataFile:
         self.image_saved = True
 
     def set_image(self, file_entry, frame, timestamp):
-        #if self.image:
-        #    use = self.table_marker.select(fn.count(self.table_marker.id).alias('count')).where(self.table_marker.image == self.image)[0]
-        #    if use.count == 0:
-        #        if self.next_image_index == self.image.id+1:
-        #            self.next_image_index -= 1
-        #        self.image.delete_instance()
         if self.image and not self.image_saved:
             if self.image_uses > 0:
                 if not self.exists:
                     SaveDBAPSW(self.db, self.database_filename)
                     self.db = apsw_ext.APSWDatabase(self.database_filename)
                     for table in self.tables:
-                        table._meta.db = self.db
+                        table._meta.database = self.db
                     self.exists = True
                 self.image.save(force_insert=True)
                 self.next_image_index += 1
