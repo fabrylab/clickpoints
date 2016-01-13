@@ -37,6 +37,9 @@ used_huds = ["", "hud", "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft",
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
+if not os.path.exists(icon_path):  # different position if installed with the installer
+    icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
+    clickpoints_path = os.path.join(os.path.dirname(__file__), "..")
 
 def GetModuleInitArgs(mod):
     import inspect
