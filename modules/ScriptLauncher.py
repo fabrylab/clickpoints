@@ -19,6 +19,9 @@ except ImportError:
     import socketserver as SocketServer  # python 3
     socketobject = socket.socket
 
+import imageio
+from includes import MemMap
+
 class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         self.server.signal.emit(self.request[0], self.request[1], self.client_address)
@@ -61,6 +64,8 @@ class ScriptLauncher(QObject):
         server_thread.start()
 
         self.running_processes = [None]*len(self.config.launch_scripts)
+        self.memmap = None
+        self.memmap_path = None
 
     def Command(self, command, socket, client_address):
         cmd, value = str(command).split(" ", 1)
@@ -68,9 +73,45 @@ class ScriptLauncher(QObject):
             self.window.JumpFrames(int(value))
         if cmd == "JumpToFrame":
             self.window.JumpToFrame(int(value))
+        if cmd == "JumpFramesWait":
+            self.window.JumpFrames(int(value))
+            socket.sendto(cmd, client_address)
+        if cmd == "JumpToFrameWait":
+            self.window.JumpToFrame(int(value))
+            socket.sendto(cmd, client_address)
+        if cmd == "GetImage":
+            try:
+                file_entry, image_id, image_frame = self.window.media_handler.get_file_entry(int(value))
+                #image_id, image_frame = self.window.media_handler.id_lookup[int(value)]
+            except IndexError:
+                socket.sendto(cmd + "", client_address)
+                return
+            image_entry = self.window.data_file.get_image(file_entry, image_frame, self.window.media_handler.get_timestamp(int(value)))
+            image_id = image_entry.id
+            image = self.window.media_handler.get_file(int(value))
+
+            shape = image.shape
+            if len(shape) == 2:
+                shape = (shape[0], shape[1], 1)
+
+            # TODO check for size change
+            if self.memmap is None:
+                self.memmap_path = os.path.normpath(os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints", "image.dat"))
+                layout = (
+                    dict(name="shape", type="uint32", shape=3),
+                    dict(name="type", type="|S30"),
+                    dict(name="data", type=str(image.dtype), shape=(shape[0]*shape[1]*shape[2])),
+                )
+
+                self.memmap = MemMap(self.memmap_path, layout)
+
+            self.memmap.shape[:] = shape
+            self.memmap.type = str(image.dtype)
+            self.memmap.data[:] = image.flatten()
+            socket.sendto(cmd + " " + self.memmap_path + " " + str(image_id) + " " + str(image_frame), client_address)
         if cmd == "GetImageName":
             name = self.window.media_handler.get_filename()
-            print(name)
+            #print(name)
             if name[0] is None:
                 socket.sendto(cmd + "", client_address)
             else:

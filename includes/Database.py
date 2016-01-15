@@ -93,17 +93,21 @@ class DataFile:
         self.image_uses = 0
         self.image_saved = True
 
+    def save_current_image(self):
+        if not self.exists:
+            SaveDBAPSW(self.db, self.database_filename)
+            self.db = apsw_ext.APSWDatabase(self.database_filename)
+            for table in self.tables:
+                table._meta.database = self.db
+            self.exists = True
+        self.image.save(force_insert=True)
+        self.image_saved = True
+        self.next_image_index += 1
+
     def set_image(self, file_entry, frame, timestamp):
         if self.image and not self.image_saved:
             if self.image_uses > 0:
-                if not self.exists:
-                    SaveDBAPSW(self.db, self.database_filename)
-                    self.db = apsw_ext.APSWDatabase(self.database_filename)
-                    for table in self.tables:
-                        table._meta.database = self.db
-                    self.exists = True
-                self.image.save(force_insert=True)
-                self.next_image_index += 1
+                self.save_current_image()
         try:
             self.image = self.table_images.get(self.table_images.filename == file_entry.filename)
             self.image_saved = True
@@ -119,3 +123,22 @@ class DataFile:
         self.image_frame = frame
         self.timestamp = timestamp
         return self.image
+
+    def get_image(self, file_entry, frame, timestamp):
+        try:
+            image = self.table_images.get(self.table_images.filename == file_entry.filename)
+        except DoesNotExist:
+            if self.image and not self.image_saved:
+                self.save_current_image()
+            try:
+                image = self.table_images.get(self.table_images.filename == file_entry.filename)
+            except DoesNotExist:
+                image = self.table_images(id=self.next_image_index)
+                image.filename = file_entry.filename
+                image.ext = file_entry.extension
+                image.frames = file_entry.frames
+                image.external_id = file_entry.external_id
+                image.id = self.next_image_index
+                self.next_image_index += 1
+                image.save(force_insert=True)
+        return image
