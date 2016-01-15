@@ -97,18 +97,20 @@ class ScriptLauncher(QObject):
             # TODO check for size change
             if self.memmap is None:
                 self.memmap_path = os.path.normpath(os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints", "image.dat"))
+                self.memmap_path_xml = os.path.normpath(os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints", "image.xml"))
                 layout = (
-                    dict(name="shape", type="uint32", shape=3),
+                    dict(name="shape", type="uint32", shape=(3,)),
                     dict(name="type", type="|S30"),
-                    dict(name="data", type=str(image.dtype), shape=(shape[0]*shape[1]*shape[2])),
+                    dict(name="data", type=str(image.dtype), shape=(shape[0]*shape[1]*shape[2],)),
                 )
 
                 self.memmap = MemMap(self.memmap_path, layout)
+                self.memmap.saveXML(self.memmap_path_xml)
 
             self.memmap.shape[:] = shape
             self.memmap.type = str(image.dtype)
             self.memmap.data[:] = image.flatten()
-            socket.sendto(cmd + " " + self.memmap_path + " " + str(image_id) + " " + str(image_frame), client_address)
+            socket.sendto(cmd + " " + self.memmap_path_xml + " " + str(image_id) + " " + str(image_frame), client_address)
         if cmd == "GetImageName":
             name = self.window.media_handler.get_filename()
             #print(name)
