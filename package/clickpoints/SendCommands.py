@@ -54,18 +54,9 @@ def GetImage(value):
         image_path, id, frame = results.split(" ")
     except ValueError:
         return None, None, None
-    layout_header = (
-                dict(name="shape", type="uint32", shape=3),
-                dict(name="type", type="|S30"),
-                )
 
-    memmap = MemMap(image_path, layout_header)
+    memmap = MemMap(image_path)
     shape = memmap.shape
-
-    layout_images = (
-            dict(name="data", type=memmap.type, shape=(shape[0]*shape[1]*shape[2])),
-    )
-    memmap.add(layout_images)
     image = memmap.data.reshape(shape).copy()
     return image, int(id), int(frame)
 
