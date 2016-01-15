@@ -60,8 +60,8 @@ class MarkerFile:
         class Marker(datafile.base_model):
             image = peewee.ForeignKeyField(datafile.table_images)
             image_frame = peewee.IntegerField()
-            x = peewee.IntegerField()
-            y = peewee.IntegerField()
+            x = peewee.FloatField()
+            y = peewee.FloatField()
             type = peewee.ForeignKeyField(Types)
             processed = peewee.IntegerField(default=0)
             partner_id = peewee.IntegerField(null=True)
@@ -319,6 +319,12 @@ class MyTrackItem(MyMarkerItem):
         self.active = True
 
     def FrameChanged(self, image, image_frame):
+        self.points_data = [point for point in self.marker_handler.marker_file.get_track_points(self.track)]
+        self.points_frames = []
+        for point in self.points_data:
+            frame = self.marker_handler.window.media_handler.get_frame_number_by_id(point.image.filename, point.image_frame)
+            self.points_frames.append(frame)
+
         for point in self.points_data:
             if point.image == image and point.image_frame == image_frame:
                 self.data = point
