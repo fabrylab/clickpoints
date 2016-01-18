@@ -29,11 +29,27 @@ class MaskFile:
             image_frame = peewee.IntegerField()
             filename = peewee.CharField()
 
+        class MaskTypes(datafile.base_model):
+            name = peewee.CharField()
+            color = peewee.CharField()
+            index = peewee.IntegerField()
+
         self.table_mask = Mask
-        self.data_file.tables.extend([Mask])
+        self.table_maskTypes = MaskTypes
+        self.data_file.tables.extend([Mask, MaskTypes])
 
         if not self.table_mask.table_exists():
             self.table_mask.create_table()
+        if not self.table_maskTypes.table_exists():
+            self.table_maskTypes.create_table()
+
+    def set_type(self, id, name, rgb_tuple, index):
+        try:
+            type = self.table_maskTypes.get(self.table_maskTypes.id == id)
+        except peewee.DoesNotExist:
+            type = self.table_maskTypes(id=id, name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), index=index)
+            type.save(force_insert=True)
+        return type
 
     def add_mask(self, **kwargs):
         kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
@@ -275,6 +291,7 @@ class MaskHandler:
     def UpdateCounter(self):
         for counter in self.counter:
             self.view.scene.removeItem(counter)
+        type_list = [self.mask_file.set_type(type_id, "Color", type_def[1], type_def[0]) for type_id, type_def in enumerate(self.config.draw_types)]
         self.counter = [MyCounter2(self.parent_hud, self, i) for i in range(len(self.config.draw_types))]
         for counter in self.counter:
             counter.setVisible(not self.hidden)
@@ -305,6 +322,13 @@ class MaskHandler:
             basename, ext = os.path.splitext(image.filename)
             self.current_maskname = os.path.join(self.config.outputpath, basename + "_" + ext[1:] + number + self.config.maskname_tag)
             self.LoadMask(None)
+
+    def ReloadMask(self):
+        print("ReloadMask");
+        mask_entry = self.mask_file.get_mask()
+        if mask_entry:
+            self.current_maskname = mask_entry.filename
+            self.LoadMask(mask_entry.filename)
 
     def LoadMask(self, maskname):
         mask_valid = False

@@ -21,6 +21,7 @@ except ImportError:
 
 import imageio
 from includes import MemMap
+from Tools import BroadCastEvent
 
 class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -38,11 +39,12 @@ def isPortInUse(type,ip,port_nr):
 class ScriptLauncher(QObject):
     signal = pyqtSignal(str, socketobject, tuple)
 
-    def __init__(self, window, media_handler, config=None):
+    def __init__(self, window, media_handler, modules, config=None):
         QObject.__init__(self)
         self.window = window
         self.media_handler = media_handler
         self.config = config
+        self.modules = modules
 
         self.HOST, self.PORT = "localhost", 55005
         # Try to connect the server at the next free port
@@ -78,6 +80,9 @@ class ScriptLauncher(QObject):
             socket.sendto(cmd, client_address)
         if cmd == "JumpToFrameWait":
             self.window.JumpToFrame(int(value))
+            socket.sendto(cmd, client_address)
+        if cmd == "ReloadMask":
+            BroadCastEvent(self.modules, "ReloadMask")
             socket.sendto(cmd, client_address)
         if cmd == "GetImage":
             try:

@@ -1,11 +1,11 @@
 from __future__ import print_function, division
 import numpy as np
-import re
-from peewee import *
+import os
 import peewee
 from playhouse import apsw_ext
 from playhouse.apsw_ext import apsw
 import time
+from PIL import Image
 
 class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
@@ -13,16 +13,16 @@ class DataFile:
         self.db = apsw_ext.APSWDatabase(database_filename)
 
         """ Basic Tables """
-        class BaseModel(Model):
+        class BaseModel(peewee.Model):
             class Meta:
                 database = self.db
 
         class Images(BaseModel):
-            filename = CharField()
-            ext = CharField()
-            frames = IntegerField(default=0)
-            external_id = IntegerField(null=True)
-            timestamp = DateTimeField(null=True)
+            filename = peewee.CharField()
+            ext = peewee.CharField()
+            frames = peewee.IntegerField(default=0)
+            external_id = peewee.IntegerField(null=True)
+            timestamp = peewee.DateTimeField(null=True)
 
         self.base_model = BaseModel
         self.table_images = Images
@@ -47,19 +47,71 @@ class DataFile:
             partner_id = peewee.IntegerField(null=True)
             track = peewee.ForeignKeyField(Tracks, null=True)
             class Meta:
-                indexes = ( (('image', 'image_frame', 'track'), True), )
+                indexes = ((('image', 'image_frame', 'track'), True), )
 
         self.table_marker = Marker
         self.table_tracks = Tracks
         self.table_types = Types
         self.tables.extend([Marker, Tracks, Types])
 
+        """ Mask Tables """
+        class Mask(BaseModel):
+            image = peewee.ForeignKeyField(Images)
+            image_frame = peewee.IntegerField()
+            filename = peewee.CharField()
+
+        class MaskTypes(BaseModel):
+            name = peewee.CharField()
+            color = peewee.CharField()
+            index = peewee.IntegerField()
+
+        self.table_mask = Mask
+        self.table_maskTypes = MaskTypes
+        self.tables.extend([Mask, MaskTypes])
+
         """ Connect """
         self.db.connect()
 
 database = DataFile()
 
+def GetImages():
+    """
+    Get all images sorted by filename
+
+    Returns
+    -------
+    entries : array_like
+        a query object containing all the images in the database file.
+    """
+    global database
+    query = database.table_images.select()
+    query.order_by(database.table_images.filename)
+    return query
+
 def GetMarker(image=None, image_frame=None, processed=None, type=None, track=None):
+    """
+    Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
+    ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
+    supplied, any entrie with a value from the list is machted.
+
+    Parameters
+    ----------
+    image : int, array, optional
+        the image id(s) for the markers to be selected.
+    image_frame : int, array, optional
+        the image frame(s) for the markers to be selected.
+    processed : bool, array, optional
+        the processed flag(s) for the markers to be selected.
+    type : int, array, optional
+        the type id(s) for the markers to be selected.
+    track : int, array, optional
+        the track id(s) for the markers to be selected.
+
+    Returns
+    -------
+    entries : array_like
+        a query object which can be iterated to get the track entries wich where machted by the paremeters provided.
+    """
     global database
     query = database.table_marker.select()
     parameter = [image, image_frame, processed, type, track]
@@ -75,6 +127,33 @@ def GetMarker(image=None, image_frame=None, processed=None, type=None, track=Non
     return query
 
 def SetMarker(id=None, image=None, image_frame=None, x=None, y=None, processed=None, partner=None, type=None, track=None):
+    """
+    Insert or update markers in the database file. Every parameter can either be omitted, to use the default value,
+    supplied with a single value, to use the same value for all entries, or be supplied with a list of values, to use a
+    different value for each entry. If any parameter is a list, multiple entries are inserted, otherwise just a single
+    value will be inserted or updated.
+
+    Parameters
+    ----------
+    id : int, array, optional
+        the id(s) for the markers to be inserted.
+    image : int, array, optional
+        the image id(s) for the markers to be inserted.
+    image_frame : int, array, optional
+        the image frame(s) for the markers to be inserted.
+    x : float, array, optional
+        the x coordinate(s) for the markers to be inserted.
+    y : float, array, optional
+        the y coordinate(s) for the markers to be inserted.
+    processed : bool, array, optional
+        the processed flag(s) for the markers to be inserted.
+    partner : int, array, optional
+        the partner id(s) for the markers to be inserted.
+    type : int, array, optional
+        the type id(s) for the markers to be inserted.
+    track : int, array, optional
+        the track id(s) for the markers to be inserted.
+    """
     global database
     data_sets = []
     table = database.table_marker
@@ -89,11 +168,9 @@ def SetMarker(id=None, image=None, image_frame=None, x=None, y=None, processed=N
             else:
                 data_set.append(str(value))
         data_sets.append(",\n ".join(data_set))
-        #print(data_sets)
     query = "INSERT OR REPLACE INTO marker (id, image_id, image_frame, x, y, processed, partner_id, type_id, track_id)\n VALUES (\n"
     query += "),\n (".join(data_sets)
     query += ");"
-    #print(query)
     while 1:
         try:
             database.db.execute_sql(query)
@@ -102,64 +179,83 @@ def SetMarker(id=None, image=None, image_frame=None, x=None, y=None, processed=N
             continue
         else:
             break
-    #print(database.table_marker.raw(query).execute())
-    #print(database.table_marker.raw(query))
 
-def ReadTypeDict(string):
-    dictionary = {}
-    matches = re.findall(
-        r"(\d*):\s*\[\s*\'([^']*?)\',\s*\[\s*([\d.]*)\s*,\s*([\d.]*)\s*,\s*([\d.]*)\s*\]\s*,\s*([\d.]*)\s*\]", string)
-    for match in matches:
-        dictionary[int(match[0])] = [match[1], map(float, match[2:5]), int(match[5])]
-    return dictionary
+def GetMask(image, image_frame=0):
+    """
+    Get the mask image data for the image with the id `image`. If the database already has an entry the corresponding
+    mask will be loaded, otherwise a new empty mask array will be created.
 
-def LoadLog(logname):
-    global types
-    points = []
-    types = {}
-    with open(logname) as fp:
-        for index, line in enumerate(fp.readlines()):
-            line = line.strip()
-            if line[:7] == "#@types":
-                type_string = line[7:].strip()
-                if type_string[0] == "{":
-                    try:
-                        types = ReadTypeDict(line[7:])
-                    except:
-                        print("ERROR: Type specification in %s broken, use types from config instead" % logname)
-                    continue
-            if line[0] == '#':
-                continue
-            line = line.split(" ")
-            x = float(line[0])
-            y = float(line[1])
-            marker_type = int(line[2])
-            if marker_type not in types.keys():
-                np.random.seed(marker_type)
-                types[marker_type] = ["id%d" % marker_type, np.random.randint(0, 255, 3), 0]
-            if len(line) == 3:
-                points.append(dict(x=x, y=y, type=marker_type))
-                continue
-            processed = int(line[3])
-            if marker_type == -1:
-                continue
-            marker_id = line[4]
-            partner_id = None
-            if len(line) >= 6:
-                partner_id = line[5]
-            points.append(dict(x=x, y=y, type=marker_type, id=marker_id, partner_id=partner_id, processed=processed))
-    return points, types
+    To save the changes on the mask use `SetMask`.
 
-def LoadLogIDindexed(logname):
-    points, types = LoadLog(logname)
-    points2 = {point["id"]: point for point in points}
-    return points2, types
+    Parameters
+    ----------
+    image : int
+        image id.
+    image_frame : int, optional
+        image frame number (default=0).
 
-def SaveLog(filename, points, types={}):
-    if isinstance(points, dict):
-        points = [points[id] for id in points]
-    data = ["%f %f %d %d %s %s\n" % (point["x"], point["y"], point["type"], point["processed"], point["id"], point["partner_id"]) for point in points]
-    with open(filename, 'w') as fp:
-        fp.write("#@types " + str(types) + "\n")
-        for line in data:
-            fp.write(line)
+    Returns
+    -------
+    mask : ndarray
+        mask data for the image.
+    """
+    global database
+    try:
+        # Test if mask already exists in database
+        mask_entry = database.table_mask.get(database.table_mask.image == image, database.table_mask.image_frame == image_frame)
+        # Load it
+        im = np.asarray(Image.open(mask_entry.filename))
+        im.setflags(write=True)
+        return im
+    except peewee.DoesNotExist:
+        # Create new mask according to image size
+        image_entry = database.table_images.get(database.table_images.id == image)
+        pil_image = Image.open(image_entry.filename)
+        im = np.zeros(pil_image.size, dtype=np.uint8)
+        return im
+
+def SetMask(mask, image, image_frame=0):
+    """
+    Add or overwrite the mask file for the image with the id `image` and the frame number `image_frame`
+
+    Parameters
+    ----------
+    mask : array_like
+        mask image data.
+    image : int
+        image id.
+    image_frame : int, optional
+        image frame number (default=0).
+    """
+    global database
+    try:
+        # Test if mask already exists in database
+        mask_entry = database.table_mask.get(database.table_mask.image == image, database.table_mask.image_frame == image_frame)
+        filename = mask_entry.filename
+    except peewee.DoesNotExist:
+        # Create new entry
+        mask_entry = database.table_mask(image=image, image_frame=image_frame)
+        # Get mask image name
+        image_entry = database.table_images.get(id=image)
+        if image_entry.frames > 1:
+            number = "_"+("%"+"%d" % np.ceil(np.log10(image_entry.frames))+"d") % image_frame
+        else:
+            number = ""
+        basename, ext = os.path.splitext(image_entry.filename)
+        directory, basename = os.path.split(basename)
+        current_maskname = os.path.join(directory, basename + "_" + ext[1:] + number + "_mask.png")
+        filename = current_maskname
+        # Save entry
+        mask_entry.filename = current_maskname
+        mask_entry.save()
+
+    # Create image
+    pil_image = Image.fromarray(mask)
+    # Create color palette
+    lut = np.zeros(3 * 256, np.uint8)
+    for draw_type in database.table_maskTypes.select():
+        index = draw_type.index
+        lut[index * 3:(index + 1) * 3] = [int("0x"+draw_type.color[i:i+2], 16) for i in [1, 3, 5]]
+    pil_image.putpalette(lut)
+    # Save mask
+    pil_image.save(filename)
