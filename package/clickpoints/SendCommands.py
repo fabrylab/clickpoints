@@ -69,6 +69,9 @@ def GetMarkerName(value):
 def updateHUD(value):
     return send("updateHUD %s \n" % value)
 
+def ReloadMask():
+    return send2("ReloadMask \n")
+
 terminate_signal = False
 def CatchTerminateSignal():
     def signal_handler(signal, frame):
