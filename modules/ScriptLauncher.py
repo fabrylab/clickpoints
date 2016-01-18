@@ -116,21 +116,6 @@ class ScriptLauncher(QObject):
             self.memmap.type = str(image.dtype)
             self.memmap.data[:] = image.flatten()
             socket.sendto(cmd + " " + self.memmap_path_xml + " " + str(image_id) + " " + str(image_frame), client_address)
-        if cmd == "GetImageName":
-            name = self.window.media_handler.get_filename()
-            #print(name)
-            if name[0] is None:
-                socket.sendto(cmd + "", client_address)
-            else:
-                socket.sendto(cmd + " " + name, client_address)
-        if cmd == "GetMarkerName":
-            name = self.window.media_handler.get_filename()
-            if name[0] is None:
-                socket.sendto(cmd + "", client_address)
-            else:
-                # TODO GetLogName doesnt exist in new version
-                name = self.window.GetModule("MarkerHandler").GetLogName(os.path.join(*name))
-                socket.sendto(cmd + " " + name, client_address)
         if cmd == "updateHUD":
             try:
                 self.window.GetModule('InfoHud').updateHUD(value)
