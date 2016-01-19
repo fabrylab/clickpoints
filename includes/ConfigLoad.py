@@ -167,7 +167,7 @@ def LoadConfig():
     dont_process_filelist = False
     file_ids=[]
     annotation_ids=[]
-    # extract file pahts and ids if applicable
+    # extract file paths and ids if applicable
     if isstring(srcpath) and srcpath[-4:] == ".txt":
         try:
             with open(srcpath, "r") as fp:
@@ -185,7 +185,7 @@ def LoadConfig():
     """ Get config data """
 
     # Search config recursive in the folder tree or from the command line
-    if type(srcpath) == type(""):
+    if isstring(srcpath):
         # check if srcpath is a directory
         if os.path.isdir(srcpath):
             # append / or \ to mark as DIR
