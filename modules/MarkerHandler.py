@@ -53,7 +53,7 @@ class MarkerFile:
             uid = peewee.CharField()
 
         class Types(datafile.base_model):
-            name = peewee.CharField()
+            name = peewee.CharField(unique=True)
             color = peewee.CharField()
             mode = peewee.IntegerField()
 
@@ -66,6 +66,8 @@ class MarkerFile:
             processed = peewee.IntegerField(default=0)
             partner_id = peewee.IntegerField(null=True)
             track = peewee.ForeignKeyField(Tracks, null=True)
+            class Meta:
+                indexes = ((('image', 'image_frame', 'track'), True), )
 
         self.table_marker = Marker
         self.table_tracks = Tracks
@@ -83,9 +85,9 @@ class MarkerFile:
 
     def set_type(self, id, name, rgb_tuple, mode):
         try:
-            type = self.table_types.get(self.table_types.id == id)
+            type = self.table_types.get(self.table_types.name == name)
         except peewee.DoesNotExist:
-            type = self.table_types(id=id, name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), mode=mode)
+            type = self.table_types(name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), mode=mode)
             type.save(force_insert=True)
         return type
 
@@ -150,7 +152,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.setPen(QPen(QColor(0, 0, 0, 0)))
 
         if len(self.marker_handler.counter):
-            self.marker_handler.counter[self.data.type.id].AddCount(1)
+            self.marker_handler.GetCounter(self.data.type).AddCount(1)
 
         self.dragged = False
         self.setAcceptHoverEvents(True)
@@ -202,7 +204,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.data.delete_instance()
 
     def OnRemove(self):
-        self.marker_handler.counter[self.data.type.id].AddCount(-1)
+        self.marker_handler.GetCounter(self.data.type).AddCount(-1)
         if self.partner and self.partner.rectObj:
             self.marker_handler.view.scene.removeItem(self.partner.rectObj)
             self.partner.rectObj = None
@@ -599,7 +601,7 @@ class MyCounter(QGraphicsRectItem):
     def AddCount(self, new_count):
         self.count += new_count
         self.text.setText(
-            str(self.type.id) + ": " + self.type.name + " %d" % self.count)
+            str(self.index) + ": " + self.type.name + " %d" % self.count)
         rect = self.text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
@@ -659,6 +661,7 @@ class MarkerHandler:
 
         self.UpdateCounter()
         self.active_type = self.counter[list(self.counter.keys())[0]].type
+        self.active_type_index = 0
 
         # place tick marks for already present markers
         for item in self.marker_file.get_marker_frames():
@@ -675,11 +678,18 @@ class MarkerHandler:
             self.view.scene.removeItem(self.counter[counter])
 
         type_list = [self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2]) for type_id, type_def in self.config.types.items()]
-        self.counter = {type.id: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
+        type_list = self.marker_file.get_type_list()
+        self.counter = {index: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
         self.active_type = self.counter[list(self.counter.keys())[0]].type
 
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
+
+    def GetCounter(self, type):
+        for index in self.counter:
+            if self.counter[index].type == type:
+                return self.counter[index]
+        raise NameError("A non existant type was referenced")
 
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
@@ -731,9 +741,9 @@ class MarkerHandler:
             counter = counter_list[0]
         except IndexError:
             return
-        self.counter[self.active_type.id].SetToInactiveColor()
+        self.counter[self.active_type_index].SetToInactiveColor()
         self.active_type = counter.type
-        self.counter[self.active_type.id].SetToActiveColor()
+        self.counter[self.active_type_index].SetToActiveColor()
 
     def zoomEvent(self, scale, pos):
         self.scale = scale
@@ -748,9 +758,9 @@ class MarkerHandler:
             point.setActive(active)
         if active:
             self.view.setCursor(QCursor(QtCore.Qt.ArrowCursor))
-            self.counter[self.active_type.id].SetToActiveColor()
+            self.counter[self.active_type_index].SetToActiveColor()
         else:
-            self.counter[self.active_type.id].SetToInactiveColor()
+            self.counter[self.active_type_index].SetToInactiveColor()
         return True
 
     def toggleMarkerShape(self):
