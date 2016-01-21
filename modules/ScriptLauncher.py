@@ -84,6 +84,9 @@ class ScriptLauncher(QObject):
         if cmd == "ReloadMask":
             BroadCastEvent(self.modules, "ReloadMask")
             socket.sendto(cmd, client_address)
+        if cmd == "ReloadMarker":
+            BroadCastEvent(self.modules, "ReloadMarker", int(value))
+            socket.sendto(cmd, client_address)
         if cmd == "GetImage":
             try:
                 file_entry, image_id, image_frame = self.window.media_handler.get_file_entry(int(value))
@@ -100,9 +103,15 @@ class ScriptLauncher(QObject):
                 shape = (shape[0], shape[1], 1)
 
             # TODO check for size change
+            if sys.platform[:3] == 'win':
+                clickpoints_storage_path = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
+            else:
+                clickpoints_storage_path = os.path.expanduser("~/.clickpoints/")
+            if not os.path.exists(clickpoints_storage_path):
+                os.makedirs(clickpoints_storage_path)
             if self.memmap is None:
-                self.memmap_path = os.path.normpath(os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints", "image.dat"))
-                self.memmap_path_xml = os.path.normpath(os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints", "image.xml"))
+                self.memmap_path = os.path.normpath(os.path.join(clickpoints_storage_path, "image.dat"))
+                self.memmap_path_xml = os.path.normpath(os.path.join(clickpoints_storage_path, "image.xml"))
                 layout = (
                     dict(name="shape", type="uint32", shape=(3,)),
                     dict(name="type", type="|S30"),
