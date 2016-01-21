@@ -97,8 +97,11 @@ class MarkerFile:
         self.data_file.image_uses += 1
         return self.table_marker(**kwargs)
 
-    def get_marker_list(self):
-        return self.table_marker.select().where(self.table_marker.image == self.data_file.image.id, self.table_marker.image_frame == self.data_file.image_frame)
+    def get_marker_list(self, image_id=None, image_frame=None):
+        if image_id is None:
+            image_id = self.data_file.image.id
+            image_frame = self.data_file.image_frame
+        return self.table_marker.select().where(self.table_marker.image == image_id, self.table_marker.image_frame == image_frame)
 
     def get_type_list(self):
         return self.table_types.select()
@@ -351,26 +354,40 @@ class MyTrackItem(MyMarkerItem):
         self.SetTrackActive(False)
         self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track)
 
-    def AddTrackPoint(self):
-        self.points_data[self.current_frame] = self.data
+    def update(self, frame, point):
+        if point is not None:
+            self.AddTrackPoint(frame, point)
+        else:
+            self.RemoveTrackPoint(frame)
+
+    def AddTrackPoint(self, frame=None, point=None):
+        if frame is None:
+            frame = self.current_frame
+        if point is None:
+            point = self.data
+        self.points_data[frame] = point
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
-        self.SetTrackActive(True)
+        if frame == self.current_frame:
+            self.SetTrackActive(True)
         BroadCastEvent(self.marker_handler.modules, "MarkerPointsAdded")
 
-    def RemoveTrackPoint(self):
-        self.saved = True
+    def RemoveTrackPoint(self, frame=None):
+        if frame is None:
+            frame = self.current_frame
         try:
-            self.points_data.pop(self.current_frame)
+            data = self.points_data.pop(frame)
+            data.delete_instance()
         except KeyError:
             pass
-        self.data.delete_instance()
         if len(self.points_data) == 0:
             self.track.delete_instance()
             self.marker_handler.RemovePoint(self)
-        else:
-            self.min_frame = min(self.points_data.keys())
-            self.max_frame = max(self.points_data.keys())
+            return
+        self.min_frame = min(self.points_data.keys())
+        self.max_frame = max(self.points_data.keys())
+        if frame == self.current_frame:
+            self.saved = True
             self.SetTrackActive(False)
 
     def OnRemove(self):
@@ -709,6 +726,20 @@ class MarkerHandler:
                 return self.counter[index]
         raise NameError("A non existant type was referenced")
 
+    def ReloadMarker(self, frame):
+        image, image_frame = self.window.media_handler.id_lookup[frame]
+        if self.config.tracking:
+            marker_list = self.marker_file.get_marker_list(image, image_frame)
+            marker_list = {track.id: track for track in marker_list}
+            for track in self.points:
+                if track.track.id in marker_list:
+                    track.update(frame, marker_list[track.track_id])
+                    marker_list.pop(track.track_id)
+                else:
+                    track.update(frame, None)
+        if frame == self.frame_number:
+            self.LoadLog()
+
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
         image = self.data_file.image
@@ -738,8 +769,9 @@ class MarkerHandler:
             self.RemovePoint(self.points[0], no_notice=True)
         marker_list = self.marker_file.get_marker_list()
         for marker in marker_list:
-            self.points.append(MyMarkerItem(self, marker, saved=True))
-            self.points[-1].setScale(1 / self.scale)
+            if not marker.track:
+                self.points.append(MyMarkerItem(self, marker, saved=True))
+                self.points[-1].setScale(1 / self.scale)
 
     def RemovePoint(self, point, no_notice=False):
         point.OnRemove()

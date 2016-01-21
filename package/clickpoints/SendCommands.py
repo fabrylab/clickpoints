@@ -120,6 +120,18 @@ def ReloadMask():
     return send_and_receive("ReloadMask \n")
 
 
+def ReloadMarker(frame):
+    """
+    Reloads the marker from the given frame in ClickPoints.
+
+    Parameters
+    ---------
+    frame : int
+        the frame which ClickPoints should reload.
+    """
+    return send_and_receive("ReloadMarker %d \n" % frame)
+
+
 def CatchTerminateSignal():
     """
     Catch the terminate signal when ClickPoints wants to close the script execution. When called at the beginning of the
