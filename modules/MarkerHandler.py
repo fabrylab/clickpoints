@@ -319,6 +319,7 @@ class MyTrackItem(MyMarkerItem):
         self.path = QPainterPath()
 
         self.active = True
+        self.changed = False
 
     def FrameChanged(self, image, image_frame):
         self.points_data = [point for point in self.marker_handler.marker_file.get_track_points(self.track)]
@@ -347,6 +348,7 @@ class MyTrackItem(MyMarkerItem):
         BroadCastEvent(self.marker_handler.modules, "MarkerPointsAdded")
 
     def RemoveTrackPoint(self):
+        self.changed = True
         try:
             index = self.points_data.index(self.data)
             self.points_data.pop(index)
@@ -433,6 +435,7 @@ class MyTrackItem(MyMarkerItem):
     def mouseMoveEvent(self, event):
         if self.active is False:
             self.AddTrackPoint()
+        self.changed = True
         self.UpdateLine()
         MyMarkerItem.mouseMoveEvent(self, event)
 
@@ -449,7 +452,7 @@ class MyTrackItem(MyMarkerItem):
         MyMarkerItem.setScale(self, scale)
 
     def save(self):
-        if self.active is True:
+        if self.active is True and self.changed is True:
             self.data.save()
 
 
