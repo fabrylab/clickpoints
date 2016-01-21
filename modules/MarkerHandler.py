@@ -309,7 +309,7 @@ class MyMarkerItem(QGraphicsPathItem):
 
 
 class MyTrackItem(MyMarkerItem):
-    def __init__(self, marker_handler, points_data, track):
+    def __init__(self, marker_handler, points_data, track, saved=False):
         MyMarkerItem.__init__(self, marker_handler, points_data[0])
         self.points_data = SortedDict()
         for point in points_data:
@@ -326,7 +326,7 @@ class MyTrackItem(MyMarkerItem):
 
         self.hidden = False
         self.active = True
-        self.changed = False
+        self.saved = saved
 
     def FrameChanged(self, image, image_frame, frame):
 
@@ -359,16 +359,18 @@ class MyTrackItem(MyMarkerItem):
         BroadCastEvent(self.marker_handler.modules, "MarkerPointsAdded")
 
     def RemoveTrackPoint(self):
-        self.changed = True
+        self.saved = True
         try:
             self.points_data.pop(self.current_frame)
-        except ValueError:
+        except KeyError:
             pass
         self.data.delete_instance()
         if len(self.points_data) == 0:
             self.track.delete_instance()
             self.marker_handler.RemovePoint(self)
         else:
+            self.min_frame = min(self.points_data.keys())
+            self.max_frame = max(self.points_data.keys())
             self.SetTrackActive(False)
 
     def OnRemove(self):
@@ -387,14 +389,14 @@ class MyTrackItem(MyMarkerItem):
             self.pathItem.setOpacity(0.5)
 
     def CheckToDisplay(self):
-        if self.min_frame < self.current_frame < self.max_frame:
+        if self.min_frame-2 <= self.current_frame <= self.max_frame+2:
             return True
         return False
 
     def UpdateLine(self):
         self.path = QPainterPath()
         circle_width = self.scale_value * 10
-        last_frame = -1
+        last_frame = None
         for frame in self.points_data:
             if self.config.tracking_show_trailing != -1 and frame < self.current_frame-self.config.tracking_show_trailing:
                 continue
@@ -447,7 +449,7 @@ class MyTrackItem(MyMarkerItem):
     def mouseMoveEvent(self, event):
         if self.active is False:
             self.AddTrackPoint()
-        self.changed = True
+        self.saved = False
         self.UpdateLine()
         MyMarkerItem.mouseMoveEvent(self, event)
 
@@ -464,8 +466,9 @@ class MyTrackItem(MyMarkerItem):
         MyMarkerItem.setScale(self, scale)
 
     def save(self):
-        if self.active is True and self.changed is True:
+        if not self.saved:
             self.data.save()
+            self.saved = True
 
 
 class Crosshair(QGraphicsPathItem):
@@ -728,7 +731,7 @@ class MarkerHandler:
         for track in track_list:
             data = [point for point in self.marker_file.get_track_points(track)]
             if len(data):
-                self.points.append(MyTrackItem(self, data, track))
+                self.points.append(MyTrackItem(self, data, track, saved=True))
 
     def LoadLog(self):
         while len(self.points):
@@ -801,7 +804,7 @@ class MarkerHandler:
             elif self.config.tracking:
                 track = self.marker_file.set_track()
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, track=track)
-                self.points.append(MyTrackItem(self, [data], track))
+                self.points.append(MyTrackItem(self, [data], track, saved=False))
                 self.points[-1].setScale(1 / self.scale)
             else:
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type)
