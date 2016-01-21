@@ -13,6 +13,7 @@ except ImportError:
     from PyQt4.QtCore import Qt
 
 import numpy as np
+from sortedcontainers import SortedDict
 
 from qimage2ndarray import array2qimage, rgb_view
 
@@ -307,52 +308,57 @@ class MyMarkerItem(QGraphicsPathItem):
 class MyTrackItem(MyMarkerItem):
     def __init__(self, marker_handler, points_data, track):
         MyMarkerItem.__init__(self, marker_handler, points_data[0])
-        self.points_data = points_data
-        self.points_frames = []
-        for point in self.points_data:
+        self.points_data = SortedDict()
+        for point in points_data:
             frame = self.marker_handler.window.media_handler.get_frame_number_by_id(point.image.filename, point.image_frame)
-            self.points_frames.append(frame)
+            self.points_data[frame] = point
 
         self.track = track
+        self.current_frame = 0
+        self.min_frame = min(self.points_data.keys())
+        self.max_frame = max(self.points_data.keys())
 
         self.pathItem = QGraphicsPathItem(self.parent)
         self.path = QPainterPath()
 
+        self.hidden = False
         self.active = True
         self.changed = False
 
-    def FrameChanged(self, image, image_frame):
-        self.points_data = [point for point in self.marker_handler.marker_file.get_track_points(self.track)]
-        self.points_frames = []
-        for point in self.points_data:
-            frame = self.marker_handler.window.media_handler.get_frame_number_by_id(point.image.filename, point.image_frame)
-            self.points_frames.append(frame)
+    def FrameChanged(self, image, image_frame, frame):
 
-        for point in self.points_data:
-            if point.image == image and point.image_frame == image_frame:
-                self.data = point
-                self.setPos(self.data.x, self.data.y)
-                self.UpdateLine()
-                self.SetTrackActive(True)
-                if self.partner and self.rectObj:
-                    self.UpdateRect()
-                return
-        self.UpdateLine()
+        self.current_frame = frame
+        hide = not self.CheckToDisplay()
+        if hide != self.hidden:
+            self.hidden = hide
+            self.setVisible(not self.hidden)
+            self.pathItem.setVisible(not self.hidden)
+
+        if frame in self.points_data:
+            self.data = self.points_data[frame]
+            self.setPos(self.data.x, self.data.y)
+            self.UpdateLine()
+            self.SetTrackActive(True)
+            if self.partner and self.rectObj:
+                self.UpdateRect()
+            return
+
+        if not self.hidden:
+            self.UpdateLine()
         self.SetTrackActive(False)
         self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track)
 
     def AddTrackPoint(self):
-        self.points_data.append(self.data)
-        self.points_frames.append(self.marker_handler.window.media_handler.get_index())
+        self.points_data[self.current_frame] = self.data
+        self.min_frame = min(self.points_data.keys())
+        self.max_frame = max(self.points_data.keys())
         self.SetTrackActive(True)
         BroadCastEvent(self.marker_handler.modules, "MarkerPointsAdded")
 
     def RemoveTrackPoint(self):
         self.changed = True
         try:
-            index = self.points_data.index(self.data)
-            self.points_data.pop(index)
-            self.points_frames.pop(index)
+            self.points_data.pop(self.current_frame)
         except ValueError:
             pass
         self.data.delete_instance()
@@ -377,17 +383,21 @@ class MyTrackItem(MyMarkerItem):
             self.setOpacity(1)
             self.pathItem.setOpacity(0.5)
 
+    def CheckToDisplay(self):
+        if self.min_frame < self.current_frame < self.max_frame:
+            return True
+        return False
+
     def UpdateLine(self):
         self.path = QPainterPath()
-        frame_indices = np.argsort(self.points_frames)
         circle_width = self.scale_value * 10
-        last_frame = self.points_frames[frame_indices[0]]
-        for index in frame_indices:
-            frame = self.points_frames[index]
-            if (self.config.tracking_show_trailing != -1 and frame < self.marker_handler.frame_number-self.config.tracking_show_trailing) or \
-               (self.config.tracking_show_leading != -1 and frame > self.marker_handler.frame_number+self.config.tracking_show_leading):
-                    continue
-            point = self.points_data[index]
+        last_frame = -1
+        for frame in self.points_data:
+            if self.config.tracking_show_trailing != -1 and frame < self.current_frame-self.config.tracking_show_trailing:
+                continue
+            if self.config.tracking_show_leading != -1 and frame > self.current_frame+self.config.tracking_show_leading:
+                break
+            point = self.points_data[frame]
             if last_frame == frame-1:
                 self.path.lineTo(point.x, point.y)
             else:
@@ -401,17 +411,16 @@ class MyTrackItem(MyMarkerItem):
         if self.partner:
             return MyMarkerItem.draw(self, image, start_x, start_y)
         color = (self.color.red(), self.color.green(), self.color.blue())
-        frame_indices = np.argsort(self.points_frames)
         circle_width = 10*scale
-        last_frame = self.points_frames[frame_indices[0]]
+        last_frame = -1
         last_point = np.array([0, 0])
         offset = np.array([start_x, start_y])
-        for index in frame_indices:
-            frame = self.points_frames[index]
-            if (self.config.tracking_show_trailing != -1 and frame < self.marker_handler.frame_number-self.config.tracking_show_trailing) or \
-               (self.config.tracking_show_leading != -1 and frame > self.marker_handler.frame_number+self.config.tracking_show_leading):
-                    continue
-            point = self.points_data[index]
+        for frame in self.points_data:
+            if self.config.tracking_show_trailing != -1 and frame < self.current_frame-self.config.tracking_show_trailing:
+                continue
+            if self.config.tracking_show_leading != -1 and frame > self.current_frame+self.config.tracking_show_leading:
+                break
+            point = self.points_data[frame]
             print("--", point, offset)
             point = np.array([point.x, point.y])-offset
             print(point)
@@ -703,7 +712,7 @@ class MarkerHandler:
                 self.LoadTracks()
             else:
                 for track in self.points:
-                    track.FrameChanged(image, image_frame)
+                    track.FrameChanged(image, image_frame, framenumber)
         else:
             self.LoadLog()
 
