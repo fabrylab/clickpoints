@@ -134,11 +134,12 @@ def HTMLColorToRGB(colorstring):
 
 
 class MyMarkerItem(QGraphicsPathItem):
-    def __init__(self, marker_handler, data):
+    def __init__(self, marker_handler, data, saved=False):
         QGraphicsPathItem.__init__(self, marker_handler.MarkerParent)
         self.parent = marker_handler.MarkerParent
         self.marker_handler = marker_handler
         self.data = data
+        self.saved = saved
 
         self.config = self.marker_handler.config
 
@@ -238,6 +239,7 @@ class MyMarkerItem(QGraphicsPathItem):
 
     def mouseMoveEvent(self, event):
         pos = self.parent.mapFromItem(self, event.pos()-self.drag_start_pos)
+        self.saved = False
         self.setPos(pos.x(), pos.y())
         self.data.x, self.data.y = pos.x(), pos.y()
         self.marker_handler.PointsUnsaved = True
@@ -280,7 +282,8 @@ class MyMarkerItem(QGraphicsPathItem):
         super(QGraphicsPathItem, self).setScale(scale)
 
     def save(self):
-        self.data.save()
+        if not self.saved:
+            self.data.save()
 
     def draw(self, image, start_x, start_y, scale=1):
         w = 1.*scale
@@ -732,7 +735,7 @@ class MarkerHandler:
             self.RemovePoint(self.points[0], no_notice=True)
         marker_list = self.marker_file.get_marker_list()
         for marker in marker_list:
-            self.points.append(MyMarkerItem(self, marker))
+            self.points.append(MyMarkerItem(self, marker, saved=True))
             self.points[-1].setScale(1 / self.scale)
 
     def RemovePoint(self, point, no_notice=False):
@@ -802,7 +805,7 @@ class MarkerHandler:
                 self.points[-1].setScale(1 / self.scale)
             else:
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type)
-                self.points.append(MyMarkerItem(self, data))
+                self.points.append(MyMarkerItem(self, data, saved=False))
                 self.points[-1].setScale(1 / self.scale)
             return True
         return False
