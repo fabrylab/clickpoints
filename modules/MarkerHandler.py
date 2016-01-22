@@ -573,7 +573,7 @@ class Crosshair(QGraphicsPathItem):
         slices2 = []
         empty = False
         for length, slice_border in zip(source.shape, slices):
-            slice_border = map(int, slice_border)
+            slice_border = [int(b) for b in slice_border]
             shape.append(slice_border[1] - slice_border[0])
             if slice_border[1] < 0:
                 empty = True
