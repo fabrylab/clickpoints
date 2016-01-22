@@ -123,6 +123,10 @@ paths = [".", "clickpoints", "mediahandler", "qextendedgraphicsview"]
 path_destinations = ["installation", ".", "includes", "includes"]
 
 """ Checks """
+# get old version name
+with open(version_file, "r") as fp:
+    old_version = fp.read().strip()
+
 # check for new version name as command line argument
 new_version = ""
 try:
@@ -130,13 +134,12 @@ try:
 except IndexError:
     pass
 if new_version == "":
-    print("ERROR: no version number supplied. Use 'MakeRelease.py 0.9' to release as version 0.9")
-    sys.exit(1)
+    if options.release == False:
+        new_version = old_version
+    else:
+        print("ERROR: no version number supplied. Use 'MakeRelease.py 0.9' to release as version 0.9")
+        sys.exit(1)
 zip_file = zip_file % new_version
-
-# get old version name
-with open(version_file, "r") as fp:
-    old_version = fp.read().strip()
 
 # check if new version name differs
 if options.release and old_version == new_version:
