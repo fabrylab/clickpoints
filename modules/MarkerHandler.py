@@ -786,7 +786,7 @@ class MarkerHandler:
 
     def SetActiveMarkerType(self, new_index):
         try:
-            counter_list = [c for i, c in self.counter.iteritems() if c.index == new_index]
+            counter_list = [c for i, c in self.counter.items() if c.index == new_index]
             #print(counter_list, [c for i, c in self.counter.iteritems()])
             counter = counter_list[0]
         except IndexError:
