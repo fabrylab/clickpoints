@@ -80,7 +80,9 @@ class ClickPointsWindow(QWidget):
         self.media_handler = MediaHandler(config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending)
 
         # DataFile
-        self.data_file = DataFile()
+        if config.database_file == "":
+            config.database_file = "clickpoints.db"
+        self.data_file = DataFile(config.database_file)
 
         self.modules = []
         arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}

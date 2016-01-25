@@ -1,5 +1,5 @@
-#__key__ = "BAMBOO-PROJECT-X"
-#__name__ = "Marker Handler"
+__key__ = "BAMBOO-PROJECT-X"
+__testname__ = "Marker Handler"
 
 import sys
 import os
@@ -16,10 +16,10 @@ import ClickPoints
 
 app = QApplication(sys.argv)
 
-class ClickPointsTest_MarkerHandler(unittest.TestCase):
+class Test_MarkerHandler(unittest.TestCase):
 
     def createInstance(self, path, database_file):
-        """Create the GUI"""
+        """Create the GUI """
         self.test_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", path))
         self.database_file = database_file
         print("Test Path", self.test_path)
@@ -32,7 +32,6 @@ class ClickPointsTest_MarkerHandler(unittest.TestCase):
                 exec(code)
         self.database_path = os.path.join(self.test_path, database_file)
         if os.path.exists(self.database_path):
-            print("Remove:", self.database_path)
             os.remove(self.database_path)
         self.window = ClickPoints.ClickPointsWindow(config)
         self.window.show()
@@ -59,7 +58,7 @@ class ClickPointsTest_MarkerHandler(unittest.TestCase):
         QTest.keyPress(self.window, Qt.Key_F2)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
 
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=1000)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
 
         # Test moving the marker
@@ -82,27 +81,8 @@ class ClickPointsTest_MarkerHandler(unittest.TestCase):
         QTest.mouseClick(self.window.view.viewport(), Qt.RightButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "Marker deletion didn't work")
 
-    def test_createDatabase(self):
-        """ Test if creating the database on demand works """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002", "CreateDatabase.db")
-        QTest.keyPress(self.window, Qt.Key_F2)
-        self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
-        self.assertFalse(os.path.exists(self.database_path), "Database file already present.")
-
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
-        self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
-
-        self.assertFalse(os.path.exists(self.database_path), "Database file already present.")
-
-        # Test saving database on frame change
-        QTest.keyPress(self.window, Qt.Key_Right, delay=10)
-        QTest.keyPress(self.window, Qt.Key_Right, delay=10)
-        self.assertTrue(os.path.exists(self.database_path), "Database file was not created.")
-
-#if __name__ == "__main__":
-#    unittest.main()
 if __name__ == '__main__':
-    log_file = 'log_file.txt'
+    log_file = 'log_'+__key__+'.txt'
     with open(log_file, "w") as f:
         runner = unittest.TextTestRunner(f)
         unittest.main(testRunner=runner)

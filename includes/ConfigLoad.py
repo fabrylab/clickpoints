@@ -19,6 +19,7 @@ start_globals = globals().copy()
 
 """ @config General """
 srcpath = ""
+database_file = ""
 # @config `outputpath =` the path where to save the log and mask file. Set to `None` defaults to the `srcpath`
 outputpath = ""
 # @config `filename_data_regex = ` specify a regular expression to obtain meta-data from filenames
