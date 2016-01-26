@@ -85,7 +85,11 @@ if __name__ == '__main__':
         log_file = 'log_'+metadata["key"]+'.txt'
         shutil.copy(log_file, os.path.join(path, log_file))
         HgAdd(path, log_file)
-        data.append([log_file, metadata["key"], metadata["testname"], "https://example.com/path/to/build/info"])#"http://fabry_biophysics.bitbucket.org/clickpoints/tests/"+revision+"/"])
+        revision = "1c448d26826ace770af9ee2e67765c0d4a25a35c"
+        print("http://fabry_biophysics.bitbucket.org/clickpoints/tests/"+revision+"/"+log_file)
+        #data.append([log_file, metadata["key"], metadata["testname"], "http://fabry_biophysics.bitbucket.org/clickpoints/images/Logo.png"])
+        #data.append([log_file, metadata["key"], metadata["testname"], "https://fabry_biophysics.bitbucket.org/clickpoints/tests/1c448d26826ace770af9ee2e67765c0d4a25a35c/log_DATAFILE.txt"])#"http://fabry_biophysics.bitbucket.org/clickpoints/tests/"+revision+"/"])
+        data.append([log_file, metadata["key"], metadata["testname"], "http://example.com/path/to/build/info"])#"http://fabry_biophysics.bitbucket.org/clickpoints/tests/"+revision+"/"])
     HgCommit(path, "Test results revision "+revision, push=True)
     for args in data:
         PushResults(*args)
