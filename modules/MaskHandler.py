@@ -348,7 +348,8 @@ class MaskHandler:
             self.MaskEmpty = True
         self.MaskUnsaved = False
         if self.image_mask_full.mode == 'P':
-            a = np.array(map(ord, self.image_mask_full.palette.getdata()[1])).reshape(256, 3)
+            a = np.array([c for c in self.image_mask_full.palette.getdata()[1]]).reshape(256, 3)
+            #a = np.array(map(ord, self.image_mask_full.palette.getdata()[1])).reshape(256, 3)
             new_draw_types = []
             for index, color in enumerate(a):
                 if index == 0 or sum(color) != 0:
