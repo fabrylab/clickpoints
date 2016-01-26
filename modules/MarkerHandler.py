@@ -20,6 +20,8 @@ from qimage2ndarray import array2qimage, rgb_view
 import uuid
 
 import json
+import matplotlib.pyplot as plt
+import random
 
 from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
 
@@ -142,8 +144,22 @@ def HTMLColorToRGB(colorstring):
     if colorstring[0] == '#': colorstring = colorstring[1:]
     if len(colorstring) != 6 and len(colorstring) != 8:
         raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
-    return (int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2)))
+    return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
 
+def GetColorFromMap(identifier, id):
+    match = re.match(r"([^\(]*)\((\d*)\)", identifier)
+    count = 100
+    if match:
+        result = match.groups()
+        identifier = result[0]
+        count = int(result[1])
+    cmap = plt.get_cmap(identifier)
+    if id is None:
+        id = 0
+    index = int((id*255/count) % 256)
+    color = np.array(cmap(index))
+    color = color[:3]*255
+    return color
 
 class MyMarkerItem(QGraphicsPathItem):
     def __init__(self, marker_handler, data, saved=False):
@@ -161,6 +177,11 @@ class MyMarkerItem(QGraphicsPathItem):
             self.style.update(json.loads(self.data.style))
         if "color" not in self.style:
             self.style["color"] = self.data.type.color
+
+        if self.style["color"][0] != "#":
+            self.style["color"] = GetColorFromMap(self.style["color"], self.data.id)
+        else:
+            self.style["color"] = HTMLColorToRGB(self.style["color"])
 
         self.scale_value = 1
 
@@ -192,7 +213,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.ApplyStyle()
 
     def ApplyStyle(self):
-        self.color = QColor(*HTMLColorToRGB(self.style["color"]))
+        self.color = QColor(*self.style["color"])
         if self.style.get("shape", "cross") == "cross":
             self.setBrush(QBrush(self.color))
             self.setPen(QPen(QColor(0, 0, 0, 0)))
@@ -370,9 +391,16 @@ class MyTrackItem(MyMarkerItem):
             self.style.update(json.loads(self.data.track.style))
         if "color" not in self.style:
             self.style["color"] = self.data.type.color
+        if self.style["color"][0] != "#":
+            self.style["color"] = GetColorFromMap(self.style["color"], self.track.id)
+        else:
+            self.style["color"] = HTMLColorToRGB(self.style["color"])
         self.track_style = self.style.copy()
         if self.data.style:
             self.style.update(json.loads(self.data.style))
+
+        if self.style["color"][0] == "#":
+            self.style["color"] = HTMLColorToRGB(self.style["color"])
 
         self.ApplyStyle()
 
