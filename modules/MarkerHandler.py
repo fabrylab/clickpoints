@@ -349,6 +349,7 @@ class MyTrackItem(MyMarkerItem):
             self.points_data[frame] = point
 
         self.track = track
+        self.track_style = self.style.copy()
         self.current_frame = 0
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
@@ -367,10 +368,11 @@ class MyTrackItem(MyMarkerItem):
             self.style.update(json.loads(self.data.type.style))
         if self.track.style:
             self.style.update(json.loads(self.data.track.style))
-        if self.data.style:
-            self.style.update(json.loads(self.data.style))
         if "color" not in self.style:
             self.style["color"] = self.data.type.color
+        self.track_style = self.style.copy()
+        if self.data.style:
+            self.style.update(json.loads(self.data.style))
 
         self.ApplyStyle()
 
@@ -457,8 +459,9 @@ class MyTrackItem(MyMarkerItem):
 
     def UpdateLine(self):
         self.path = QPainterPath()
-        circle_width = self.scale_value * 10
+        circle_width = self.scale_value * 10 * self.track_style.get("track-point-scale", 1)
         last_frame = None
+        shape = self.track_style.get("track-point-shape", "circle")
         for frame in self.points_data:
             if self.config.tracking_show_trailing != -1 and frame < self.current_frame-self.config.tracking_show_trailing:
                 continue
@@ -470,7 +473,10 @@ class MyTrackItem(MyMarkerItem):
             else:
                 self.path.moveTo(point.x, point.y)
             last_frame = frame
-            self.path.addEllipse(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width, circle_width)
+            if shape == "circle":
+                self.path.addEllipse(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width, circle_width)
+            if shape == "rect":
+                self.path.addRect(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width, circle_width)
             self.path.moveTo(point.x, point.y)
         self.pathItem.setPath(self.path)
 
@@ -525,7 +531,10 @@ class MyTrackItem(MyMarkerItem):
     def setScale(self, scale):
         MyMarkerItem.setScale(self, scale)
         try:
-            self.pathItem.setPen(QPen(self.pathItem.pen().color(), 2 * self.scale_value))
+            line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine, dashdotdot=Qt.DashDotDotLine)
+            line_style = line_styles[self.track_style.get("track-line-style", "solid")]
+            line_width = self.track_style.get("track-line-width", 2)
+            self.pathItem.setPen(QPen(self.pathItem.pen().color(), line_width * self.scale_value, line_style))
             self.UpdateLine()
         except AttributeError:
             pass
