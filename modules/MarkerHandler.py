@@ -19,6 +19,8 @@ from qimage2ndarray import array2qimage, rgb_view
 
 import uuid
 
+import json
+
 from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
 
 w = 1.
@@ -45,6 +47,12 @@ path3.addEllipse(-0.5 * r3, -0.5 * r3, r3, r3)  # addRect(-0.5,-0.5, 1, 1)
 point_display_types = [path1, path2, path3]
 point_display_type = 0
 
+path_circle = QPainterPath()
+#path_circle.arcTo(-5, -5, 10, 10, 0, 130)
+path_circle.addEllipse(-5, -5, 10, 10)
+
+paths = dict(cross=path1, circle=path_circle)
+
 
 class MarkerFile:
     def __init__(self, datafile):
@@ -52,11 +60,13 @@ class MarkerFile:
 
         class Tracks(datafile.base_model):
             uid = peewee.CharField()
+            style = peewee.CharField(null=True)
 
         class Types(datafile.base_model):
             name = peewee.CharField(unique=True)
             color = peewee.CharField()
             mode = peewee.IntegerField()
+            style = peewee.CharField(null=True)
 
         class Marker(datafile.base_model):
             image = peewee.ForeignKeyField(datafile.table_images)
@@ -67,6 +77,7 @@ class MarkerFile:
             processed = peewee.IntegerField(default=0)
             partner_id = peewee.IntegerField(null=True)
             track = peewee.ForeignKeyField(Tracks, null=True)
+            style = peewee.CharField(null=True)
             class Meta:
                 indexes = ((('image', 'image_frame', 'track'), True), )
 
@@ -129,11 +140,9 @@ def HTMLColorToRGB(colorstring):
     """ convert #RRGGBB to an (R, G, B) tuple """
     colorstring = colorstring.strip()
     if colorstring[0] == '#': colorstring = colorstring[1:]
-    if len(colorstring) != 6:
+    if len(colorstring) != 6 and len(colorstring) != 8:
         raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
-    r, g, b = colorstring[:2], colorstring[2:4], colorstring[4:]
-    r, g, b = [int(n, 16) for n in (r, g, b)]
-    return (r, g, b)
+    return (int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2)))
 
 
 class MyMarkerItem(QGraphicsPathItem):
@@ -142,19 +151,22 @@ class MyMarkerItem(QGraphicsPathItem):
         self.parent = marker_handler.MarkerParent
         self.marker_handler = marker_handler
         self.data = data
+        self.config = self.marker_handler.config
         self.saved = saved
 
-        self.config = self.marker_handler.config
+        self.style = {}
+        if self.data.type.style:
+            self.style.update(json.loads(self.data.type.style))
+        if self.data.style:
+            self.style.update(json.loads(self.data.style))
+        if "color" not in self.style:
+            self.style["color"] = self.data.type.color
 
         self.scale_value = 1
 
         self.UpdatePath()
         self.setPos(self.data.x, self.data.y)
         self.setZValue(20)
-
-        self.color = QColor(*HTMLColorToRGB(self.data.type.color))
-        self.setBrush(QBrush(self.color))
-        self.setPen(QPen(QColor(0, 0, 0, 0)))
 
         if len(self.marker_handler.counter):
             self.marker_handler.GetCounter(self.data.type).AddCount(1)
@@ -176,6 +188,19 @@ class MyMarkerItem(QGraphicsPathItem):
                 self.rectObj = QGraphicsLineItem(self.parent)
             self.rectObj.setPen(QPen(self.color))
             self.UpdateRect()
+
+        self.ApplyStyle()
+
+    def ApplyStyle(self):
+        self.color = QColor(*HTMLColorToRGB(self.style["color"]))
+        if self.style.get("shape", "cross") == "cross":
+            self.setBrush(QBrush(self.color))
+            self.setPen(QPen(QColor(0, 0, 0, 0)))
+        else:
+            self.setBrush(QBrush(QColor(0, 0, 0, 0)))
+            self.setPen(QPen(self.color, self.style.get("line-width", 1)))
+        self.UpdatePath()
+        self.setScale(None)
 
     def FindPartner(self):
         if self.data.partner_id:
@@ -275,14 +300,18 @@ class MyMarkerItem(QGraphicsPathItem):
         return True
 
     def UpdatePath(self):
-        self.setPath(point_display_types[point_display_type])
+        if point_display_type == 0:
+            self.setPath(paths[self.style.get("shape", "cross")])
+        else:
+            self.setPath(point_display_types[point_display_type])
         self.setActive(point_display_type != len(point_display_types) - 1)
 
-    def setScale(self, scale):
-        self.scale_value = scale
+    def setScale(self, scale=None):
+        if scale is not None:
+            self.scale_value = scale
         if self.rectObj:
-            self.rectObj.setPen(QPen(self.color, 2 * scale))
-        super(QGraphicsPathItem, self).setScale(scale)
+            self.rectObj.setPen(QPen(self.color, 2 * self.scale_value))
+        super(QGraphicsPathItem, self).setScale(self.scale_value*self.style.get("scale", 1))
 
     def save(self):
         if not self.saved:
@@ -326,10 +355,24 @@ class MyTrackItem(MyMarkerItem):
 
         self.pathItem = QGraphicsPathItem(self.parent)
         self.path = QPainterPath()
+        self.pathItem.setPen(QPen(self.color))
 
         self.hidden = False
         self.active = True
         self.saved = saved
+
+    def UpdateStyle(self):
+        self.style = {}
+        if self.data.type.style:
+            self.style.update(json.loads(self.data.type.style))
+        if self.track.style:
+            self.style.update(json.loads(self.data.track.style))
+        if self.data.style:
+            self.style.update(json.loads(self.data.style))
+        if "color" not in self.style:
+            self.style["color"] = self.data.type.color
+
+        self.ApplyStyle()
 
     def FrameChanged(self, image, image_frame, frame):
 
@@ -347,12 +390,14 @@ class MyTrackItem(MyMarkerItem):
             self.SetTrackActive(True)
             if self.partner and self.rectObj:
                 self.UpdateRect()
+            self.UpdateStyle()
             return
 
         if not self.hidden:
             self.UpdateLine()
         self.SetTrackActive(False)
         self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track)
+        #self.UpdateStyle()
 
     def update(self, frame, point):
         if point is not None:
@@ -478,9 +523,13 @@ class MyTrackItem(MyMarkerItem):
         self.UpdateLine()
 
     def setScale(self, scale):
-        self.pathItem.setPen(QPen(self.color, 2 * scale))
-        self.UpdateLine()
         MyMarkerItem.setScale(self, scale)
+        try:
+            self.pathItem.setPen(QPen(self.pathItem.pen().color(), 2 * self.scale_value))
+            self.UpdateLine()
+        except AttributeError:
+            pass
+
 
     def save(self):
         if not self.saved:
