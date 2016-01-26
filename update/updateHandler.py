@@ -34,6 +34,7 @@ class checkUpdateThread(QThread):
         print("version %s" % localversion)
 
         if ret:
+            return
             # check if we should notify the user
             #print("verify user anoyance level...")
             lnl = nl.lastNotifiedLogger(logfile)

@@ -1,4 +1,4 @@
-__key__ = "BAMBOO-PROJECT-X"
+__key__ = "MODULE_MARKER"
 __testname__ = "Marker Handler"
 
 import sys
@@ -41,7 +41,6 @@ class Test_MarkerHandler(unittest.TestCase):
         self.createInstance(r"ClickPointsExamples\TweezerVideos\002", "JumpFrames.db")
         self.window.JumpFrames(20)
         self.assertFalse(os.path.exists(self.database_path))
-        self.assertFalse(True)
 
     def test_createMarker(self):
         """ Test if creating marker works """
