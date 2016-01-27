@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys, os
 
 directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -18,7 +19,7 @@ if sys.platform.startswith('win'):
         fp.write(" -srcpath=%1\n")
         fp.write("IF %ERRORLEVEL% NEQ 0 pause\n")
 else:
-    sh_file = os.path.join(directory, "ClickPoints")
+    sh_file = os.path.join(directory, "clickpoints")
     with open(sh_file, 'w') as fp:
         print("Writing ClickPoints bash file")
         fp.write("#!/bin/bash\n")
@@ -35,9 +36,9 @@ else:
     print("Copying ClickPoints bash file to /bin/")
     os.popen("sudo cp %s /bin/" % sh_file)
         
-    desktop_file = "/home/"+os.popen('whoami').read()[:-1]+"/.local/share/applications/ClickPoints.desktop"
+    desktop_file = "/home/"+os.popen('whoami').read()[:-1]+"/.local/share/applications/clickpoints.desktop"
     with open(desktop_file, 'w') as fp:
-        print("Writing ClickPoints.desktop")
+        print("Writing clickpoints.desktop")
         fp.write("[Desktop Entry]\n")
         fp.write("Type=Application\n")
         fp.write("Name=ClickPoints\n")
@@ -48,6 +49,13 @@ else:
         fp.write("Terminal=true\n")
         fp.write("Icon="+icon_path+"\n")
         fp.write("Categories=Development;Science;IDE;Qt;\n")
-        fp.write("MimeType=inode/directory;video/mp4;video/x-msvideo;video/mpeg;image/bmp;image/png;image/jpeg;image/tiff;image/gif;$\n")
+        fp.write("MimeType=inode/directory;video/*;image/*;video/mp4;video/x-msvideo;video/mpeg;image/bmp;image/png;image/jpeg;image/tiff;image/gif;$\n")
         fp.write("InitialPreference=10\n")
+
+    for ext in ["inode/directory", "ideo/mp4", "video/x-msvideo", "video/mpeg", "image/bmp", "image/png", "image/jpeg", "image/gif", "image/tiff"]:
+        print("Setting ClickPoints as default application for %s" % ext)
+        os.popen("sudo xdg-mime default clickpoints.desktop "+ext)
+    os.chdir("package")
+    os.popen("sudo python setup.py develop")
+    os.chdir("..")
         
