@@ -370,7 +370,7 @@ class MyTrackItem(MyMarkerItem):
             self.points_data[frame] = point
 
         self.track = track
-        self.track_style = self.style.copy()
+        self.UpdateStyle()
         self.current_frame = 0
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
@@ -562,7 +562,7 @@ class MyTrackItem(MyMarkerItem):
             line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine, dashdotdot=Qt.DashDotDotLine)
             line_style = line_styles[self.track_style.get("track-line-style", "solid")]
             line_width = self.track_style.get("track-line-width", 2)
-            self.pathItem.setPen(QPen(self.pathItem.pen().color(), line_width * self.scale_value, line_style))
+            self.pathItem.setPen(QPen(QColor(*self.track_style["color"]), line_width * self.scale_value, line_style))
             self.UpdateLine()
         except AttributeError:
             pass
