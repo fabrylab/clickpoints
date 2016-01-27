@@ -55,6 +55,10 @@ path_circle.addEllipse(-5, -5, 10, 10)
 
 paths = dict(cross=path1, circle=path_circle)
 
+TYPE_Normal = 0
+TYPE_Rect = 1
+TYPE_Line = 2
+TYPE_Track = 4
 
 class MarkerFile:
     def __init__(self, datafile):
@@ -199,13 +203,13 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.partner = None
         self.rectObj = None
-        if self.data.type.mode == 1 or self.data.type.mode == 2:
+        if self.data.type.mode & TYPE_Rect or self.data.type.mode & TYPE_Line:
             self.FindPartner()
 
         if self.partner:
-            if self.data.type.mode == 1:
+            if self.data.type.mode & TYPE_Rect:
                 self.rectObj = QGraphicsRectItem(self.parent)
-            if self.data.type.mode == 2:
+            elif self.data.type.mode & TYPE_Line:
                 self.rectObj = QGraphicsLineItem(self.parent)
             self.rectObj.setPen(QPen(self.color))
             self.UpdateRect()
@@ -267,9 +271,9 @@ class MyMarkerItem(QGraphicsPathItem):
     def UpdateRect(self):
         x, y = self.pos().x(), self.pos().y()
         x2, y2 = self.partner.pos().x(), self.partner.pos().y()
-        if self.data.type.mode == 1:
+        if self.data.type.mode & TYPE_Rect:
             self.rectObj.setRect(x, y, x2 - x, y2 - y)
-        if self.data.type.mode == 2:
+        elif self.data.type.mode & TYPE_Line:
             self.rectObj.setLine(x, y, x2, y2)
 
     def mouseRightClicked(self):
@@ -292,7 +296,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.setPos(pos.x(), pos.y())
         self.data.x, self.data.y = pos.x(), pos.y()
         self.marker_handler.PointsUnsaved = True
-        if self.config.tracking:
+        if self.data.type.mode & TYPE_Track:
             self.UpdateLine()
         if self.UseCrosshair:
             self.marker_handler.Crosshair.MoveCrosshair(pos.x(), pos.y())
@@ -347,12 +351,12 @@ class MyMarkerItem(QGraphicsPathItem):
         if self.partner:
             if self.rectObj:
                 x2, y2 = self.partner.pos().x()-start_x, self.partner.pos().y()-start_y
-                if self.data.type.mode == 1:
+                if self.data.type.mode & TYPE_Rect:
                     image.line([x , y , x2, y ], color, width=3*scale)
                     image.line([x , y2, x2, y2], color, width=3*scale)
                     image.line([x , y , x , y2], color, width=3*scale)
                     image.line([x2, y , x2, y2], color, width=3*scale)
-                if self.data.type.mode == 2:
+                if self.data.type.mode & TYPE_Line:
                     image.line([x, y, x2, y2], color, width=3*scale)
             return
         image.rectangle([x-w, y-r2, x+w, y-b], color)
@@ -759,6 +763,7 @@ class MarkerHandler:
         self.parent_hud = parent_hud
         self.modules = modules
         self.points = []
+        self.tracks = []
         self.counter = []
         self.scale = 1
         self.config = config
@@ -793,6 +798,8 @@ class MarkerHandler:
     def drawToImage(self, image, start_x, start_y, scale=1):
         for point in self.points:
             point.draw(image, start_x, start_y, scale)
+        for track in self.tracks:
+            track.draw(image, start_x, start_y, scale)
 
     def UpdateCounter(self):
         for counter in self.counter:
@@ -814,7 +821,7 @@ class MarkerHandler:
 
     def ReloadMarker(self, frame):
         image, image_frame = self.window.media_handler.id_lookup[frame]
-        if self.config.tracking:
+        if self.config.tracking:  # TODO
             marker_list = self.marker_file.get_marker_list(image, image_frame)
             marker_list = {track.id: track for track in marker_list}
             for track in self.points:
@@ -824,33 +831,34 @@ class MarkerHandler:
                 else:
                     track.update(frame, None)
         if frame == self.frame_number:
-            self.LoadLog()
+            self.LoadPoints()
 
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
         image = self.data_file.image
         image_frame = self.data_file.image_frame
-        if self.config.tracking:
-            if len(self.points) == 0:
-                self.LoadTracks()
-            else:
-                for track in self.points:
-                    track.FrameChanged(image, image_frame, framenumber)
+
+        if len(self.tracks) == 0:
+            self.LoadTracks()
         else:
-            self.LoadLog()
+            for track in self.tracks:
+                track.FrameChanged(image, image_frame, framenumber)
+        self.LoadPoints()
 
     def FolderChangeEvent(self):
         while len(self.points):
             self.RemovePoint(self.points[0], no_notice=True)
+        while len(self.tracks):
+            self.RemovePoint(self.tracks[0], no_notice=True)
 
     def LoadTracks(self):
         track_list = self.marker_file.get_track_list()
         for track in track_list:
             data = [point for point in self.marker_file.get_track_points(track)]
             if len(data):
-                self.points.append(MyTrackItem(self, data, track, saved=True))
+                self.tracks.append(MyTrackItem(self, data, track, saved=True))
 
-    def LoadLog(self):
+    def LoadPoints(self):
         while len(self.points):
             self.RemovePoint(self.points[0], no_notice=True)
         marker_list = self.marker_file.get_marker_list()
@@ -861,7 +869,10 @@ class MarkerHandler:
 
     def RemovePoint(self, point, no_notice=False):
         point.OnRemove()
-        self.points.remove(point)
+        try:
+            self.points.remove(point)
+        except ValueError:
+            self.tracks.remove(point)
         self.view.scene.removeItem(point)
         if len(self.points) == 0 and no_notice is False:
             BroadCastEvent(self.modules, "MarkerPointsRemoved")
@@ -869,11 +880,12 @@ class MarkerHandler:
     def save(self):
         for point in self.points:
             point.save()
+        for track in self.tracks:
+            track.save()
 
     def SetActiveMarkerType(self, new_index):
         try:
             counter_list = [c for i, c in self.counter.items() if c.index == new_index]
-            #print(counter_list, [c for i, c in self.counter.iteritems()])
             counter = counter_list[0]
         except IndexError:
             return
@@ -885,6 +897,8 @@ class MarkerHandler:
         self.scale = scale
         for point in self.points:
             point.setScale(1 / scale)
+        for track in self.tracks:
+            track.setScale(1 / scale)
         self.Crosshair.setScale(1 / scale)
 
     def setActiveModule(self, active, first_time=False):
@@ -906,6 +920,8 @@ class MarkerHandler:
             point_display_type = 0
         for point in self.points:
             point.UpdatePath()
+        for track in self.tracks:
+            track.UpdatePath()
 
     def sceneEventFilter(self, event):
         if self.hidden:
@@ -913,17 +929,18 @@ class MarkerHandler:
         if event.type() == 156 and event.button() == 1:  # QtCore.QEvent.MouseButtonPress:
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
-            points = [point for point in self.points if point.data.type.id == self.active_type.id]
-            if self.config.tracking and self.config.tracking_connect_nearest and len(
-                    points) and not event.modifiers() & Qt.ControlModifier:
-                distances = [np.linalg.norm(PosToArray(point.pos() - event.pos())) for point in points]
+            tracks = [track for track in self.tracks if track.data.type.id == self.active_type.id]
+            print("self.active_type.mode", self.active_type, self.active_type.mode, self.active_type.mode & TYPE_Track)
+            if self.active_type.mode & TYPE_Track and self.config.tracking_connect_nearest and \
+                    len(tracks) and not event.modifiers() & Qt.ControlModifier:
+                distances = [np.linalg.norm(PosToArray(point.pos() - event.pos())) for point in tracks]
                 index = np.argmin(distances)
-                points[index].setCurrentPoint(event.pos().x(), event.pos().y())
-            elif self.config.tracking:
+                tracks[index].setCurrentPoint(event.pos().x(), event.pos().y())
+            elif self.active_type.mode & TYPE_Track:
                 track = self.marker_file.set_track()
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, track=track)
-                self.points.append(MyTrackItem(self, [data], track, saved=False))
-                self.points[-1].setScale(1 / self.scale)
+                self.tracks.append(MyTrackItem(self, [data], track, saved=False))
+                self.tracks[-1].setScale(1 / self.scale)
             else:
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type)
                 self.points.append(MyMarkerItem(self, data, saved=False))
