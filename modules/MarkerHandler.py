@@ -526,17 +526,10 @@ class MyTrackItem(MyMarkerItem):
             if self.config.tracking_show_leading != -1 and frame > self.current_frame+self.config.tracking_show_leading:
                 break
             point = self.points_data[frame]
-            print("--", point, offset)
             point = np.array([point.x, point.y])-offset
-            print(point)
 
             if last_frame == frame-1:
                 image.line(np.concatenate((last_point, point)).tolist(), color, width=2*scale)
-            try:
-                print(point)
-            except:
-                print("error")
-            print([point-.5*circle_width, point+.5*circle_width])
             image.arc(np.concatenate((point-.5*circle_width, point+.5*circle_width)).tolist(), 0, 360, color)
             last_point = point
             last_frame = frame
@@ -931,7 +924,6 @@ class MarkerHandler:
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
             tracks = [track for track in self.tracks if track.data.type.id == self.active_type.id]
-            print("self.active_type.mode", self.active_type, self.active_type.mode, self.active_type.mode & TYPE_Track)
             if self.active_type.mode & TYPE_Track and self.config.tracking_connect_nearest and \
                     len(tracks) and not event.modifiers() & Qt.ControlModifier:
                 distances = [np.linalg.norm(PosToArray(point.pos() - event.pos())) for point in tracks]
