@@ -54,6 +54,7 @@ logname_tag = '_pos.txt'
 TYPE_Normal = 0
 TYPE_Rect = 1
 TYPE_Line = 2
+TYPE_Track = 4
 
 # @config `types = {0: ["marker", [255, 0, 0], TYPE_Normal]}` specifies what categories to use. Every category is an array with three entires. Name, Color and Type. Types can be 0: normal marker, 1: rectangle markers, 2: line markers
 types = {0: ["marker", [255, 0, 0], TYPE_Normal]}
