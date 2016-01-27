@@ -891,6 +891,7 @@ class MarkerHandler:
             return
         self.counter[self.active_type_index].SetToInactiveColor()
         self.active_type = counter.type
+        self.active_type_index = new_index
         self.counter[self.active_type_index].SetToActiveColor()
 
     def zoomEvent(self, scale, pos):
