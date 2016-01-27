@@ -371,7 +371,8 @@ class MyTrackItem(MyMarkerItem):
         self.points_data = SortedDict()
         for point in points_data:
             frame = self.marker_handler.window.media_handler.get_frame_number_by_id(point.image.filename, point.image_frame)
-            self.points_data[frame] = point
+            if frame is not None:
+                self.points_data[frame] = point
 
         self.track = track
         self.UpdateStyle()
