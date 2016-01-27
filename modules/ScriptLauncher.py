@@ -155,7 +155,7 @@ class ScriptLauncher(QObject):
             # @key F12: Launch
             if event.key() == key:
                 process = self.running_processes[index]
-                if process is not None and process.pid in psutil.pids():
+                if process is not None and process.pid in psutil.pids() and process.poll() is None:
                     if hasattr(os.sys, 'winver'):
                         os.kill(process.pid, signal.CTRL_BREAK_EVENT)
                     else:
