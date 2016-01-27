@@ -43,7 +43,6 @@ class MemMap(object):
                         self.offset = map_child.offset
                         map.append(map_child)
             else:
-                print("shape", shape)
                 map = np.memmap(self.filename, dtype=type, mode=mode, offset=self.offset, shape=shape)
                 self.offset += map.itemsize*map.size
             self.maps[name] = map
