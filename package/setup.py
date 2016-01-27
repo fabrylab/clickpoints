@@ -19,5 +19,7 @@ setup(name='clickpoints',
           'natsort',
           'tifffile',
           'imageio',
+          'sortedcontainers',
+          'matplotlib'
       ],
       zip_safe=False)
