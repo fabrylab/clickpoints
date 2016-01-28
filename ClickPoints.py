@@ -3,6 +3,8 @@ import sys
 import os
 import ctypes
 
+print("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro), sys.version_info.releaselevel)
+
 try:
     from PyQt5 import QtGui, QtCore
     from PyQt5.QtWidgets import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox
@@ -11,6 +13,12 @@ except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox, QGraphicsSceneWheelEvent
     from PyQt4.QtCore import Qt
+
+    from PyQt4.QtCore import QT_VERSION_STR
+    from PyQt4.Qt import PYQT_VERSION_STR
+    from sip import SIP_VERSION_STR
+
+    print("Using PyQt4 (PyQt %s, SIP %s, Qt %s)" % (PYQT_VERSION_STR, SIP_VERSION_STR, QT_VERSION_STR))
 
 from includes import HelpText, BroadCastEvent, rotate_list
 from includes import LoadConfig
