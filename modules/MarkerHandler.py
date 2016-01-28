@@ -437,8 +437,12 @@ class MyTrackItem(MyMarkerItem):
     def update(self, frame, point):
         if point is not None:
             self.AddTrackPoint(frame, point)
+            if frame == self.current_frame:
+                self.setPos(point.x, point.y)
+                self.data = point
         else:
             self.RemoveTrackPoint(frame)
+        self.UpdateLine()
 
     def AddTrackPoint(self, frame=None, point=None):
         if frame is None:
@@ -815,15 +819,16 @@ class MarkerHandler:
 
     def ReloadMarker(self, frame):
         image, image_frame = self.window.media_handler.id_lookup[frame]
-        if self.config.tracking:  # TODO
-            marker_list = self.marker_file.get_marker_list(image, image_frame)
-            marker_list = {track.id: track for track in marker_list}
-            for track in self.points:
-                if track.track.id in marker_list:
-                    track.update(frame, marker_list[track.track_id])
-                    marker_list.pop(track.track_id)
-                else:
-                    track.update(frame, None)
+        # Tracks
+        marker_list = self.marker_file.get_marker_list(image, image_frame)
+        marker_list = {marker.track.id: marker for marker in marker_list}
+        for track in self.tracks:
+            if track.track.id in marker_list:
+                track.update(frame, marker_list[track.track.id])
+                marker_list.pop(track.track.id)
+            else:
+                track.update(frame, None)
+        # Points
         if frame == self.frame_number:
             self.LoadPoints()
 

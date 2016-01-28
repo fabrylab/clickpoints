@@ -120,7 +120,7 @@ def ReloadMask():
     return send_and_receive("ReloadMask \n")
 
 
-def ReloadMarker(frame):
+def ReloadMarker(frame=None):
     """
     Reloads the marker from the given frame in ClickPoints.
 
@@ -129,6 +129,8 @@ def ReloadMarker(frame):
     frame : int
         the frame which ClickPoints should reload.
     """
+    if frame is None:
+        frame = -1
     return send_and_receive("ReloadMarker %d \n" % frame)
 
 
