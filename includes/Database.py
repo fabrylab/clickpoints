@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import os
 import re
 from peewee import *
+from playhouse.reflection import Introspector
 from playhouse import apsw_ext
 try:
     from StringIO import StringIO  # python 2
@@ -56,14 +57,28 @@ class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
+        self.current_version = "2"
         if self.exists:
             self.db = apsw_ext.APSWDatabase(database_filename)
+            introspector = Introspector.from_database(self.db)
+            models = introspector.generate_models()
+            try:
+                version = models["meta"].get(models["meta"].key == "version").value
+            except (KeyError, DoesNotExist):
+                version = "undefined"
+            print("Open database with version", version)
+            if version != self.current_version:
+                pass  # TODO Migrate
         else:
             self.db = apsw_ext.APSWDatabase(":memory:")
 
         class BaseModel(Model):
             class Meta:
                 database = self.db
+
+        class Meta(BaseModel):
+            key = CharField()
+            value = CharField()
 
         class Images(BaseModel):
             filename = CharField()
@@ -72,14 +87,16 @@ class DataFile:
             external_id = IntegerField(null=True)
             timestamp = DateTimeField(null=True)
 
-        self.tables = [BaseModel, Images]
+        self.tables = [BaseModel, Meta, Images]
 
         self.base_model = BaseModel
+        self.table_meta = Meta
         self.table_images = Images
 
         self.db.connect()
         if not self.exists:
-            self.db.create_tables([self.table_images])
+            self.db.create_tables([self.table_meta, self.table_images])
+        self.table_meta(key="version", value=self.current_version).save()
 
         self.image = None
         self.next_image_index = 1
