@@ -43,13 +43,13 @@ def checkForUpdate():
         print('Can\'t reach server')
         return False, '',''
     server_version=r.read()
-    print('server version: %s' % server_version)
+    #print('server version: %s' % server_version)
 
     ## get local version
     f=open(file_local_version,'r')
     local_version=f.readline()
     f.close()
-    print('local version: %s' % local_version)
+    #print('local version: %s' % local_version)
 
     ## check if update is necessary
     if not local_version == server_version:
@@ -57,7 +57,7 @@ def checkForUpdate():
         update=True
         return update,server_version, local_version
     else:
-        print('no update available')
+        #print('no update available')
         update=False
         return update, '',''
 
