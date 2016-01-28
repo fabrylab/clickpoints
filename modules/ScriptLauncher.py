@@ -85,7 +85,10 @@ class ScriptLauncher(QObject):
             BroadCastEvent(self.modules, "ReloadMask")
             socket.sendto(cmd, client_address)
         if cmd == "ReloadMarker":
-            BroadCastEvent(self.modules, "ReloadMarker", int(value))
+            frame = int(value)
+            if frame == -1:
+                frame = self.window.media_handler.get_index()
+            BroadCastEvent(self.modules, "ReloadMarker", frame)
             socket.sendto(cmd, client_address)
         if cmd == "GetImage":
             try:
