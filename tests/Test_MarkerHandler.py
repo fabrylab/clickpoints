@@ -38,13 +38,13 @@ class Test_MarkerHandler(unittest.TestCase):
 
     def test_jumpframes(self):
         """Test the GUI in its default state"""
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002", "JumpFrames.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "JumpFrames.db")
         self.window.JumpFrames(20)
         self.assertFalse(os.path.exists(self.database_path))
 
     def test_createMarker(self):
         """ Test if creating marker works """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002", "CreateMarker.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "CreateMarker.db")
         QTest.keyPress(self.window, Qt.Key_F2)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
 
@@ -53,7 +53,7 @@ class Test_MarkerHandler(unittest.TestCase):
 
     def test_moveMarker(self):
         """ Test if moving marker works """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002", "MoveMarker.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "MoveMarker.db")
         QTest.keyPress(self.window, Qt.Key_F2)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
 
@@ -69,7 +69,7 @@ class Test_MarkerHandler(unittest.TestCase):
 
     def test_deleteMarker(self):
         """ Test if deleting marker works """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002", "DeleteMarker.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "DeleteMarker.db")
         QTest.keyPress(self.window, Qt.Key_F2)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
 

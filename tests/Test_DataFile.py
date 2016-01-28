@@ -38,7 +38,7 @@ class Test_DataFile(unittest.TestCase):
 
     def test_createDatabase(self):
         """ Test if creating the database on demand works """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002", "CreateDatabase.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "CreateDatabase.db")
         QTest.keyPress(self.window, Qt.Key_F2)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
         self.assertFalse(os.path.exists(self.database_path), "Database file already present.")
