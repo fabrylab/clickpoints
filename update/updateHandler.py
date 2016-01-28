@@ -30,8 +30,8 @@ class checkUpdateThread(QThread):
 
     def run(self):
         ret,newversion,localversion=gu.checkForUpdate()
-        print("version %s" % newversion)
-        print("version %s" % localversion)
+        #print("version %s" % newversion)
+        #print("version %s" % localversion)
 
         if ret:
             return
