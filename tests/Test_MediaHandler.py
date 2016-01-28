@@ -39,37 +39,37 @@ class Test_MediaHandler(unittest.TestCase):
 
     def test_loadImages(self):
         """ Open an image """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002\frame0000.jpg", "loadImages.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002", "frame0000.jpg"), "loadImages.db")
         self.assertEqual(len(self.window.media_handler.id_lookup), 68, "Not all images loaded")
 
     def test_loadFolder(self):
         """ Open a folder """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002", "loadFolder.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "loadFolder.db")
         self.assertEqual(len(self.window.media_handler.id_lookup), 68, "Not all images loaded")
 
     def test_loadFolderSlash(self):
         """ Open a folder ending with a slash """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos\002\\", "loadFolderSlash.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002")+os.path.sep, "loadFolderSlash.db")
         self.assertEqual(len(self.window.media_handler.id_lookup), 68, "Not all images loaded")
 
     def test_loadFolderRecursive(self):
         """ Open a folder containing two folders """
-        self.createInstance(r"ClickPointsExamples\TweezerVideos", "loadFolderRecursive.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos"), "loadFolderRecursive.db")
         self.assertEqual(len(self.window.media_handler.id_lookup), 68+68, "Not all images in two folders loaded")
 
     def test_loadFolderVideos(self):
         """ Open a folder containing two videos """
-        self.createInstance(r"ClickPointsExamples\BirdAttack", "loadFolderVideos.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "loadFolderVideos.db")
         self.assertEqual(len(self.window.media_handler.id_lookup), 569, "Didn't load two videos properly")
 
     def test_loadVideo(self):
         """ Open a video """
-        self.createInstance(r"ClickPointsExamples\BirdAttack\attack1.avi", "loadVideo.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack", "attack1.avi"), "loadVideo.db")
         self.assertEqual(len(self.window.media_handler.id_lookup), 206, "Didn't load video properly")
 
     def test_loadTiff(self):
         """ Open a video """
-        self.createInstance(r"J:\Repositories\ClickPointsExamples\Dronpa", "loadTiff.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "loadTiff.db")
         self.assertEqual(len(self.window.media_handler.id_lookup), 6, "Didn't load tiff properly")
         self.assertEqual(self.window.ImageDisplay.image.shape, (1024, 1024, 3))
         self.assertTrue(8 < np.mean(self.window.ImageDisplay.image) < 128)
