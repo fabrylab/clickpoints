@@ -375,10 +375,8 @@ class AnnotationOverview(QWidget):
             timestamp = datetime.strftime(annotation.timestamp, '%Y%m%d-%H%M%S')
         else:
             timestamp = ""
-        print(annotation, annotation.id)
         texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(annotation.image_frame), str(annotation.id)]
         for index, text in enumerate(texts):
-            print(index, text)
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
             self.table.sortByColumn(0, Qt.AscendingOrder)
