@@ -31,6 +31,12 @@ class DataFile:
         """ Marker Tables """
         class Tracks(BaseModel):
             uid = peewee.CharField()
+            def points(self):
+                return np.array([[point.x, point.y] for point in self.marker()])
+            def marker(self):
+                return Marker.select().where(Marker.track == self).join(Images).order_by(Images.filename).order_by(Marker.image_frame)
+            def times(self):
+                return np.array([point.image.timestamp for point in self.marker()])
 
         class Types(BaseModel):
             name = peewee.CharField()
@@ -86,6 +92,19 @@ def GetImages():
     global database
     query = database.table_images.select()
     query.order_by(database.table_images.filename)
+    return query
+
+def GetTracks():
+    """
+    Get all track entries
+
+    Returns
+    -------
+    entries : array_like
+        a query object which contains the requested tracks.
+    """
+    global database
+    query = database.table_tracks.select()
     return query
 
 def GetMarker(image=None, image_frame=None, processed=None, type=None, track=None):
