@@ -153,7 +153,6 @@ class BigPaintableImageDisplay:
 
     def setOpacity(self, opacity):
         self.opacity = opacity
-        print(self.opacity)
         for pixmap in self.pixMapItems:
             pixmap.setOpacity(opacity)
 
@@ -324,7 +323,6 @@ class MaskHandler:
             self.LoadMask(None)
 
     def ReloadMask(self):
-        print("ReloadMask");
         mask_entry = self.mask_file.get_mask()
         if mask_entry:
             self.current_maskname = mask_entry.filename
@@ -332,16 +330,12 @@ class MaskHandler:
 
     def LoadMask(self, maskname):
         mask_valid = False
-        #print("Loading " + maskname)
         if maskname and os.path.exists(maskname):
-            print("Load Mask")
             try:
                 self.image_mask_full = Image.open(maskname)
                 mask_valid = True
             except:
                 mask_valid = False
-                print("ERROR: Can't read mask file")
-            print("...done")
         self.MaskEmpty = False
         if not mask_valid:
             self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
@@ -408,7 +402,6 @@ class MaskHandler:
         self.active_draw_type = value
         self.counter[self.active_draw_type].SetToActiveColor()
         self.RedrawMask()
-        print("Changed Draw type", self.active_draw_type)
         self.UpdateDrawCursorSize()
 
     def PickColor(self):
@@ -491,7 +484,6 @@ class MaskHandler:
             
     def ToggleInterfaceEvent(self):
         for counter in self.counter:
-            print(counter)
             counter.setVisible(self.hidden)
         self.hidden = not self.hidden
             
