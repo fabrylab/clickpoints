@@ -347,15 +347,6 @@ class MaskHandler:
             self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
             self.MaskEmpty = True
         self.MaskUnsaved = False
-        if self.image_mask_full.mode == 'P':
-            a = np.array([c for c in self.image_mask_full.palette.getdata()[1]]).reshape(256, 3)
-            #a = np.array(map(ord, self.image_mask_full.palette.getdata()[1])).reshape(256, 3)
-            new_draw_types = []
-            for index, color in enumerate(a):
-                if index == 0 or sum(color) != 0:
-                    new_draw_types.append([index, color])
-            self.config.draw_types = new_draw_types
-            self.UpdateCounter()
         if self.active_draw_type >= len(self.config.draw_types):
             self.active_draw_type = 0
         if self.active:
