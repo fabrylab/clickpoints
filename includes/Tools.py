@@ -10,6 +10,7 @@ except ImportError:
     from PyQt4.QtCore import QRectF, QPointF
 
 import numpy as np
+import os
 
 
 def disk(radius):
@@ -66,11 +67,12 @@ class HelpText(QGraphicsRectItem):
         import re
         if file[-4:] == ".pyc":
             file = file[:-4]+".py"
-        with open(file) as fp:
-            for line in fp.readlines():
-                m = re.match(r'\w*# @key (.*)$', line.strip())
-                if m:
-                    self.text += m.groups()[0].replace(":", ":\t", 1) + "\n"
+        if os.path.exists(file):
+            with open(file) as fp:
+                for line in fp.readlines():
+                    m = re.match(r'\w*# @key (.*)$', line.strip())
+                    if m:
+                        self.text += m.groups()[0].replace(":", ":\t", 1) + "\n"
 
     def DisplayText(self):
         self.help_text.setText(self.text[:-1])
