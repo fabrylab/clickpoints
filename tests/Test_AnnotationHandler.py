@@ -168,6 +168,50 @@ class Test_AnnotationHandler(unittest.TestCase):
         self.assertEqual(annotationWindow.leTag.getTagList(), [], "Tag not removed")
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
 
+    def test_overviewAnnotations(self):
+        """ Add and remove annotation """
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "overviewAnnotations.db")
+
+        # Add annotation
+        QTest.keyPress(self.window, Qt.Key_A)
+        self.assertIsNotNone(self.window.GetModule("AnnotationHandler").AnnotationEditorWindow, "Annotation window was not opened")
+        annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
+        annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
+        QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
+        self.window.JumpFrames(10)
+
+        # open overview window
+        QTest.keyPress(self.window, Qt.Key_Y)
+        AnnotationOverviewWindow = self.window.GetModule("AnnotationHandler").AnnotationOverviewWindow
+        self.assertIsNotNone(AnnotationOverviewWindow, "Annotation overview window was not opened")
+
+        self.assertEqual(AnnotationOverviewWindow.table.rowCount(), 1, "Annotation not displayed in overview table")
+
+        # Add another annotation
+        QTest.keyPress(self.window, Qt.Key_A)
+        annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
+        annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
+        QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
+
+        self.assertEqual(AnnotationOverviewWindow.table.rowCount(), 2, "Annotation not displayed in overview table")
+
+
+        self.window.JumpFrames(10)
+        xPos = AnnotationOverviewWindow.table.columnViewportPosition( 2 ) + 5
+        yPos = AnnotationOverviewWindow.table.rowViewportPosition( 1 ) + 10
+        # TODO fix
+        print(xPos, yPos)
+        QTest.mouseDClick(AnnotationOverviewWindow.table.viewport(), Qt.LeftButton, pos=QtCore.QPoint(xPos, yPos))
+
+        print(self.window.media_handler.get_index())
+
+        QTest.mouseDClick(AnnotationOverviewWindow.table.viewport(), Qt.LeftButton, pos=QtCore.QPoint(10, 200))
+
+        print(self.window.media_handler.get_index())
+
+        self.assertEqual(self.window.media_handler.get_index(), 1, "Jumping to annotation by clicking on the overview does not work.")
+
+
 
 if __name__ == '__main__':
     log_file = os.path.join(__path__, 'log_'+__key__+'.txt')
