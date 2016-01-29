@@ -44,7 +44,7 @@ class Test_DataFile(unittest.TestCase):
         self.assertFalse(os.path.exists(self.database_path), "Database file already present.")
 
         QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
-        self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
+        self.assertEqual(len(self.window.GetModule("MarkerHandler").points)+len(self.window.GetModule("MarkerHandler").tracks), 1, "Marker wasn't added by clicking")
 
         self.assertFalse(os.path.exists(self.database_path), "Database file already present.")
 
