@@ -139,7 +139,8 @@ class ScriptLauncher(QObject):
         # for p in self.process:
         #     port = p.
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.sendto("LoadImageEvent %s %d" % (filename,framenumber), ('127.0.0.1', self.PORT+1))
+        msg = "LoadImageEvent %s %d" % (filename,framenumber)
+        sock.sendto(msg.encode(), ('localhost', self.PORT+100))
         sock.close()
 
     def PreLoadImageEvent(self, filename, framenumber):
@@ -148,7 +149,8 @@ class ScriptLauncher(QObject):
         # for p in self.process:
         #     port = p.
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.sendto("PreLoadImageEvent %s %d" % (filename,framenumber), ('127.0.0.1', self.PORT+1))
+        msg = "PreLoadImageEvent %s %d" % (filename,framenumber)
+        sock.sendto(msg.encode(), ('127.0.0.1', self.PORT+1))
         sock.close()
 
 

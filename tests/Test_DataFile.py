@@ -20,7 +20,7 @@ class Test_DataFile(unittest.TestCase):
 
     def createInstance(self, path, database_file):
         """Create the GUI """
-        self.test_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", path))
+        self.test_path = os.path.normpath(os.path.join(__path__, "..", "..", "..", path))
         self.database_file = database_file
         print("Test Path", self.test_path)
         sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file]
@@ -54,7 +54,8 @@ class Test_DataFile(unittest.TestCase):
         self.assertTrue(os.path.exists(self.database_path), "Database file was not created.")
 
 if __name__ == '__main__':
-    log_file = 'log_'+__key__+'.txt'
+    __path__ = os.path.dirname(os.path.abspath(__file__))
+    log_file = os.path.join(__path__, 'log_'+__key__+'.txt')
     with open(log_file, "w") as f:
         runner = unittest.TextTestRunner(f)
         unittest.main(testRunner=runner)

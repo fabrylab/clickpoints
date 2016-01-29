@@ -21,7 +21,7 @@ class Test_MaskHandler(unittest.TestCase):
 
     def createInstance(self, path, database_file, mask_filename):
         """Create the GUI """
-        self.test_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", path))
+        self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
         self.database_file = database_file
         self.mask_filename = mask_filename
         print("Test Path", self.test_path)
@@ -191,7 +191,8 @@ class Test_MaskHandler(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    log_file = 'log_'+__key__+'.txt'
+    __path__ = os.path.dirname(os.path.abspath(__file__))
+    log_file = os.path.join(__path__, 'log_'+__key__+'.txt')
     with open(log_file, "w") as f:
         runner = unittest.TextTestRunner(f)
         unittest.main(testRunner=runner)
