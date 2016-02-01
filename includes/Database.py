@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import os
 import re
+import datetime
 from peewee import *
 from playhouse.reflection import Introspector
 from playhouse import apsw_ext
@@ -117,6 +118,8 @@ class DataFile:
             for table in self.tables:
                 table._meta.database = self.db
             self.exists = True
+        if self.image.timestamp:
+            self.image.timestamp = str(self.image.timestamp)
         self.image.save(force_insert=True)
         self.image_saved = True
         self.next_image_index += 1
@@ -135,6 +138,7 @@ class DataFile:
             self.image.frames = file_entry.frames
             self.image.external_id = file_entry.external_id
             self.image.id = self.next_image_index
+            self.image.timestamp = file_entry.timestamp
             self.image_uses = 0
             self.image_saved = False
         self.image_frame = frame
