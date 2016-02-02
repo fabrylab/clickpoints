@@ -314,7 +314,7 @@ class RealTimeSlider(QGraphicsView):
         self.scene.setBackgroundBrush(self.palette().color(QPalette.Background))
         self.setStyleSheet("border: 0px")
 
-        """
+
         self.slider_line = QGraphicsRectItem(None, self.scene)
         self.slider_line.setPen(QPen(QColor("black")))
         self.slider_line.setPos(0, -2.5)
@@ -322,17 +322,19 @@ class RealTimeSlider(QGraphicsView):
         gradient.setColorAt(0, QColor("black"))
         gradient.setColorAt(1, QColor(128, 128, 128))
         self.slider_line.setBrush(QBrush(gradient))
-        self.slider_line.mousePressEvent = self.SliderBarMousePressEvent
-        """
+        #self.slider_line.mousePressEvent = self.SliderBarMousePressEvent
+
 
         path = QPainterPath()
-        path.addRect(-2, -14, 5, 14)
+        path.addRect(-2, -7, 5, 14)
         gradient = QLinearGradient(QPointF(0, -7), QPointF(0, 14))
         gradient.setColorAt(0, QColor(255, 0, 0))
         gradient.setColorAt(1, QColor(128, 0, 0))
         self.slider_position = TimeLineGrabberTime(self, 0, path, gradient)
 
         self.length = 1
+
+        self.scene_panning = False
 
         self.tick_marker = {}
 
@@ -347,16 +349,18 @@ class RealTimeSlider(QGraphicsView):
         if pos in self.tick_marker and type in self.tick_marker[pos]:
             tick_marker = self.tick_marker[pos][type]
         else:
-            width = 2#datetime.timedelta(minutes=1)#self.ValueToPixel(1)
-            if pos == self.max_value:
-                width = 2
-            tick_marker = QGraphicsRectItem(-width*0.5, -height*0.5, width, height, None, self.scene)
+            if type == 0:
+                tick_marker = QtGui.QGraphicsLineItem(0, -2, 0, -height, None, self.scene)
+                tick_marker.setZValue(-10)
+            else:
+                tick_marker = QtGui.QGraphicsLineItem(0, -0.5, 0, -height, None, self.scene)
+                tick_marker.setZValue(1+type)
         tick_marker.setPen(QPen(color))
-        tick_marker.setBrush(QBrush(color))
+        #tick_marker.setBrush(QBrush(color))
         tick_marker.value = pos
         tick_marker.type = type
         tick_marker.height = height
-        tick_marker.setZValue(1+type)
+
         tick_marker.setPos(self.ValueToPixel(pos), 0)
         if text != "":
             self.font = QtGui.QFont()
@@ -367,7 +371,7 @@ class RealTimeSlider(QGraphicsView):
             offsetX = self.text.boundingRect().width()
             offsetY = self.text.boundingRect().height()
             self.text.setPos(-offsetX*0.5+1, 0)#+height*0.5+offsetY)
-            tick_marker.text = text
+            tick_marker.text = self.text
         else:
             tick_marker.text = None
         if pos not in self.tick_marker:
@@ -406,16 +410,16 @@ class RealTimeSlider(QGraphicsView):
 
     def resizeEvent(self, event):
         self.length = self.size().width()-20
-        #self.slider_line.setRect(0, 0, self.length, 5)
+        self.slider_line.setRect(0, -0.5, self.length, 1)
         #self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
         #self.ensureVisible(self.slider_line)
         for pos, ticks in self.tick_marker.items():
             for type, tick in ticks.items():
                 tick.setPos(self.ValueToPixel(pos), 0)
-                width = 2#self.ValueToPixel(1)
-                if pos == self.max_value:
-                    width = 2
-                tick.setRect(0.0, -3.5, width, -tick.height)
+                #width = 2#self.ValueToPixel(1)
+                #if pos == self.max_value:
+                #    width = 2
+                #tick.setRect(0.0, -3.5, width, -tick.height)
         for marker in [self.slider_position]:
             marker.setPixelRange(0, self.length)
         self.repaint()
@@ -453,14 +457,97 @@ class RealTimeSlider(QGraphicsView):
         self.slider_position.setValueRange(self.min_value, self.max_value)
         for time in self.media_handler.timestamps:
             self.addTickMarker(time, color=QColor(128, 128, 128))
-        tick_time = datetime.datetime.combine(self.media_handler.timestamps[0].date(), datetime.time())+datetime.timedelta(days=1)
+        start = self.media_handler.timestamps[0]
+        tick_time = datetime.datetime(year=start.year, month=start.month, day=start.day, hour=start.hour)#datetime.datetime.combine(self.media_handler.timestamps[0].date(), datetime.time())+datetime.timedelta(days=1)
         while tick_time < self.max_value:
-            if tick_time.day == 1:
-                self.addTickMarker(tick_time, color=QColor(0, 128, 255), text="%02d.%02d" % (tick_time.day, tick_time.month), height=15)
+            if tick_time.day == 1 and tick_time.hour == 0:
+                self.addTickMarker(tick_time, color=QColor(0, 128, 255), text="%02d.%02d" % (tick_time.day, tick_time.month), height=15, type=12)
+            elif tick_time.hour == 0:
+                self.addTickMarker(tick_time, color=QColor(0, 0, 255), text="%02d" % tick_time.day, type=11)
             else:
-                self.addTickMarker(tick_time, color=QColor(0, 0, 255), text="%02d" % tick_time.day)
-            tick_time = tick_time+datetime.timedelta(days=1)
+                self.addTickMarker(tick_time, color=QColor(50, 0, 128), text="%02d" % tick_time.hour, height=8, type=10)
+            tick_time = tick_time+datetime.timedelta(hours=1)
         print("End Timeline", timing.time()-t)
+
+    def mousePressEvent(self, event):
+        if event.button() == 2:
+            self.last_pos = PosToArray(self.mapToScene(event.pos()))
+            self.scene_panning = True
+        super(RealTimeSlider, self).mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.scene_panning:
+            new_pos = PosToArray(self.mapToScene(event.pos()))
+            delta = (new_pos-self.last_pos)[0]
+            print(delta)
+            delta = self.PixelToValue(delta)-self.min_value
+            print(delta)
+            self.min_value -= delta
+            self.max_value -= delta
+            #self.translater.setTransform(QtGui.QTransform(1, 0, 0, 1, *delta/self.scaler.transform().m11()), combine=True)
+            self.last_pos = new_pos
+            self.fitted = 0
+            self.slider_position.setValueRange(self.min_value, self.max_value)
+            self.resizeEvent(None)
+        super(RealTimeSlider, self).mouseMoveEvent(event)
+
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == 2:
+            self.scene_panning = False
+        super(RealTimeSlider, self).mouseReleaseEvent(event)
+
+
+    def wheelEvent(self, event):
+        event.ignore()
+        super(RealTimeSlider, self).wheelEvent(event)
+        if event.isAccepted():
+            return
+
+        if 0:#qt_version == '5':
+            angle = event.angleDelta().y()
+        else:
+            angle = event.delta()
+        pos = self.PixelToValue(event.pos().x())
+        percent = Remap(pos, [self.min_value, self.max_value], [0, 1])
+        if angle > 0:
+            zoom_percent = +0.1#1.1
+        else:
+            zoom_percent = -0.1#0.9
+
+        try:
+            zoom_delta = (self.max_value-self.min_value)*zoom_percent
+
+            self.min_value += zoom_delta*percent
+            self.max_value += zoom_delta*(1-percent)
+        except TypeError:  # for python 2
+            zoom_delta = datetime.timedelta(seconds=zoom_percent*(self.max_value-self.min_value).total_seconds())
+
+            self.min_value += datetime.timedelta(seconds=zoom_delta.total_seconds()*percent)
+            self.max_value -= datetime.timedelta(seconds=zoom_delta.total_seconds()*(1-percent))
+        self.slider_position.setValueRange(self.min_value, self.max_value)
+        hour_pixel = self.ValueToPixel(datetime.timedelta(hours=1)+self.min_value)
+        day_pixel = self.ValueToPixel(datetime.timedelta(days=1)+self.min_value)
+#        if hour_pixel < 15:
+        for pos, ticks in self.tick_marker.items():
+            for type, tick in ticks.items():
+                if type == 10:
+                    tick.setVisible(hour_pixel > 15)
+                    tick.text.setVisible(hour_pixel > 20)
+                if type == 11:
+                    tick.setPen(QPen(tick.pen().color(), 1+(hour_pixel > 15)*1))
+                    f = tick.text.font()
+                    f.setWeight(50+13*(hour_pixel > 20))
+                    tick.text.setFont(f)
+                    tick.pen().setWidth(50)#+(hour_pixel > 15)*5)
+                    tick.setVisible(day_pixel > 15)
+                    tick.text.setVisible(day_pixel > 20)
+        self.resizeEvent(None)
+        event.accept()
+
+
+def PosToArray(pos):
+    return np.array([pos.x(), pos.y()])
 
 class PreciseTimer(QObject):
     timeout = pyqtSignal()
