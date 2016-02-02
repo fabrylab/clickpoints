@@ -78,7 +78,8 @@ class DataFile:
         """ Connect """
         self.db.connect()
 
-database = DataFile()
+if os.path.exists('clickpoints.db'):
+    database = DataFile()
 
 def GetImages():
     """
