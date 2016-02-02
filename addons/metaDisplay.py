@@ -7,38 +7,33 @@ import socket
 import select
 import time
 
-from clickpoints.SendCommands import  GetImageName, GetMarkerName, HasTerminateSignal, CatchTerminateSignal, updateHUD
-from clickpoints.MarkerLoad import LoadLogIDindexed, SaveLog
+from clickpoints.SendCommands import  HasTerminateSignal, CatchTerminateSignal, updateHUD
 
 def displayMetaInfo(ans):
-    print('in function:',ans)
+    # print('in function:',ans)
     com,fname,framenr = ans[0].split(' ',2)
-    print(com,fname,framenr)
+    # print(com,fname,framenr)
 
     t_start = time.clock()
     timestring = fname[0:14]
     timestamp = datetime.datetime.strptime(timestring, '%Y%m%d-%H%M%S')
 
-    # get values according to field list and store in dictionary
-    # field_dict={}
-    # for item in field_list:
-    #     val=db.getFirstValidValue(timestamp,item)
-    #     field_dict[item]=val
-
     field_dict=db.getValuesForList(timestamp,field_list)
-    print(field_dict)
+    # print(field_dict)
 
     print('time: %.3fs',time.clock()-t_start)
 
     updateHUD(display_format.format(**field_dict))
 
 # config
-db_path = r'C:\Users\fox\Dropbox\PhD\python\atkaSPOT_MetaDB\atkaSPOT_Meta.db'
+db_path = r'I:\atkaSPOT_Meta.db'
 field_list = ['met_t2','met_ff2','met_Dd2']
 display_format = 't:    {met_t2:>5}\n'\
                  'ws:   {met_ff2:>5}\n'\
                  'dir:  {met_Dd2:>5}'
 
+
+print("Stated metaDB Display Addon ...")
 
 # Database access
 sys.path.append(r'C:\Users\fox\Dropbox\PhD\python\atkaSPOT_MetaDB')
@@ -58,7 +53,6 @@ sock.bind(('127.0.0.1',BROADCAST_PORT))
 
 
 # main loop
-print("listening on port %d ..." % BROADCAST_PORT)
 while True:
         ready_to_read, ready_to_write, in_error = select.select([sock],[],[],0)
 
@@ -66,14 +60,12 @@ while True:
         if ready_to_read:
             ans=sock.recvfrom(1024)
 
-            print("Received:")
-            print(ans)
+            # print("Received:")
+            # print(ans)
 
             # split information
             if ans[0].startswith('PreLoadImageEvent'):
                 displayMetaInfo(ans)
-
-
 
                 # annoying buffer part
                 # read out and thereby delete all remaining entries
@@ -87,10 +79,10 @@ while True:
                         # clear incomming buffer
                         if ready_to_read:
                             tmp =sock.recvfrom(1024)
-                            print('message pending', tmp)
+                            # print('message pending', tmp)
                             if tmp[0].startswith('PreLoadImageEvent'):
                                 last_message = tmp
-                                print('lastmsg:',last_message)
+                                # print('lastmsg:',last_message)
                         else:
                             messages_pending = False
                             # make sure last message is displayed
