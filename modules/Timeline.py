@@ -4,6 +4,7 @@ import os
 import glob
 import time
 import numpy as np
+import datetime
 try:
     import thread  # python 2
 except ImportError:
@@ -29,13 +30,22 @@ def BoundBy(value, min, max):
         return max
     return value
 
+def DateDivision(x, y):
+    return x.total_seconds()/y.total_seconds()
+
 def Remap(value, minmax1, minmax2):
     length1 = minmax1[1]-minmax1[0]
     length2 = minmax2[1]-minmax2[0]
     if length1 == 0:
         return 0
-    percentage = (value-minmax1[0])/length1
-    value2 = percentage*length2 + minmax2[0]
+    try:
+        percentage = (value-minmax1[0])/length1
+    except TypeError:
+        percentage = DateDivision((value-minmax1[0]), length1)
+    try:
+        value2 = percentage*length2 + minmax2[0]
+    except TypeError:
+        value2 = datetime.timedelta(seconds=percentage*length2.total_seconds()) + minmax2[0]
     return value2
 
 class TimeLineGrabberSignal(QObject):
@@ -94,6 +104,13 @@ class TimeLineGrabber(QGraphicsPathItem):
     def value_to_pixel(self, value):
         return Remap(value, self.value_range, self.pixel_range)
 
+class TimeLineGrabberTime(TimeLineGrabber):
+    #def __init__(self, *args):
+    #    QGraphicsPathItem.__init__(self, None, parent.scene)
+
+    def setValue(self, value):
+        self.value = value
+        self.updatePos()
 
 class TimeLineSlider(QGraphicsView):
     def __init__(self, max_value=100, min_value=0):
@@ -283,6 +300,167 @@ class TimeLineSlider(QGraphicsView):
         event.setAccepted(False)
         return
 
+class RealTimeSlider(QGraphicsView):
+    def __init__(self, max_value=100, min_value=0):
+        QGraphicsView.__init__(self)
+
+        self.setMaximumHeight(30)
+        #self.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+
+        self.scene = QGraphicsScene(self)
+        self.setScene(self.scene)
+        self.scene.setBackgroundBrush(self.palette().color(QPalette.Background))
+        self.setStyleSheet("border: 0px")
+
+        """
+        self.slider_line = QGraphicsRectItem(None, self.scene)
+        self.slider_line.setPen(QPen(QColor("black")))
+        self.slider_line.setPos(0, -2.5)
+        gradient = QLinearGradient(QPointF(0, 0), QPointF(0, 5))
+        gradient.setColorAt(0, QColor("black"))
+        gradient.setColorAt(1, QColor(128, 128, 128))
+        self.slider_line.setBrush(QBrush(gradient))
+        self.slider_line.mousePressEvent = self.SliderBarMousePressEvent
+        """
+
+        path = QPainterPath()
+        path.addRect(-2, -14, 5, 14)
+        gradient = QLinearGradient(QPointF(0, -7), QPointF(0, 14))
+        gradient.setColorAt(0, QColor(255, 0, 0))
+        gradient.setColorAt(1, QColor(128, 0, 0))
+        self.slider_position = TimeLineGrabberTime(self, 0, path, gradient)
+
+        self.length = 1
+
+        self.tick_marker = {}
+
+    def SliderBarMousePressEvent(self, event):
+        self.setValue(self.PixelToValue(self.slider_line.mapToScene(event.pos()).x()))
+        self.slider_position.signal.sliderReleased.emit()
+
+    def addTickMarker(self, pos, type=0, color=QColor("red"), height=12, text=""):
+        if type == 1:
+            color = QColor("green")
+            height = 8
+        if pos in self.tick_marker and type in self.tick_marker[pos]:
+            tick_marker = self.tick_marker[pos][type]
+        else:
+            width = 2#datetime.timedelta(minutes=1)#self.ValueToPixel(1)
+            if pos == self.max_value:
+                width = 2
+            tick_marker = QGraphicsRectItem(-width*0.5, -height*0.5, width, height, None, self.scene)
+        tick_marker.setPen(QPen(color))
+        tick_marker.setBrush(QBrush(color))
+        tick_marker.value = pos
+        tick_marker.type = type
+        tick_marker.height = height
+        tick_marker.setZValue(1+type)
+        tick_marker.setPos(self.ValueToPixel(pos), 0)
+        if text != "":
+            self.font = QtGui.QFont()
+            self.font.setPointSize(8)
+            self.text = QtGui.QGraphicsSimpleTextItem(tick_marker)
+            self.text.setFont(self.font)
+            self.text.setText(text)
+            offsetX = self.text.boundingRect().width()
+            offsetY = self.text.boundingRect().height()
+            self.text.setPos(-offsetX*0.5+1, 0)#+height*0.5+offsetY)
+            tick_marker.text = text
+        else:
+            tick_marker.text = None
+        if pos not in self.tick_marker:
+            self.tick_marker[pos] = {}
+        self.tick_marker[pos][type] = tick_marker
+        self.repaint()
+
+    def removeTickMarker(self, pos, type=0):
+        if pos in self.tick_marker and type in self.tick_marker[pos]:
+            tick_marker = self.tick_marker[pos][type]
+            self.scene.removeItem(tick_marker)
+            del self.tick_marker[pos][type]
+            if self.tick_marker[pos] == {}:
+                del self.tick_marker[pos]
+            self.repaint()
+
+    def clearTickMarker(self):
+        for pos, ticks in self.tick_marker.items():
+            for type, tick in ticks.items():
+                self.scene.removeItem(tick)
+        self.tick_marker = {}
+        self.repaint()
+
+    def getNextTick(self, pos, back=False):
+        if back is False:
+            my_range = range(pos+1,self.max_value,+1)
+        else:
+            my_range = range(pos-1,self.min_value,-1)
+        search_marked = True
+        if pos in self.tick_marker and my_range[0] in self.tick_marker:
+            search_marked = False
+        for i in my_range:
+            if (i in self.tick_marker) == search_marked:
+                return i
+        return my_range[-1]
+
+    def resizeEvent(self, event):
+        self.length = self.size().width()-20
+        #self.slider_line.setRect(0, 0, self.length, 5)
+        #self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
+        #self.ensureVisible(self.slider_line)
+        for pos, ticks in self.tick_marker.items():
+            for type, tick in ticks.items():
+                tick.setPos(self.ValueToPixel(pos), 0)
+                width = 2#self.ValueToPixel(1)
+                if pos == self.max_value:
+                    width = 2
+                tick.setRect(0.0, -3.5, width, -tick.height)
+        for marker in [self.slider_position]:
+            marker.setPixelRange(0, self.length)
+        self.repaint()
+
+    def setRange(self, min_value, max_value):
+        self.min_value = min_value
+        self.max_value = max_value
+        for marker in [self.slider_position]:
+            marker.setValueRange(self.min_value, self.max_value)
+
+    def setValue(self, value):
+        self.slider_position.setValue(BoundBy(value, self.min_value, self.max_value))
+
+    def PixelToValue(self, pixel):
+        return Remap(pixel, [0, self.length], [self.min_value, self.max_value])
+
+    def ValueToPixel(self, value):
+        return Remap(value, [self.min_value, self.max_value], [0, self.length])
+
+    def value(self):
+        return self.slider_position.value
+
+    def keyPressEvent(self, event):
+        event.setAccepted(False)
+        return
+
+    def setTimes(self, media_handler):
+        import time as timing
+        print("Start Timeline")
+        t = timing.time()
+        self.media_handler = media_handler
+        self.min_value = np.min(self.media_handler.timestamps)
+        self.max_value = np.max(self.media_handler.timestamps)
+        #delta = np.min(np.diff(self.media_handler.timestamps))
+        self.slider_position.setValueRange(self.min_value, self.max_value)
+        for time in self.media_handler.timestamps:
+            self.addTickMarker(time, color=QColor(128, 128, 128))
+        tick_time = datetime.datetime.combine(self.media_handler.timestamps[0].date(), datetime.time())+datetime.timedelta(days=1)
+        while tick_time < self.max_value:
+            if tick_time.day == 1:
+                self.addTickMarker(tick_time, color=QColor(0, 128, 255), text="%02d.%02d" % (tick_time.day, tick_time.month), height=15)
+            else:
+                self.addTickMarker(tick_time, color=QColor(0, 0, 255), text="%02d" % tick_time.day)
+            tick_time = tick_time+datetime.timedelta(days=1)
+        print("End Timeline", timing.time()-t)
 
 class PreciseTimer(QObject):
     timeout = pyqtSignal()
@@ -334,8 +512,21 @@ class Timeline:
         self.skip = 0
 
         # control elements
+        self.layoutCtrlParent = QtGui.QVBoxLayout()
+        layout.addLayout(self.layoutCtrlParent)
         self.layoutCtrl = QtGui.QHBoxLayout()
-        layout.addLayout(self.layoutCtrl)
+        self.layoutCtrlParent.addLayout(self.layoutCtrl)
+        self.layoutCtrl2 = QtGui.QHBoxLayout()
+        self.layoutCtrlParent.addLayout(self.layoutCtrl2)
+
+        # second
+        self.timeSlider = RealTimeSlider()
+        self.timeSlider.setTimes(self.media_handler)
+        self.layoutCtrl2.addWidget(self.timeSlider)
+
+        self.timeSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
+        self.timeSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider2)
+
         # frame control
         self.button_play = QtGui.QPushButton()
         self.button_play.setCheckable(True)
@@ -419,6 +610,13 @@ class Timeline:
         self.updateLabel()
         self.updateFrame(nr=n)
 
+    def ReleasedSlider2(self):
+        timestamp = self.timeSlider.value()
+        n = self.media_handler.get_frame_number_by_timestamp(timestamp)
+        self.slider_update = True
+        self.updateLabel()
+        self.updateFrame(nr=n)
+
     def PressedSlider(self):
         self.slider_update = False
 
@@ -444,10 +642,12 @@ class Timeline:
     def updateLabel(self):
         if self.slider_update:
             self.frameSlider.setValue(self.media_handler.get_index())
+            self.timeSlider.setValue(self.media_handler.get_timestamp())
             digits = "%d" % np.ceil(np.log10(self.media_handler.get_frame_count()))
             format_string = ('%0'+digits+'d/%d  %.1ffps')
             fps = self.current_fps if self.current_fps is not None else 0
-            self.label_frame.setText(format_string % (self.media_handler.get_index(), self.media_handler.get_frame_count() - 1, fps))
+            label_string = format_string % (self.media_handler.get_index(), self.media_handler.get_frame_count() - 1, fps)
+            self.label_frame.setText(label_string + "\n" + str(self.window.data_file.timestamp))
 
     def FrameChangeEvent(self):
         dt = time.time()-self.last_time
