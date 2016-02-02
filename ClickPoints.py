@@ -99,7 +99,7 @@ class ClickPointsWindow(QWidget):
             if "can_create_module" in dir(mod):
                 allowed = mod.can_create_module(config)
             if allowed:
-                # Get a list of the arguments the function tages
+                # Get a list of the arguments the function takes
                 arg_name_list = GetModuleInitArgs(mod)
                 # Set the proper hud argument
                 if "parent_hud" in arg_name_list:
@@ -130,6 +130,7 @@ class ClickPointsWindow(QWidget):
             return
         filename = self.media_handler.get_filename()
         frame_number = self.media_handler.get_index()
+        BroadCastEvent(self.modules, "PreLoadImageEvent", filename, frame_number)
         self.setWindowTitle(filename)
         self.LoadImage()
         self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame(), self.media_handler.get_timestamp())
