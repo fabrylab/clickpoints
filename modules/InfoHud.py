@@ -100,19 +100,20 @@ class InfoHud(QGraphicsRectItem):
             self.hidden = True
 
     def LoadImageEvent(self, filename="", frame_number=0):
-        file = os.path.join(*self.window.media_handler.get_filename())
-        regex = re.match(self.config.filename_data_regex, file)
-        if regex:
-            regex = regex.groupdict()
-        else:
-            regex = dict()
-        values = dict(exif=get_exif(file), regex=regex, meta=get_meta(file))
-        fmt=PartialFormatter()
-        self.text.setText(fmt.format(self.config.info_hud_string, **values))
-        rect = self.text.boundingRect()
-        rect.setWidth(rect.width() + 10)
-        rect.setHeight(rect.height() + 10)
-        self.setRect(rect)
+        if not self.config.info_hud_string=="@script":
+            file = os.path.join(*self.window.media_handler.get_filename())
+            regex = re.match(self.config.filename_data_regex, file)
+            if regex:
+                regex = regex.groupdict()
+            else:
+                regex = dict()
+            values = dict(exif=get_exif(file), regex=regex, meta=get_meta(file))
+            fmt=PartialFormatter()
+            self.text.setText(fmt.format(self.config.info_hud_string, **values))
+            rect = self.text.boundingRect()
+            rect.setWidth(rect.width() + 10)
+            rect.setHeight(rect.height() + 10)
+            self.setRect(rect)
 
     def ToggleInterfaceEvent(self):
         self.setVisible(self.hidden)
