@@ -65,9 +65,13 @@ class ScriptLauncher(QObject):
         server_thread.daemon = True
         server_thread.start()
 
-        self.running_processes = [None]*len(self.config.launch_scripts)
+        process_dict = { 'process':None, 'command_port':None, 'broadcast_port':None}
+
+        self.running_processes = [process_dict] * len(self.config.launch_scripts)
         self.memmap = None
         self.memmap_path = None
+
+        #self.running_processes = [None]*len(self.config.launch_scripts)
 
     def Command(self, command, socket, client_address):
         cmd, value = str(command).split(" ", 1)
@@ -135,23 +139,22 @@ class ScriptLauncher(QObject):
                 print('Module InfoHud not available')
 
     def LoadImageEvent(self, filename, framenumber):
-        # TODO add generic ports for multiple scripts
-        # for p in self.process:
-        #     port = p.
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        msg = "LoadImageEvent %s %d" % (filename,framenumber)
-        sock.sendto(msg.encode(), ('localhost', self.PORT+100))
-        sock.close()
+        # broadcast event to all running processes
+        for p in self.running_processes:
+            if not p['process'] == None:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                msg = "LoadImageEvent %s %d" % (filename,framenumber)
+                sock.sendto(msg.encode(), ('127.0.0.1', p['broadcast_port']))
+                sock.close()
 
     def PreLoadImageEvent(self, filename, framenumber):
-        print("ScriptLauncher PreLoadImage Event triggered")
-        # TODO add generic ports for multiple scripts
-        # for p in self.process:
-        #     port = p.
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        msg = "PreLoadImageEvent %s %d" % (filename,framenumber)
-        sock.sendto(msg.encode(), ('127.0.0.1', self.PORT+1))
-        sock.close()
+        # broadcast event to all running processes
+        for p in self.running_processes:
+            if not p['process'] == None:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                msg = "PreLoadImageEvent %s %d" % (filename,framenumber)
+                sock.sendto(msg.encode(), ('127.0.0.1', p['broadcast_port']))
+                sock.close()
 
 
     def keyPressEvent(self, event):
@@ -159,7 +162,7 @@ class ScriptLauncher(QObject):
         for script, key, index in zip(self.config.launch_scripts, keys, range(len(self.config.launch_scripts))):
             # @key F12: Launch
             if event.key() == key:
-                process = self.running_processes[index]
+                process = self.running_processes[index]['process']
                 if process is not None and process.pid in psutil.pids() and process.poll() is None:
                     if hasattr(os.sys, 'winver'):
                         os.kill(process.pid, signal.CTRL_BREAK_EVENT)
@@ -173,7 +176,9 @@ class ScriptLauncher(QObject):
                     process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
                 else:
                     process = subprocess.Popen(args)
-                self.running_processes[index] = process
+                self.running_processes[index]['process'] = process
+                self.running_processes[index]['command_port'] = self.PORT
+                self.running_processes[index]['broadcast_port'] = self.PORT + 1
                 print("Process",process)
 
     @staticmethod
