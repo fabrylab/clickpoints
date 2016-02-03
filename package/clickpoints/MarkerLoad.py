@@ -108,7 +108,20 @@ def GetTracks():
     query = database.table_tracks.select()
     return query
 
-def GetMarker(image=None, image_frame=None, processed=None, type=None, track=None):
+def GetTypes():
+    """
+    Get all type entries
+
+    Returns
+    -------
+    entries : array_like
+        a query object which contains all marker types.
+    """
+    global database
+    query = database.table_types.select()
+    return query
+
+def GetMarker(image=None, image_frame=None, processed=None, type=None, type_name=None, track=None):
     """
     Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
     ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
@@ -133,10 +146,11 @@ def GetMarker(image=None, image_frame=None, processed=None, type=None, track=Non
         a query object which can be iterated to get the track entries wich where machted by the paremeters provided.
     """
     global database
-    query = database.table_marker.select()
-    parameter = [image, image_frame, processed, type, track]
+    # join marker and type table
+    query = query=database.table_marker.select(database.table_marker,database.table_types).join(database.table_types,peewee.JOIN.LEFT_OUTER)
+    parameter = [image, image_frame, processed, type, type_name, track]
     table = database.table_marker
-    fields = [table.image, table.image_frame, table.processed, table.type, table.track]
+    fields = [table.image, table.image_frame, table.processed, table.type, database.table_types.name, table.track]
     for field, parameter in zip(fields, parameter):
         if parameter is None:
             continue
