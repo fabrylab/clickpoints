@@ -124,7 +124,7 @@ if os.path.exists('clickpoints.db'):
         query = self.table_types.select()
         return query
     
-    def GetMarker(self,image=None, image_frame=None, processed=None, type=None, type_name=None, track=None):
+    def GetMarker(self,image=None, image_filename=None, image_frame=None, processed=None, type=None, type_name=None, track=None):
         """
         Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
         ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
@@ -149,10 +149,11 @@ if os.path.exists('clickpoints.db'):
             a query object which can be iterated to get the track entries wich where machted by the paremeters provided.
         """
         # join marker and type table
-        query = query=self.table_marker.select(self.table_marker,self.table_types).join(self.table_types,peewee.JOIN.LEFT_OUTER)
-        parameter = [image, image_frame, processed, type, type_name, track]
+        query = query=self.table_marker.select(self.table_marker,self.table_types,self.table_images).join(self.table_types,peewee.JOIN.LEFT_OUTER)\
+                                                                          .switch(self.table_marker).join(self.table_images,peewee.JOIN.LEFT_OUTER)
+        parameter = [image,image_filename, image_frame, processed, type, type_name, track]
         table = self.table_marker
-        fields = [table.image, table.image_frame, table.processed, table.type, self.table_types.name, table.track]
+        fields = [table.image, self.table_images.filename ,table.image_frame, table.processed, table.type, self.table_types.name, table.track]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
                 continue
