@@ -8,13 +8,20 @@ import time
 from PIL import Image
 
 class DataFile:
-    def __init__(self, database_filename='clickpoints.db'):
+    def __init__(self, database_filename='clickpoints.db',mode='r'):
         self.database_filename = database_filename
 
-        if not os.path.exists(self.database_filename):
-            raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
+        self.current_version = "2"
 
-        self.db = apsw_ext.APSWDatabase(database_filename)
+        # TODO: check if this is intended behaviour
+        if not os.path.exists(self.database_filename) and mode=='r':
+            raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
+        elif os.path.exists(self.database_filename):
+            print("DB %s does not exist - creating new DB" % os.path.abspath(self.database_filename))
+            self.db = apsw_ext.APSWDatabase(database_filename)
+            # self.CreateTables()
+        else:
+            self.db = apsw_ext.APSWDatabase(database_filename)
 
         """ Basic Tables """
         class BaseModel(peewee.Model):
