@@ -211,7 +211,7 @@ class MyMarkerItem(QGraphicsPathItem):
                 self.rectObj = QGraphicsRectItem(self.parent)
             elif self.data.type.mode & TYPE_Line:
                 self.rectObj = QGraphicsLineItem(self.parent)
-            self.rectObj.setPen(QPen(self.color))
+            self.rectObj.setPen(QPen(QColor(*self.style["color"])))
             self.UpdateRect()
 
         self.ApplyStyle()
