@@ -96,9 +96,25 @@ class DataFile:
 
         """ Connect """
         self.db.connect()
+        self.CreateTables()
 
-if os.path.exists('clickpoints.db'):
+    def CreateTables(self):
+        table_list = [self.table_meta,self.table_images,self.table_marker,self.table_types,self.table_tracks,self.table_mask,self.table_maskTypes]
+        for table in table_list:
+            if not table.table_exists():
+                self.db.create_table(table)
 
+        try:
+            item = self.table_meta.get(self.table_meta.key=="version")
+        except peewee.DoesNotExist:
+            item = self.table_meta()
+
+        item.key="version"
+        item.value=self.current_version
+
+        item.save()
+
+        return item.get_id()
     
     def GetImages(self):
         """
