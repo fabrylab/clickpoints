@@ -243,7 +243,7 @@ class DataFile:
                 query = query.where(field == parameter)
         return query
     
-    def SetMarker(self,id=None, image=None, image_frame=None, x=None, y=None, processed=None, partner=None, type=None, track=None):
+    def SetMarker(self,id=None, image=None, image_frame=1, x=None, y=None, processed=0, partner=None, type=None, track=None):
         """
         Insert or update markers in the database file. Every parameter can either be omitted, to use the default value,
         supplied with a single value, to use the same value for all entries, or be supplied with a list of values, to use a
@@ -277,7 +277,21 @@ class DataFile:
         names = ["id", "image_id", "image_frame", "x", "y", "processed", "partner_id", "type_id", "track_id"]
         for data in np.broadcast(id, image, image_frame, x, y, processed, partner, type, track):
             data_set = []
-            condition = "WHERE image_id = %d AND image_frame = %d AND track_id = %d" % (data[1], data[2], data[-1])
+            condition_list  = ["image_id","image_frame", "track_id"]
+            condition_param = [data[1]   ,data[2]      , data[-1]]
+            condition = "WHERE "
+            for idx,cond in enumerate(condition_list):
+                if not condition_param[idx] is None:
+                    condition += cond + " = " + str(condition_param[idx])
+                else:
+                    condition += cond + " = NULL"
+                if not idx == len(condition_list)-1:
+                    condition += " AND "
+
+            print(condition)
+
+            # condition = "WHERE image_id = %d AND image_frame = %d AND track_id = %d" % (data[1], data[2], data[-1])
+
             for field, name, value in zip(fields, names, data):
                 if value is None:
                     data_set.append("(SELECT "+name+" FROM marker "+condition+")")
@@ -287,6 +301,8 @@ class DataFile:
         query = "INSERT OR REPLACE INTO marker (id, image_id, image_frame, x, y, processed, partner_id, type_id, track_id)\n VALUES (\n"
         query += "),\n (".join(data_sets)
         query += ");"
+
+        print(query)
         while 1:
             try:
                 self.db.execute_sql(query)
