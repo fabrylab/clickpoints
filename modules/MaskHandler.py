@@ -162,6 +162,11 @@ class BigPaintableImageDisplay:
             index = draw_type[0]
             lut[index * 3:(index + 1) * 3] = draw_type[1]
         self.full_image.putpalette(lut)
+
+        fpath,fname = os.path.split(filename)
+        if not os.path.exists(fpath):
+            os.mkdir(fpath)
+
         self.full_image.save(filename)
 
 
@@ -302,7 +307,7 @@ class MaskHandler:
         self.drawPath = QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
         base_filename = os.path.splitext(filename)[0]
-        self.current_maskname = os.path.join(self.config.outputpath, base_filename + self.config.maskname_tag)
+        self.current_maskname = os.path.join(self.config.outputpath, self.config.outputpath_mask, base_filename + self.config.maskname_tag)
         self.LoadMask(self.current_maskname)
 
     def LoadImageEvent(self, filename, framenumber):
@@ -311,22 +316,22 @@ class MaskHandler:
         image_frame = self.data_file.image_frame
         mask_entry = self.mask_file.get_mask()
         if mask_entry:
-            self.current_maskname = mask_entry.filename
-            self.LoadMask(mask_entry.filename)
+            self.current_maskname = os.path.join(self.config.outputpath, self.config.outputpath_mask,mask_entry.filename)
+            self.LoadMask(os.path.join(self.config.outputpath, self.config.outputpath_mask,mask_entry.filename))
         else:
             if image.frames > 1:
                 number = "_"+("%"+"%d" % np.ceil(np.log10(image.frames))+"d") % image_frame
             else:
                 number = ""
             basename, ext = os.path.splitext(image.filename)
-            self.current_maskname = os.path.join(self.config.outputpath, basename + "_" + ext[1:] + number + self.config.maskname_tag)
+            self.current_maskname = os.path.join(self.config.outputpath, self.config.outputpath_mask, basename + "_" + ext[1:] + number + self.config.maskname_tag)
             self.LoadMask(None)
 
     def ReloadMask(self):
         mask_entry = self.mask_file.get_mask()
         if mask_entry:
-            self.current_maskname = mask_entry.filename
-            self.LoadMask(mask_entry.filename)
+            self.current_maskname = os.path.join(self.config.outputpath, self.config.outputpath_mask,mask_entry.filename)
+            self.LoadMask(os.path.join(self.config.outputpath, self.config.outputpath_mask,mask_entry.filename))
 
     def LoadMask(self, maskname):
         mask_valid = False
@@ -364,7 +369,8 @@ class MaskHandler:
             mask_entry = self.mask_file.get_mask()
             if mask_entry is None:
                 mask_entry = self.mask_file.add_mask()
-            mask_entry.filename = self.current_maskname
+            fpath,fname = os.path.split(self.current_maskname)
+            mask_entry.filename = fname
             mask_entry.save()
             self.MaskDisplay.save(self.current_maskname)
             print(self.current_maskname + " saved")
