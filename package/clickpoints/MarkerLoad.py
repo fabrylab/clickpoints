@@ -28,20 +28,26 @@ class DataFile:
             class Meta:
                 database = self.db
 
+        class Meta(BaseModel):
+            key = peewee.CharField()
+            value = peewee.CharField()
+
         class Images(BaseModel):
-            filename = peewee.CharField()
+            filename = peewee.CharField(unique=True)
             ext = peewee.CharField()
             frames = peewee.IntegerField(default=0)
             external_id = peewee.IntegerField(null=True)
             timestamp = DateTimeField(null=True)
 
         self.base_model = BaseModel
+        self.table_meta = Meta
         self.table_images = Images
         self.tables = [BaseModel, Images]
 
         """ Marker Tables """
         class Tracks(BaseModel):
             uid = peewee.CharField()
+            style = peewee.CharField(null=True)
             def points(self):
                 return np.array([[point.x, point.y] for point in self.marker()])
             def marker(self):
@@ -53,6 +59,7 @@ class DataFile:
             name = peewee.CharField()
             color = peewee.CharField()
             mode = peewee.IntegerField()
+            style = peewee.CharField(null=True)
 
         class Marker(BaseModel):
             image = peewee.ForeignKeyField(Images)
@@ -62,6 +69,7 @@ class DataFile:
             type = peewee.ForeignKeyField(Types)
             processed = peewee.IntegerField(default=0)
             partner_id = peewee.IntegerField(null=True)
+            style = peewee.CharField(null=True)
             track = peewee.ForeignKeyField(Tracks, null=True)
             class Meta:
                 indexes = ((('image', 'image_frame', 'track'), True), )
