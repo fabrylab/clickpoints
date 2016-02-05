@@ -3,7 +3,7 @@ import numpy as np
 import os
 import peewee
 from playhouse import apsw_ext
-from playhouse.apsw_ext import apsw
+from playhouse.apsw_ext import apsw, DateTimeField
 import time
 from PIL import Image
 
@@ -26,7 +26,7 @@ class DataFile:
             ext = peewee.CharField()
             frames = peewee.IntegerField(default=0)
             external_id = peewee.IntegerField(null=True)
-            timestamp = peewee.DateTimeField(null=True)
+            timestamp = DateTimeField(null=True)
 
         self.base_model = BaseModel
         self.table_images = Images
