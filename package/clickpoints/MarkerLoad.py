@@ -129,7 +129,42 @@ class DataFile:
         query = self.table_images.select()
         query.order_by(self.table_images.filename)
         return query
-    
+
+    def AddImage(self,filename,ext,frames=1,external_id=None,timestamp=None):
+        """
+        Add single image to db
+
+        Parameters
+        -----------
+        filename : string
+            description
+        ext : string
+            description
+        frames : int
+            description
+        external_id : int
+            description
+        timestamp : DateTime Object
+            description
+        Returns
+        --------
+        index : int
+        """
+        try:
+            item = self.table_images.get(self.table_images.filename==filename)
+        except peewee.DoesNotExist:
+            item = self.table_images()
+
+        item.filename=filename
+        item.ext=ext
+        item.frames=frames
+        item.external_id=external_id
+        item.timestamp=timestamp
+
+        item.save()
+        return item.get_id()
+
+
     def GetTracks(self):
         """
         Get all track entries
@@ -154,6 +189,20 @@ class DataFile:
         """
         query = self.table_types.select()
         return query
+
+    def AddType(self,name,color,mode=0,style=""):
+        try:
+            item = self.table_types.get(self.table_types.name==name)
+        except peewee.DoesNotExist:
+            item = self.table_types()
+
+        item.name = name
+        item.color = color
+        item.mode = mode
+        item.style = style
+
+        item.save()
+        return item.get_id()
     
     def GetMarker(self,image=None, image_filename=None, image_frame=None, processed=None, type=None, type_name=None, track=None):
         """
@@ -324,3 +373,17 @@ class DataFile:
         pil_image.putpalette(lut)
         # Save mask
         pil_image.save(filename)
+
+
+    def AddMaskFile(self,image_id,filename,image_frame=0):
+        try:
+            item = self.table_mask.get(self.table_mask.image==image_id)
+        except peewee.DoesNotExist:
+            item = self.table_mask()
+
+        item.image = image_id
+        item.image_frame = image_frame
+        item.filename = filename
+
+        item.save()
+        return item.get_id()
