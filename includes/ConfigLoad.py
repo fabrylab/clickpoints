@@ -20,8 +20,10 @@ start_globals = globals().copy()
 """ @config General """
 srcpath = ""
 database_file = ""
-# @config `outputpath =` the path where to save the log and mask file. Set to `None` defaults to the `srcpath`
+# @config `outputpath =` the path where to save the DB and mask files. Set to `None` defaults to the `srcpath`
 outputpath = ""
+# @config `outputpath_mask =` a sub path of output path where to save mask files. Set to "" to default to outputpath
+outputpath_mask = "mask"
 # @config `filename_data_regex = ` specify a regular expression to obtain meta-data from filenames
 filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
 # @config `filterparam =` specify additional filters for the files to use
