@@ -11,7 +11,7 @@ class DataFile:
     def __init__(self, database_filename='clickpoints.db',mode='r'):
         self.database_filename = database_filename
 
-        self.current_version = "2"
+        self.current_version = "2.1"
 
         # TODO: check if this is intended behaviour
         if not os.path.exists(self.database_filename) and mode=='r':
@@ -70,6 +70,7 @@ class DataFile:
             processed = peewee.IntegerField(default=0)
             partner_id = peewee.IntegerField(null=True)
             style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
             track = peewee.ForeignKeyField(Tracks, null=True)
             class Meta:
                 indexes = ((('image', 'image_frame', 'track'), True), )
