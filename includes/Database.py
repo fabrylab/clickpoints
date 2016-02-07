@@ -58,7 +58,7 @@ class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
-        self.current_version = "2"
+        self.current_version = "2.1"
         if self.exists:
             self.db = apsw_ext.APSWDatabase(database_filename)
             introspector = Introspector.from_database(self.db)
@@ -69,7 +69,7 @@ class DataFile:
                 version = "undefined"
             print("Open database with version", version)
             if version != self.current_version:
-                pass  # TODO Migrate
+                self.migrateDBFrom(version)
         else:
             self.db = apsw_ext.APSWDatabase(":memory:")
 
@@ -97,7 +97,7 @@ class DataFile:
         self.db.connect()
         if not self.exists:
             self.db.create_tables([self.table_meta, self.table_images])
-        self.table_meta(key="version", value=self.current_version).save()
+            self.table_meta(key="version", value=self.current_version).save()
 
         self.image = None
         self.next_image_index = 1
@@ -110,6 +110,20 @@ class DataFile:
         self.timestamp = 0
         self.image_uses = 0
         self.image_saved = True
+
+    def migrateDBFrom(self,version):
+        nr_new_version=None;
+        print("Migrating DB from version %s" % version)
+        nr_version = int(version)
+
+        if nr_version<2.1:
+            print("\tto 2.1")
+            # Add text fields for Marker
+            self.db.execute_sql("ALTER TABLE marker ADD COLUMN text varchar(255)")
+            nr_new_version = 2.1
+
+        self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
+                                            (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(nr_new_version))
 
     def save_current_image(self):
         if not self.exists:
