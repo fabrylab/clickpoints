@@ -6,10 +6,12 @@ import peewee
 try:
     from PyQt5 import QtGui, QtCore
     from PyQt5.QtWidgets import QGraphicsPixmapItem, QPixmap, QPainterPath, QGraphicsPathItem, QGraphicsRectItem, QGraphicsLineItem, QCursor, QFont, QGraphicsSimpleTextItem, QPen, QBrush, QColor
+    from PyQt5.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel
     from PyQt5.QtCore import Qt
 except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QGraphicsPixmapItem, QPixmap, QPainterPath, QGraphicsPathItem, QGraphicsRectItem, QGraphicsLineItem, QCursor, QFont, QGraphicsSimpleTextItem, QPen, QBrush, QColor
+    from PyQt4.QtGui import QWidget, QGridLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel
     from PyQt4.QtCore import Qt
 
 import numpy as np
@@ -84,6 +86,7 @@ class MarkerFile:
             partner_id = peewee.IntegerField(null=True)
             track = peewee.ForeignKeyField(Tracks, null=True)
             style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
             class Meta:
                 indexes = ((('image', 'image_frame', 'track'), True), )
 
@@ -165,6 +168,58 @@ def GetColorFromMap(identifier, id):
     color = color[:3]*255
     return color
 
+class MarkerEditor(QWidget):
+    def __init__(self, marker_item):
+        QWidget.__init__(self)
+
+        self.marker_item = marker_item
+
+        # Widget
+        self.setMinimumWidth(400)
+        self.setMinimumHeight(100)
+        self.setWindowTitle("MarkerEditor")
+        self.layout = QGridLayout(self)
+
+        # add Label and Line Edit for TEXT
+        horizontal_layout = QHBoxLayout()
+        self.label_text = QLabel('Text:',self)
+        self.lineedit_text = QLineEdit('',self)
+        if not self.marker_item.data.text is None:
+            self.lineedit_text.setText(self.marker_item.data.text)
+        horizontal_layout.addWidget(self.label_text)
+        horizontal_layout.addWidget(self.lineedit_text)
+        self.layout.addLayout(horizontal_layout,0,0,2,2,Qt.AlignTop)
+
+        # add Confirm and Cancel button
+        self.pushbutton_Confirm = QPushButton('S&ave', self)
+        self.pushbutton_Confirm.pressed.connect(self.saveMarker)
+        self.layout.addWidget(self.pushbutton_Confirm, 1, 0)
+
+        self.pushbutton_Cancel = QPushButton('&Cancel', self)
+        self.pushbutton_Cancel.pressed.connect(self.close)
+        self.layout.addWidget(self.pushbutton_Cancel, 1, 1)
+
+    def saveMarker(self):
+        print("Saving changes...")
+        # set parameters
+        self.marker_item.data.text = self.lineedit_text.text()
+        # save
+        self.marker_item.saved=False
+        self.marker_item.save()
+        # display
+        self.marker_item.text.setText(self.lineedit_text.text())
+
+        # close widget
+        self.close()
+
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.close()
+        if event.key() == QtCore.Qt.Key_Return:
+            self.saveMarker()
+
+
 class MyMarkerItem(QGraphicsPathItem):
     def __init__(self, marker_handler, data, saved=False):
         QGraphicsPathItem.__init__(self, marker_handler.MarkerParent)
@@ -200,6 +255,19 @@ class MyMarkerItem(QGraphicsPathItem):
         self.setAcceptHoverEvents(True)
 
         self.UseCrosshair = True
+
+
+        self.font = QFont()
+        self.font.setPointSize(10)
+        self.text = QGraphicsSimpleTextItem(self)
+        self.text.setFont(self.font)
+        self.color = self.style["color"]
+        self.text.setPos(5 , 5)
+        self.text.setBrush(QBrush(QColor(*self.color)))
+        self.text.setZValue(10)
+
+        if not self.data.text is None:
+            self.text.setText(self.data.text)
 
         self.partner = None
         self.rectObj = None
@@ -282,7 +350,13 @@ class MyMarkerItem(QGraphicsPathItem):
 
     def mousePressEvent(self, event):
         if event.button() == 2:
-            self.mouseRightClicked()
+            modifiers=QtGui.QApplication.keyboardModifiers()
+            if modifiers == QtCore.Qt.ControlModifier:
+                print("CTRL + click ... start addText Widget")
+                self.me = MarkerEditor(self)
+                self.me.show()
+            else:
+                self.mouseRightClicked()
         if event.button() == 1:
             self.drag_start_pos = event.pos()
             self.setCursor(QCursor(QtCore.Qt.BlankCursor))
@@ -365,6 +439,8 @@ class MyMarkerItem(QGraphicsPathItem):
         image.rectangle([x+b, y-w, x+r2, y+w], color)
 
 
+
+
 class MyTrackItem(MyMarkerItem):
     def __init__(self, marker_handler, points_data, track, saved=False):
         MyMarkerItem.__init__(self, marker_handler, points_data[0])
@@ -431,7 +507,7 @@ class MyTrackItem(MyMarkerItem):
         if not self.hidden:
             self.UpdateLine()
         self.SetTrackActive(False)
-        self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track)
+        self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track, text=self.text)
         #self.UpdateStyle()
 
     def update(self, frame, point):
@@ -766,6 +842,7 @@ class MarkerHandler:
         self.scale = 1
         self.config = config
         self.data_file = datafile
+        self.text=None
 
         self.marker_file = MarkerFile(datafile)
 
@@ -941,7 +1018,7 @@ class MarkerHandler:
                 self.tracks.append(MyTrackItem(self, [data], track, saved=False))
                 self.tracks[-1].setScale(1 / self.scale)
             else:
-                data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type)
+                data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, text=self.text)
                 self.points.append(MyMarkerItem(self, data, saved=False))
                 self.points[-1].setScale(1 / self.scale)
             return True
