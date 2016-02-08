@@ -480,8 +480,14 @@ class RealTimeSlider(QGraphicsView):
         span = self.max_value-self.min_value
         l = self.pixel_len
         time_per_pixel = timedelta_div(span, self.pixel_len)
-        left_end = self.min_value + timedelta_mul(time_per_pixel, -self.pan / self.scale)
-        right_end = self.min_value + timedelta_mul(time_per_pixel, (self.pixel_len - self.pan) / self.scale)
+        try:
+            left_end = self.min_value + timedelta_mul(time_per_pixel, -self.pan / self.scale)
+        except OverflowError:
+            left_end = datetime.datetime(datetime.MINYEAR, 1, 1)
+        try:
+            right_end = self.min_value + timedelta_mul(time_per_pixel, (self.pixel_len - self.pan) / self.scale)
+        except OverflowError:
+            right_end = datetime.datetime(datetime.MAXYEAR, 1, 1)
 
         for pos, ticks in self.tick_marker.items():
             for type, tick in ticks.items():
@@ -527,11 +533,13 @@ class RealTimeSlider(QGraphicsView):
                        datetime.timedelta(days=356*10),
                        datetime.timedelta(days=356*50),
                        datetime.timedelta(days=356*100),
+                       datetime.timedelta(days=356*200),
+                       datetime.timedelta(days=356*500),
                        ]
-        type_delta = type_deltas[0]
+        type_delta_major = type_deltas[0]
         type_delta_minor = type_deltas[0]
         for type_delta_test in type_deltas:
-            type_delta = type_delta_test
+            type_delta_major = type_delta_test
             if type_delta_test > delta_min:
                 break
             type_delta_minor = type_delta_test
@@ -544,46 +552,83 @@ class RealTimeSlider(QGraphicsView):
                       ["year", 0, 1]]
         # round to the nearest tick
         years = 0
+        years_major = 0
         months = 0
-        if type_delta >= datetime.timedelta(days=356):
+        months_major = 0
+        days = 0
+        days_major = 0
+        if type_delta_major >= datetime.timedelta(days=356):
             # round to years
-            years = int(type_delta.days/356)
-            tick_time = datetime.datetime(roundValue(left_end.year, years), 1, 1)
-        elif type_delta >= datetime.timedelta(days=30):
+            if type_delta_minor >= datetime.timedelta(days=356):
+                years = int(type_delta_minor.days/356)
+            else:
+                months = int(type_delta_minor.days/30)
+            years_major = int(type_delta_major.days/356)
+            tick_time = datetime.datetime(BoundBy(roundValue(left_end.year, max(years, 1)), datetime.MINYEAR, datetime.MAXYEAR), 1, 1)
+        elif type_delta_major >= datetime.timedelta(days=30):
             # round to months
-            months = int(type_delta.days/30)
-            tick_time = datetime.datetime(left_end.year, roundValue(left_end.month, months, 1), 1)
+            if type_delta_minor >= datetime.timedelta(days=30):
+                months = int(type_delta_minor.days/30)
+            months_major = int(type_delta_major.days/30)
+            tick_time = datetime.datetime(left_end.year, roundValue(left_end.month, max(months, 1), 1), 1)
+        elif type_delta_minor >= datetime.timedelta(days=1):
+            days = type_delta_minor.days
+            days_major = type_delta_major.days
+            tick_time = datetime.datetime(left_end.year, left_end.month, 1)
         else:
-            tick_time = roundTime(left_end, type_delta.total_seconds())
-
-        type_delta_major = type_delta
-        type_delta = type_delta_minor
+            tick_time = roundTime(left_end, type_delta_major.total_seconds())
 
         count = 0
         self.tick_start = tick_time
         while tick_time < right_end:
-            type = 0
-            while 1:
+            for type in range(len(tick_types)):
                 tick_type = tick_types[type]
                 value = getattr(tick_time, tick_type[0])
                 if tick_type[1]:
                     value %= tick_type[1]
                 if value != tick_type[2]:
                     break
-                type += 1
-            if (tick_time-self.tick_start).total_seconds() % type_delta_major.total_seconds() == 0:
+            # find out if this is a major tick or not
+            is_major_tick = False
+            if years_major:
+                if tick_time.day == 1 and tick_time.month == 1 and tick_time.year == roundValue(tick_time.year, years_major):
+                    is_major_tick = True
+            elif months_major:
+                if tick_time.day == 1 and tick_time.month == roundValue(tick_time.month, months_major, 1):
+                    is_major_tick = True
+            elif days_major:
+                if tick_time.day == roundValue(tick_time.day, days_major, 1):
+                    is_major_tick = True
+            elif (tick_time-self.tick_start).total_seconds() % type_delta_major.total_seconds() == 0:
+                is_major_tick = True
+
+            # place the tick
+            if is_major_tick:
                 self.addTickMarker(tick_time, color=QColor(0, 0, 0), height=15, type=type, type_name=tick_types[type][0])
             else:
                 self.addTickMarker(tick_time, color=QColor(0, 0, 0), height=10, type=type, type_name="")
+
+            # apply the delta
             if years:
-                tick_time = datetime.datetime(tick_time.year+years, tick_time.month, 1)
+                try:
+                    tick_time = datetime.datetime(tick_time.year+years, tick_time.month, 1)
+                except ValueError:
+                    break
             elif months:
                 if tick_time.month+months > 12:
                     tick_time = datetime.datetime(tick_time.year+1, 1, 1)
                 else:
                     tick_time = datetime.datetime(tick_time.year, tick_time.month+months, 1)
+            elif days:
+                try:
+                    tick_time = datetime.datetime(tick_time.year, tick_time.month, tick_time.day+days)
+                except ValueError:
+                    try:
+                        tick_time = datetime.datetime(tick_time.year, tick_time.month+1, 1)
+                    except ValueError:
+                        tick_time = datetime.datetime(tick_time.year+1, 1, 1)
             else:
-                tick_time = tick_time+type_delta
+                tick_time = tick_time+type_delta_minor
             count += 1
         self.repaint()
 
