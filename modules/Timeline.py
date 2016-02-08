@@ -83,10 +83,8 @@ class TimeLineGrabberSignal(QObject):
 class TimeLineGrabber(QGraphicsPathItem):
     def __init__(self, parent, value, path, gradient, parent_item=None):
         if parent_item is None:
-            print("***", self, parent, parent_item)
             QGraphicsPathItem.__init__(self, None, parent.scene)
         else:
-            print("+++", self, parent, parent_item)
             QGraphicsPathItem.__init__(self, parent_item)
         self.parent = parent
         self.pixel_range = [0, 100]
