@@ -58,7 +58,7 @@ class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
-        self.current_version = "2.1"
+        self.current_version = "3"
         if self.exists:
             self.db = apsw_ext.APSWDatabase(database_filename)
             introspector = Introspector.from_database(self.db)
@@ -116,11 +116,11 @@ class DataFile:
         print("Migrating DB from version %s" % version)
         nr_version = int(version)
 
-        if nr_version<2.1:
-            print("\tto 2.1")
+        if nr_version<3:
+            print("\tto 3")
             # Add text fields for Marker
             self.db.execute_sql("ALTER TABLE marker ADD COLUMN text varchar(255)")
-            nr_new_version = 2.1
+            nr_new_version = 3
 
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(nr_new_version))
