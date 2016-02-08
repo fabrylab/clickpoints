@@ -723,6 +723,7 @@ class RealTimeSlider(QGraphicsView):
             angle = event.angleDelta().y()
         else:
             angle = event.delta()
+        old_scale = self.scale
         if angle > 0:
             self.scale *= 1.1
             self.markerParent.scale(1.1, 1)
@@ -731,6 +732,10 @@ class RealTimeSlider(QGraphicsView):
             self.scale *= 0.9
             self.markerParent.scale(0.9, 1)
             #self.scaleOrigin(0.9, event.pos())
+        new_pos = PosToArray(self.slider_line.mapFromScene(self.mapToScene(event.pos())))
+        x = new_pos[0]
+        self.pan = x - self.scale/old_scale*(x-self.pan)
+        self.markerParent.setPos(self.pan, 0)
         event.accept()
 
         self.updateTicks()
