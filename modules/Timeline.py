@@ -739,12 +739,15 @@ class Timeline:
         self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 
         # second
-        self.timeSlider = RealTimeSlider()
-        self.timeSlider.setTimes(self.media_handler)
-        self.layoutCtrl2.addWidget(self.timeSlider)
+        if self.config.datetimeline_show:
+            self.timeSlider = RealTimeSlider()
+            self.timeSlider.setTimes(self.media_handler)
+            self.layoutCtrl2.addWidget(self.timeSlider)
 
-        self.timeSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
-        self.timeSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider2)
+            self.timeSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
+            self.timeSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider2)
+        else:
+            self.timeSlider = None
 
         # frame control
         self.button_play = QtGui.QPushButton()
@@ -861,7 +864,8 @@ class Timeline:
     def updateLabel(self):
         if self.slider_update:
             self.frameSlider.setValue(self.media_handler.get_index())
-            self.timeSlider.setValue(self.media_handler.get_timestamp())
+            if self.timeSlider:
+                self.timeSlider.setValue(self.media_handler.get_timestamp())
             digits = "%d" % np.ceil(np.log10(self.media_handler.get_frame_count()))
             format_string = ('%0'+digits+'d/%d  %.1ffps')
             fps = self.current_fps if self.current_fps is not None else 0
