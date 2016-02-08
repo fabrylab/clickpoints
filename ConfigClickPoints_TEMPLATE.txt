@@ -1,4 +1,7 @@
+
 """ @config General """
+srcpath = ""
+database_file = ""
 # @config `outputpath =` the path where to save the log and mask file. Set to `None` defaults to the `srcpath`
 outputpath = ""
 # @config `filename_data_regex = ` specify a regular expression to obtain meta-data from filenames
@@ -10,7 +13,7 @@ filterparam = {}
 jumps = (-1, +1, -10, +10, -100, +100, -1000, +1000)
 
 # @config `max_image_size = ` the maximum size of one image before it is internally split into tiles
-max_image_size = 2 ** 12
+max_image_size = 2 ** 14
 
 # @config `rotation =` the rotation of the image when starting
 rotation = 0
@@ -23,6 +26,9 @@ hide_interfaces = True
 # @config `addons =` a list of additional python files to load
 addons = []
 
+threaded_image_display = False
+threaded_image_load = False
+
 """ @config Marker """
 # @config `logname_tag =` specifies what to append to the log file.
 logname_tag = '_pos.txt'
@@ -30,9 +36,13 @@ logname_tag = '_pos.txt'
 TYPE_Normal = 0
 TYPE_Rect = 1
 TYPE_Line = 2
+TYPE_Track = 4
 
 # @config `types = {0: ["marker", [255, 0, 0], TYPE_Normal]}` specifies what categories to use. Every category is an array with three entires. Name, Color and Type. Types can be 0: normal marker, 1: rectangle markers, 2: line markers
-types = {0: ["marker", [255, 0, 0], TYPE_Normal]}
+types = {0: ["pengu", [255, 0, 0], TYPE_Normal],
+         1: ["pengu low", [0, 255, 0], TYPE_Normal],
+         2: ["horizon", [0, 255, 255], TYPE_Normal],
+         4: ["iceberg", [0, 0, 255], TYPE_Normal]}
 
 # @config `tracking = ` specify whether to use tracking mode
 tracking = False
@@ -72,6 +82,20 @@ timeline_hide = False
 # @config `annotation_tag =` specifies what to append to the annotation file.
 annotation_tag = '_annot.txt'
 
+
+# @config `server_annotations=` weather to use local or sql based annotation stoarage
+server_annotations=False
+# @config `sql_dbname=` database name e.g. annotations
+sql_dbname='annotation'
+# @config `sql_host=` ip adress of the server
+sql_host='131.188.117.94'
+# @config `sql_port=` port for mysql service
+sql_port=3306
+# @config `sql_user =` username for mySQL database
+sql_user = 'clickpoints'
+# @config `sql_pwd =`  password for mySQL database
+sql_pwd = '123456'
+
 """ @config FolderBrowser """
 # @config `folder_list =` specify a lists of folder which can be switched with the `path_up` and `page_down` keys.
 folder_list = []
@@ -79,3 +103,9 @@ folder_list = []
 """ @config ScriptLauncher """
 # @config `launch_scripts = ` specify a list of scripts which can be started by pressing `F12` to `F9`
 launch_scripts = []
+
+""" @config InfoHud """
+# @config `info_hud_string = ` specify string to display in the hud
+info_hud_string = ""
+
+dimension_template = "Recording(?P<recording>\d*)_FoW(?P<fov>\d*)_Mode(?P<mode>.*)_z(?P<z>\d*).tif"
