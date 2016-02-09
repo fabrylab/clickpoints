@@ -43,6 +43,8 @@ class MaskFile:
         if not self.table_maskTypes.table_exists():
             self.table_maskTypes.create_table()
 
+        self.mask_path = None
+
     def set_type(self, id, name, rgb_tuple, index):
         try:
             type = self.table_maskTypes.get(self.table_maskTypes.id == id)
@@ -64,6 +66,17 @@ class MaskFile:
 
     def get_mask_frames(self):
         return self.table_mask.select().group_by(self.table_mask.image.concat(self.table_mask.image_frame))
+
+    def get_mask_path(self, config_outputpath_mask):
+        if self.mask_path:
+            return self.mask_path
+        try:
+            outputpath_mask = self.data_file.table_meta.get(key="mask_path").value
+        except peewee.DoesNotExist:
+            outputpath_mask = config_outputpath_mask
+            self.data_file.table_meta(key="mask_path", value=outputpath_mask).save()
+        self.mask_path = os.path.join(os.path.dirname(self.data_file.database_filename), outputpath_mask)
+        return self.mask_path
 
 class BigPaintableImageDisplay:
     def __init__(self, origin, max_image_size=2**12, config=None):
@@ -315,23 +328,27 @@ class MaskHandler:
         image = self.data_file.image
         image_frame = self.data_file.image_frame
         mask_entry = self.mask_file.get_mask()
+
+        mask_path = self.mask_file.get_mask_path(self.config.outputpath_mask)
+
         if mask_entry:
-            self.current_maskname = os.path.join(self.config.outputpath, self.config.outputpath_mask,mask_entry.filename)
-            self.LoadMask(os.path.join(self.config.outputpath, self.config.outputpath_mask,mask_entry.filename))
+            self.current_maskname = os.path.join(mask_path, mask_entry.filename)
+            self.LoadMask(os.path.join(mask_path, mask_entry.filename))
         else:
             if image.frames > 1:
                 number = "_"+("%"+"%d" % np.ceil(np.log10(image.frames))+"d") % image_frame
             else:
                 number = ""
             basename, ext = os.path.splitext(image.filename)
-            self.current_maskname = os.path.join(self.config.outputpath, self.config.outputpath_mask, basename + "_" + ext[1:] + number + self.config.maskname_tag)
+            self.current_maskname = os.path.join(mask_path, basename + "_" + ext[1:] + number + self.config.maskname_tag)
             self.LoadMask(None)
 
     def ReloadMask(self):
         mask_entry = self.mask_file.get_mask()
+        mask_path = self.mask_file.get_mask_path(self.config.outputpath_mask)
         if mask_entry:
-            self.current_maskname = os.path.join(self.config.outputpath, self.config.outputpath_mask,mask_entry.filename)
-            self.LoadMask(os.path.join(self.config.outputpath, self.config.outputpath_mask,mask_entry.filename))
+            self.current_maskname = os.path.join(mask_path, mask_entry.filename)
+            self.LoadMask(self.current_maskname)
 
     def LoadMask(self, maskname):
         mask_valid = False
