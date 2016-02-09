@@ -11,7 +11,7 @@ class DataFile:
     def __init__(self, database_filename='clickpoints.db',mode='r'):
         self.database_filename = database_filename
 
-        self.current_version = "2.1"
+        self.current_version = "3"
 
         # TODO: check if this is intended behaviour
         if not os.path.exists(self.database_filename) and mode=='r':
