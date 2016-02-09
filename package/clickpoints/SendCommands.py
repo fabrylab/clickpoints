@@ -3,6 +3,7 @@ import sys
 import os
 import socket
 import signal
+import numpy as np
 
 from MemMap import MemMap
 
@@ -103,7 +104,7 @@ def GetImage(value):
 
     memmap = MemMap(image_path)
     shape = memmap.shape
-    image = memmap.data.reshape(shape).copy()
+    image = memmap.data[:np.prod(shape)].reshape(shape).copy()
     return image, int(id), int(frame)
 
 

@@ -70,6 +70,7 @@ class ScriptLauncher(QObject):
         self.running_processes = [process_dict] * len(self.config.launch_scripts)
         self.memmap = None
         self.memmap_path = None
+        self.memmap_size = 0
 
         #self.running_processes = [None]*len(self.config.launch_scripts)
 
@@ -109,14 +110,14 @@ class ScriptLauncher(QObject):
             if len(shape) == 2:
                 shape = (shape[0], shape[1], 1)
 
-            # TODO check for size change
+            size = shape[0]*shape[1]*shape[2]
             if sys.platform[:3] == 'win':
                 clickpoints_storage_path = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
             else:
                 clickpoints_storage_path = os.path.expanduser("~/.clickpoints/")
             if not os.path.exists(clickpoints_storage_path):
                 os.makedirs(clickpoints_storage_path)
-            if self.memmap is None:
+            if self.memmap is None or size > self.memmap_size:
                 self.memmap_path = os.path.normpath(os.path.join(clickpoints_storage_path, "image.dat"))
                 self.memmap_path_xml = os.path.normpath(os.path.join(clickpoints_storage_path, "image.xml"))
                 layout = (
@@ -127,10 +128,11 @@ class ScriptLauncher(QObject):
 
                 self.memmap = MemMap(self.memmap_path, layout)
                 self.memmap.saveXML(self.memmap_path_xml)
+                self.memmap_size = size
 
             self.memmap.shape[:] = shape
             self.memmap.type = str(image.dtype)
-            self.memmap.data[:] = image.flatten()
+            self.memmap.data[:size] = image.flatten()
             socket.sendto(cmd + " " + self.memmap_path_xml + " " + str(image_id) + " " + str(image_frame), client_address)
         if cmd == "updateHUD":
             try:
