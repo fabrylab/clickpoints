@@ -94,10 +94,24 @@ class DataFile:
         self.table_mask = Mask
         self.table_maskTypes = MaskTypes
         self.tables.extend([Mask, MaskTypes])
+        self.mask_path = None
 
         """ Connect """
         self.db.connect()
         self.CreateTables()
+
+    def GetMaskPath(self):
+        if self.mask_path:
+            return self.mask_path
+        try:
+            outputpath_mask = self.table_meta.get(key="mask_path").value
+        except peewee.DoesNotExist:
+            outputpath_mask = "mask"  # default value
+            self.table_meta(key="mask_path", value=outputpath_mask).save()
+        self.mask_path = os.path.join(os.path.dirname(self.database_filename), outputpath_mask)
+        if not os.path.exists(self.mask_path):
+            os.mkdir(self.mask_path)
+        return self.mask_path
 
     def CreateTables(self):
         table_list = [self.table_meta,self.table_images,self.table_marker,self.table_types,self.table_tracks,self.table_mask,self.table_maskTypes]
@@ -336,10 +350,10 @@ class DataFile:
             # Test if mask already exists in database
             mask_entry = self.table_mask.get(self.table_mask.image == image, self.table_mask.image_frame == image_frame)
             # Load it
-            im = np.asarray(Image.open(mask_entry.filename))
+            im = np.asarray(Image.open(os.path.join(self.GetMaskPath(), mask_entry.filename)))
             im.setflags(write=True)
             return im
-        except peewee.DoesNotExist:
+        except (peewee.DoesNotExist, IOError):
             # Create new mask according to image size
             image_entry = self.table_images.get(self.table_images.id == image)
             pil_image = Image.open(image_entry.filename)
@@ -362,7 +376,7 @@ class DataFile:
         try:
             # Test if mask already exists in database
             mask_entry = self.table_mask.get(self.table_mask.image == image, self.table_mask.image_frame == image_frame)
-            filename = mask_entry.filename
+            filename = os.path.join(self.GetMaskPath(), mask_entry.filename)
         except peewee.DoesNotExist:
             # Create new entry
             mask_entry = self.table_mask(image=image, image_frame=image_frame)
@@ -374,8 +388,8 @@ class DataFile:
                 number = ""
             basename, ext = os.path.splitext(image_entry.filename)
             directory, basename = os.path.split(basename)
-            current_maskname = os.path.join(directory, basename + "_" + ext[1:] + number + "_mask.png")
-            filename = current_maskname
+            current_maskname = basename + "_" + ext[1:] + number + "_mask.png"
+            filename = os.path.join(self.GetMaskPath(), current_maskname)
             # Save entry
             mask_entry.filename = current_maskname
             mask_entry.save()
