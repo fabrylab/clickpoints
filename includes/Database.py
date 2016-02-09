@@ -138,10 +138,13 @@ class DataFile:
         self.image_saved = True
         self.next_image_index += 1
 
-    def set_image(self, file_entry, frame, timestamp):
+    def check_to_save(self):
         if self.image and not self.image_saved:
             if self.image_uses > 0:
                 self.save_current_image()
+
+    def set_image(self, file_entry, frame, timestamp):
+        self.check_to_save()
         try:
             self.image = self.table_images.get(self.table_images.filename == file_entry.filename)
             self.image_saved = True

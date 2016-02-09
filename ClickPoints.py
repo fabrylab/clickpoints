@@ -145,6 +145,7 @@ class ClickPointsWindow(QWidget):
 
     def save(self):
         BroadCastEvent(self.modules, "save")
+        self.data_file.check_to_save()
 
     def JumpFrames(self, amount, next_amount=None):
         if next_amount:
