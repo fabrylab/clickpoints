@@ -16,7 +16,7 @@ class DataFile:
         # TODO: check if this is intended behaviour
         if not os.path.exists(self.database_filename) and mode=='r':
             raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
-        elif os.path.exists(self.database_filename):
+        elif not os.path.exists(self.database_filename):
             print("DB %s does not exist - creating new DB" % os.path.abspath(self.database_filename))
             self.db = apsw_ext.APSWDatabase(database_filename)
             # self.CreateTables()
