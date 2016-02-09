@@ -85,7 +85,7 @@ class ClickPointsWindow(QWidget):
         exclude_ending = None
         if len(config.draw_types):
             exclude_ending = "_mask.png"#config.maskname_tag
-        self.media_handler = MediaHandler(config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending)
+        self.media_handler, select_index = MediaHandler(config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending)
 
         # DataFile
         if config.database_file == "":
@@ -113,9 +113,10 @@ class ClickPointsWindow(QWidget):
             if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
                 break
 
-        self.media_handler.set_index(0)
+        self.media_handler.set_index(select_index)
         self.media_handler.signals.loaded.connect(self.FrameLoaded)
         self.UpdateImage()
+        BroadCastEvent(self.modules, "FrameChangeEvent")
 
         if config.rotation != 0:
             self.view.rotate(config.rotation)
