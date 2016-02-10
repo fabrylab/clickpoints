@@ -262,7 +262,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setFont(self.font)
         self.color = self.style["color"]
-        self.text.setPos(5 , 5)
+        self.text.setPos(5, 5)
         self.text.setBrush(QBrush(QColor(*self.color)))
         self.text.setZValue(10)
 
@@ -344,25 +344,27 @@ class MyMarkerItem(QGraphicsPathItem):
         elif self.data.type.mode & TYPE_Line:
             self.rectObj.setLine(x, y, x2, y2)
 
-    def mouseRightClicked(self):
+    def deleteMarker(self):
         self.delete()
         self.marker_handler.RemovePoint(self)
 
     def mousePressEvent(self, event):
-        if event.button() == 2:
-            modifiers=QtGui.QApplication.keyboardModifiers()
+        if event.button() == 2:  # right mouse button
+            # open marker edit menu
+            self.me = MarkerEditor(self)
+            self.me.show()
+        if event.button() == 1:  # left mouse button
+            modifiers = QtGui.QApplication.keyboardModifiers()
+            # left click with Ctrl -> delete
             if modifiers == QtCore.Qt.ControlModifier:
-                print("CTRL + click ... start addText Widget")
-                self.me = MarkerEditor(self)
-                self.me.show()
+                self.deleteMarker()
+            # left click -> move
             else:
-                self.mouseRightClicked()
-        if event.button() == 1:
-            self.drag_start_pos = event.pos()
-            self.setCursor(QCursor(QtCore.Qt.BlankCursor))
-            if self.UseCrosshair:
-                self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
-                self.marker_handler.Crosshair.Show(self)
+                self.drag_start_pos = event.pos()
+                self.setCursor(QCursor(QtCore.Qt.BlankCursor))
+                if self.UseCrosshair:
+                    self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+                    self.marker_handler.Crosshair.Show(self)
 
     def mouseMoveEvent(self, event):
         pos = self.parent.mapFromItem(self, event.pos()-self.drag_start_pos)
@@ -619,7 +621,7 @@ class MyTrackItem(MyMarkerItem):
         if self.active:
             MyMarkerItem.draw(self, image, start_x, start_y)
 
-    def mouseRightClicked(self):
+    def deleteMarker(self):
         self.RemoveTrackPoint()
 
     def mouseMoveEvent(self, event):
