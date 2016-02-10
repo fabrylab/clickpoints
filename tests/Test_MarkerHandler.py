@@ -86,7 +86,7 @@ class Test_MarkerHandler(unittest.TestCase):
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
 
         # Test deletion of marker
-        QTest.mouseClick(self.window.view.viewport(), Qt.RightButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, modifier=Qt.ControlModifier, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "Marker deletion didn't work")
 
 if __name__ == '__main__':
