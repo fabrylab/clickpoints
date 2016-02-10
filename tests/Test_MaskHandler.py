@@ -157,22 +157,25 @@ class Test_MaskHandler(unittest.TestCase):
 
         QTest.keyPress(self.window, Qt.Key_F2)
         QTest.keyPress(self.window, Qt.Key_1)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=1)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
         QTest.keyPress(self.window, Qt.Key_2)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(100, 50), delay=1)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(100, 50), delay=10)
         QTest.keyPress(self.window, Qt.Key_3)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(150, 50), delay=1)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(150, 50), delay=10)
 
-        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(50, 50), delay=1)
-        QTest.keyPress(self.window, Qt.Key_K)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.keyPress(self.window, Qt.Key_K, delay=10)
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 0, "Draw Type 0 selection by color picker doesn't work, has type "+str(self.window.GetModule("MaskHandler").active_draw_type))
 
-        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(100, 50), delay=1)
-        QTest.keyPress(self.window, Qt.Key_K)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(100, 50), delay=10)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(100, 50), delay=10)
+        QTest.keyPress(self.window, Qt.Key_K, delay=10)
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 1, "Draw Type 1 selection by color picker doesn't work, has type "+str(self.window.GetModule("MaskHandler").active_draw_type))
 
-        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(150, 50), delay=1)
-        QTest.keyPress(self.window, Qt.Key_K, delay=1)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(150, 50), delay=10)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(150, 50), delay=10)
+        QTest.keyPress(self.window, Qt.Key_K, delay=10)
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 2, "Draw Type 2 selection by color picker doesn't work, has type "+str(self.window.GetModule("MaskHandler").active_draw_type))
 
     def test_colorPaletteMask(self):
