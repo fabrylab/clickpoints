@@ -19,8 +19,13 @@ app = QApplication(sys.argv)
 class Test_DataFile(unittest.TestCase):
 
     def createInstance(self, path, database_file):
+        global __path__
         """Create the GUI """
-        self.test_path = os.path.normpath(os.path.join(__path__, "..", "..", "..", path))
+        if "__path__" in globals():
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
+        else:
+            __path__ = os.path.dirname(__file__)
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
         self.database_file = database_file
         print("Test Path", self.test_path)
         sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file]
@@ -34,11 +39,12 @@ class Test_DataFile(unittest.TestCase):
         if os.path.exists(self.database_path):
             os.remove(self.database_path)
         self.window = ClickPoints.ClickPointsWindow(config)
-        self.window.show()
 
     def test_createDatabase(self):
         """ Test if creating the database on demand works """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "CreateDatabase.db")
+        self.window.show()
+
         QTest.keyPress(self.window, Qt.Key_F2)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
         self.assertFalse(os.path.exists(self.database_path), "Database file already present.")

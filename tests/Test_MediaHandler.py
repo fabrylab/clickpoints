@@ -20,8 +20,13 @@ app = QApplication(sys.argv)
 class Test_MediaHandler(unittest.TestCase):
 
     def createInstance(self, path, database_file):
+        global __path__
         """Create the GUI """
-        self.test_path = os.path.normpath(os.path.join(__path__, "..", "..", "..", path))
+        if "__path__" in globals():
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
+        else:
+            __path__ = os.path.dirname(__file__)
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
         self.database_file = database_file
         print("Test Path", self.test_path)
         sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file]
@@ -35,7 +40,6 @@ class Test_MediaHandler(unittest.TestCase):
         if os.path.exists(self.database_path):
             os.remove(self.database_path)
         self.window = ClickPoints.ClickPointsWindow(config)
-        self.window.show()
 
     def test_loadImages(self):
         """ Open an image """

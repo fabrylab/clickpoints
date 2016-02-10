@@ -21,8 +21,13 @@ __path__ = os.path.dirname(os.path.abspath(__file__))
 class Test_AnnotationHandler(unittest.TestCase):
 
     def createInstance(self, path, database_file, keep_database=False):
+        global __path__
         """Create the GUI """
-        self.test_path = os.path.normpath(os.path.join(__path__, "..", "..", "..", path))
+        if "__path__" in globals():
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
+        else:
+            __path__ = os.path.dirname(__file__)
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
         self.database_file = database_file
         print("Test Path", self.test_path)
         sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file]
@@ -36,7 +41,6 @@ class Test_AnnotationHandler(unittest.TestCase):
         if os.path.exists(self.database_path) and not keep_database:
             os.remove(self.database_path)
         self.window = ClickPoints.ClickPointsWindow(config)
-        self.window.show()
 
     def test_loadAnnotations(self):
         """ Load existing annotations """
@@ -106,6 +110,9 @@ class Test_AnnotationHandler(unittest.TestCase):
         QTest.keyPress(self.window, Qt.Key_Right, Qt.ControlModifier)
 
         self.assertEqual(self.window.media_handler.get_index(), 10, "Didn't jump to annotation in frame 10 in Ctrl+Right")
+
+        QTest.keyPress(self.window, Qt.Key_Escape)
+        time.sleep(1)
 
     def test_addTagsAnnotations(self):
         """ Add and remove annotation """
