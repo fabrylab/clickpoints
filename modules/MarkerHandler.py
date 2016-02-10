@@ -898,7 +898,7 @@ class MarkerHandler:
         image, image_frame = self.window.media_handler.id_lookup[frame]
         # Tracks
         marker_list = self.marker_file.get_marker_list(image, image_frame)
-        marker_list = {marker.track.id: marker for marker in marker_list}
+        marker_list = {marker.track.id: marker for marker in marker_list if marker.track}
         for track in self.tracks:
             if track.track.id in marker_list:
                 track.update(frame, marker_list[track.track.id])
