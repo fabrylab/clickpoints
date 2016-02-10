@@ -21,7 +21,11 @@ class Test_MaskHandler(unittest.TestCase):
 
     def createInstance(self, path, database_file, mask_filename):
         """Create the GUI """
-        self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
+        try:
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
+        except NameError:
+            __path__ = os.path.dirname(__file__)
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
         self.database_file = database_file
         self.mask_filename = mask_filename
         print("Test Path", self.test_path)
@@ -46,7 +50,7 @@ class Test_MaskHandler(unittest.TestCase):
     def test_createMask(self):
         """ Test if creating a mask works """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "CreateMask.db", "_createMask_mask.png")
-        path = os.path.join("1-0min_tif"+self.mask_filename)
+        path = os.path.join("mask", "1-0min_tif"+self.mask_filename)
         if os.path.exists(path):
             print("Removing old mask")
             os.remove(path)
@@ -62,7 +66,7 @@ class Test_MaskHandler(unittest.TestCase):
         """ Test if a mask is missing """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "missingMask.db", "_missingMask_mask.png")
 
-        path = os.path.join("1-2min_tif"+self.mask_filename)
+        path = os.path.join("mask", "1-10min_tif"+self.mask_filename)
         print(path)
         if os.path.exists(path):
             print("Removing old mask")
@@ -113,7 +117,7 @@ class Test_MaskHandler(unittest.TestCase):
         """ Test if increasing and decreasing the brush size works """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "brushSizeMask.db", "_bruchSizeMask_mask.png")
 
-        path = os.path.join("1-0min_tif"+self.mask_filename)
+        path = os.path.join("mask", "1-0min_tif"+self.mask_filename)
         QTest.keyPress(self.window, Qt.Key_F2)
 
         QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
@@ -173,7 +177,7 @@ class Test_MaskHandler(unittest.TestCase):
         """ Test if increasing and decreasing the brush size works """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "colorPaletteMask.db", "_colorPalette_mask.png")
 
-        path = os.path.join("1-0min_tif"+self.mask_filename)
+        path = os.path.join("mask", "1-0min_tif"+self.mask_filename)
         QTest.keyPress(self.window, Qt.Key_F2)
         QTest.keyPress(self.window, Qt.Key_2)
         QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
