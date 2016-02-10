@@ -735,11 +735,12 @@ class Timeline:
         layout.addLayout(self.layoutCtrlParent)
         self.layoutCtrl = QtGui.QHBoxLayout()
         self.layoutCtrlParent.addLayout(self.layoutCtrl)
-        self.layoutCtrl2 = QtGui.QHBoxLayout()
-        self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 
         # second
         if self.config.datetimeline_show:
+            self.layoutCtrl2 = QtGui.QHBoxLayout()
+            self.layoutCtrlParent.addLayout(self.layoutCtrl2)
+
             self.timeSlider = RealTimeSlider()
             self.timeSlider.setTimes(self.media_handler)
             self.layoutCtrl2.addWidget(self.timeSlider)
