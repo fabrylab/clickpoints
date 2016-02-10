@@ -129,6 +129,7 @@ info_hud_string = ""
 """ @config MediaHandler """
 # @config `use_natsort = ` sort the images naturally e.g. 1 before 10 not "10" before "1"
 use_natsort = False
+auto_contrast = False
 
 dimension_template = "Recording(?P<recording>\d*)_FoW(?P<fov>\d*)_Mode(?P<mode>.*)_z(?P<z>\d*).tif"
 
