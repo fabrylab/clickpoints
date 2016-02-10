@@ -67,7 +67,7 @@ class Test_MaskHandler(unittest.TestCase):
         """ Test if a mask is missing """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "missingMask.db", "_missingMask_mask.png")
 
-        path = os.path.join("mask", "1-10min_tif"+self.mask_filename)
+        path = os.path.join("mask", "1-2min_tif"+self.mask_filename)
         print(path)
         if os.path.exists(path):
             print("Removing old mask")
