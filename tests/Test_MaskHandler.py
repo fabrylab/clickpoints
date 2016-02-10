@@ -165,15 +165,15 @@ class Test_MaskHandler(unittest.TestCase):
 
         QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(50, 50), delay=1)
         QTest.keyPress(self.window, Qt.Key_K)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 0, "Draw Type selection by color picker doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 0, "Draw Type 0 selection by color picker doesn't work, has type "+str(self.window.GetModule("MaskHandler").active_draw_type))
 
         QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(100, 50), delay=1)
         QTest.keyPress(self.window, Qt.Key_K)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 1, "Draw Type selection by color picker doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 1, "Draw Type 1 selection by color picker doesn't work, has type "+str(self.window.GetModule("MaskHandler").active_draw_type))
 
         QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(150, 50), delay=1)
         QTest.keyPress(self.window, Qt.Key_K, delay=1)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 2, "Draw Type selection by color picker doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 2, "Draw Type 2 selection by color picker doesn't work, has type "+str(self.window.GetModule("MaskHandler").active_draw_type))
 
     def test_colorPaletteMask(self):
         """ Test if increasing and decreasing the brush size works """
