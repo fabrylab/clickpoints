@@ -502,12 +502,14 @@ class MyTrackItem(MyMarkerItem):
             if self.partner and self.rectObj:
                 self.UpdateRect()
             self.UpdateStyle()
+            if not self.data.text is None:
+                self.text.setText(self.data.text)
             return
 
         if not self.hidden:
             self.UpdateLine()
         self.SetTrackActive(False)
-        self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track, text=self.text)
+        self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track, text=self.text.text())
         #self.UpdateStyle()
 
     def update(self, frame, point):
