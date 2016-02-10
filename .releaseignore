@@ -8,3 +8,4 @@ syntax: regexp
 ^development
 ^database
 ^installation
+^tests
