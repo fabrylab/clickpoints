@@ -41,7 +41,6 @@ class Test_MaskHandler(unittest.TestCase):
         if os.path.exists(self.database_path):
             os.remove(self.database_path)
         self.window = ClickPoints.ClickPointsWindow(config)
-        self.window.show()
 
     def test_loadMasks(self):
         """ Load a database with masks """
@@ -117,11 +116,12 @@ class Test_MaskHandler(unittest.TestCase):
     def test_brushSizeMask(self):
         """ Test if increasing and decreasing the brush size works """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "brushSizeMask.db", "_bruchSizeMask_mask.png")
+        self.window.showMinimized()
 
         path = os.path.join("mask", "1-0min_tif"+self.mask_filename)
         QTest.keyPress(self.window, Qt.Key_F2)
 
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=1)
 
         self.window.JumpFrames(1)
         im = np.asarray(Image.open(path))
@@ -131,7 +131,7 @@ class Test_MaskHandler(unittest.TestCase):
         QTest.keyPress(self.window, Qt.Key_Plus)
         QTest.keyPress(self.window, Qt.Key_Plus)
         QTest.keyPress(self.window, Qt.Key_Plus)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=1)
         self.window.JumpFrames(1)
 
         im = np.asarray(Image.open(path))
@@ -139,12 +139,12 @@ class Test_MaskHandler(unittest.TestCase):
 
         self.window.JumpFrames(-1)
         QTest.keyPress(self.window, Qt.Key_1)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=1)
         QTest.keyPress(self.window, Qt.Key_2)
         QTest.keyPress(self.window, Qt.Key_Minus)
         QTest.keyPress(self.window, Qt.Key_Minus)
         QTest.keyPress(self.window, Qt.Key_Minus)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=1)
         self.window.JumpFrames(1)
 
         im = np.asarray(Image.open(path))
@@ -153,30 +153,32 @@ class Test_MaskHandler(unittest.TestCase):
     def test_colorPickerMask(self):
         """ Test using the color picker to select different colors """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "colorPickerMask.db", "_colorPickerMask_mask.png")
+        self.window.show()
 
         QTest.keyPress(self.window, Qt.Key_F2)
         QTest.keyPress(self.window, Qt.Key_1)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=1)
         QTest.keyPress(self.window, Qt.Key_2)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(100, 50), delay=10)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(100, 50), delay=1)
         QTest.keyPress(self.window, Qt.Key_3)
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(150, 50), delay=10)
+        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(150, 50), delay=1)
 
-        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(50, 50), delay=1)
         QTest.keyPress(self.window, Qt.Key_K)
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 0, "Draw Type selection by color picker doesn't work")
 
-        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(100, 50), delay=10)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(100, 50), delay=1)
         QTest.keyPress(self.window, Qt.Key_K)
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 1, "Draw Type selection by color picker doesn't work")
 
-        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(150, 50), delay=10)
-        QTest.keyPress(self.window, Qt.Key_K)
+        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(150, 50), delay=1)
+        QTest.keyPress(self.window, Qt.Key_K, delay=1)
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 2, "Draw Type selection by color picker doesn't work")
 
     def test_colorPaletteMask(self):
         """ Test if increasing and decreasing the brush size works """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "colorPaletteMask.db", "_colorPalette_mask.png")
+        self.window.showMinimized()
 
         path = os.path.join("mask", "1-0min_tif"+self.mask_filename)
         QTest.keyPress(self.window, Qt.Key_F2)
