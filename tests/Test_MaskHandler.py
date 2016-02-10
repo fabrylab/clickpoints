@@ -20,10 +20,11 @@ app = QApplication(sys.argv)
 class Test_MaskHandler(unittest.TestCase):
 
     def createInstance(self, path, database_file, mask_filename):
+        global __path__
         """Create the GUI """
-        try:
+        if "__path__" in globals():
             self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
-        except NameError:
+        else:
             __path__ = os.path.dirname(__file__)
             self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
         self.database_file = database_file
