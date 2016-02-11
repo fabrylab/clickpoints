@@ -92,7 +92,8 @@ class BigPaintableImageDisplay:
         self.config = config
 
         self.opacity = 0
-        self.colormap = [QColor(i, i, i).rgba() for i in range(256)]
+        self.colormap = [QColor(255, 0, 255).rgba() for i in range(256)]
+        self.colormap[0] = QColor(0, 0, 0).rgba()
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
