@@ -77,8 +77,8 @@ maskname_tag = '_mask.png'
 auto_mask_update = True
 # @config `draw_types = [[0,[255,0,0]]` specifies what categories to use for mask drawing. Every category is an array with two entires. Index and Color.
 draw_types = [[0, (0, 0, 0)],
-              [255, [255, 255, 255]],
-              [124, [124, 124, 255]]]
+              [1, [255, 255, 255]],
+              [2, [124, 124, 255]]]
 
 """ @config GammaCorrection """
 
