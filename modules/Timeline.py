@@ -945,6 +945,9 @@ class Timeline:
             tick = self.frameSlider.getNextTick(self.media_handler.get_index())
             self.window.JumpToFrame(tick)
 
+    def closeEvent(self, event):
+        self.Play(False)
+
     @staticmethod
     def file():
         return __file__
