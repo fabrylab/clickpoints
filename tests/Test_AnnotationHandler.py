@@ -4,81 +4,77 @@ __testname__ = "Annotation Handler"
 import sys
 import os
 import unittest
-import time
-from PyQt4.QtGui import QApplication
-from PyQt4.QtTest import QTest
 from PyQt4.QtCore import Qt
-from PyQt4 import QtCore, QtGui
+from PyQt4.QtTest import QTest
+from PIL import Image
+import imageio
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import ClickPoints
+from BaseTest import BaseTest
 
-app = QApplication(sys.argv)
-__path__ = os.path.dirname(os.path.abspath(__file__))
+class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
-class Test_AnnotationHandler(unittest.TestCase):
-
-    def createInstance(self, path, database_file, keep_database=False):
-        global __path__
-        """Create the GUI """
-        if "__path__" in globals():
-            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
-        else:
-            __path__ = os.path.dirname(__file__)
-            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
-        self.database_file = database_file
-        print("Test Path", self.test_path)
-        sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file]
-        print(sys.argv)
-        config = ClickPoints.LoadConfig()
-        for addon in config.addons:
-            with open(addon + ".py") as f:
-                code = compile(f.read(), addon + ".py", 'exec')
-                exec(code)
-        self.database_path = os.path.join(self.test_path, database_file)
-        if os.path.exists(self.database_path) and not keep_database:
-            os.remove(self.database_path)
-        self.window = ClickPoints.ClickPointsWindow(config)
+    def tearDown(self):
+        BaseTest.tearDown(self)
 
     def test_loadAnnotations(self):
         """ Load existing annotations """
-        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "clickpoints.db", keep_database=True)
-        QTest.keyPress(self.window, Qt.Key_Right, Qt.ControlModifier)
-        QTest.keyPress(self.window, Qt.Key_A)
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "clickpoints.db")
+
+        # jump to next annotation
+        self.keyPress(Qt.Key_Right, Qt.ControlModifier)
+
+        # open annotation window
+        self.keyPress(Qt.Key_A)
         self.assertIsNotNone(self.window.GetModule("AnnotationHandler").AnnotationEditorWindow, "Annotation window was not opened")
+
+        # check text
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.pteAnnotation.toPlainText(), "Bird attacks.", "Annotation not loaded properly")
 
     def test_addAnnotations(self):
         """ Add and remove annotation """
-        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "addAnnotations.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"))
 
-        QTest.keyPress(self.window, Qt.Key_A)
+        # open annotation window
+        self.keyPress(Qt.Key_A)
         self.assertIsNotNone(self.window.GetModule("AnnotationHandler").AnnotationEditorWindow, "Annotation window was not opened")
+
+        # fill window with text
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
+        annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
+        # add tag
         annotationWindow.leTag.setText("bird")
         QTest.mouseClick(annotationWindow.leTag.pbAdd, Qt.LeftButton)
+        # add rating
         annotationWindow.leRating.setCurrentIndex(2)
-        annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
+        # save annotation
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
+
+        # jump to next frame and open annotation editor
         self.window.JumpFrames(1)
-        QTest.keyPress(self.window, Qt.Key_A)
+        self.keyPress(Qt.Key_A)
+
+        # check if the window is empty
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.leTag.getTagList(), [], "Tags not empty at default")
         self.assertEqual(annotationWindow.leRating.currentIndex(), 0, "Rating not 0 at default")
         self.assertEqual(annotationWindow.pteAnnotation.toPlainText(), "", "Comment not empty at default")
         QTest.mouseClick(annotationWindow.pbDiscard, Qt.LeftButton)
+
+        # jump back and assure the data is still there
         self.window.JumpFrames(-1)
-        QTest.keyPress(self.window, Qt.Key_A)
+        self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.leTag.getTagList(), ["bird"], "Tags not saved")
         self.assertEqual(annotationWindow.leRating.currentIndex(), 2, "Rating not saved")
         self.assertEqual(annotationWindow.pteAnnotation.toPlainText(), "A bird attacks.", "Comment not saved")
-        QTest.mouseClick(annotationWindow.pbRemove, Qt.LeftButton)
 
-        QTest.keyPress(self.window, Qt.Key_A)
+        # remove the annotation and check if it has gone
+        QTest.mouseClick(annotationWindow.pbRemove, Qt.LeftButton)
+        self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.leTag.getTagList(), [], "Tags not empty after remove")
         self.assertEqual(annotationWindow.leRating.currentIndex(), 0, "Rating not 0 after remove")
@@ -87,100 +83,112 @@ class Test_AnnotationHandler(unittest.TestCase):
 
     def test_jumpToAnnotations(self):
         """ Jumping to next/previous annotation """
-        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "jumpToAnnotations.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"))
 
-        QTest.keyPress(self.window, Qt.Key_A)
+        # open annotation window
+        self.keyPress(Qt.Key_A)
         self.assertIsNotNone(self.window.GetModule("AnnotationHandler").AnnotationEditorWindow, "Annotation window was not opened")
 
+        # add text
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
 
+        # jump 10 frames
         self.window.JumpFrames(10)
 
-        QTest.keyPress(self.window, Qt.Key_A)
+        # add an annotation
+        self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
 
-        QTest.keyPress(self.window, Qt.Key_Left, Qt.ControlModifier)
-
+        # jump back to the first annotation
+        self.keyPress(Qt.Key_Left, Qt.ControlModifier)
         self.assertEqual(self.window.media_handler.get_index(), 1, "Didn't jump to annotation in frame 1 in Ctrl+Left")
 
-        QTest.keyPress(self.window, Qt.Key_Right, Qt.ControlModifier)
-
+        # jump to the second annotation
+        self.keyPress(Qt.Key_Right, Qt.ControlModifier)
         self.assertEqual(self.window.media_handler.get_index(), 10, "Didn't jump to annotation in frame 10 in Ctrl+Right")
-
-        QTest.keyPress(self.window, Qt.Key_Escape)
-        time.sleep(1)
 
     def test_addTagsAnnotations(self):
         """ Add and remove annotation """
         self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "addTagsAnnotations.db")
 
-        QTest.keyPress(self.window, Qt.Key_A)
+        # open annotation window
+        self.keyPress(Qt.Key_A)
         self.assertIsNotNone(self.window.GetModule("AnnotationHandler").AnnotationEditorWindow, "Annotation window was not opened")
 
         # Add annotation
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
+        # add tag
         annotationWindow.leTag.setText("bird")
         QTest.mouseClick(annotationWindow.leTag.pbAdd, Qt.LeftButton)
+        # add rating
         annotationWindow.leRating.setCurrentIndex(2)
+        # add text
         annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
+        # configm
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
+
+        # change frame back and forth to reload this frame
         self.window.JumpFrames(1)
         self.window.JumpFrames(-1)
 
-        # Check Annotation and add tag
-        QTest.keyPress(self.window, Qt.Key_A)
+        # Check Annotation tags
+        self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.leTag.getTagList(), ["bird"], "Tags not saved")
         self.assertEqual(annotationWindow.leRating.currentIndex(), 2, "Rating not saved")
         self.assertEqual(annotationWindow.pteAnnotation.toPlainText(), "A bird attacks.", "Comment not saved")
+        # add two tags
         annotationWindow.leTag.setText("cheese")
         QTest.mouseClick(annotationWindow.leTag.pbAdd, Qt.LeftButton)
         annotationWindow.leTag.setText("cake")
         QTest.mouseClick(annotationWindow.leTag.pbAdd, Qt.LeftButton)
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
 
+        # change frame back and forth to reload this frame
         self.window.JumpFrames(1)
         self.window.JumpFrames(-1)
 
         # Check tag and remove tag
-        QTest.keyPress(self.window, Qt.Key_A)
+        self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.leTag.getTagList(), ["bird", "cheese", "cake"], "Tag not added")
-
+        # remove two tags
         annotationWindow.leTag.layout_list.itemAt(2).widget().setChecked(False)
         annotationWindow.leTag.layout_list.itemAt(1).widget().setChecked(False)
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
 
+        # change frame back and forth to reload this frame
         self.window.JumpFrames(1)
         self.window.JumpFrames(-1)
 
         # Check tag
-        QTest.keyPress(self.window, Qt.Key_A)
+        self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.leTag.getTagList(), ["bird"], "Tag not removed")
-
+        # remove last tag
         annotationWindow.leTag.layout_list.itemAt(0).widget().setChecked(False)
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
 
+        # change frame back and forth to reload this frame
         self.window.JumpFrames(1)
         self.window.JumpFrames(-1)
 
         # Check if all tags are removed
-        QTest.keyPress(self.window, Qt.Key_A)
+        self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.leTag.getTagList(), [], "Tag not removed")
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
 
     def test_overviewAnnotations(self):
         """ Add and remove annotation """
-        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "overviewAnnotations.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"))
 
         # Add annotation
-        QTest.keyPress(self.window, Qt.Key_A)
+        self.keyPress(Qt.Key_A)
         self.assertIsNotNone(self.window.GetModule("AnnotationHandler").AnnotationEditorWindow, "Annotation window was not opened")
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
@@ -188,14 +196,14 @@ class Test_AnnotationHandler(unittest.TestCase):
         self.window.JumpFrames(10)
 
         # open overview window
-        QTest.keyPress(self.window, Qt.Key_Y)
+        self.keyPress(Qt.Key_Y)
         AnnotationOverviewWindow = self.window.GetModule("AnnotationHandler").AnnotationOverviewWindow
         self.assertIsNotNone(AnnotationOverviewWindow, "Annotation overview window was not opened")
 
         self.assertEqual(AnnotationOverviewWindow.table.rowCount(), 1, "Annotation not displayed in overview table")
 
         # Add another annotation
-        QTest.keyPress(self.window, Qt.Key_A)
+        self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
@@ -222,6 +230,7 @@ class Test_AnnotationHandler(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    __path__ = os.path.dirname(os.path.abspath(__file__))
     log_file = os.path.join(__path__, 'log_'+__key__+'.txt')
     with open(log_file, "w") as f:
         runner = unittest.TextTestRunner(f)
