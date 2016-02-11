@@ -103,9 +103,10 @@ class BaseTest():
     def tearDown(self):
         # close window
         QTest.qWait(100)
-        self.window.close()
-        QTest.qWait(100)
-        self.window.data_file.db.close()
+        if "window" in dir(self):
+            self.window.close()
+            QTest.qWait(100)
+            self.window.data_file.db.close()
 
         # remove database
         if os.path.exists(self.database_path) and not self.database_already_existed:
