@@ -3,123 +3,20 @@ __testname__ = "Mask Handler"
 
 import sys
 import os
-import shutil
 import unittest
-from PyQt4.QtGui import QApplication
-from PyQt4.QtTest import QTest
 from PyQt4.QtCore import Qt
-from PyQt4 import QtCore
-from PyQt4 import QtGui
 from PIL import Image
 import imageio
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import ClickPoints
+from BaseTest import BaseTest
 
-app = QApplication(sys.argv)
-
-def createInstance(self, path, database_file, mask_foldername):
-    global __path__
-    """ Create the GUI """
-    if "__path__" in globals():
-        self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
-    else:
-        __path__ = os.path.dirname(__file__)
-        self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
-    self.database_file = database_file
-    self.mask_folder = mask_foldername
-
-    self.database_path = os.path.join(self.test_path, database_file)
-    self.mask_folder_path = os.path.join(self.test_path, mask_foldername)
-
-    print("Test Path", self.test_path)
-    sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file, r"-outputpath_mask="+mask_foldername]
-    print(sys.argv)
-    config = ClickPoints.LoadConfig()
-    for addon in config.addons:
-        with open(addon + ".py") as f:
-            code = compile(f.read(), addon + ".py", 'exec')
-            exec(code)
-
-
-    self.database_already_existed = os.path.exists(self.database_path)
-    self.maskfolder_already_existed = os.path.exists(self.mask_folder_path)
-
-    self.window = ClickPoints.ClickPointsWindow(config)
-
-def mouseMove(self, x, y, delay=10, coordinates="origin"):
-    v = self.window.view
-    w = v.viewport()
-    if coordinates == "origin":
-        pos = self.window.view.mapFromOrigin(x, y)
-    elif coordinates == "scene":
-        pos = self.window.view.mapFromScene(x, y)
-    event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos, w.mapToGlobal(pos), Qt.NoButton, Qt.NoButton, Qt.NoModifier)
-    QApplication.postEvent(w, event)
-    QTest.qWait(delay)
-
-def mouseDrag(self, x, y, x2, y2, button=None, delay=10, coordinates="origin"):
-    if button is None:
-        button = Qt.LeftButton
-    v = self.window.view
-    w = v.viewport()
-    if coordinates == "origin":
-        pos = self.window.view.mapFromOrigin(x, y)
-        pos2 = self.window.view.mapFromOrigin(x2, y2)
-    elif coordinates == "scene":
-        pos = self.window.view.mapFromScene(x, y)
-        pos2 = self.window.view.mapFromScene(x2, y2)
-    event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos, w.mapToGlobal(pos), button, button, Qt.NoModifier)
-    QApplication.postEvent(w, event)
-    QTest.qWait(delay)
-    event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonPress, pos, w.mapToGlobal(pos), button, button, Qt.NoModifier)
-    QApplication.postEvent(w, event)
-    QTest.qWait(delay)
-    event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos2, w.mapToGlobal(pos2), button, button, Qt.NoModifier)
-    QApplication.postEvent(w, event)
-    QTest.qWait(delay)
-    event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, pos2, w.mapToGlobal(pos2), button, button, Qt.NoModifier)
-    QApplication.postEvent(w, event)
-    QTest.qWait(delay)
-
-def mouseClick(self, x, y, button=None, delay=10, coordinates="origin"):
-    if button is None:
-        button = Qt.LeftButton
-    if coordinates == "origin":
-        pos = self.window.view.mapFromOrigin(x, y)
-    elif coordinates == "scene":
-        if x < 0:
-            x = self.window.local_scene.width()+x
-        pos = self.window.view.mapFromScene(x, y)
-    QTest.mouseClick(self.window.view.viewport(), button, pos=pos, delay=delay)
-
-def keyPress(self, key, delay=10):
-    QTest.keyPress(self.window, key, delay=delay)
-
-class Test_MaskHandler(unittest.TestCase):
-
-    def setUp(self):
-        self.createInstance = lambda *args, **kwargs: createInstance(self, *args, **kwargs)
-        self.mouseMove = lambda *args, **kwargs: mouseMove(self, *args, **kwargs)
-        self.mouseDrag = lambda *args, **kwargs: mouseDrag(self, *args, **kwargs)
-        self.mouseClick = lambda *args, **kwargs: mouseClick(self, *args, **kwargs)
-        self.keyPress = lambda *args, **kwargs: keyPress(self, *args, **kwargs)
-        pass
+class Test_MaskHandler(unittest.TestCase, BaseTest):
 
     def tearDown(self):
-        # close window
-        QTest.qWait(100)
-        self.window.close()
-        QTest.qWait(100)
-        self.window.data_file.db.close()
-
-        # remove database
-        if os.path.exists(self.database_path) and not self.database_already_existed:
-            os.remove(self.database_path)
-        if os.path.exists(self.mask_folder_path) and not self.maskfolder_already_existed:
-            shutil.rmtree(self.mask_folder_path)
+        BaseTest.tearDown(self)
 
     def test_loadMasks(self):
         """ Load a database with masks """
@@ -128,8 +25,9 @@ class Test_MaskHandler(unittest.TestCase):
 
     def test_createMask(self):
         """ Test if creating a mask works """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "CreateMask.db", "mask_createMask")
+        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
         path = os.path.join(self.mask_folder, "1-0min_tif"+"_mask.png")
+        print(path)
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -143,7 +41,7 @@ class Test_MaskHandler(unittest.TestCase):
 
     def test_missingMask(self):
         """ Test if a mask is missing """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "missingMask.db", "mask_missingMask")
+        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
         path = os.path.join(self.mask_folder, "1-0min_tif"+"_mask.png")
 
         # switch interface on
@@ -167,7 +65,7 @@ class Test_MaskHandler(unittest.TestCase):
 
     def test_maskTypeSelectorKey(self):
         """ Test if the number keys can change the mask draw type """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "masktypeSelector.db", "mask_maskTypeSelectorKey")
+        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -186,7 +84,7 @@ class Test_MaskHandler(unittest.TestCase):
 
     def test_maskTypeSelectorClick(self):
         """ Test if the buttons can change the mask draw type """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "masktypeSelector.db", "mask_maskTypeSelectorClick")
+        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -205,7 +103,7 @@ class Test_MaskHandler(unittest.TestCase):
 
     def test_brushSizeMask(self):
         """ Test if increasing and decreasing the brush size works """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "brushSizeMask.db", "mask_bruchSizeMask")
+        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
         path = os.path.join(self.mask_folder, "1-0min_tif"+"_mask.png")
 
         # switch interface on
@@ -265,7 +163,7 @@ class Test_MaskHandler(unittest.TestCase):
 
     def test_colorPickerMask(self):
         """ Test using the color picker to select different colors """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "colorPickerMask.db", "mask_colorPickerMask")
+        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -299,7 +197,7 @@ class Test_MaskHandler(unittest.TestCase):
 
     def test_colorPaletteMask(self):
         """ Test if increasing and decreasing the brush size works """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "colorPaletteMask.db", "mask_colorPalette")
+        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
         path = os.path.join(self.mask_folder, "1-0min_tif"+"_mask.png")
 
         # switch interface on

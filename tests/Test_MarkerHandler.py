@@ -4,89 +4,80 @@ __testname__ = "Marker Handler"
 import sys
 import os
 import unittest
-import time
-from PyQt4.QtGui import QApplication
-from PyQt4.QtTest import QTest
 from PyQt4.QtCore import Qt
-from PyQt4 import QtCore, QtGui
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import ClickPoints
+from BaseTest import BaseTest
 
-app = QApplication(sys.argv)
+class Test_MarkerHandler(unittest.TestCase, BaseTest):
 
-class Test_MarkerHandler(unittest.TestCase):
-
-    def createInstance(self, path, database_file):
-        global __path__
-        """Create the GUI """
-        if "__path__" in globals():
-            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
-        else:
-            __path__ = os.path.dirname(__file__)
-            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
-        self.database_file = database_file
-        print("Test Path", self.test_path)
-        sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file]
-        print(sys.argv)
-        config = ClickPoints.LoadConfig()
-        for addon in config.addons:
-            with open(addon + ".py") as f:
-                code = compile(f.read(), addon + ".py", 'exec')
-                exec(code)
-        self.database_path = os.path.join(self.test_path, database_file)
-        if os.path.exists(self.database_path):
-            os.remove(self.database_path)
-        self.window = ClickPoints.ClickPointsWindow(config)
+    def tearDown(self):
+        BaseTest.tearDown(self)
 
     def test_jumpframes(self):
         """ Test the GUI in its default state """
-        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "JumpFrames.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
         self.window.JumpFrames(20)
         self.assertFalse(os.path.exists(self.database_path))
 
     def test_createMarker(self):
         """ Test if creating marker works """
-        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "CreateMarker.db")
-        self.window.showMinimized()
-        QTest.keyPress(self.window, Qt.Key_F2)
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
+
+        # switch interface on
+        self.keyPress(Qt.Key_F2)
+
+        # check if no marker is present
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
 
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        # try to add one
+        self.mouseClick(50, 50)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
 
     def test_moveMarker(self):
         """ Test if moving marker works """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "MoveMarker.db")
-        self.window.show()
 
-        QTest.keyPress(self.window, Qt.Key_F2)
+        # switch interface on
+        self.keyPress(Qt.Key_F2)
+
+        # check if no marker is present
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
 
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        # add a marker
+        self.mouseClick(50, 50)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
 
+        # check position
+        pos = self.window.GetModule("MarkerHandler").points[0].pos()
+        self.assertTrue(45 < pos.x() < 55, "Marker x position is added wrong")
+        self.assertTrue(45 < pos.y() < 55, "Marker y position is added wrong")
+
         # Test moving the marker
-        QTest.mousePress(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
-#        QTest.mouseMove(self.window.view.viewport(), pos=self.window.view.mapFromOrigin(50, 100), delay=1000)
-        QTest.mouseRelease(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 100), delay=10)
-        time.sleep(0.01)
-        # TODO implement test correctly
+        self.mouseDrag(50, 50, 100, 100)
+
+        # check position
+        pos = self.window.GetModule("MarkerHandler").points[0].pos()
+        self.assertTrue(45 < pos.x() < 105, "Marker x position move didn't work.")
+        self.assertTrue(95 < pos.y() < 105, "Marker y position move didn't work.")
 
     def test_deleteMarker(self):
         """ Test if deleting marker works """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "DeleteMarker.db")
-        self.window.show()
 
-        QTest.keyPress(self.window, Qt.Key_F2)
+        # switch interface on
+        self.keyPress(Qt.Key_F2)
+
+        # check if no marker is present
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
 
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        # add a marker
+        self.mouseClick(50, 50)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
 
         # Test deletion of marker
-        QTest.mouseClick(self.window.view.viewport(), Qt.LeftButton, modifier=Qt.ControlModifier, pos=self.window.view.mapFromOrigin(50, 50), delay=10)
+        self.mouseClick(50, 50, modifier=Qt.ControlModifier)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "Marker deletion didn't work")
 
 if __name__ == '__main__':
