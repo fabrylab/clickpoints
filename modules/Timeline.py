@@ -711,7 +711,7 @@ class PreciseTimer(QObject):
     def thread_timer(self):
         while self.run:
             if (time.time()-self.timer_start)*1e3 > self.delta*self.count and self.active:
-                self.count += 1
+                self.count = int((time.time()-self.timer_start)*1e3//self.delta)+1
                 self.timeout.emit()
                 self.active = 0
             time.sleep(0.01)
