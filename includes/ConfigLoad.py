@@ -17,9 +17,10 @@ def isstring(object):
 
 start_globals = globals().copy()
 
-""" @config General """
 srcpath = ""
 database_file = ""
+
+""" @config General """
 # @config `outputpath =` the path where to save the DB and mask files. Set to `None` defaults to the `srcpath`
 outputpath = ""
 # @config `outputpath_mask =` a sub path of output path where to save mask files. Set to "" to default to outputpath
