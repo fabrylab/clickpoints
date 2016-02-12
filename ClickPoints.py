@@ -3,6 +3,18 @@ import sys
 import os
 import ctypes
 
+try:
+    with open("version.txt") as fp:
+        version = fp.read().strip()
+except IOError:
+    try:
+        with open("../version.txt") as fp:
+            version = fp.read().strip()
+    except IOError:
+        version = "unknown"
+
+print("ClickPoints", version)
+
 print("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro), sys.version_info.releaselevel)
 
 try:
