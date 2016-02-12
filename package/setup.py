@@ -1,7 +1,16 @@
 from setuptools import setup
 
+import os
+os.chdir(os.path.dirname(__file__))  # for call from the installer
+
+try:
+    with open("../version.txt") as fp:
+        version = fp.read().strip()
+except IOError:
+    version = "unknown"
+
 setup(name='clickpoints',
-      version='0.1.5',
+      version=version,
       description='The clickpoints package enables communicating with the clickpoints software and to save and load clickpoints files.',
       url='https://bitbucket.org/fabry_biophysics/clickpointsproject/wiki/Home',
       author='FabryLab',
