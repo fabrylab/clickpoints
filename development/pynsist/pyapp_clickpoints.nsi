@@ -141,6 +141,7 @@ Section "!${PRODUCT_NAME}" sec_app
   ClearErrors
   FileOpen $0 "$INSTDIR\ClickPoints.bat" w
   IfErrors done
+  FileWrite $0 "@echo off$\r$\n"    
   FileWrite $0 'py "$INSTDIR\ClickPoints.launch.py" -srcpath=%1$\r$\n'
   FileWrite $0 "IF %ERRORLEVEL% NEQ 0 pause$\r$\n"
   FileClose $0
