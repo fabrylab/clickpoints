@@ -1,9 +1,8 @@
-
 """ @config General """
-srcpath = ""
-database_file = ""
-# @config `outputpath =` the path where to save the log and mask file. Set to `None` defaults to the `srcpath`
+# @config `outputpath =` the path where to save the DB and mask files. Set to `None` defaults to the `srcpath`
 outputpath = ""
+# @config `outputpath_mask =` a sub path of output path where to save mask files. Set to "" to default to outputpath
+outputpath_mask = "mask"
 # @config `filename_data_regex = ` specify a regular expression to obtain meta-data from filenames
 filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
 # @config `filterparam =` specify additional filters for the files to use
@@ -39,10 +38,7 @@ TYPE_Line = 2
 TYPE_Track = 4
 
 # @config `types = {0: ["marker", [255, 0, 0], TYPE_Normal]}` specifies what categories to use. Every category is an array with three entires. Name, Color and Type. Types can be 0: normal marker, 1: rectangle markers, 2: line markers
-types = {0: ["pengu", [255, 0, 0], TYPE_Normal],
-         1: ["pengu low", [0, 255, 0], TYPE_Normal],
-         2: ["horizon", [0, 255, 255], TYPE_Normal],
-         4: ["iceberg", [0, 0, 255], TYPE_Normal]}
+types = {0: ["marker", [255, 0, 0], TYPE_Normal]}
 
 # @config `tracking = ` specify whether to use tracking mode
 tracking = False
@@ -60,8 +56,8 @@ maskname_tag = '_mask.png'
 auto_mask_update = True
 # @config `draw_types = [[0,[255,0,0]]` specifies what categories to use for mask drawing. Every category is an array with two entires. Index and Color.
 draw_types = [[0, (0, 0, 0)],
-              [255, [255, 255, 255]],
-              [124, [124, 124, 255]]]
+              [1, [255, 255, 255]],
+              [2, [124, 124, 255]]]
 
 """ @config GammaCorrection """
 
@@ -77,6 +73,7 @@ play_end = 1.0
 playing = False
 # @config `timeline_hide =` whether to hide the timeline at the program start
 timeline_hide = False
+datetimeline_show = True
 
 """ @config Annotations """
 # @config `annotation_tag =` specifies what to append to the annotation file.
@@ -108,4 +105,7 @@ launch_scripts = []
 # @config `info_hud_string = ` specify string to display in the hud
 info_hud_string = ""
 
-dimension_template = "Recording(?P<recording>\d*)_FoW(?P<fov>\d*)_Mode(?P<mode>.*)_z(?P<z>\d*).tif"
+""" @config MediaHandler """
+# @config `use_natsort = ` sort the images naturally e.g. 1 before 10 not "10" before "1"
+use_natsort = False
+auto_contrast = False
