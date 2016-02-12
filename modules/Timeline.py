@@ -909,7 +909,9 @@ class Timeline:
 
     def HideInterface(self, hide):
         self.hidden = hide
-        control_widgets = (self.layoutCtrl.itemAt(i).widget() for i in range(self.layoutCtrl.count()))
+        control_widgets = [self.layoutCtrl.itemAt(i).widget() for i in range(self.layoutCtrl.count())]
+        if self.timeSlider is not None:
+            control_widgets.extend(self.layoutCtrl2.itemAt(i).widget() for i in range(self.layoutCtrl2.count()))
         if hide:
             for widget in control_widgets:
                 widget.setHidden(True)
