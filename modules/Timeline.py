@@ -433,6 +433,7 @@ class RealTimeSlider(QGraphicsView):
             self.font_parent.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
             tick_marker.text = self.text
         else:
+            tick_marker.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
             tick_marker.text = None
         if pos not in self.tick_marker:
             self.tick_marker[pos] = {}
