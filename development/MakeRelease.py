@@ -55,6 +55,21 @@ def CopyDirectory(directory, dest_directory):
         shutil.copy(file, os.path.join(path_to_temporary_installer, dest_path))
     os.chdir(old_dir)
 
+def CopyInstallerFilesNoPython(directory):
+    global myzip, file_list
+    old_dir = os.getcwd()
+    os.chdir("clickpoints")
+
+    for file in ["make_no_python_installer.py", "pyapp_clickpoints_no_python.nsi"]:
+        src = os.path.join("development", "nsis", file)
+        dst = os.path.join(path_to_temporary_installer, file)
+        print(os.path.abspath(src))
+        shutil.copy(src, dst)
+
+    os.chdir(path_to_temporary_installer)
+    os.system(sys.executable+" make_no_python_installer.py")
+    os.chdir(old_dir)
+
 def CopyInstallerFiles(directory):
     global myzip, file_list
     old_dir = os.getcwd()
@@ -77,7 +92,7 @@ def CopyInstallerFiles(directory):
         elif target.endswith(".cfg"):
             template = env.get_template(target)
             with open(os.path.join(path_to_temporary_installer, target), 'w') as fp:
-                fp.write(template.render(version=new_version))
+                fp.write(template.render(version=new_version, version2=new_version.replace(" ", "_")))
         else:
             shutil.copy(file, os.path.join(path_to_temporary_installer, target))
 
@@ -168,6 +183,9 @@ for path, path_dest in zip(paths, path_destinations):
 
 # Put installer files to temporary directory
 CopyInstallerFiles(os.path.join(path_to_clickpointsproject, "clickpoints", "development", "pynsist"))
+
+# Put installer files to temporary directory
+CopyInstallerFilesNoPython(os.path.join(path_to_clickpointsproject, "clickpoints", "development", "nsis"))
 
 print("finished zip")
 # Close
