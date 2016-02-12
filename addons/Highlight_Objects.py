@@ -1,3 +1,15 @@
+""" Highlight objects: Programm to mark a clicked region. In clickpoints put a marker on several regions you want to highlight. Then start this script
+Optionally a gui opens, where you can set up some parameter and then a mask is created that (ideally) is identically to each region, on which a marker was placed.
+How does it work: The program divides the picture in superpixels  (size adjustable by input parameters) and then divides these superpixels in
+ an adjustable number of groups by a k-means-clustering algorithm. The Parameters used for the clustering of the superpixels differ
+ but may be something like their mean luminescence in all colors. Then all superpixels belonging to the same cluster AND being connected
+ are grouped in one region. If one (ore more) markers were set on this region it is highlighted. A mask is created, which contains all highlighted
+ regions.
+Programm created by Jakob. For any problems ask me or write an email to Jakob.Peschel@fau.de
+"""
+
+
+
 from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,7 +19,8 @@ import sklearn.cluster
 import skimage.color
 import os, sys
 from clickpoints.SendCommands import GetImage, ReloadMask
-from clickpoints.MarkerLoad import GetMask, SetMask, GetMarker
+from clickpoints.MarkerLoad import DataFile
+
 
 #region import QT-Widget for Gui
 try:
@@ -602,91 +615,94 @@ class Param_Delivery(QWidget):
         #% starte
 
 
+if __name__ == '__main__':
 
-#region get image and marker position from clickpoints
-start_frame = int(sys.argv[2])
-image, image_id, image_frame = GetImage(start_frame)
-points = GetMarker(image=image_id, image_frame=image_frame)
+    #region get image and marker position from clickpoints
+    start_frame = int(sys.argv[2])
+    image, image_id, image_frame = GetImage(start_frame)
+    df = DataFile()
+    points = df.GetMarker(image=image_id, image_frame=image_frame)
 
-try:
-    x, y = points[0].x, points[0].y
-    coords=[]
-    point=[0.0,0.0]
-    for i,point in enumerate(points):
-        coords.append([points[i].x,points[i].y])
+    try:
+        x, y = points[0].x, points[0].y
+        coords=[]
+        point=[0.0,0.0]
+        for i,point in enumerate(points):
+            coords.append([points[i].x,points[i].y])
 
-except IndexError:
-    print("ERROR: no markers present")
-    sys.exit(-1)
+    except IndexError:
+        print("ERROR: no markers present")
+        sys.exit(-1)
 
-mask = GetMask(image_id, image_frame)
-print('clicked coordinates are=',coords)
-#endregion
-
-
-
-
-
-#region get Parameters from config_file and Gui for image Segmentation
-#region Start Gui
-app = QApplication(sys.argv)
-app.setStyle('cleanlooks')
-
-Param_object = Param_Delivery()
-Param_object.show()
-
-app.exec_()
-print('Got Parameter')
-
-
-#endregion
-#endregion
-if(Param_object.application_canceled):
-    print('Application canceled')
-else:
-    #region create mask
-    if Param_object.return_just_mask:
-        image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size,compactness=Param_object.compactness,
-                                        min_size=Param_object.minimum_size_superpixel,iterations=Param_object.maximum_number_iterations,printing=Param_object.printing,
-                                        k_mean_cluster_number=Param_object.cluster_number,highlight_whole_cluster=Param_object.highlight_whole_cluster)
-        mask=image_segmented.mask
-
-    else:
-        image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size,compactness=Param_object.compactness,
-                                        min_size=Param_object.minimum_size_superpixel,iterations=Param_object.maximum_number_iterations,printing=Param_object.printing,
-                                        k_mean_cluster_number=Param_object.cluster_number,create_all_images=True,highlight_whole_cluster=Param_object.highlight_whole_cluster)
-        mask=image_segmented.mask
-
-        used_figures=int(1)
-        if Param_object.show_super_pixel_image:
-            #super_pixel_image=image_segmented.get_super_pixel_marked_image()
-            plt.figure(used_figures)
-            plt.imshow(image_segmented.super_pixel_image)
-            plt.title('Superpixel segmented image')
-            used_figures+=1
-        if Param_object.show_k_clustered_image:
-            plt.figure(used_figures)
-            plt.imshow(image_segmented.k_mean_clustered_regions)
-            plt.title('k-clustered image')
-            used_figures+=1
-        if Param_object.show_border_image:
-            plt.figure(used_figures)
-            plt.imshow(image_segmented.connected_regions_marked_boarders_image)
-            plt.title('Border image')
-            used_figures+=1
-        if Param_object.show_mask:
-            plt.figure(used_figures)
-            plt.imshow(image_segmented.mask)
-            plt.title('Final Mask')
-            used_figures+=1
-        plt.show()
-
-
-
-    print('Mask created')
-    SetMask(mask, image_id, image_frame)
-    ReloadMask()
-
+    mask = df.GetMask(image_id, image_frame)
+    print('clicked coordinates are=',coords)
     #endregion
 
-print("Highlight_Objects Finished")
+
+
+
+
+    #region get Parameters from config_file and Gui for image Segmentation
+    #region Start Gui
+    app = QApplication(sys.argv)
+    app.setStyle('cleanlooks')
+
+    Param_object = Param_Delivery()
+    Param_object.show()
+
+    app.exec_()
+    print('Got Parameter')
+
+
+    #endregion
+    #endregion
+    if(Param_object.application_canceled):
+        print('Application canceled')
+    else:
+        #region create mask
+        if Param_object.return_just_mask:
+            image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size,compactness=Param_object.compactness,
+                                            min_size=Param_object.minimum_size_superpixel,iterations=Param_object.maximum_number_iterations,printing=Param_object.printing,
+                                            k_mean_cluster_number=Param_object.cluster_number,highlight_whole_cluster=Param_object.highlight_whole_cluster)
+            mask=image_segmented.mask
+
+        else:
+            image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size,compactness=Param_object.compactness,
+                                            min_size=Param_object.minimum_size_superpixel,iterations=Param_object.maximum_number_iterations,printing=Param_object.printing,
+                                            k_mean_cluster_number=Param_object.cluster_number,create_all_images=True,highlight_whole_cluster=Param_object.highlight_whole_cluster)
+            mask=image_segmented.mask
+
+            used_figures=int(1)
+            if Param_object.show_super_pixel_image:
+                #super_pixel_image=image_segmented.get_super_pixel_marked_image()
+                plt.figure(used_figures)
+                plt.imshow(image_segmented.super_pixel_image)
+                plt.title('Superpixel segmented image')
+                used_figures+=1
+            if Param_object.show_k_clustered_image:
+                plt.figure(used_figures)
+                plt.imshow(image_segmented.k_mean_clustered_regions)
+                plt.title('k-clustered image')
+                used_figures+=1
+            if Param_object.show_border_image:
+                plt.figure(used_figures)
+                plt.imshow(image_segmented.connected_regions_marked_boarders_image)
+                plt.title('Border image')
+                used_figures+=1
+            if Param_object.show_mask:
+                plt.figure(used_figures)
+                plt.imshow(image_segmented.mask)
+                plt.title('Final Mask')
+                used_figures+=1
+            plt.show()
+
+
+
+        print('Mask created')
+        df.SetMask(mask, image_id, image_frame)
+        df.db.close()
+        ReloadMask()
+
+        #endregion
+
+    print("Highlight_Objects Finished")
