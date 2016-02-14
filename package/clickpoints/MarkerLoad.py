@@ -258,7 +258,7 @@ class DataFile:
                 query = query.where(field == parameter)
         return query
     
-    def SetMarker(self,id=None, image=None, image_frame=1, x=None, y=None, processed=0, partner=None, type=None, track=None):
+    def SetMarker(self,id=None, image=None, image_frame=1, x=None, y=None, processed=0, partner=None, type=None, track=None ,marker_text=None):
         """
         Insert or update markers in the database file. Every parameter can either be omitted, to use the default value,
         supplied with a single value, to use the same value for all entries, or be supplied with a list of values, to use a
@@ -288,11 +288,12 @@ class DataFile:
         """
         data_sets = []
         table = self.table_marker
-        fields = [table.id, table.image, table.image_frame, table.x, table.y, table.processed, table.partner_id, table.type, table.track]
-        names = ["id", "image_id", "image_frame", "x", "y", "processed", "partner_id", "type_id", "track_id"]
-        for data in np.broadcast(id, image, image_frame, x, y, processed, partner, type, track):
+        fields = [table.id, table.image, table.image_frame, table.x, table.y, table.processed, table.partner_id, table.type, table.text, table.track ]
+        names = ["id", "image_id", "image_frame", "x", "y", "processed", "partner_id", "type_id", "text", "track_id"]
+        for data in np.broadcast(id, image, image_frame, x, y, processed, partner, type, marker_text, track):
             data_set = []
             condition_list  = ["image_id","image_frame", "track_id"]
+            # TODO: track_id param as position=[-1] is BAD
             condition_param = [data[1]   ,data[2]      , data[-1]]
             condition = "WHERE "
             for idx,cond in enumerate(condition_list):
@@ -303,7 +304,7 @@ class DataFile:
                 if not idx == len(condition_list)-1:
                     condition += " AND "
 
-            print(condition)
+            # print(condition)
 
             # condition = "WHERE image_id = %d AND image_frame = %d AND track_id = %d" % (data[1], data[2], data[-1])
 
@@ -311,13 +312,17 @@ class DataFile:
                 if value is None:
                     data_set.append("(SELECT "+name+" FROM marker "+condition+")")
                 else:
-                    data_set.append(str(value))
+                    # for CharFileds add ticks
+                    if (field.__class__.__name__)=='CharField':
+                        data_set.append('\'%s\'' % value)
+                    else:
+                        data_set.append(str(value))
             data_sets.append(",\n ".join(data_set))
-        query = "INSERT OR REPLACE INTO marker (id, image_id, image_frame, x, y, processed, partner_id, type_id, track_id)\n VALUES (\n"
+        query = "INSERT OR REPLACE INTO marker (id, image_id, image_frame, x, y, processed, partner_id, type_id, text, track_id)\n VALUES (\n"
         query += "),\n (".join(data_sets)
         query += ");"
 
-        print(query)
+        # print(query)
         while 1:
             try:
                 self.db.execute_sql(query)
