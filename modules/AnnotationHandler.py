@@ -13,6 +13,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "includes"))
 from Tools import BroadCastEvent
 import peewee
+from playhouse import apsw_ext
 from datetime import datetime
 
 
@@ -31,7 +32,7 @@ class AnnotationFile:
 
         if server:
             class SqlAnnotation(base_model):
-                timestamp = peewee.DateTimeField()
+                timestamp = apsw_ext.DateTimeField()
                 reffilename = peewee.CharField()
                 reffileext = peewee.CharField()
                 file_id = peewee.IntegerField(null=True)
@@ -44,7 +45,7 @@ class AnnotationFile:
             self.table_annotation = SqlAnnotation
         else:
             class Annotation(base_model):
-                timestamp = peewee.DateTimeField()
+                timestamp = apsw_ext.DateTimeField()
                 image = peewee.ForeignKeyField(datafile.table_images)
                 image_frame = peewee.IntegerField()
                 comment = peewee.TextField(default="")
