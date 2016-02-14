@@ -265,6 +265,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.text.setPos(5, 5)
         self.text.setBrush(QBrush(QColor(*self.color)))
         self.text.setZValue(10)
+        self.text.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
 
         if not self.data.text is None:
             self.text.setText(self.data.text)
