@@ -179,6 +179,16 @@ class DataFile:
         item.save()
         return item.get_id()
 
+    def RemoveImage(self,filename):
+        try:
+            item = self.table_images.get(self.table_images.filename==filename)
+        except peewee.DoesNotExist:
+            print("Image with name: \'%s\' is not in DB", filename)
+            return False
+
+        item.delete_instance()
+
+        return True
 
     def GetTracks(self):
         """
