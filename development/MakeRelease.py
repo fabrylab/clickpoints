@@ -197,7 +197,9 @@ myzip.close()
 print("Move Files")
 shutil.move(zip_file, os.path.join(path_to_website, zip_file))
 shutil.copy(version_file, os.path.join(path_to_website, "version.html"))
-shutil.copy(os.path.join(path_to_temporary_installer, "build", "nsis", "ClickPoints_v"+new_version+".exe" ), os.path.join(path_to_website, "ClickPoints_v"+new_version+".exe"))
+new_version_ = new_version.replace(" ", "_")
+shutil.copy(os.path.join(path_to_temporary_installer, "build", "nsis", "ClickPoints_v"+new_version_+".exe" ), os.path.join(path_to_website, "ClickPoints_v"+new_version_+".exe"))
+shutil.copy(os.path.join(path_to_temporary_installer, "ClickPoints_v"+new_version_+"_no_python.exe" ), os.path.join(path_to_website, "ClickPoints_v"+new_version_+"_no_python.exe"))
 
 if options.release:
     # Commit changes to ClickPoints
