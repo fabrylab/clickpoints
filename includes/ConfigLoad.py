@@ -2,10 +2,12 @@ from __future__ import division, print_function, unicode_literals
 import sys
 import os
 import json
+
 try:
     from PyQt5.QtWidgets import QApplication, QFileDialog
 except ImportError:
     from PyQt4.QtGui import QApplication, QFileDialog
+    from PyQt4 import QtGui, QtCore
 
 def isstring(object):
     PY3 = sys.version_info[0] == 3
@@ -142,6 +144,65 @@ class dotdict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
+def getFiles():
+    res = FileDialog()
+    res.exec_()
+    _fnames = res.selectedFiles()
+    if len(_fnames) == 1:
+        _fnames = _fnames[0]
+    print("Input", _fnames)
+    return _fnames
+
+class FileDialog(QFileDialog):
+    def __init__(self):
+        super(FileDialog, self).__init__()
+        self.m_btnOpen = None
+        self.m_listView = None
+        self.m_treeView = None
+        self.m_selectedFiles = []
+
+        self.setOption(QFileDialog.DontUseNativeDialog, True)
+        self.setFileMode(QFileDialog.Directory)
+        self.setWindowTitle("Select Folder, Image/s, Video/s")
+        btns = self.findChildren(QtGui.QPushButton)
+        for i in range(len(btns)):
+            text = btns[i].text()
+            if text.toLower().contains("open") or text.toLower().contains("choose"):
+                self.m_btnOpen = btns[i]
+                break
+
+        if not self.m_btnOpen:
+            return
+
+        self.m_btnOpen.installEventFilter(self)
+        self.m_btnOpen.clicked.disconnect()
+        self.m_btnOpen.clicked.connect(self.chooseClicked)
+
+        self.m_listView = self.findChild(QtGui.QListView, "listView")
+        if self.m_listView:
+            self.m_listView.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+
+        self.m_treeView = self.findChild(QtGui.QTreeView)
+        if self.m_treeView:
+            self.m_treeView.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+
+    def eventFilter(self, btn, event):
+        if btn and event.type() == QtCore.QEvent.EnabledChange and not btn.isEnabled():
+            btn.setEnabled(True)
+
+        return super(FileDialog, self).eventFilter(btn, event)
+
+    def chooseClicked(self):
+        indexList = self.m_listView.selectionModel().selectedIndexes()
+        for index in indexList:
+            if index.column() == 0:
+                self.m_selectedFiles.append(os.path.join(str(self.directory().absolutePath()), str(index.data())))
+
+        QtGui.QDialog.accept(self)
+
+    def selectedFiles(self):
+        return self.m_selectedFiles
+
 
 class ExceptionPathDoesntExist(Exception): pass
 
@@ -168,11 +229,11 @@ def LoadConfig():
 
     # if no srcpath is given, ask for one
     if srcpath is "":
-        srcpath = str(QFileDialog.getExistingDirectory(None, "Choose Image", os.getcwd()))
+        srcpath = getFiles()
         if srcpath is "":
             print("No path selected")
             sys.exit(1)
-        if not os.path.exists(srcpath):
+        if isstring(srcpath) and not os.path.exists(srcpath):
             sys.tracebacklimit = 0
             raise ExceptionPathDoesntExist("ERROR: path "+srcpath+" does not exist.")
 
