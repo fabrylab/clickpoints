@@ -38,7 +38,7 @@ icon_path = os.path.join(os.path.dirname(__file__), "icons")
 
 class image_segmenter():
     def __init__(self, image, coords, mean_pixel_size=200, k_mean_cluster_number=5, compactness=24, iterations=10, enforced_connectivity=True, min_size=0.4,
-<<<<<<< local
+                 histogram_bins=3, create_all_images=False, just_super_pixel_segmentation_im=False,
                  printing=True, k_means_cluster_mode=1,
                  histogram_bins=7, create_all_images=False, just_super_pixel_segmentation_im=False,
 =======
@@ -78,7 +78,7 @@ class image_segmenter():
         self.regions_for_mask=[]
 
         self.im_lab=skimage.color.rgb2lab(self.image)
-        use_I1I2I3=False
+
         ##creation of image in I1I2I3 colorspace
         # self.I1I2I3_im=np.zeros(self.image.shape)
         # self.I1I2I3_im[:,:,0]=(self.image[:,:,0]+self.image[:,:,1]+self.image[:,:,2])/3
@@ -100,10 +100,9 @@ class image_segmenter():
         # plt.show()
         #use_I1I2I3=True
 
-<<<<<<< local
-        if(use_I1I2I3):
+        if(colorspace == 2):
            self.im_color_space=self.I1I2I3_im
-        else:
+        if(colorspace == 1):
 =======
         if(colorspace == 2):
             self.I1I2I3_im=np.zeros(self.image.shape)
@@ -136,8 +135,7 @@ class image_segmenter():
             # endregion
 
             # region k_means_clustering
-<<<<<<< local
-            self.colors = 3
+            self.colors = self.image.shape[2]
 =======
             self.colors = self.im_color_space.shape[2]
 >>>>>>> other
@@ -173,7 +171,7 @@ class image_segmenter():
 
             # region histogram_clustering
             if (k_means_cluster_mode == 2):
-                k_mean_clustered_regions = np.zeros((np.shape(self.image)[0], np.shape(self.image)[1]), int)
+                self.k_mean_clustered_regions = np.zeros((np.shape(self.image)[0], np.shape(self.image)[1]), int)
 
                 #region create histograms for each superpixel
                 self.histogramms = []
@@ -205,7 +203,7 @@ class image_segmenter():
                 #region create image with cluster labels
                 for row in range(np.shape(self.image)[0]):
                     for column in range(np.shape(self.image)[1]):
-                        k_mean_clustered_regions[row, column] = cluster_labels_col[
+                        self.k_mean_clustered_regions[row, column] = cluster_labels_col[
                             self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmean-Clustering
 
                     if row % 50 == 0 & printing:
@@ -319,10 +317,12 @@ class Param_Delivery(QWidget):
             if arg.startswith('super_pixel_size='):
                 self.super_pixel_size=int(arg.replace('super_pixel_size=',''))
                 #print('found superpixelsize', int(super_pixel_size))
-
             if arg.startswith('cluster_number='):
                 self.cluster_number=int(arg.replace('cluster_number=',''))
-
+            if arg.startswith('k_means_cluster_mode'):
+                self.k_means_cluster_mode=int(arg.replace('k_means_cluster_mode=',''))
+            if arg.startswith('histogram_bins'):
+                self.histogram_bins=int(arg.replace('histogram_bins=',''))
             if arg.startswith('open_gui='):
                 self.open_gui=int(arg.replace('open_gui=',''))
             if arg.startswith('show_super_pixel_image='):
@@ -351,10 +351,10 @@ class Param_Delivery(QWidget):
             self.super_pixel_size=200
         if not hasattr(self,'cluster_number'):
             self.cluster_number=5
-<<<<<<< local
-=======
         if not hasattr(self,'k_means_cluster_mode'):
             self.k_means_cluster_mode=1
+        if not hasattr(self,'histogram_bins'):
+            self.khistogram_bins=10
         if not hasattr(self,'histogram_bins'):
             self.histogram_bins=10
 >>>>>>> other
@@ -464,6 +464,33 @@ class Param_Delivery(QWidget):
             #self.minimum_size_superpixel_spin_box.setToolTip('<span style=\"background-color:black;\">Minimum size(=area) of a superpixel compared to the mean value of all superpixels. Adjustment might be usefull. Default value:0.4 </span>')
             self.minimum_size_superpixel_spin_box.setToolTip('<font color="black">Minimum size(=area) of a superpixel compared to the mean value of all superpixels. Adjustment might be usefull. Default value:0.4 </font>')
             layout_hor.addWidget(self.minimum_size_superpixel_spin_box)
+
+
+            #k_meeans-cluster-mode Spinbox
+            layout_hor = QHBoxLayout()
+            layout_vert.addLayout(layout_hor)
+            layout_hor.addStretch()
+            self.label_k_means_cluster_mode=QLabel('k-means cluster mode')
+            layout_hor.addWidget(self.label_k_means_cluster_mode,Qt.AlignLeft)
+            self.k_means_cluster_mode_spin_box=QSpinBox(self)
+            self.k_means_cluster_mode_spin_box.setRange(1,2)
+            self.k_means_cluster_mode_spin_box.setValue(self.k_means_cluster_mode)
+            self.k_means_cluster_mode_spin_box.setToolTip('<font color="black">Criterion for which the superpixels are clustered. 1: Clustering for the mean of each superpixel in all three colors. 2. Creation of a histogram of the superpixels for all three colors. Then clustering for the histogram bins. </font>')
+            layout_hor.addWidget(self.k_means_cluster_mode_spin_box)
+
+
+            #histogram bins spinbox
+            layout_hor = QHBoxLayout()
+            layout_vert.addLayout(layout_hor)
+            layout_hor.addStretch()
+            self.label_histogram_bins=QLabel('Histogram Bins')
+            layout_hor.addWidget(self.label_histogram_bins,Qt.AlignLeft)
+            self.histogram_bins_spin_box=QSpinBox(self)
+            self.histogram_bins_spin_box.setRange(1,256)
+            self.histogram_bins_spin_box.setValue(self.histogram_bins)
+            self.histogram_bins_spin_box.setToolTip('<font color="black">Changing this only has an effect if Cluster-Mode==2. Changes the number of histograms of each superpixel. Changing the colorspace will affect this algorithm. Default Value: 10</font>')
+            layout_hor.addWidget(self.histogram_bins_spin_box)
+
 
 
             #Checkboxes
@@ -603,6 +630,8 @@ class Param_Delivery(QWidget):
             self.compactness=self.compactness_spin_box.value()
             self.maximum_number_iterations=self.iterations_spin_box.value()
             self.minimum_size_superpixel=self.minimum_size_superpixel_spin_box.value()
+            self.k_means_cluster_mode=self.k_means_cluster_mode_spin_box.value()
+            self.histogram_bins=self.histogram_bins_spin_box.value()
             self.printing=self.checkbox_printing.checkState()
             self.show_super_pixel_image=self.show_super_pixel_image_checkbox.checkState()
             self.show_k_clustered_image=self.show_k_clustered_image_checkbox.checkState()
@@ -628,6 +657,8 @@ class Param_Delivery(QWidget):
             self.file.write('\ncompactness=%i'%(self.compactness))
             self.file.write('\nmaximum_number_iterations=%i'%(self.maximum_number_iterations))
             self.file.write('\nminimum_size_superpixel=%f'%(self.minimum_size_superpixel))
+            self.file.write('\nk_means_cluster_mode=%i'%(self.k_means_cluster_mode))
+            self.file.write('\nhistogram_bins=%i'%(self.histogram_bins))
             self.file.write('\nprinting=%i'%int(bool(self.printing)))
             self.file.write('\nopen_gui=%i'%int(bool(self.open_gui)))
             self.file.write('\nshow_super_pixel_image=%i'%int(bool(self.show_super_pixel_image)))
@@ -700,13 +731,15 @@ if __name__ == '__main__':
         if Param_object.return_just_mask:
             image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size,compactness=Param_object.compactness,
                                             min_size=Param_object.minimum_size_superpixel,iterations=Param_object.maximum_number_iterations,printing=Param_object.printing,
-                                            k_mean_cluster_number=Param_object.cluster_number,highlight_whole_cluster=Param_object.highlight_whole_cluster)
+                                            k_mean_cluster_number=Param_object.cluster_number,highlight_whole_cluster=Param_object.highlight_whole_cluster,
+                                            k_means_cluster_mode=Param_object.k_means_cluster_mode,histogram_bins=Param_object.histogram_bins)
             mask=image_segmented.mask
 
         else:
             image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size,compactness=Param_object.compactness,
                                             min_size=Param_object.minimum_size_superpixel,iterations=Param_object.maximum_number_iterations,printing=Param_object.printing,
-                                            k_mean_cluster_number=Param_object.cluster_number,create_all_images=True,highlight_whole_cluster=Param_object.highlight_whole_cluster)
+                                            k_mean_cluster_number=Param_object.cluster_number,create_all_images=True,highlight_whole_cluster=Param_object.highlight_whole_cluster,
+                                            k_means_cluster_mode=Param_object.k_means_cluster_mode,histogram_bins=Param_object.histogram_bins)
             mask=image_segmented.mask
 
             used_figures=int(1)
