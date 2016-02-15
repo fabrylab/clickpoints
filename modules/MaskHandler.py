@@ -196,7 +196,7 @@ class MyCounter2(QGraphicsRectItem):
         self.setAcceptHoverEvents(True)
         self.active = False
 
-        self.font = QFont()
+        self.font = self.mask_handler.window.mono_font
         self.font.setPointSize(14)
 
         self.label_text = "%d: Color %s" % (point_type + 1, chr(ord('A') + point_type))

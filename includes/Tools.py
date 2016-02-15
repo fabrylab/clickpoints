@@ -98,7 +98,7 @@ class HelpText(QGraphicsRectItem):
 
 
 class MySlider(QGraphicsRectItem):
-    def __init__(self, parent, name="", start_value=None, max_value=100, min_value=0):
+    def __init__(self, parent, name="", start_value=None, max_value=100, min_value=0, font=None):
         QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
@@ -111,7 +111,11 @@ class MySlider(QGraphicsRectItem):
         self.setPen(QPen(QColor(255, 255, 255, 0)))
 
         self.text = QGraphicsSimpleTextItem(self)
-        self.text.setFont(QFont("", 11))
+        if font is None:
+            font = QFont("", 11)
+        else:
+            font.setPointSize(11)
+        self.text.setFont(font)
         self.text.setPos(0, -23)
         self.text.setBrush(QBrush(QColor("white")))
 

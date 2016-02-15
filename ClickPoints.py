@@ -75,7 +75,7 @@ class ClickPointsWindow(QWidget):
                 module.zoomEvent(scale, pos)
 
     def __init__(self, my_config, parent=None):
-        global config
+        global config, mono_font
         config = my_config
         super(QWidget, self).__init__(parent)
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
@@ -87,6 +87,8 @@ class ClickPointsWindow(QWidget):
         self.layout = QtGui.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
+
+        self.mono_font = mono_font
 
         # view/scene setup
         self.view = QExtendedGraphicsView()
@@ -290,13 +292,14 @@ class ClickPointsWindow(QWidget):
                     self.JumpFrames(jump)
                     print(jump)
 def main():
+    global mono_font
     if sys.platform[:3] == 'win':
         myappid = 'fabrybiophysics.clickpoints' # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     app = QApplication(sys.argv)
     QtGui.QFontDatabase.addApplicationFont(os.path.join(clickpoints_path, "icons", "FantasqueSansMono-Regular.ttf"))
-    app.setFont(QtGui.QFont("Fantasque Sans Mono"))
+    mono_font = QtGui.QFont("Fantasque Sans Mono")
 
     config = LoadConfig()
     for addon in config.addons:

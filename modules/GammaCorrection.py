@@ -12,7 +12,7 @@ except ImportError:
 from Tools import MySlider, BoxGrabber
 
 class GammaCorrection(QGraphicsRectItem):
-    def __init__(self, parent_hud, image_display, config):
+    def __init__(self, parent_hud, image_display, config, window):
         QGraphicsRectItem.__init__(self, parent_hud)
         self.config = config
 
@@ -39,7 +39,7 @@ class GammaCorrection(QGraphicsRectItem):
         start = [1, 255, 0]
         formats = ["%.2f", "%d", "%d"]
         for i, name in enumerate(["Gamma", "Max", "Min"]):
-            slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0])
+            slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0], font=window.mono_font)
             slider.format = formats[i]
             slider.setPos(5, 40 + i * 30)
             slider.valueChanged = functions[i]
