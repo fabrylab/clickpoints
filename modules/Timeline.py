@@ -258,6 +258,17 @@ class TimeLineSlider(QGraphicsView):
         else:
             my_range = range(pos-1,self.min_value,-1)
         search_marked = True
+        for i in my_range:
+            if (i in self.tick_marker) == search_marked:
+                return i
+        return my_range[-1]
+
+    def getNextTickChange(self, pos, back=False):
+        if back is False:
+            my_range = range(pos+1,self.max_value,+1)
+        else:
+            my_range = range(pos-1,self.min_value,-1)
+        search_marked = True
         if pos in self.tick_marker and my_range[0] in self.tick_marker:
             search_marked = False
         for i in my_range:
@@ -946,6 +957,15 @@ class Timeline:
         if event.key() == QtCore.Qt.Key_Right and event.modifiers() & Qt.ControlModifier:
             # @key Ctrl+Right: next annotated image
             tick = self.frameSlider.getNextTick(self.media_handler.get_index())
+            self.window.JumpToFrame(tick)
+
+        if event.key() == QtCore.Qt.Key_Left and event.modifiers() & Qt.AltModifier:
+            # @key Alt+Left: previous annotation block
+            tick = self.frameSlider.getNextTickChange(self.media_handler.get_index(), back=True)
+            self.window.JumpToFrame(tick)
+        if event.key() == QtCore.Qt.Key_Right and event.modifiers() & Qt.AltModifier:
+            # @key Alt+Right: next annotation block
+            tick = self.frameSlider.getNextTickChange(self.media_handler.get_index())
             self.window.JumpToFrame(tick)
 
     def closeEvent(self, event):
