@@ -68,8 +68,13 @@ class DataFile:
             except (KeyError, DoesNotExist):
                 version = "undefined"
             print("Open database with version", version)
-            if version != self.current_version:
+            if int(version) < int(self.current_version):
                 self.migrateDBFrom(version)
+            elif int(version) > int(self.current_version):
+                print("Warning Database version %d is newer than ClickPoints version %d "
+                      "- please get an updated Version!"
+                      % (int(version), int(self.current_version)))
+                print("Proceeding on own risk!")
         else:
             self.db = apsw_ext.APSWDatabase(":memory:")
 
