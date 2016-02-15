@@ -143,6 +143,8 @@ class dotdict(dict):
     __delattr__ = dict.__delitem__
 
 
+class ExceptionPathDoesntExist(Exception): pass
+
 def LoadConfig():
     global auto_mask_update, tracking, tracking_connect_nearest
     global srcpath, filename, outputpath, jumps, relative_outputpath, file_ids, annotation_ids
@@ -161,8 +163,8 @@ def LoadConfig():
                 if os.path.exists(value) or "*" in value:
                     srcpath = value
                 else:
-                    print("ERROR: path",value,"does not exist.")
-                    sys.exit(-1)
+                    sys.tracebacklimit = 0
+                    raise ExceptionPathDoesntExist("ERROR: path "+value+" does not exist.")
 
     # if no srcpath is given, ask for one
     if srcpath is "":
@@ -171,8 +173,8 @@ def LoadConfig():
             print("No path selected")
             sys.exit(1)
         if not os.path.exists(srcpath):
-            print("ERROR: path",srcpath,"does not exist.")
-            sys.exit(-1)
+            sys.tracebacklimit = 0
+            raise ExceptionPathDoesntExist("ERROR: path "+srcpath+" does not exist.")
 
     # if srcpath is a filelist load it
     dont_process_filelist = False

@@ -10,7 +10,7 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from BaseTest import BaseTest
-from includes import ExceptionNoFilesFound, ExceptionExtensionNotSupported
+from includes import ExceptionNoFilesFound, ExceptionExtensionNotSupported, ExceptionPathDoesntExist
 
 class Test_MediaHandler(unittest.TestCase, BaseTest):
 
@@ -29,33 +29,48 @@ class Test_MediaHandler(unittest.TestCase, BaseTest):
 
     def test_loadEmptyFolder(self):
         """ Test Exception for opening folder without files / valid files """
-        passed = False
-        print("PATH:",os.getcwd())
+        print("PATH:", os.getcwd())
 
-        test_folder=os.path.join("..","..","..","ClickPointsExamples","EmptyFolder")
+        test_folder = os.path.join("..", "..", "..", "ClickPointsExamples","EmptyFolder")
         if not os.path.exists(test_folder):
             os.mkdir(test_folder)
 
         try:
             self.createInstance(os.path.join("ClickPointsExamples", "EmptyFolder"))
         except ExceptionNoFilesFound:
-            passed = True
-
-        self.assertTrue(passed, "Failed to detect empty folder / invalid files")
+            pass
+        else:
+            raise self.failureException("Failed to detect empty folder / invalid files")
 
         os.chdir("..")
         os.rmdir("EmptyFolder")
 
     def test_loadInvalidExtension(self):
         """ Test Exception for opening file with invalid extension """
-        passed = False
-
         try:
             self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "Track.py"))
         except ExceptionExtensionNotSupported:
-            passed = True
+            pass
+        else:
+            raise self.failureException("Failed to detect invalid extension")
 
-        self.assertTrue(passed, "Failed to detect invalid extension")
+    def test_loadInvalidPath(self):
+        """ Test Exception for opening a path that does not exist """
+        try:
+            self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "TrackingBla"))
+        except ExceptionPathDoesntExist:
+            pass
+        else:
+            raise self.failureException("Failed to detect invalid folder")
+
+    def test_loadInvalidFile(self):
+        """ Test Exception for opening a file that does not exist """
+        try:
+            self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "TrackingBla.txt"))
+        except ExceptionPathDoesntExist:
+            pass
+        else:
+            raise self.failureException("Failed to detect invalid file")
 
     def test_loadFolderSlash(self):
         """ Open a folder ending with a slash """
