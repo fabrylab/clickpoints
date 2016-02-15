@@ -11,10 +11,7 @@ import numpy as np
 
 from qimage2ndarray import array2qimage, rgb_view
 
-try:
-    import thread  # python 2
-except ImportError:
-    import _thread as thread  # python 3
+from threading import Thread
 
 class ImageDisplaySignal(QtCore.QObject):
     display = QtCore.pyqtSignal()
@@ -51,6 +48,7 @@ class BigImageDisplay:
 
         self.signal =ImageDisplaySignal()
         self.signal.display.connect(self.UpdatePixmaps)
+        self.thread = None
 
     def AddEventFilter(self, event_filter):
         self.eventFilters.append(event_filter)
@@ -82,9 +80,14 @@ class BigImageDisplay:
 
     def SetImage(self, image):
         if self.config.threaded_image_display:
-            thread.start_new_thread(self.SetImage2, (image,))
+            self.thread = Thread(target=self.SetImage2, args=(image, ))
+            self.thread.start()
         else:
             self.SetImage2(image)
+
+    def closeEvent(self, QCloseEvent):
+        if self.config.threaded_image_display and self.thread:
+            self.thread.join()
 
     def SetImage2(self, image):
         if len(image.shape) == 2:

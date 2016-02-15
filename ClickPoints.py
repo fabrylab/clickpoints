@@ -188,6 +188,8 @@ class ClickPointsWindow(QWidget):
 
     def closeEvent(self, QCloseEvent):
         self.save()
+        self.ImageDisplay.closeEvent(QCloseEvent)
+        self.media_handler.closeEvent(QCloseEvent)
         BroadCastEvent(self.modules, "closeEvent", QCloseEvent)
 
     def resizeEvent(self, event):
