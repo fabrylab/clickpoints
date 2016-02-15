@@ -784,7 +784,7 @@ class MyCounter(QGraphicsRectItem):
         self.setAcceptHoverEvents(True)
         self.active = False
 
-        self.font = QFont()
+        self.font = self.marker_handler.window.mono_font
         self.font.setPointSize(14)
 
         self.text = QGraphicsSimpleTextItem(self)
