@@ -37,11 +37,12 @@ class GammaCorrection(QGraphicsRectItem):
         functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
         min_max = [[0, 2], [0, 255], [0, 255]]
         start = [1, 255, 0]
-        formats = ["%.2f", "%d", "%d"]
+        formats = [" %.2f", "    %3d", "    %3d"]
         for i, name in enumerate(["Gamma", "Max", "Min"]):
             slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0], font=window.mono_font)
             slider.format = formats[i]
             slider.setPos(5, 40 + i * 30)
+            slider.setValue(start[i])
             slider.valueChanged = functions[i]
             self.sliders.append(slider)
 
