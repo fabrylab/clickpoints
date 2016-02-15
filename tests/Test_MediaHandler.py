@@ -72,6 +72,15 @@ class Test_MediaHandler(unittest.TestCase, BaseTest):
         else:
             raise self.failureException("Failed to detect invalid file")
 
+    def test_loadInvalidTextFile(self):
+        """ Test Exception for opening a .txt file that does not contain a list of valid viles """
+        try:
+            self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "ConfigClickPoints.txt"))
+        except ExceptionNoFilesFound:
+            pass
+        else:
+            raise self.failureException("Failed to detect invalid .txt file")
+
     def test_loadFolderSlash(self):
         """ Open a folder ending with a slash """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002")+os.path.sep)
