@@ -58,7 +58,7 @@ class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
-        self.current_version = "3"
+        self.current_version = "4"
         if self.exists:
             self.db = apsw_ext.APSWDatabase(database_filename)
             introspector = Introspector.from_database(self.db)
@@ -121,6 +121,14 @@ class DataFile:
             # Add text fields for Marker
             self.db.execute_sql("ALTER TABLE marker ADD COLUMN text varchar(255)")
             nr_new_version = 3
+
+        if nr_version<4:
+            print("\tto 4")
+            # Add text fields for Tracks
+            self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
+            # Add text fields for Types
+            self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
+            nr_new_version = 4
 
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(nr_new_version))
