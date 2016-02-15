@@ -179,7 +179,6 @@ class ClickPointsWindow(QWidget):
         #    self.media_handler.buffer_frame_threaded(next_id, call=False)
 
     def FrameLoaded(self, frame_number):
-        print("FrameLoaded", frame_number)
         #if next_id is not None:
         #    self.media_handler.buffer_frame_threaded(next_id)
         self.media_handler.set_index(frame_number)
