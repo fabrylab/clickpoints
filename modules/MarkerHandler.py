@@ -259,13 +259,14 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.font = QFont()
         self.font.setPointSize(10)
-        self.text = QGraphicsSimpleTextItem(self)
+        self.text_parent = QGraphicsPathItem(self)
+        self.text_parent.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
+        self.text = QGraphicsSimpleTextItem(self.text_parent)
         self.text.setFont(self.font)
         self.color = self.style["color"]
         self.text.setPos(5, 5)
         self.text.setBrush(QBrush(QColor(*self.color)))
         self.text.setZValue(10)
-        self.text.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
 
         if not self.data.text is None:
             self.text.setText(self.data.text)
