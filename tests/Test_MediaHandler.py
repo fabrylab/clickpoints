@@ -10,7 +10,7 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from BaseTest import BaseTest
-from includes import ExceptionNoFilesFound
+from includes import ExceptionNoFilesFound, ExceptionExtensionNotSupported
 
 class Test_MediaHandler(unittest.TestCase, BaseTest):
 
@@ -41,11 +41,21 @@ class Test_MediaHandler(unittest.TestCase, BaseTest):
         except ExceptionNoFilesFound:
             passed = True
 
-        self.assertTrue(passed, "Faild to detect empty folder / invalid files")
+        self.assertTrue(passed, "Failed to detect empty folder / invalid files")
 
         os.chdir("..")
         os.rmdir("EmptyFolder")
 
+    def test_loadInvalidExtension(self):
+        """ Test Exception for opening file with invalid extension """
+        passed = False
+
+        try:
+            self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "Track.py"))
+        except ExceptionExtensionNotSupported:
+            passed = True
+
+        self.assertTrue(passed, "Failed to detect invalid extension")
 
     def test_loadFolderSlash(self):
         """ Open a folder ending with a slash """
