@@ -4,7 +4,6 @@ __testname__ = "Mask Handler"
 import sys
 import os
 import unittest
-from PyQt4.QtCore import Qt
 from PIL import Image
 import imageio
 import numpy as np
@@ -12,6 +11,8 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from BaseTest import BaseTest
+
+from PyQt4.QtCore import Qt
 
 class Test_MaskHandler(unittest.TestCase, BaseTest):
 
