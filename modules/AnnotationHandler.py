@@ -13,8 +13,8 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "includes"))
 from Tools import BroadCastEvent
 import peewee
-from playhouse import apsw_ext
 from datetime import datetime
+import sqlite3
 
 
 class AnnotationFile:
@@ -32,7 +32,7 @@ class AnnotationFile:
 
         if server:
             class SqlAnnotation(base_model):
-                timestamp = apsw_ext.DateTimeField()
+                timestamp = peewee.DateTimeField()
                 reffilename = peewee.CharField()
                 reffileext = peewee.CharField()
                 file_id = peewee.IntegerField(null=True)
@@ -45,7 +45,7 @@ class AnnotationFile:
             self.table_annotation = SqlAnnotation
         else:
             class Annotation(base_model):
-                timestamp = apsw_ext.DateTimeField()
+                timestamp = peewee.DateTimeField()
                 image = peewee.ForeignKeyField(datafile.table_images)
                 image_frame = peewee.IntegerField()
                 comment = peewee.TextField(default="")
@@ -101,7 +101,7 @@ class AnnotationFile:
     def setTags(self, tags):
         if len(tags):
             # Add new tags
-            if self.server:  # MySQL has no WITH statements :-(
+            if self.server or sqlite3.sqlite_version_info[1] < 8:  # MySQL has no WITH statements :-(
                 for tag in tags:
                     try:
                         self.table_tags.get(self.table_tags.name == tag)
@@ -109,7 +109,9 @@ class AnnotationFile:
                         self.table_tags(name=tag).save()
             else:
                 query = self.table_tags.raw("WITH check_tags(name) AS ( VALUES %s ) SELECT check_tags.name, tags.id FROM check_tags LEFT JOIN tags ON check_tags.name = tags.name" % ",".join('("%s")' % x for x in tags))
-                self.table_tags.insert_many([dict(name=tag.name) for tag in query if tag.id is None]).execute()
+                new_tags = [dict(name=tag.name) for tag in query if tag.id is None]
+                if len(new_tags):
+                    self.table_tags.insert_many(new_tags).execute()
             # Get ids of tags
             query = self.table_tags.select().where(self.table_tags.name << tags)
             ids = [tag.id for tag in query]
@@ -118,7 +120,9 @@ class AnnotationFile:
             # Add new associations
             query = self.table_tagassociation.select().where(self.table_tagassociation.annotation == self.annotation)
             current_ids = [a.tag_id for a in query]
-            self.table_tagassociation.insert_many([dict(tag=id, annotation=self.annotation.id) for id in ids if id not in current_ids]).execute()
+            new_tag_associations = [dict(tag=id, annotation=self.annotation.id) for id in ids if id not in current_ids]
+            if len(new_tag_associations):
+                self.table_tagassociation.insert_many(new_tag_associations).execute()
         else:
             # Delete all old tag associations
             self.table_tagassociation.delete().where(self.table_tagassociation.annotation == self.annotation).execute()
