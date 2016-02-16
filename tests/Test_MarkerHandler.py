@@ -4,11 +4,12 @@ __testname__ = "Marker Handler"
 import sys
 import os
 import unittest
-from PyQt4.QtCore import Qt
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from BaseTest import BaseTest
+
+from PyQt4.QtCore import Qt
 
 class Test_MarkerHandler(unittest.TestCase, BaseTest):
 

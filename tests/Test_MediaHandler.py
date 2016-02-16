@@ -4,7 +4,6 @@ __testname__ = "Media Handler"
 import sys
 import os
 import unittest
-from PyQt4.QtCore import Qt
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
