@@ -2,8 +2,8 @@ from __future__ import print_function, division
 import numpy as np
 import os
 import peewee
-from playhouse import apsw_ext
-from playhouse.apsw_ext import apsw, DateTimeField
+# from playhouse import apsw_ext
+# from playhouse.apsw_ext import apsw, DateTimeField
 import time
 from PIL import Image
 
@@ -18,10 +18,10 @@ class DataFile:
             raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
         elif not os.path.exists(self.database_filename):
             print("DB %s does not exist - creating new DB" % os.path.abspath(self.database_filename))
-            self.db = apsw_ext.APSWDatabase(database_filename)
+            self.db = peewee.SqliteDatabase(database_filename)
             # self.CreateTables()
         else:
-            self.db = apsw_ext.APSWDatabase(database_filename)
+            self.db = peewee.SqliteDatabase(database_filename)
 
         """ Basic Tables """
         class BaseModel(peewee.Model):
@@ -37,7 +37,7 @@ class DataFile:
             ext = peewee.CharField()
             frames = peewee.IntegerField(default=0)
             external_id = peewee.IntegerField(null=True)
-            timestamp = DateTimeField(null=True)
+            timestamp = peewee.DateTimeField(null=True)
 
         self.base_model = BaseModel
         self.table_meta = Meta
@@ -124,10 +124,10 @@ class DataFile:
         except peewee.DoesNotExist:
             item = self.table_meta()
 
-        item.key="version"
-        item.value=self.current_version
+            item.key="version"
+            item.value=self.current_version
 
-        item.save()
+            item.save()
 
         return item.get_id()
     
