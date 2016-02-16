@@ -4,7 +4,6 @@ import re
 import datetime
 from peewee import *
 from playhouse.reflection import Introspector
-from playhouse import apsw_ext
 try:
     from StringIO import StringIO  # python 2
 except ImportError:
@@ -16,7 +15,7 @@ def SQLMemoryDBFromFile(filename, *args, **kwargs):
 
     db_file.connect()
     con = db_file.get_conn()
-    tempfile = StringIO.StringIO()
+    tempfile = StringIO()
     for line in con.iterdump():
         tempfile.write('%s\n' % line)
     tempfile.seek(0)
@@ -33,7 +32,7 @@ def SaveDB(db_memory, filename):
     con_file = db_file.get_conn()
     con_memory = db_memory.get_conn()
 
-    tempfile = StringIO.StringIO()
+    tempfile = StringIO()
     for line in con_memory.iterdump():
         tempfile.write('%s\n' % line)
     tempfile.seek(0)
@@ -43,6 +42,7 @@ def SaveDB(db_memory, filename):
 
 
 def SQLMemoryDBFromFileAPSW(filename):
+    from playhouse import apsw_ext
     db_file = apsw_ext.APSWDatabase(filename)
     db_memory = apsw_ext.APSWDatabase(':memory:')
     with db_memory.get_conn().backup("main", db_file.get_conn(), "main") as backup:
@@ -50,6 +50,7 @@ def SQLMemoryDBFromFileAPSW(filename):
     return db_memory
 
 def SaveDBAPSW(db_memory, filename):
+    from playhouse import apsw_ext
     db_file = apsw_ext.APSWDatabase(filename)
     with db_file.get_conn().backup("main", db_memory.get_conn(), "main") as backup:
         backup.step()  # copy whole database in one go
@@ -60,13 +61,13 @@ class DataFile:
         self.exists = os.path.exists(database_filename)
         self.current_version = "4"
         if self.exists:
-            self.db = apsw_ext.APSWDatabase(database_filename)
+            self.db = SqliteDatabase(database_filename)
             introspector = Introspector.from_database(self.db)
             models = introspector.generate_models()
             try:
                 version = models["meta"].get(models["meta"].key == "version").value
             except (KeyError, DoesNotExist):
-                version = "undefined"
+                version = "0"
             print("Open database with version", version)
             if int(version) < int(self.current_version):
                 self.migrateDBFrom(version)
@@ -76,7 +77,7 @@ class DataFile:
                       % (int(version), int(self.current_version)))
                 print("Proceeding on own risk!")
         else:
-            self.db = apsw_ext.APSWDatabase(":memory:")
+            self.db = SqliteDatabase(":memory:")
 
         class BaseModel(Model):
             class Meta:
@@ -116,18 +117,18 @@ class DataFile:
         self.image_uses = 0
         self.image_saved = True
 
-    def migrateDBFrom(self,version):
-        nr_new_version=None;
+    def migrateDBFrom(self, version):
+        nr_new_version = None
         print("Migrating DB from version %s" % version)
         nr_version = int(version)
 
-        if nr_version<3:
+        if nr_version < 3:
             print("\tto 3")
             # Add text fields for Marker
             self.db.execute_sql("ALTER TABLE marker ADD COLUMN text varchar(255)")
             nr_new_version = 3
 
-        if nr_version<4:
+        if nr_version < 4:
             print("\tto 4")
             # Add text fields for Tracks
             self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
@@ -140,8 +141,8 @@ class DataFile:
 
     def save_current_image(self):
         if not self.exists:
-            SaveDBAPSW(self.db, self.database_filename)
-            self.db = apsw_ext.APSWDatabase(self.database_filename)
+            SaveDB(self.db, self.database_filename)
+            self.db = SqliteDatabase(self.database_filename)
             for table in self.tables:
                 table._meta.database = self.db
             self.exists = True
