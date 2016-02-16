@@ -38,8 +38,13 @@ icon_path = os.path.join(os.path.dirname(__file__), "icons")
 
 class image_segmenter():
     def __init__(self, image, coords, mean_pixel_size=200, k_mean_cluster_number=5, compactness=24, iterations=10, enforced_connectivity=True, min_size=0.4,
+<<<<<<< local
                  printing=True, k_means_cluster_mode=1,
                  histogram_bins=7, create_all_images=False, just_super_pixel_segmentation_im=False,
+=======
+                 printing=True, k_means_cluster_mode=1,colorspace=1,just_grey_image=False,
+                 histogram_bins=3, create_all_images=False, just_super_pixel_segmentation_im=False,
+>>>>>>> other
                  create_mean_col_regions=False, clickpoints_addon=True, already_given_regions=[], already_give_regions=False, highlight_whole_cluster=False):
         """
         Init
@@ -95,10 +100,23 @@ class image_segmenter():
         # plt.show()
         #use_I1I2I3=True
 
+<<<<<<< local
         if(use_I1I2I3):
            self.im_color_space=self.I1I2I3_im
         else:
+=======
+        if(colorspace == 2):
+            self.I1I2I3_im=np.zeros(self.image.shape)
+            self.I1I2I3_im[:,:,0]=(self.image[:,:,0]+self.image[:,:,1]+self.image[:,:,2])/3
+            self.I1I2I3_im[:,:,1]=(self.image[:,:,0]-self.image[:,:,2])/2
+            self.I1I2I3_im[:,:,2]=(2*self.image[:,:,1]-self.image[:,:,0]-self.image[:,:,2])/4
+            self.im_color_space=self.I1I2I3_im
+        if(colorspace == 1):
+>>>>>>> other
             self.im_color_space=self.im_lab
+        if just_grey_image:
+            self.im_color_space=self.im_color_space[:,:,0]
+            self.im_color_space=self.im_color_space.reshape((self.im_color_space.shape[0],self.im_color_space.shape[1],1))
 
         if (len(coords)) == 0:
             print('Error got no Coordinates')
@@ -118,7 +136,11 @@ class image_segmenter():
             # endregion
 
             # region k_means_clustering
+<<<<<<< local
             self.colors = 3
+=======
+            self.colors = self.im_color_space.shape[2]
+>>>>>>> other
             if k_means_cluster_mode == 1:
                 self.k_mean_clustered_regions = np.zeros((np.shape(self.image)[0], np.shape(self.image)[1]), int)
 
@@ -137,8 +159,8 @@ class image_segmenter():
                 kmeans_col = sklearn.cluster.KMeans(k_mean_cluster_number)
                 means_col = means_col.transpose()
                 cluster_labels_col = kmeans_col.fit_predict(means_col)
-                
-                # create labeled image    
+
+                # create labeled image
                 for row in range(np.shape(self.image)[0]):
                     for column in range(np.shape(self.image)[1]):
                         self.k_mean_clustered_regions[row, column] = cluster_labels_col[self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmean-Clustering
@@ -154,22 +176,30 @@ class image_segmenter():
                 k_mean_clustered_regions = np.zeros((np.shape(self.image)[0], np.shape(self.image)[1]), int)
 
                 #region create histograms for each superpixel
-                histogramms = []
+                self.histogramms = []
                 for num_superpixel in range(np.max(self.superpixel_segmentation_labels) + 1):
                     local_superpixel = self.image[self.superpixel_segmentation_labels == num_superpixel]
                     local_hist = np.zeros((self.colors, histogram_bins), float)
                     for color in range(self.colors):
                         local_hist[color, :], _ = np.histogram(local_superpixel, bins=histogram_bins, density=True)
                     local_hist = local_hist.reshape(histogram_bins * self.colors)
-                    histogramms.append(local_hist)
+                    local_hist /= sum(local_hist)
+                    self.histogramms.append(local_hist)
                     if num_superpixel % 1000 == 0 & printing:
                         print('%i histograms of superpixels created. Processed Percentage %i' % (
                         num_superpixel, 100 * num_superpixel / np.max(self.superpixel_segmentation_labels)))
+                    if num_superpixel%1000==0:
+                        plt.figure(1)
+                        plt.plot(range(histogram_bins),local_hist)
+                        plt.figure(2)
+                        plt.imshow(skimage.segmentation.mark_boundaries(self.image, np.asarray(self.superpixel_segmentation_labels == num_superpixel,dtype=int)))
+                        plt.show()
+
                 #endregion
 
                 #actual kmeans clustering
                 k_means_hist = sklearn.cluster.KMeans(k_mean_cluster_number)
-                cluster_labels_col = k_means_hist.fit_predict(histogramms)
+                cluster_labels_col = k_means_hist.fit_predict(self.histogramms)
                 #endregion
 
                 #region create image with cluster labels
@@ -321,6 +351,13 @@ class Param_Delivery(QWidget):
             self.super_pixel_size=200
         if not hasattr(self,'cluster_number'):
             self.cluster_number=5
+<<<<<<< local
+=======
+        if not hasattr(self,'k_means_cluster_mode'):
+            self.k_means_cluster_mode=1
+        if not hasattr(self,'histogram_bins'):
+            self.histogram_bins=10
+>>>>>>> other
         if not hasattr(self,'open_gui'):
             self.open_gui=True
         if not hasattr(self,'show_super_pixel_image'):
