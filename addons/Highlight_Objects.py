@@ -38,7 +38,7 @@ icon_path = os.path.join(os.path.dirname(__file__), "icons")
 
 class image_segmenter():
     def __init__(self, image, coords, mean_pixel_size=200, k_mean_cluster_number=5, compactness=24, iterations=10, enforced_connectivity=True, min_size=0.4,
-                 printing=True, k_means_cluster_mode=1,colorspace=1,just_grey_image=False,
+                 printing=True, k_means_cluster_mode=1,colorspace=1,
                  histogram_bins=3, create_all_images=False, just_super_pixel_segmentation_im=False,
                  create_mean_col_regions=False, clickpoints_addon=True, already_given_regions=[], already_give_regions=False, highlight_whole_cluster=False):
         """
@@ -72,7 +72,8 @@ class image_segmenter():
         self.props_col=[]
         self.regions_for_mask=[]
 
-        self.im_lab=skimage.color.rgb2lab(self.image)
+        #region choose colorspace
+
 
         ##creation of image in I1I2I3 colorspace
         # self.I1I2I3_im=np.zeros(self.image.shape)
@@ -102,11 +103,14 @@ class image_segmenter():
             self.I1I2I3_im[:,:,2]=(2*self.image[:,:,1]-self.image[:,:,0]-self.image[:,:,2])/4
             self.im_color_space=self.I1I2I3_im
         if(colorspace == 1):
+            self.im_lab=skimage.color.rgb2lab(self.image)
             self.im_color_space=self.im_lab
-        if just_grey_image:
-            self.im_color_space=self.im_color_space[:,:,0]
+        if colorspace == 3:
+            self.im_color_space=skimage.color.rgb2grey(self.image)
             self.im_color_space=self.im_color_space.reshape((self.im_color_space.shape[0],self.im_color_space.shape[1],1))
+            self.colors=1
 
+        #endregion
         if (len(coords)) == 0:
             print('Error got no Coordinates')
             return
@@ -163,22 +167,22 @@ class image_segmenter():
                 #region create histograms for each superpixel
                 self.histogramms = []
                 for num_superpixel in range(np.max(self.superpixel_segmentation_labels) + 1):
-                    local_superpixel = self.image[self.superpixel_segmentation_labels == num_superpixel]
+                    local_superpixel = self.im_color_space[self.superpixel_segmentation_labels == num_superpixel]
                     local_hist = np.zeros((self.colors, histogram_bins), float)
                     for color in range(self.colors):
-                        local_hist[color, :], _ = np.histogram(local_superpixel, bins=histogram_bins, density=True)
+                        local_hist[color, :], _ = np.histogram(local_superpixel[:,color], bins=histogram_bins, density=True)
                     local_hist = local_hist.reshape(histogram_bins * self.colors)
                     local_hist /= sum(local_hist)
                     self.histogramms.append(local_hist)
                     if num_superpixel % 1000 == 0 & printing:
                         print('%i histograms of superpixels created. Processed Percentage %i' % (
                         num_superpixel, 100 * num_superpixel / np.max(self.superpixel_segmentation_labels)))
-                    if num_superpixel%1000==0:
-                        plt.figure(1)
-                        plt.plot(range(histogram_bins),local_hist)
-                        plt.figure(2)
-                        plt.imshow(skimage.segmentation.mark_boundaries(self.image, np.asarray(self.superpixel_segmentation_labels == num_superpixel,dtype=int)))
-                        plt.show()
+                    # if num_superpixel%1000==0:
+                    #     plt.figure(1)
+                    #     plt.plot(range(histogram_bins),local_hist)
+                    #     plt.figure(2)
+                    #     plt.imshow(skimage.segmentation.mark_boundaries(self.image, np.asarray(self.superpixel_segmentation_labels == num_superpixel,dtype=int)))
+                    #     plt.show()
 
                 #endregion
 
