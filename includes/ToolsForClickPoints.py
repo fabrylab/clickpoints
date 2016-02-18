@@ -124,6 +124,7 @@ class BigImageDisplay:
         self.preview_pixMapItem.setPixmap(QPixmap())
         self.preview_slice = None
         self.preview_rect = None
+        self.conversion = None
 
     def PreviewRect(self):
         self.preview_rect = self.window.view.GetExtend(True)
