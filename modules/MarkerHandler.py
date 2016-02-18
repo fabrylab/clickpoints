@@ -604,7 +604,7 @@ class MyTrackItem(MyMarkerItem):
             return MyMarkerItem.draw(self, image, start_x, start_y)
         color = (self.color.red(), self.color.green(), self.color.blue())
         circle_width = 10*scale
-        last_frame = -1
+        last_frame = None
         last_point = np.array([0, 0])
         offset = np.array([start_x, start_y])
         for frame in self.points_data:
