@@ -216,6 +216,8 @@ class VideoExporterDialog(QWidget):
             if self.preview_slice.shape[2] == 1:
                 self.preview_slice = np.dstack((self.preview_slice, self.preview_slice, self.preview_slice))
 
+            if self.window.ImageDisplay.conversion is not None:
+                self.preview_slice = self.window.ImageDisplay.conversion[self.preview_slice.astype(np.uint8)[:, :, :3]].astype(np.uint8)
             pil_image = Image.fromarray(self.preview_slice)
             draw = ImageDraw.Draw(pil_image)
             if marker_handler:
