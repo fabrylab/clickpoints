@@ -32,7 +32,7 @@ class AnnotationFile:
 
         if server:
             class SqlAnnotation(base_model):
-                timestamp = peewee.DateTimeField()
+                timestamp = peewee.DateTimeField(null=True)
                 reffilename = peewee.CharField()
                 reffileext = peewee.CharField()
                 file_id = peewee.IntegerField(null=True)
@@ -45,7 +45,7 @@ class AnnotationFile:
             self.table_annotation = SqlAnnotation
         else:
             class Annotation(base_model):
-                timestamp = peewee.DateTimeField()
+                timestamp = peewee.DateTimeField(null=True)
                 image = peewee.ForeignKeyField(datafile.table_images)
                 image_frame = peewee.IntegerField()
                 comment = peewee.TextField(default="")
