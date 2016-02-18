@@ -36,6 +36,8 @@ def timedelta_div(self, other):
         return NotImplemented
 
 def BoundBy(value, min, max):
+    if value is None:
+        return min
     if value < min:
         return min
     if value > max:
@@ -474,13 +476,14 @@ class RealTimeSlider(QGraphicsView):
 
     def setTimes(self, media_handler):
         self.media_handler = media_handler
-        self.min_value = np.min(self.media_handler.timestamps)
-        self.max_value = np.max(self.media_handler.timestamps)
+        timestamps = [t for t in self.media_handler.timestamps if t is not None]
+        self.min_value = np.amin(timestamps)
+        self.max_value = np.amax(timestamps)
         range = self.max_value-self.min_value
         self.min_value -= timedelta_mul(range, 0.01)
         self.max_value += timedelta_mul(range, 0.01)
         self.slider_position.setValueRange(self.min_value, self.max_value)
-        for time in self.media_handler.timestamps:
+        for time in timestamps:
             self.addTickMarker(time, color=QColor(128, 128, 128))
         self.slider_position.setValueRange(self.min_value, self.max_value)
         self.updateTicks()
@@ -749,7 +752,7 @@ class Timeline:
         self.layoutCtrlParent.addLayout(self.layoutCtrl)
 
         # second
-        if self.config.datetimeline_show:
+        if self.config.datetimeline_show and self.media_handler.time_data_count:
             self.layoutCtrl2 = QtGui.QHBoxLayout()
             self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 

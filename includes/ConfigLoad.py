@@ -97,7 +97,7 @@ play_end = 1.0
 playing = False
 # @config `timeline_hide =` whether to hide the timeline at the program start
 timeline_hide = False
-datetimeline_show = False
+datetimeline_show = True
 
 """ @config Annotations """
 # @config `annotation_tag =` specifies what to append to the annotation file.
