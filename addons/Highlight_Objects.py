@@ -18,6 +18,7 @@ import skimage.segmentation
 import sklearn.cluster
 import skimage.color
 import os, sys
+import scipy.ndimage.filters
 from clickpoints.SendCommands import GetImage, ReloadMask
 from clickpoints.MarkerLoad import DataFile
 
@@ -38,7 +39,7 @@ icon_path = os.path.join(os.path.dirname(__file__), "icons")
 
 class image_segmenter():
     def __init__(self, image, coords, mean_pixel_size=200, k_mean_cluster_number=5, compactness=24, iterations=10, enforced_connectivity=True, min_size=0.4,
-                 printing=True, k_means_cluster_mode=1,colorspace=1,
+                 printing=True, k_means_cluster_mode=1, colorspace=1, sobel_cluster_mode=True,
                  histogram_bins=3, create_all_images=False, just_super_pixel_segmentation_im=False,
                  create_mean_col_regions=False, clickpoints_addon=True, already_given_regions=[], already_give_regions=False, highlight_whole_cluster=False):
         """
@@ -100,22 +101,59 @@ class image_segmenter():
         # plt.show()
         #use_I1I2I3=True
 
+    #region colorspaces
+
+        if(colorspace == 1):
+            self.im_lab=skimage.color.rgb2lab(self.image)
+            self.im_color_space=self.im_lab
         if(colorspace == 2):
             self.I1I2I3_im=np.zeros(self.image.shape)
             self.I1I2I3_im[:,:,0]=(self.image[:,:,0]+self.image[:,:,1]+self.image[:,:,2])/3
             self.I1I2I3_im[:,:,1]=(self.image[:,:,0]-self.image[:,:,2])/2
             self.I1I2I3_im[:,:,2]=(2*self.image[:,:,1]-self.image[:,:,0]-self.image[:,:,2])/4
             self.im_color_space=self.I1I2I3_im
-        if(colorspace == 1):
-            self.im_lab=skimage.color.rgb2lab(self.image)
-            self.im_color_space=self.im_lab
         if colorspace == 3:
             self.im_color_space=skimage.color.rgb2grey(self.image)
             self.im_color_space=self.im_color_space.reshape((self.im_color_space.shape[0],self.im_color_space.shape[1],1))
             self.colors=1
 
+#endregion
+
         if(self.im_color_space.max())<=1:
             self.im_color_space *= 255
+
+        if 1 == sobel_cluster_mode or 2 == sobel_cluster_mode:
+            #create sobel image
+            sobel_image_x=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=1),dtype=float)
+            sobel_image_y=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=0),dtype=float)
+            self.sobel_im=np.abs(sobel_image_x)+np.abs(sobel_image_y)
+            #normalize sobel image
+            self.sobel_im=(self.sobel_im/self.sobel_im.mean())*self.im_color_space.mean()
+
+            #put image and sobeled_image in one image which is then treated as an image with twice the number of colors as the original image
+            if 1==sobel_cluster_mode:
+                new_im=np.zeros((self.im_color_space.shape[0],self.im_color_space.shape[1],self.im_color_space.shape[2]+self.sobel_im.shape[2]),np.float)
+                new_im[:,:,0:self.im_color_space.shape[2]]=self.im_color_space
+                new_im[:,:,self.im_color_space.shape[2]:self.im_color_space.shape[2]+self.sobel_im.shape[2]]=self.sobel_im
+                self.im_color_space=new_im
+            #exchange im with sobel image
+            if 2==sobel_cluster_mode:
+                self.im_color_space=self.sobel_im
+            self.colors=self.im_color_space.shape[2]
+            if printing:
+                print('Sobeled image created')
+
+
+
+
+        # sobel_im_x=scipy.ndimage.filters.sobel(im,axis=1)
+        # sobel_im_x=np.asarray(sobel_im_x,dtype=float)
+        # sobel_im_y=scipy.ndimage.filters.sobel(im,axis=0)
+        # sobel_im_y=np.asarray(sobel_im_y,dtype=float)
+        # sobel_im_sqare=((sobel_im_x+sobel_im_y)**2)
+        # sobel_im_sqare=sobel_im_sqare/sobel_im_sqare.max()
+        # sobel_im_abs=(np.abs(sobel_im_x+sobel_im_y))
+        # sobel_im_abs=sobel_im_abs/sobel_im_abs.max()
 
         #endregion
         if (len(coords)) == 0:
@@ -144,9 +182,12 @@ class image_segmenter():
 
                 for i in range(self.colors):
                     self.props_col.append(skimage.measure.regionprops(self.superpixel_segmentation_labels, self.im_color_space[:, :, i]))
-                means_col = np.zeros(np.shape(self.props_col), float)
 
-                #create list number_of_superpixel x self.colors with mean of every superpixel in all self.colors
+                if printing:
+                    print('Created regionprops')
+
+                #create list with shape number_of_superpixels x number_of_colors with mean of every superpixel in every color
+                means_col = np.zeros(np.shape(self.props_col), float)
                 for row in range(means_col.shape[0]):
                     for column in range(means_col.shape[1]):
                         means_col[row][column] = self.props_col[row][column].mean_intensity
@@ -214,18 +255,16 @@ class image_segmenter():
 
             # endregion
 
-            #region create connected regions
+    #region create connected regions
             if highlight_whole_cluster:
                 self.regions_for_mask = self.k_mean_clustered_regions
             else:
-                connected_regions_col, num_con_regions= skimage.measure.label(self.k_mean_clustered_regions,return_num=True)
+                connected_regions_col= skimage.measure.label(self.k_mean_clustered_regions)
                 self.regions_for_mask = connected_regions_col
-                if printing:
-                    print('number of connected regions are %i'%(num_con_regions))
             if printing:
                 print('connected_regions done')
 
-            #endregion
+    #endregion
 
 
         #region extract marked regions from marker positions (coords) to pointed regions,a region which is marked more than once is just one time in pointed regions
@@ -325,6 +364,8 @@ class Param_Delivery(QWidget):
                 self.colorspace=int(arg.replace('colorspace=',''))
             if arg.startswith('open_gui='):
                 self.open_gui=int(arg.replace('open_gui=',''))
+            if arg.startswith('sobel_cluster_mode='):
+                self.sobel_cluster_mode=int(arg.replace('sobel_cluster_mode=',''))
             if arg.startswith('show_super_pixel_image='):
                 self.show_super_pixel_image=int(arg.replace('show_super_pixel_image=',''))
             if arg.startswith('show_k_clustered_image='):
@@ -359,6 +400,8 @@ class Param_Delivery(QWidget):
             self.colorspace=1
         if not hasattr(self,'open_gui'):
             self.open_gui=True
+        if not hasattr(self,'sobel_cluster_mode'):
+            self.sobel_cluster_mode=0
         if not hasattr(self,'show_super_pixel_image'):
             self.show_super_pixel_image=False
         if not hasattr(self,'show_k_clustered_image'):
@@ -377,6 +420,7 @@ class Param_Delivery(QWidget):
             self.minimum_size_superpixel=0.4
         if not hasattr(self,'printing'):
             self.printing=True
+#endregion
 
 #region Gui
         if self.open_gui:
@@ -384,7 +428,7 @@ class Param_Delivery(QWidget):
             # widget layout and elements
             #self.setMinimumWidth(500)       #minimum width
             #self.setMinimumHeight(400)      #minimum height
-            self.setWindowTitle("Highlight Object: Options")         #Window Title
+            self.setWindowTitle("Highlight Objects: Options")         #Window Title
             self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "SpinningDiscGear.ico"))))       # ???
             layout_vert = QVBoxLayout(self)                     ##sorge dafuer dass Layouts horizontal uebereinader angordnet werden
 
@@ -399,7 +443,7 @@ class Param_Delivery(QWidget):
             #Spinboxes
 
 
-            #number of clusters Spinbox
+            # number of clusters Spinbox
             layout_hor.addStretch()
             self.label_clusters=QLabel('Number of Clusters',self)
             layout_hor.addWidget(self.label_clusters,Qt.AlignLeft)
@@ -411,7 +455,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.cluster_spin_box)
 
 
-            #Superpixelsize Spinbox
+            # Superpixelsize Spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
@@ -424,7 +468,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.mps_spin_box)
 
 
-            #Compactness Spinbox
+            # Compactness Spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
@@ -437,7 +481,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.compactness_spin_box)
 
 
-            #Maximum Number of Iterations Spinbox
+            # Maximum Number of Iterations Spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
@@ -450,7 +494,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.iterations_spin_box)
 
 
-            #Minimum size superpixel Spinbox
+            # Minimum size superpixel Spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
@@ -465,7 +509,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.minimum_size_superpixel_spin_box)
 
 
-            #k_meeans-cluster-mode Spinbox
+            # k_means-cluster-mode Spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
@@ -478,7 +522,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.k_means_cluster_mode_spin_box)
 
 
-            #histogram bins spinbox
+            # histogram bins spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
@@ -491,7 +535,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.histogram_bins_spin_box)
 
 
-            #colorspace spinbox
+            # colorspace spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
@@ -503,6 +547,18 @@ class Param_Delivery(QWidget):
             self.colorspace_spin_box.setToolTip('<font color="black">Colorspace which is used. 1 is lab, 2 is I1I2I3 and 3 just processes the grey-colored-image</font>')
             layout_hor.addWidget(self.colorspace_spin_box)
 
+
+            # sobel cluster mode spinbox
+            layout_hor = QHBoxLayout()
+            layout_vert.addLayout(layout_hor)
+            layout_hor.addStretch()
+            self.label_sobel_cluster_mode=QLabel('Sobel Cluster Mode')
+            layout_hor.addWidget(self.label_sobel_cluster_mode,Qt.AlignLeft)
+            self.sobel_cluster_mode_spin_box=QSpinBox(self)
+            self.sobel_cluster_mode_spin_box.setRange(0,2)
+            self.sobel_cluster_mode_spin_box.setValue(self.sobel_cluster_mode)
+            self.sobel_cluster_mode_spin_box.setToolTip('<font color="black">Determines if an image processed with the Sobel-Operator is used for Clustering. The Sobel operator highlights edges (Strong changes of color) in a picture. If the regions in your picture don t differ that much in color but in the frequency of edges this is recommended. 0: no sobel-image is used. 1 the sobel image and the regular image are used for clustering. 2 Only the sobel image is used for clustering. Default is 0.</font>')
+            layout_hor.addWidget(self.sobel_cluster_mode_spin_box)
 
 
             #Checkboxes
@@ -645,6 +701,7 @@ class Param_Delivery(QWidget):
             self.k_means_cluster_mode=self.k_means_cluster_mode_spin_box.value()
             self.histogram_bins=self.histogram_bins_spin_box.value()
             self.colorspace=self.colorspace_spin_box.value()
+            self.sobel_cluster_mode=self.sobel_cluster_mode_spin_box.value()
             self.printing=self.checkbox_printing.checkState()
             self.show_super_pixel_image=self.show_super_pixel_image_checkbox.checkState()
             self.show_k_clustered_image=self.show_k_clustered_image_checkbox.checkState()
@@ -673,6 +730,7 @@ class Param_Delivery(QWidget):
             self.file.write('\nk_means_cluster_mode=%i'%(self.k_means_cluster_mode))
             self.file.write('\nhistogram_bins=%i'%(self.histogram_bins))
             self.file.write('\ncolorspace=%i'%(self.colorspace))
+            self.file.write('\nsobel_cluster_mode=%i'%(self.sobel_cluster_mode))
             self.file.write('\nprinting=%i'%int(bool(self.printing)))
             self.file.write('\nopen_gui=%i'%int(bool(self.open_gui)))
             self.file.write('\nshow_super_pixel_image=%i'%int(bool(self.show_super_pixel_image)))
@@ -743,17 +801,19 @@ if __name__ == '__main__':
     else:
         #region create mask
         if Param_object.return_just_mask:
-            image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size,compactness=Param_object.compactness,
-                                            min_size=Param_object.minimum_size_superpixel,iterations=Param_object.maximum_number_iterations,printing=Param_object.printing,
-                                            k_mean_cluster_number=Param_object.cluster_number,highlight_whole_cluster=Param_object.highlight_whole_cluster,
-                                            k_means_cluster_mode=Param_object.k_means_cluster_mode,histogram_bins=Param_object.histogram_bins,colorspace=Param_object.colorspace)
+            image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size, compactness=Param_object.compactness,
+                                            min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, printing=Param_object.printing,
+                                            k_mean_cluster_number=Param_object.cluster_number, highlight_whole_cluster=Param_object.highlight_whole_cluster,
+                                            k_means_cluster_mode=Param_object.k_means_cluster_mode, histogram_bins=Param_object.histogram_bins, colorspace=Param_object.colorspace,
+                                            sobel_cluster_mode=Param_object.sobel_cluster_mode)
             mask=image_segmented.mask
 
         else:
-            image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size,compactness=Param_object.compactness,
-                                            min_size=Param_object.minimum_size_superpixel,iterations=Param_object.maximum_number_iterations,printing=Param_object.printing,
-                                            k_mean_cluster_number=Param_object.cluster_number,create_all_images=True,highlight_whole_cluster=Param_object.highlight_whole_cluster,
-                                            k_means_cluster_mode=Param_object.k_means_cluster_mode,histogram_bins=Param_object.histogram_bins,colorspace=Param_object.colorspace)
+            image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size, compactness=Param_object.compactness,
+                                            min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, printing=Param_object.printing,
+                                            k_mean_cluster_number=Param_object.cluster_number, create_all_images=True, highlight_whole_cluster=Param_object.highlight_whole_cluster,
+                                            k_means_cluster_mode=Param_object.k_means_cluster_mode, histogram_bins=Param_object.histogram_bins, colorspace=Param_object.colorspace,
+                                            sobel_cluster_mode=Param_object.sobel_cluster_mode)
             mask=image_segmented.mask
 
             used_figures=int(1)
