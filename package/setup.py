@@ -1,7 +1,8 @@
 from setuptools import setup
 
 import os
-os.chdir(os.path.dirname(__file__))  # for call from the installer
+if os.path.dirname(__file__) != "":
+    os.chdir(os.path.dirname(__file__))  # for call from the installer
 
 try:
     with open("../version.txt") as fp:
