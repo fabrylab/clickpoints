@@ -39,7 +39,15 @@ except ImportError:
 
 import numpy as np
 import re
-from PIL import ImageDraw, Image
+from PIL import ImageDraw, Image, ImageFont
+
+def HTMLColorToRGB(colorstring):
+    """ convert #RRGGBB to an (R, G, B) tuple """
+    colorstring = str(colorstring).strip()
+    if colorstring[0] == '#': colorstring = colorstring[1:]
+    if len(colorstring) != 6 and len(colorstring) != 8:
+        raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
+    return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
 
 class VideoExporterDialog(QWidget):
     def __init__(self, parent, window, media_handler, config, modules):
@@ -132,6 +140,47 @@ class VideoExporterDialog(QWidget):
         Hlayout.addWidget(button)
         Vlayout.addStretch()
 
+        """ Time """
+        timeWidget = QtGui.QGroupBox("Time")
+        self.layout.addWidget(timeWidget)
+        Vlayout = QtGui.QVBoxLayout(timeWidget)
+
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
+        Hlayout.addWidget(QtGui.QLabel('Display time:'))
+        self.cbTime = QtGui.QCheckBox(self)
+        self.cbTime.setChecked(True)
+        Hlayout.addWidget(self.cbTime)
+        Hlayout.addStretch()
+
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
+        Hlayout.addWidget(QtGui.QLabel('Start from zero:'))
+        self.cbTimeZero = QtGui.QCheckBox(self)
+        self.cbTimeZero.setChecked(True)
+        Hlayout.addWidget(self.cbTimeZero)
+        Hlayout.addStretch()
+
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
+        Hlayout.addWidget(QtGui.QLabel('Font size:'))
+        self.cbTimeFontSize = QtGui.QSpinBox(self)
+        self.cbTimeFontSize.setValue(50)
+        Hlayout.addWidget(self.cbTimeFontSize)
+        Hlayout.addStretch()
+
+        Hlayout = QtGui.QHBoxLayout()
+        Vlayout.addLayout(Hlayout)
+        Hlayout.addWidget(QtGui.QLabel('Color:'))
+        self.cbTimeColor = QtGui.QLineEdit(self)
+        self.cbTimeColor.setText("#FFFFFF")
+        Hlayout.addWidget(self.cbTimeColor)
+        Hlayout.addStretch()
+
+        Vlayout.addStretch()
+
+        """ Progress bar """
+
         Hlayout = QtGui.QHBoxLayout(self)
         self.progressbar = QtGui.QProgressBar()
         Hlayout.addWidget(self.progressbar)
@@ -193,6 +242,15 @@ class VideoExporterDialog(QWidget):
             except OSError:
                 print("ERROR: can't create folder %s", os.path.dirname(path))
                 return
+        self.time_drawing = None
+        if self.cbTime.isChecked():
+            class TimeDrawing: pass
+            self.time_drawing = TimeDrawing()
+            self.time_drawing.font = ImageFont.truetype("tahoma.ttf", self.cbTimeFontSize.value())
+            self.time_drawing.start = None
+            self.time_drawing.x = 15
+            self.time_drawing.y = 10
+            self.time_drawing.color = tuple(HTMLColorToRGB(self.cbTimeColor.text()))
         self.progressbar.setMinimum(start)
         self.progressbar.setMaximum(end)
         for frame in range(start, end+1, skip):
@@ -222,6 +280,16 @@ class VideoExporterDialog(QWidget):
             draw = ImageDraw.Draw(pil_image)
             if marker_handler:
                 marker_handler.drawToImage(draw, start_x, start_y)
+            if self.time_drawing is not None:
+                time = self.window.media_handler.get_timestamp()
+                if time is not None:
+                    if frame == start and self.cbTimeZero.isChecked():
+                        self.time_drawing.start = time
+                    if self.time_drawing.start is not None:
+                        text = str(time-self.time_drawing.start)
+                    else:
+                        text = time.strftime("%Y-%m-%d %H:%M:%S")
+                    draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
             if self.cbType.currentIndex() == 0:
                 if writer == None:
                     writer = imageio.get_writer(path, **writer_params)
