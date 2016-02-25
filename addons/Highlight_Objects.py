@@ -39,7 +39,7 @@ icon_path = os.path.join(os.path.dirname(__file__), "icons")
 
 class image_segmenter():
     def __init__(self, image, coords, mean_pixel_size=200, k_mean_cluster_number=5, compactness=24, iterations=10, enforced_connectivity=True, min_size=0.4,
-                 verbose=True, k_means_cluster_mode=1, colorspace=1, sobel_cluster_mode=0, connect_first=True,
+                 verbose=True, k_means_cluster_mode=1, colorspace=1,  ratio_sobel_image=0.0, connect_first=True,
                  histogram_bins=3, create_all_images=False, just_super_pixel_segmentation_im=False,
                  create_mean_col_regions=False, clickpoints_addon=True, already_given_regions=[], already_give_regions=False, highlight_whole_cluster=False):
         """
@@ -119,28 +119,30 @@ class image_segmenter():
         else: # set colorspace to grey_image if got greyimage
             colorspace=3
             self.im_color_space=self.image
+        if verbose:
+            print('image transformed in correct colorspace')
 
 #endregion
 
         if(self.im_color_space.max())<=1:
             self.im_color_space *= 255
 
-        if 1 == sobel_cluster_mode or 2 == sobel_cluster_mode:
+        if ratio_sobel_image>0:
             #create sobel image
             sobel_image_x=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=1),dtype=float)
             sobel_image_y=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=0),dtype=float)
             self.sobel_im=np.abs(sobel_image_x)+np.abs(sobel_image_y)
             #normalize sobel image
-            self.sobel_im=(self.sobel_im/self.sobel_im.mean())*self.im_color_space.mean()
+            self.sobel_im=self.sobel_im*(self.im_color_space.mean()/self.sobel_im.mean())
 
             #put image and sobeled_image in one image which is then treated as an image with twice the number of colors as the original image
-            if 1==sobel_cluster_mode:
+            if ratio_sobel_image<1:
                 new_im=np.zeros((self.im_color_space.shape[0],self.im_color_space.shape[1],self.im_color_space.shape[2]+self.sobel_im.shape[2]),np.float)
-                new_im[:,:,0:self.im_color_space.shape[2]]=self.im_color_space
-                new_im[:,:,self.im_color_space.shape[2]:self.im_color_space.shape[2]+self.sobel_im.shape[2]]=self.sobel_im
+                new_im[:,:,0:self.im_color_space.shape[2]]=self.im_color_space*(1 - ratio_sobel_image)
+                new_im[:,:,self.im_color_space.shape[2]:self.im_color_space.shape[2]+self.sobel_im.shape[2]]= self.sobel_im * ratio_sobel_image
                 self.im_color_space=new_im
             #exchange im with sobel image
-            if 2==sobel_cluster_mode:
+            else:
                 self.im_color_space=self.sobel_im
             self.colors=self.im_color_space.shape[2]
             if verbose:
@@ -205,7 +207,7 @@ class image_segmenter():
                     for column in range(np.shape(self.image)[1]):
                         self.k_mean_clustered_regions[row, column] = cluster_labels_col[self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmeans-Clustering
                     if row % 50 == 0 & verbose:
-                        print('row=%i Processed Percentage %i' % (row, 100 * row / np.shape(self.image)[0]))
+                        print('Creating Clustered Image row=%i Processed Percentage %i' % (row, 100 * row / np.shape(self.image)[0]))
 
                 if verbose:
                     print('clustering done')
@@ -395,8 +397,8 @@ class Param_Delivery(QWidget):
                 self.colorspace=int(arg.replace('colorspace=',''))
             if arg.startswith('open_gui='):
                 self.open_gui=int(arg.replace('open_gui=',''))
-            if arg.startswith('sobel_cluster_mode='):
-                self.sobel_cluster_mode=int(arg.replace('sobel_cluster_mode=',''))
+            if arg.startswith('ratio_sobel_image='):
+                self.ratio_sobel_image=int(arg.replace('ratio_sobel_image=',''))
             if arg.startswith('show_super_pixel_image='):
                 self.show_super_pixel_image=int(arg.replace('show_super_pixel_image=',''))
             if arg.startswith('show_k_clustered_image='):
@@ -431,8 +433,8 @@ class Param_Delivery(QWidget):
             self.colorspace=1
         if not hasattr(self,'open_gui'):
             self.open_gui=True
-        if not hasattr(self,'sobel_cluster_mode'):
-            self.sobel_cluster_mode=0
+        if not hasattr(self,'ratio_sobel_image'):
+            self.ratio_sobel_image=0
         if not hasattr(self,'show_super_pixel_image'):
             self.show_super_pixel_image=False
         if not hasattr(self,'show_k_clustered_image'):
@@ -579,17 +581,19 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.colorspace_spin_box)
 
 
-            # sobel cluster mode spinbox
+            # ration sobel image spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
-            self.label_sobel_cluster_mode=QLabel('Sobel Cluster Mode')
-            layout_hor.addWidget(self.label_sobel_cluster_mode,Qt.AlignLeft)
-            self.sobel_cluster_mode_spin_box=QSpinBox(self)
-            self.sobel_cluster_mode_spin_box.setRange(0,2)
-            self.sobel_cluster_mode_spin_box.setValue(self.sobel_cluster_mode)
-            self.sobel_cluster_mode_spin_box.setToolTip('<font color="black">Determines if an image processed with the Sobel-Operator is used for Clustering. The Sobel operator highlights edges (Strong changes of color) in a picture. If the regions in your picture don t differ that much in color but in the frequency of edges this is recommended. 0: no sobel-image is used. 1 the sobel image and the regular image are used for clustering. 2 Only the sobel image is used for clustering. Default is 0.</font>')
-            layout_hor.addWidget(self.sobel_cluster_mode_spin_box)
+            self.label_ratio_sobel_image=QLabel('Sobel Cluster Mode')
+            layout_hor.addWidget(self.label_ratio_sobel_image,Qt.AlignLeft)
+            self.ratio_sobel_image_spin_box=QDoubleSpinBox(self)
+            self.ratio_sobel_image_spin_box.setRange(0,1)
+            self.ratio_sobel_image_spin_box.setSingleStep(0.01)
+            self.ratio_sobel_image_spin_box.setValue(self.ratio_sobel_image)
+            self.ratio_sobel_image_spin_box.setToolTip('<font color="black">Determines if an image processed with the Sobel-Operator is used for Clustering. The Sobel operator highlights edges (Strong changes of color) in a picture. If the regions in your picture don t differ that much in color but in the frequency of edges this is recommended. 0: no sobel-image is used. 1 the sobel image and the regular image are used for clustering. 2 Only the sobel image is used for clustering. Default is 0.</font>')
+            self.ratio_sobel_image_spin_box.setToolTip('<font color="black">If not zero in the algorithm the Sobel-Operator is run through the image and the resulting image is also used for k-means-clustering. This spinbox determines the amount the normal image and the sobel operator is used. Zero means only the image is used 1 mean only the Sobeled-Image is used. 0.5 mean their mean values are the same. Default value: 0.</font>')
+            layout_hor.addWidget(self.ratio_sobel_image_spin_box)
 
 
             #Checkboxes
@@ -733,7 +737,7 @@ class Param_Delivery(QWidget):
             self.k_means_cluster_mode=self.k_means_cluster_mode_spin_box.value()
             self.histogram_bins=self.histogram_bins_spin_box.value()
             self.colorspace=self.colorspace_spin_box.value()
-            self.sobel_cluster_mode=self.sobel_cluster_mode_spin_box.value()
+            self.ratio_sobel_image=self.ratio_sobel_image_spin_box.value()
             self.verbose=self.checkbox_verbose.checkState()
             self.show_super_pixel_image=self.show_super_pixel_image_checkbox.checkState()
             self.show_k_clustered_image=self.show_k_clustered_image_checkbox.checkState()
@@ -762,7 +766,7 @@ class Param_Delivery(QWidget):
             self.file.write('\nk_means_cluster_mode=%i'%(self.k_means_cluster_mode))
             self.file.write('\nhistogram_bins=%i'%(self.histogram_bins))
             self.file.write('\ncolorspace=%i'%(self.colorspace))
-            self.file.write('\nsobel_cluster_mode=%i'%(self.sobel_cluster_mode))
+            self.file.write('\nratio_sobel_image=%i'%(self.ratio_sobel_image))
             self.file.write('\nverbose=%i'%int(bool(self.verbose)))
             self.file.write('\nopen_gui=%i'%int(bool(self.open_gui)))
             self.file.write('\nshow_super_pixel_image=%i'%int(bool(self.show_super_pixel_image)))
@@ -834,7 +838,7 @@ if __name__ == '__main__':
                                             min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, verbose=Param_object.verbose,
                                             k_mean_cluster_number=Param_object.cluster_number, highlight_whole_cluster=Param_object.highlight_whole_cluster,
                                             k_means_cluster_mode=Param_object.k_means_cluster_mode, histogram_bins=Param_object.histogram_bins, colorspace=Param_object.colorspace,
-                                            sobel_cluster_mode=Param_object.sobel_cluster_mode)
+                                            ratio_sobel_image=Param_object.ratio_sobel_image)
             mask=image_segmented.mask
 
         else:
@@ -842,7 +846,7 @@ if __name__ == '__main__':
                                             min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, verbose=Param_object.verbose,
                                             k_mean_cluster_number=Param_object.cluster_number, create_all_images=True, highlight_whole_cluster=Param_object.highlight_whole_cluster,
                                             k_means_cluster_mode=Param_object.k_means_cluster_mode, histogram_bins=Param_object.histogram_bins, colorspace=Param_object.colorspace,
-                                            sobel_cluster_mode=Param_object.sobel_cluster_mode)
+                                            ratio_sobel_image=Param_object.ratio_sobel_image)
             mask=image_segmented.mask
 
             used_figures=int(1)
