@@ -706,6 +706,7 @@ class Param_Delivery(QWidget):
             self.pbDiscard = QPushButton('Cancel', self)
             self.pbDiscard.pressed.connect(self.cancel)
             layout_hor.addWidget(self.pbDiscard)
+            self.application_canceled=True
             self.close()
         else:
             self.start()
@@ -808,9 +809,6 @@ if __name__ == '__main__':
     mask = df.GetMask(image_id, image_frame)
     print('clicked coordinates are=',coords)
     #endregion
-
-
-
 
 
     #region get Parameters from config_file and Gui for image Segmentation
