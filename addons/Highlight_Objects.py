@@ -39,7 +39,7 @@ icon_path = os.path.join(os.path.dirname(__file__), "icons")
 
 class image_segmenter():
     def __init__(self, image, coords, mean_pixel_size=200, k_mean_cluster_number=5, compactness=24, iterations=10, enforced_connectivity=True, min_size=0.4,
-                 printing=True, k_means_cluster_mode=1, colorspace=1, sobel_cluster_mode=True,
+                 verbose=True, k_means_cluster_mode=1, colorspace=1, sobel_cluster_mode=0, connect_first=True,
                  histogram_bins=3, create_all_images=False, just_super_pixel_segmentation_im=False,
                  create_mean_col_regions=False, clickpoints_addon=True, already_given_regions=[], already_give_regions=False, highlight_whole_cluster=False):
         """
@@ -55,7 +55,7 @@ class image_segmenter():
         :param double min_size: Minimum size of a superpixel compared to the average size (also look in Docu of slic-algorithm)
         :param int k_mean_cluster_number: number of Clusters for k-means algorithm
         :param Bool just_super_pixel_segmentation_im: If True stop after superpixelization and return superpixel-boarder-marked image
-        :param Bool printing: If False nothing is printed out during method
+        :param Bool verbose: If False nothing is printed out during method
         :param int 1|2 k_means_cluster_mode: Parameter for k-means-clustering of the superpixels 1==Mean of Superpixels in all 3 self.colors in lab-space 2==Clustering of the Histogram of the superpixels in all three self.colors in lab-space
         :param Bool already_give_regions: Just for Debugging It is possible to give the final connected regions (a labeled image) and the highlight, which is clicked.
         :param image labels already_given_regions: Just for Debugging see already_give_regions
@@ -102,20 +102,23 @@ class image_segmenter():
         #use_I1I2I3=True
 
     #region colorspaces
-
-        if(colorspace == 1):
-            self.im_lab=skimage.color.rgb2lab(self.image)
-            self.im_color_space=self.im_lab
-        if(colorspace == 2):
-            self.I1I2I3_im=np.zeros(self.image.shape)
-            self.I1I2I3_im[:,:,0]=(self.image[:,:,0]+self.image[:,:,1]+self.image[:,:,2])/3
-            self.I1I2I3_im[:,:,1]=(self.image[:,:,0]-self.image[:,:,2])/2
-            self.I1I2I3_im[:,:,2]=(2*self.image[:,:,1]-self.image[:,:,0]-self.image[:,:,2])/4
-            self.im_color_space=self.I1I2I3_im
-        if colorspace == 3:
-            self.im_color_space=skimage.color.rgb2grey(self.image)
-            self.im_color_space=self.im_color_space.reshape((self.im_color_space.shape[0],self.im_color_space.shape[1],1))
-            self.colors=1
+        if self.image.shape[2]==3:
+            if(colorspace == 1):
+                self.im_lab=skimage.color.rgb2lab(self.image)
+                self.im_color_space=self.im_lab
+            if(colorspace == 2):
+                self.I1I2I3_im=np.zeros(self.image.shape)
+                self.I1I2I3_im[:,:,0]=(self.image[:,:,0]+self.image[:,:,1]+self.image[:,:,2])/3
+                self.I1I2I3_im[:,:,1]=(self.image[:,:,0]-self.image[:,:,2])/2
+                self.I1I2I3_im[:,:,2]=(2*self.image[:,:,1]-self.image[:,:,0]-self.image[:,:,2])/4
+                self.im_color_space=self.I1I2I3_im
+            if colorspace == 3:
+                self.im_color_space=skimage.color.rgb2grey(self.image)
+                self.im_color_space=self.im_color_space.reshape((self.im_color_space.shape[0],self.im_color_space.shape[1],1))
+                self.colors=1
+        else: # set colorspace to grey_image if got greyimage
+            colorspace=3
+            self.im_color_space=self.image
 
 #endregion
 
@@ -140,7 +143,7 @@ class image_segmenter():
             if 2==sobel_cluster_mode:
                 self.im_color_space=self.sobel_im
             self.colors=self.im_color_space.shape[2]
-            if printing:
+            if verbose:
                 print('Sobeled image created')
 
 
@@ -169,7 +172,7 @@ class image_segmenter():
                                                                             multichannel=True, max_iter=10,
                                                                             enforce_connectivity=enforced_connectivity,
                                                                             min_size_factor=min_size)  # segmentiert in regions
-            if printing:
+            if verbose:
                 print('superpixelization done')
             # endregion
 
@@ -183,7 +186,7 @@ class image_segmenter():
                 for i in range(self.colors):
                     self.props_col.append(skimage.measure.regionprops(self.superpixel_segmentation_labels, self.im_color_space[:, :, i]))
 
-                if printing:
+                if verbose:
                     print('Created regionprops')
 
                 #create list with shape number_of_superpixels x number_of_colors with mean of every superpixel in every color
@@ -200,15 +203,16 @@ class image_segmenter():
                 # create labeled image
                 for row in range(np.shape(self.image)[0]):
                     for column in range(np.shape(self.image)[1]):
-                        self.k_mean_clustered_regions[row, column] = cluster_labels_col[self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmean-Clustering
-                    if row % 50 == 0 & printing:
+                        self.k_mean_clustered_regions[row, column] = cluster_labels_col[self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmeans-Clustering
+                    if row % 50 == 0 & verbose:
                         print('row=%i Processed Percentage %i' % (row, 100 * row / np.shape(self.image)[0]))
 
-                if printing:
+                if verbose:
                     print('clustering done')
             # endregion
 
-            # region histogram_clustering
+
+            #region histogram_clustering
             if (k_means_cluster_mode == 2):
                 self.k_mean_clustered_regions = np.zeros((np.shape(self.image)[0], np.shape(self.image)[1]), int)
 
@@ -222,7 +226,7 @@ class image_segmenter():
                     local_hist = local_hist.reshape(histogram_bins * self.colors)
                     local_hist /= sum(local_hist)
                     self.histogramms.append(local_hist)
-                    if num_superpixel % 1000 == 0 & printing:
+                    if num_superpixel % 1000 == 0 & verbose:
                         print('%i histograms of superpixels created. Processed Percentage %i' % (
                         num_superpixel, 100 * num_superpixel / np.max(self.superpixel_segmentation_labels)))
                     # if num_superpixel%1000==0:
@@ -245,23 +249,50 @@ class image_segmenter():
                         self.k_mean_clustered_regions[row, column] = cluster_labels_col[
                             self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmean-Clustering
 
-                    if row % 50 == 0 & printing:
+                    if row % 50 == 0 & verbose:
                         print('Creating image with cluster labels row=%i Processed Percentage %i' % (
                         row, 100 * row / np.shape(self.image)[0]))
                 #endregion
 
-                if printing:
+                if verbose:
                     print('clustering done')
 
+
+
+            # region merge clicked clusters
+            if connect_first:
+            # region merge clicked clusters
+                label_list=[]
+                for coord in coords:
+                    region_label=self.k_mean_clustered_regions[coord[1],coord[0]]
+                    already_used=False
+                    for label in label_list:
+                        if label==region_label:
+                            already_used=True
+                    if not already_used:
+                        label_list.append(region_label)
+
+                # endregion
+                self.mask_clicked_clusters=(self.k_mean_clustered_regions==label_list[0])
+                for label in label_list[1:]:
+                    self.mask_clicked_clusters=self.mask_clicked_clusters|(self.k_mean_clustered_regions==label)
+                if verbose:
+                    print('label list=',label_list)
+                    print('Merging clicked clusters done')
             # endregion
+            if False:
+                a=3
+
 
     #region create connected regions
             if highlight_whole_cluster:
                 self.regions_for_mask = self.k_mean_clustered_regions
             else:
-                connected_regions_col= skimage.measure.label(self.k_mean_clustered_regions)
-                self.regions_for_mask = connected_regions_col
-            if printing:
+                if connect_first:
+                    self.regions_for_mask=skimage.measure.label(self.mask_clicked_clusters)
+                else:
+                    self.regions_for_mask = skimage.measure.label(self.k_mean_clustered_regions)
+            if verbose:
                 print('connected_regions done')
 
     #endregion
@@ -277,7 +308,7 @@ class image_segmenter():
                     already_marked = True
             if (~already_marked):
                 pointed_regions.append(pointed_region)
-        if (printing):
+        if (verbose):
             print('clicked coordinates are')
             print(coords)
             print('pointed_regions=' % (pointed_regions))
@@ -298,7 +329,7 @@ class image_segmenter():
             self.mask = np.zeros([self.image.shape[0], self.image.shape[1]], np.uint8)
         for mask_one_region in masks_one_region:
             self.mask = self.mask | mask_one_region
-        if printing:
+        if verbose:
             print('creating mask done')
         #endregion
 
@@ -382,8 +413,8 @@ class Param_Delivery(QWidget):
                 self.maximum_number_iterations=int(arg.replace('maximum_number_iterations=',''))
             if arg.startswith('minimum_size_superpixel='):
                 self.minimum_size_superpixel=float(arg.replace('minimum_size_superpixel=',''))
-            if arg.startswith('printing='):
-                self.printing=int(arg.replace('printing=',''))
+            if arg.startswith('verbose='):
+                self.verbose=int(arg.replace('verbose=',''))
 
 
 
@@ -418,8 +449,8 @@ class Param_Delivery(QWidget):
             self.maximum_number_iterations=10
         if not hasattr(self,'minimum_size_superpixel'):
             self.minimum_size_superpixel=0.4
-        if not hasattr(self,'printing'):
-            self.printing=True
+        if not hasattr(self,'verbose'):
+            self.verbose=True
 #endregion
 
 #region Gui
@@ -630,16 +661,16 @@ class Param_Delivery(QWidget):
             layout_vert.addSpacing(15)
 
 
-            #Checkbox Printing
+            #Checkbox verbose
             layout_hor=QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
-            self.label_printing=QLabel('Printmode activated')
-            layout_hor.addWidget(self.label_printing,Qt.AlignLeft)
-            self.checkbox_printing=QCheckBox(self)
-            self.checkbox_printing.setChecked(self.printing)
-            self.checkbox_printing.setToolTip('<font color="black">Print out every step. Default value: True.</font>')
-            layout_hor.addWidget(self.checkbox_printing)
+            self.label_verbose=QLabel('Printmode activated')
+            layout_hor.addWidget(self.label_verbose,Qt.AlignLeft)
+            self.checkbox_verbose=QCheckBox(self)
+            self.checkbox_verbose.setChecked(self.verbose)
+            self.checkbox_verbose.setToolTip('<font color="black">Print out every step. Default value: True.</font>')
+            layout_hor.addWidget(self.checkbox_verbose)
 
 
             #Checkbox Saving Changes
@@ -702,7 +733,7 @@ class Param_Delivery(QWidget):
             self.histogram_bins=self.histogram_bins_spin_box.value()
             self.colorspace=self.colorspace_spin_box.value()
             self.sobel_cluster_mode=self.sobel_cluster_mode_spin_box.value()
-            self.printing=self.checkbox_printing.checkState()
+            self.verbose=self.checkbox_verbose.checkState()
             self.show_super_pixel_image=self.show_super_pixel_image_checkbox.checkState()
             self.show_k_clustered_image=self.show_k_clustered_image_checkbox.checkState()
             self.show_border_image=self.show_border_image_checkbox.checkState()
@@ -731,7 +762,7 @@ class Param_Delivery(QWidget):
             self.file.write('\nhistogram_bins=%i'%(self.histogram_bins))
             self.file.write('\ncolorspace=%i'%(self.colorspace))
             self.file.write('\nsobel_cluster_mode=%i'%(self.sobel_cluster_mode))
-            self.file.write('\nprinting=%i'%int(bool(self.printing)))
+            self.file.write('\nverbose=%i'%int(bool(self.verbose)))
             self.file.write('\nopen_gui=%i'%int(bool(self.open_gui)))
             self.file.write('\nshow_super_pixel_image=%i'%int(bool(self.show_super_pixel_image)))
             self.file.write('\nshow_k_clustered_image=%i'%int(bool(self.show_k_clustered_image)))
@@ -802,7 +833,7 @@ if __name__ == '__main__':
         #region create mask
         if Param_object.return_just_mask:
             image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size, compactness=Param_object.compactness,
-                                            min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, printing=Param_object.printing,
+                                            min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, verbose=Param_object.verbose,
                                             k_mean_cluster_number=Param_object.cluster_number, highlight_whole_cluster=Param_object.highlight_whole_cluster,
                                             k_means_cluster_mode=Param_object.k_means_cluster_mode, histogram_bins=Param_object.histogram_bins, colorspace=Param_object.colorspace,
                                             sobel_cluster_mode=Param_object.sobel_cluster_mode)
@@ -810,7 +841,7 @@ if __name__ == '__main__':
 
         else:
             image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size, compactness=Param_object.compactness,
-                                            min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, printing=Param_object.printing,
+                                            min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, verbose=Param_object.verbose,
                                             k_mean_cluster_number=Param_object.cluster_number, create_all_images=True, highlight_whole_cluster=Param_object.highlight_whole_cluster,
                                             k_means_cluster_mode=Param_object.k_means_cluster_mode, histogram_bins=Param_object.histogram_bins, colorspace=Param_object.colorspace,
                                             sobel_cluster_mode=Param_object.sobel_cluster_mode)
