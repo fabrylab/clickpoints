@@ -161,7 +161,6 @@ class ClickPointsWindow(QWidget):
         _, frame = self.media_handler.id_lookup[self.media_handler.get_index()]
         filename = self.media_handler.get_filename()
         offset = self.data_file.get_offset(filename, frame)
-        print(offset)
         self.ImageDisplay.SetImage(im, offset)
         self.view.setExtend(*im.shape[:2][::-1])
 
