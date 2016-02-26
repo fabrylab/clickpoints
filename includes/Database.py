@@ -110,8 +110,10 @@ class DataFile:
         self.table_offsets = Offsets
 
         self.db.connect()
+        for table in [self.table_meta, self.table_images, self.table_offsets]:
+            if not table.table_exists():
+                table.create_table()
         if not self.exists:
-            self.db.create_tables([self.table_meta, self.table_images, self.table_offsets])
             self.table_meta(key="version", value=self.current_version).save()
 
         self.image = None
