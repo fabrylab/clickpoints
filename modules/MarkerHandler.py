@@ -126,6 +126,9 @@ class MarkerFile:
     def get_type_list(self):
         return self.table_types.select()
 
+    def get_type(self, name):
+        return self.table_types.get(name=name)
+
     def get_track_list(self):
         return self.table_tracks.select()
 
@@ -168,6 +171,54 @@ def GetColorFromMap(identifier, id):
     color = color[:3]*255
     return color
 
+def AddQSpinBox(layout, text, value=0):
+    horizontal_layout = QHBoxLayout()
+    layout.addLayout(horizontal_layout)
+    text = QLabel(text)
+    spinBox = QtGui.QDoubleSpinBox()
+    spinBox.setRange(-99999, 99999)
+    spinBox.setValue(value)
+    horizontal_layout.addWidget(text)
+    horizontal_layout.addWidget(spinBox)
+    return spinBox
+
+def AddQLineEdit(layout, text, value=None):
+    horizontal_layout = QHBoxLayout()
+    layout.addLayout(horizontal_layout)
+    text = QLabel(text)
+    lineEdit = QtGui.QLineEdit()
+    if value:
+        lineEdit.setText(value)
+    horizontal_layout.addWidget(text)
+    horizontal_layout.addWidget(lineEdit)
+    return lineEdit
+
+def AddQComboBox(layout, text, values=None, selectedValue=None):
+    horizontal_layout = QHBoxLayout()
+    layout.addLayout(horizontal_layout)
+    text = QLabel(text)
+    comboBox = QtGui.QComboBox()
+    for value in values:
+        comboBox.addItem(value)
+    if selectedValue:
+        comboBox.setCurrentIndex(values.index(selectedValue))
+    horizontal_layout.addWidget(text)
+    horizontal_layout.addWidget(comboBox)
+    return comboBox
+
+def AddQLabel(layout, text):
+    text = QLabel(text)
+    layout.addWidget(text)
+    return text
+
+def AddQHLine(layout):
+    line = QtGui.QFrame()
+    line.setFrameShape(QtGui.QFrame.HLine)
+    line.setFrameShadow(QtGui.QFrame.Sunken)
+    layout.addWidget(line)
+    return line
+
+
 class MarkerEditor(QWidget):
     def __init__(self, marker_item):
         QWidget.__init__(self)
@@ -178,40 +229,61 @@ class MarkerEditor(QWidget):
         self.setMinimumWidth(400)
         self.setMinimumHeight(100)
         self.setWindowTitle("MarkerEditor")
-        self.layout = QGridLayout(self)
+        self.layout = QtGui.QVBoxLayout(self)
 
-        # add Label and Line Edit for TEXT
-        horizontal_layout = QHBoxLayout()
-        self.label_text = QLabel('Text:',self)
-        self.lineedit_text = QLineEdit('',self)
-        if not self.marker_item.data.text is None:
-            self.lineedit_text.setText(self.marker_item.data.text)
-        horizontal_layout.addWidget(self.label_text)
-        horizontal_layout.addWidget(self.lineedit_text)
-        self.layout.addLayout(horizontal_layout,0,0,2,2,Qt.AlignTop)
+        data = marker_item.data
+        if marker_item.partner:
+            data2 = marker_item.partner.data
+
+        AddQLabel(self.layout, 'Marker #%d (%s %.2f, %.2f)' % (data.id, data.type.name, data.x, data.y))
+
+        if marker_item.data.type.mode & TYPE_Line:
+            if marker_item.partner:
+                AddQLabel(self.layout, 'Line Length %.2f' % np.linalg.norm(np.array([data.x, data.y])-np.array([data2.x, data2.y])))
+            else:
+                AddQLabel(self.layout, 'Line not connected')
+        if marker_item.data.type.mode & TYPE_Rect:
+            if marker_item.partner:
+                AddQLabel(self.layout, 'Rect width %.2f height %.2f' % (abs(data.x-data2.x), abs(data.y-data2.y)))
+            else:
+                AddQLabel(self.layout, 'Rect not connected')
+
+        AddQHLine(self.layout)
+
+        self.cb_type = AddQComboBox(self.layout, "Type:", [t.name for t in marker_item.marker_handler.marker_file.get_type_list()], marker_item.data.type.name)
+        self.sb_x = AddQSpinBox(self.layout, "X:", marker_item.data.x)
+        self.sb_y = AddQSpinBox(self.layout, "Y:", marker_item.data.y)
+
+        self.le_text = AddQLineEdit(self.layout, "Text:", self.marker_item.data.text)
 
         # add Confirm and Cancel button
+        horizontal_layout = QHBoxLayout()
+        self.layout.addLayout(horizontal_layout)
         self.pushbutton_Confirm = QPushButton('S&ave', self)
         self.pushbutton_Confirm.pressed.connect(self.saveMarker)
-        self.layout.addWidget(self.pushbutton_Confirm, 1, 0)
+        horizontal_layout.addWidget(self.pushbutton_Confirm)
 
         self.pushbutton_Cancel = QPushButton('&Cancel', self)
         self.pushbutton_Cancel.pressed.connect(self.close)
-        self.layout.addWidget(self.pushbutton_Cancel, 1, 1)
+        horizontal_layout.addWidget(self.pushbutton_Cancel)
 
     def saveMarker(self):
         print("Saving changes...")
         # set parameters
-        self.marker_item.data.text = self.lineedit_text.text()
+        self.marker_item.data.x = self.sb_x.value()
+        self.marker_item.data.y = self.sb_y.value()
+        self.marker_item.data.type = self.marker_item.marker_handler.marker_file.get_type(self.cb_type.currentText())
+        self.marker_item.data.text = self.le_text.text()
+        
         # save
-        self.marker_item.saved=False
+        self.marker_item.saved = False
         self.marker_item.save()
-        # display
-        self.marker_item.text.setText(self.lineedit_text.text())
+
+        # load updated data
+        self.marker_item.ReloadData()
 
         # close widget
         self.close()
-
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Escape:
@@ -230,17 +302,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.saved = saved
 
         self.style = {}
-        if self.data.type.style:
-            self.style.update(json.loads(self.data.type.style))
-        if self.data.style:
-            self.style.update(json.loads(self.data.style))
-        if "color" not in self.style:
-            self.style["color"] = self.data.type.color
-
-        if self.style["color"][0] != "#":
-            self.style["color"] = GetColorFromMap(self.style["color"], self.data.id)
-        else:
-            self.style["color"] = HTMLColorToRGB(self.style["color"])
+        self.GetStyle()
 
         self.scale_value = 1
 
@@ -256,19 +318,16 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.UseCrosshair = True
 
-
         self.font = QFont()
         self.font.setPointSize(10)
         self.text_parent = QGraphicsPathItem(self)
         self.text_parent.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
         self.text = QGraphicsSimpleTextItem(self.text_parent)
         self.text.setFont(self.font)
-        self.color = self.style["color"]
         self.text.setPos(5, 5)
-        self.text.setBrush(QBrush(QColor(*self.color)))
         self.text.setZValue(10)
 
-        if not self.data.text is None:
+        if self.data.text is not None:
             self.text.setText(self.data.text)
 
         self.partner = None
@@ -286,6 +345,28 @@ class MyMarkerItem(QGraphicsPathItem):
 
         self.ApplyStyle()
 
+    def GetStyle(self):
+        self.style = {}
+        if self.data.type.style:
+            self.style.update(json.loads(self.data.type.style))
+        if self.data.style:
+            self.style.update(json.loads(self.data.style))
+        if "color" not in self.style:
+            self.style["color"] = self.data.type.color
+
+        if self.style["color"][0] != "#":
+            self.style["color"] = GetColorFromMap(self.style["color"], self.data.id)
+        else:
+            self.style["color"] = HTMLColorToRGB(self.style["color"])
+        self.color = self.style["color"]
+
+    def ReloadData(self):
+        self.setPos(self.data.x, self.data.y)
+        self.GetStyle()
+        self.ApplyStyle()
+        if self.data.text is not None:
+            self.text.setText(self.data.text)
+
     def ApplyStyle(self):
         self.color = QColor(*self.style["color"])
         if self.style.get("shape", "cross") == "cross":
@@ -294,6 +375,7 @@ class MyMarkerItem(QGraphicsPathItem):
         else:
             self.setBrush(QBrush(QColor(0, 0, 0, 0)))
             self.setPen(QPen(self.color, self.style.get("line-width", 1)))
+        self.text.setBrush(QBrush(QColor(self.color)))
         self.UpdatePath()
         self.setScale(None)
 
