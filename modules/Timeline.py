@@ -479,6 +479,8 @@ class RealTimeSlider(QGraphicsView):
         timestamps = [t for t in self.media_handler.timestamps if t is not None]
         self.min_value = np.amin(timestamps)
         self.max_value = np.amax(timestamps)
+        if self.max_value == self.min_value:
+            self.max_value = self.min_value+datetime.timedelta(hours=1)
         range = self.max_value-self.min_value
         self.min_value -= timedelta_mul(range, 0.01)
         self.max_value += timedelta_mul(range, 0.01)
