@@ -134,6 +134,11 @@ def ReloadMarker(frame=None):
         frame = -1
     return send_and_receive("ReloadMarker %d \n" % frame)
 
+def ReloadTypes():
+    """
+    Reloads the marker types.
+    """
+    return send_and_receive("ReloadTypes \n")
 
 def CatchTerminateSignal():
     """
