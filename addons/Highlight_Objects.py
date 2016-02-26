@@ -595,7 +595,7 @@ class Param_Delivery(QWidget):
             self.ratio_sobel_image_spin_box.setSingleStep(0.01)
             self.ratio_sobel_image_spin_box.setValue(self.ratio_sobel_image)
             self.ratio_sobel_image_spin_box.setToolTip('<font color="black">Determines if an image processed with the Sobel-Operator is used for Clustering. The Sobel operator highlights edges (Strong changes of color) in a picture. If the regions in your picture don t differ that much in color but in the frequency of edges this is recommended. 0: no sobel-image is used. 1 the sobel image and the regular image are used for clustering. 2 Only the sobel image is used for clustering. Default is 0.</font>')
-            self.ratio_sobel_image_spin_box.setToolTip('<font color="black">If not zero in the algorithm the Sobel-Operator is run through the image and the resulting image is also used for k-means-clustering. This spinbox determines the amount the normal image and the sobel operator is used. Zero means only the image is used 1 mean only the Sobeled-Image is used. 0.5 mean their mean values are the same. Default value: 0.</font>')
+            self.ratio_sobel_image_spin_box.setToolTip('<font color="black">If not zero in the algorithm the Sobel-Operator is run through the image and the resulting image is also used for k-means-clustering. This spinbox determines the amount the normal image and the sobel operator is used. Zero means only the image is used 1 mean only the Sobeled-Image is used. 0.5 mean their mean values are the same. Default value: 0. If you want to use the sobeled image too 0.3 is the recommenend value .</font>')
             layout_hor.addWidget(self.ratio_sobel_image_spin_box)
 
 
@@ -650,7 +650,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.label_show_border_image,Qt.AlignLeft)
             self.show_border_image_checkbox=QCheckBox(self)
             self.show_border_image_checkbox.setChecked(2*self.show_border_image)
-            self.show_border_image_checkbox.setToolTip('<font color="black">In this image connected superpixels of the same cluster are put together in one region. Aclick in one region highlights it.Default value: False.</font>')
+            self.show_border_image_checkbox.setToolTip('<font color="black">In this image connected superpixels of the same cluster are put together in one region. A click in one region highlights it.Default value: False.</font>')
             layout_hor.addWidget(self.show_border_image_checkbox)
 
 
