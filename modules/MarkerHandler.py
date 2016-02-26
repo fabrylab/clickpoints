@@ -626,6 +626,12 @@ class MyTrackItem(MyMarkerItem):
     def deleteMarker(self):
         self.RemoveTrackPoint()
 
+    def mousePressEvent(self, event):
+        if self.active is False:
+            self.AddTrackPoint()
+            self.saved = False
+        MyMarkerItem.mousePressEvent(self, event)
+
     def mouseMoveEvent(self, event):
         if self.active is False:
             self.AddTrackPoint()
