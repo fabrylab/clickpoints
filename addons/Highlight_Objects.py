@@ -66,6 +66,9 @@ class image_segmenter():
         :return:
         """
 
+        if image.shape[2]>3:
+            image=image[:,:,0:3]
+
         self.image=image
         self.superpixel_segmentation_labels=[]
         self.mean_regions_col=[]
@@ -824,7 +827,8 @@ if __name__ == '__main__':
     Param_object.show()
 
     app.exec_()
-    print('Got Parameter')
+    if Param_object.verbose:
+        print('Got Parameter')
 
 
     #endregion
@@ -874,8 +878,8 @@ if __name__ == '__main__':
             plt.show()
 
 
-
-        print('Mask created')
+        if Param_object.verbose:
+            print('Mask created')
         df.SetMask(mask, image_id, image_frame)
         df.db.close()
         ReloadMask()
