@@ -398,7 +398,7 @@ class Param_Delivery(QWidget):
             if arg.startswith('open_gui='):
                 self.open_gui=int(arg.replace('open_gui=',''))
             if arg.startswith('ratio_sobel_image='):
-                self.ratio_sobel_image=int(arg.replace('ratio_sobel_image=',''))
+                self.ratio_sobel_image=float(arg.replace('ratio_sobel_image=',''))
             if arg.startswith('show_super_pixel_image='):
                 self.show_super_pixel_image=int(arg.replace('show_super_pixel_image=',''))
             if arg.startswith('show_k_clustered_image='):
@@ -766,7 +766,7 @@ class Param_Delivery(QWidget):
             self.file.write('\nk_means_cluster_mode=%i'%(self.k_means_cluster_mode))
             self.file.write('\nhistogram_bins=%i'%(self.histogram_bins))
             self.file.write('\ncolorspace=%i'%(self.colorspace))
-            self.file.write('\nratio_sobel_image=%i'%(self.ratio_sobel_image))
+            self.file.write('\nratio_sobel_image=%f'%(self.ratio_sobel_image))
             self.file.write('\nverbose=%i'%int(bool(self.verbose)))
             self.file.write('\nopen_gui=%i'%int(bool(self.open_gui)))
             self.file.write('\nshow_super_pixel_image=%i'%int(bool(self.show_super_pixel_image)))
