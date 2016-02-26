@@ -84,7 +84,7 @@ class DataFile:
                 database = self.db
 
         class Meta(BaseModel):
-            key = CharField()
+            key = CharField(unique=True)
             value = CharField()
 
         class Images(BaseModel):
