@@ -258,6 +258,12 @@ class DataFile:
 
         item.save()
         return item.get_id()
+
+    def GetType(self, name):
+        try:
+            return self.table_types.get(self.table_types.name == name)
+        except peewee.DoesNotExist:
+            return None
     
     def GetMarker(self,image=None, image_filename=None, image_frame=None, processed=None, type=None, type_name=None, track=None):
         """
