@@ -130,6 +130,12 @@ class DataFile:
         self.db.connect()
         self.CreateTables()
 
+        """ Enumerations """
+        self.TYPE_Normal = 0
+        self.TYPE_Rect = 1
+        self.TYPE_Line = 2
+        self.TYPE_Track = 4
+
     def GetMaskPath(self):
         if self.mask_path:
             return self.mask_path
