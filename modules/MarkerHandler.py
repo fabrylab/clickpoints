@@ -206,9 +206,10 @@ def AddQComboBox(layout, text, values=None, selectedValue=None):
     horizontal_layout.addWidget(comboBox)
     return comboBox
 
-def AddQLabel(layout, text):
+def AddQLabel(layout, text=None):
     text = QLabel(text)
-    layout.addWidget(text)
+    if text:
+        layout.addWidget(text)
     return text
 
 def AddQHLine(layout):
@@ -223,38 +224,21 @@ class MarkerEditor(QWidget):
     def __init__(self, marker_item):
         QWidget.__init__(self)
 
-        self.marker_item = marker_item
-
         # Widget
         self.setMinimumWidth(400)
         self.setMinimumHeight(100)
         self.setWindowTitle("MarkerEditor")
         self.layout = QtGui.QVBoxLayout(self)
 
-        data = marker_item.data
-        if marker_item.partner:
-            data2 = marker_item.partner.data
-
-        AddQLabel(self.layout, 'Marker #%d (%s %.2f, %.2f)' % (data.id, data.type.name, data.x, data.y))
-
-        if marker_item.data.type.mode & TYPE_Line:
-            if marker_item.partner:
-                AddQLabel(self.layout, 'Line Length %.2f' % np.linalg.norm(np.array([data.x, data.y])-np.array([data2.x, data2.y])))
-            else:
-                AddQLabel(self.layout, 'Line not connected')
-        if marker_item.data.type.mode & TYPE_Rect:
-            if marker_item.partner:
-                AddQLabel(self.layout, 'Rect width %.2f height %.2f' % (abs(data.x-data2.x), abs(data.y-data2.y)))
-            else:
-                AddQLabel(self.layout, 'Rect not connected')
+        self.label = AddQLabel(self.layout)
 
         AddQHLine(self.layout)
 
-        self.cb_type = AddQComboBox(self.layout, "Type:", [t.name for t in marker_item.marker_handler.marker_file.get_type_list()], marker_item.data.type.name)
-        self.sb_x = AddQSpinBox(self.layout, "X:", marker_item.data.x)
-        self.sb_y = AddQSpinBox(self.layout, "Y:", marker_item.data.y)
+        self.cb_type = AddQComboBox(self.layout, "Type:", [t.name for t in marker_item.marker_handler.marker_file.get_type_list()])
+        self.sb_x = AddQSpinBox(self.layout, "X:")
+        self.sb_y = AddQSpinBox(self.layout, "Y:")
 
-        self.le_text = AddQLineEdit(self.layout, "Text:", self.marker_item.data.text)
+        self.le_text = AddQLineEdit(self.layout, "Text:")
 
         # add Confirm and Cancel button
         horizontal_layout = QHBoxLayout()
@@ -267,6 +251,35 @@ class MarkerEditor(QWidget):
         self.pushbutton_Cancel.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
+        self.setMarker(marker_item)
+
+    def setMarker(self, marker_item):
+        self.marker_item = marker_item
+
+        data = marker_item.data
+        if marker_item.partner:
+            data2 = marker_item.partner.data
+
+        text = 'Marker #%d (%s %.2f, %.2f)' % (data.id, data.type.name, data.x, data.y)
+
+        if marker_item.data.type.mode & TYPE_Line:
+            if marker_item.partner:
+                text += '\nLine Length %.2f' % np.linalg.norm(np.array([data.x, data.y])-np.array([data2.x, data2.y]))
+            else:
+                text += '\nLine not connected'
+        if marker_item.data.type.mode & TYPE_Rect:
+            if marker_item.partner:
+                text += '\nRect width %.2f height %.2f' % (abs(data.x-data2.x), abs(data.y-data2.y))
+            else:
+                text += '\nRect not connected'
+
+        self.label.setText(text)
+
+        self.cb_type.setEditText(data.type.name)
+        self.sb_x.setValue(data.x)
+        self.sb_y.setValue(data.y)
+        self.le_text.setText(data.text if data.text else "")
+
     def saveMarker(self):
         print("Saving changes...")
         # set parameters
@@ -274,7 +287,7 @@ class MarkerEditor(QWidget):
         self.marker_item.data.y = self.sb_y.value()
         self.marker_item.data.type = self.marker_item.marker_handler.marker_file.get_type(self.cb_type.currentText())
         self.marker_item.data.text = self.le_text.text()
-        
+
         # save
         self.marker_item.saved = False
         self.marker_item.save()
@@ -435,8 +448,11 @@ class MyMarkerItem(QGraphicsPathItem):
     def mousePressEvent(self, event):
         if event.button() == 2:  # right mouse button
             # open marker edit menu
-            self.me = MarkerEditor(self)
-            self.me.show()
+            if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
+                self.marker_handler.marker_edit_window = MarkerEditor(self)
+                self.marker_handler.marker_edit_window.show()
+            else:
+                self.marker_handler.marker_edit_window.setMarker(self)
         if event.button() == 1:  # left mouse button
             # left click with Ctrl -> delete
             if event.modifiers() == QtCore.Qt.ControlModifier:
@@ -941,6 +957,8 @@ class MarkerHandler:
         self.data_file = datafile
         self.text=None
 
+        self.marker_edit_window = None
+
         self.marker_file = MarkerFile(datafile)
 
         self.active = False
@@ -1148,6 +1166,10 @@ class MarkerHandler:
 
     def canLoadLast(self):
         return self.last_logname is not None
+
+    def closeEvent(self, event):
+        if self.marker_edit_window:
+            self.marker_edit_window.close()
 
     @staticmethod
     def file():
