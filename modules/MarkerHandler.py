@@ -365,8 +365,8 @@ class MyMarkerItem(QGraphicsPathItem):
                 self.drag_start_pos = event.pos()
                 self.setCursor(QCursor(QtCore.Qt.BlankCursor))
                 if self.UseCrosshair:
-                    self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
                     self.marker_handler.Crosshair.Show(self)
+                    self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
 
     def mouseMoveEvent(self, event):
         pos = self.parent.mapFromItem(self, event.pos()-self.drag_start_pos)
