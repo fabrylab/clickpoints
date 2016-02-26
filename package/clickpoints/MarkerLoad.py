@@ -6,6 +6,36 @@ import peewee
 # from playhouse.apsw_ext import apsw, DateTimeField
 import time
 from PIL import Image
+import sys
+
+def isstring(object):
+    PY3 = sys.version_info[0] == 3
+
+    if PY3:
+        return isinstance(object, str)
+    else:
+        return isinstance(object, basestring)
+
+def CheckValidColor(color):
+    class NoValidColor(Exception): pass
+    if isstring(color):
+        if color[0] == "#":
+            color = color[1:]
+        for c in color:
+            if not "0" <= c.upper() <= "F":
+                raise NoValidColor(color+" is no valid color")
+        if len(color) != 6 or len(color) != 8:
+            raise NoValidColor(color+" is no valid color")
+        return "#"+color
+    color_string = ""
+    for value in color:
+        if not 0 <= value <= 255:
+            raise NoValidColor(str(color)+" is no valid color")
+        color_string += "%02x" % value
+    if len(color_string) != 6 and len(color_string) != 8:
+        raise NoValidColor(str(color)+" is no valid color")
+    return "#"+color_string
+
 
 class DataFile:
     def __init__(self, database_filename='clickpoints.db',mode='r'):
@@ -215,14 +245,14 @@ class DataFile:
         query = self.table_types.select()
         return query
 
-    def AddType(self,name,color,mode=0,style=""):
+    def AddType(self, name, color, mode=0, style=None):
         try:
-            item = self.table_types.get(self.table_types.name==name)
+            item = self.table_types.get(self.table_types.name == name)
         except peewee.DoesNotExist:
             item = self.table_types()
 
         item.name = name
-        item.color = color
+        item.color = CheckValidColor(color)
         item.mode = mode
         item.style = style
 
