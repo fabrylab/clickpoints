@@ -50,6 +50,8 @@ class BigImageDisplay:
         self.signal.display.connect(self.UpdatePixmaps)
         self.thread = None
 
+        self.last_offset = np.array([0, 0])
+
     def AddEventFilter(self, event_filter):
         self.eventFilters.append(event_filter)
         for pixmap in self.pixMapItems:
@@ -78,24 +80,29 @@ class BigImageDisplay:
             self.pixMapItems[i].setPixmap(QPixmap(array2qimage(im)))
             self.pixMapItems[i].setOffset(0, 0)
 
-    def SetImage(self, image):
+    def SetImage(self, image, offset):
+        offset = np.array(offset)
         if self.config.threaded_image_display:
-            self.thread = Thread(target=self.SetImage2, args=(image, ))
+            self.thread = Thread(target=self.SetImage2, args=(image, offset))
             self.thread.start()
         else:
-            self.SetImage2(image)
+            self.SetImage2(image, offset)
 
     def closeEvent(self, QCloseEvent):
         if self.config.threaded_image_display and self.thread:
             self.thread.join()
 
-    def SetImage2(self, image):
+    def SetImage2(self, image, offset):
         if len(image.shape) == 2:
             image = image.reshape((image.shape[0], image.shape[1], 1))
         self.number_of_imagesX = int(np.ceil(image.shape[1] / self.config.max_image_size))
         self.number_of_imagesY = int(np.ceil(image.shape[0] / self.config.max_image_size))
         self.UpdatePixmapCount()
         self.image = image
+
+        self.window.view.DoTranslateOrigin(-self.last_offset)
+        self.window.view.DoTranslateOrigin(offset)
+        self.last_offset = offset
 
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
