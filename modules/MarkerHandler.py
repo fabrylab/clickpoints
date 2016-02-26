@@ -356,12 +356,12 @@ class MyMarkerItem(QGraphicsPathItem):
             self.me = MarkerEditor(self)
             self.me.show()
         if event.button() == 1:  # left mouse button
-            modifiers = QtGui.QApplication.keyboardModifiers()
             # left click with Ctrl -> delete
-            if modifiers == QtCore.Qt.ControlModifier:
+            if event.modifiers() == QtCore.Qt.ControlModifier:
                 self.deleteMarker()
             # left click -> move
             else:
+                self.dragged = True
                 self.drag_start_pos = event.pos()
                 self.setCursor(QCursor(QtCore.Qt.BlankCursor))
                 if self.UseCrosshair:
@@ -369,6 +369,8 @@ class MyMarkerItem(QGraphicsPathItem):
                     self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
 
     def mouseMoveEvent(self, event):
+        if not self.dragged:
+            return
         pos = self.parent.mapFromItem(self, event.pos()-self.drag_start_pos)
         self.saved = False
         self.setPos(pos.x(), pos.y())
@@ -386,7 +388,8 @@ class MyMarkerItem(QGraphicsPathItem):
                 self.partner.setPos(self.partner.pos())
 
     def mouseReleaseEvent(self, event):
-        if event.button() == 1:
+        if event.button() == 1 and self.dragged:
+            self.dragged = False
             self.marker_handler.PointsUnsaved = True
             self.SetProcessed(0)
             self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
@@ -441,8 +444,6 @@ class MyMarkerItem(QGraphicsPathItem):
         image.rectangle([x-w, y+b, x+w, y+r2], color)
         image.rectangle([x-r2, y-w, x-b, y+w], color)
         image.rectangle([x+b, y-w, x+r2, y+w], color)
-
-
 
 
 class MyTrackItem(MyMarkerItem):
@@ -627,16 +628,18 @@ class MyTrackItem(MyMarkerItem):
         self.RemoveTrackPoint()
 
     def mousePressEvent(self, event):
-        if self.active is False:
-            self.AddTrackPoint()
-            self.saved = False
+        if event.button() == 1 and not event.modifiers() & Qt.ControlModifier:
+            if self.active is False:
+                self.AddTrackPoint()
+                self.saved = False
         MyMarkerItem.mousePressEvent(self, event)
 
     def mouseMoveEvent(self, event):
-        if self.active is False:
-            self.AddTrackPoint()
-        self.saved = False
-        self.UpdateLine()
+        if self.dragged:
+            if self.active is False:
+                self.AddTrackPoint()
+            self.saved = False
+            self.UpdateLine()
         MyMarkerItem.mouseMoveEvent(self, event)
 
     def setCurrentPoint(self, x, y):
