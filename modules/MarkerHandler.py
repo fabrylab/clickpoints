@@ -1009,7 +1009,7 @@ class MarkerHandler:
     def sceneEventFilter(self, event):
         if self.hidden:
             return False
-        if event.type() == 156 and event.button() == 1:  # QtCore.QEvent.MouseButtonPress:
+        if event.type() == 156 and event.button() == 1 and not event.modifiers() & Qt.ControlModifier:  # QtCore.QEvent.MouseButtonPress:
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
             tracks = [track for track in self.tracks if track.data.type.id == self.active_type.id]
