@@ -74,6 +74,18 @@ class DataFile:
         self.table_images = Images
         self.tables = [BaseModel, Images]
 
+        """ Offset Table """
+        class Offsets(BaseModel):
+            image = peewee.ForeignKeyField(Images)
+            image_frame = peewee.IntegerField()
+            x = peewee.FloatField()
+            y = peewee.FloatField()
+            class Meta:
+                indexes = ((('image', 'image_frame'), True), )
+
+        self.table_offsets = Offsets
+        self.tables.extend([Offsets])
+
         """ Marker Tables """
         class Tracks(BaseModel):
             uid = peewee.CharField()

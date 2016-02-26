@@ -94,15 +94,24 @@ class DataFile:
             external_id = IntegerField(null=True)
             timestamp = DateTimeField(null=True)
 
-        self.tables = [BaseModel, Meta, Images]
+        class Offsets(BaseModel):
+            image = ForeignKeyField(Images)
+            image_frame = IntegerField()
+            x = FloatField()
+            y = FloatField()
+            class Meta:
+                indexes = ((('image', 'image_frame'), True), )
+
+        self.tables = [BaseModel, Meta, Images, Offsets]
 
         self.base_model = BaseModel
         self.table_meta = Meta
         self.table_images = Images
+        self.table_offsets = Offsets
 
         self.db.connect()
         if not self.exists:
-            self.db.create_tables([self.table_meta, self.table_images])
+            self.db.create_tables([self.table_meta, self.table_images, self.table_offsets])
             self.table_meta(key="version", value=self.current_version).save()
 
         self.image = None
@@ -194,3 +203,12 @@ class DataFile:
                 self.next_image_index += 1
                 image.save(force_insert=True)
         return image
+
+    def get_offset(self, filename, frame):
+        try:
+            image = self.table_images.get(filename=filename)
+            print("image", image, frame)
+            offset = self.table_offsets.get(image=image, image_frame=frame)
+            return [offset.x, offset.y]
+        except DoesNotExist:
+            return [0, 0]
