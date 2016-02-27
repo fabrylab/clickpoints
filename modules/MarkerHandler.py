@@ -913,7 +913,7 @@ class MyCounter(QGraphicsRectItem):
     def AddCount(self, new_count):
         self.count += new_count
         self.text.setText(
-            str(self.index) + ": " + self.type.name + " %d" % self.count)
+            str(self.index+1) + ": " + self.type.name + " %d" % self.count)
         rect = self.text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
