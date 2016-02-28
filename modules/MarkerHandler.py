@@ -221,20 +221,75 @@ def AddQHLine(layout):
 
 
 class MarkerEditor(QWidget):
-    def __init__(self, marker_item):
+    def __init__(self, marker_handler, marker_item=None):
         QWidget.__init__(self)
 
         # Widget
-        self.setMinimumWidth(400)
-        self.setMinimumHeight(100)
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(200)
         self.setWindowTitle("MarkerEditor")
-        self.layout = QtGui.QVBoxLayout(self)
+        main_layout = QtGui.QHBoxLayout(self)
+
+        self.marker_handler = marker_handler
+        self.db = marker_handler.marker_file
+
+        tree = QtGui.QTreeView()
+        main_layout.addWidget(tree)
+
+        self.marker_modelitems = {}
+        self.modelItems_marker = {}
+
+        model = QtGui.QStandardItemModel(0, 0)
+        types = self.db.table_types.select()
+        for row, type in enumerate(types):
+            item = QtGui.QStandardItem(type.name)
+            item.setEditable(False)
+
+            if type.mode & TYPE_Track:
+                tracks = self.db.table_tracks.select().join(self.db.table_marker).where(self.db.table_marker.type == type).group_by(self.db.table_tracks.id)
+                for track in tracks:
+                    child = QtGui.QStandardItem("Track #%d" % track.id)
+                    child.setEditable(False)
+                    item.appendRow(child)
+                    markers = self.db.table_marker.select().where(self.db.table_marker.type == type, self.db.table_marker.track == track)
+                    count = 0
+                    for marker in markers:
+                        child2 = QtGui.QStandardItem("Marker #%d" % marker.id)
+                        child2.setEditable(False)
+                        child.appendRow(child2)
+                        self.marker_modelitems[marker.id] = child2
+                        self.modelItems_marker[child2] = marker
+                        count += 1
+                    child.setText("Track #%d (%d)" % (track.id, count))
+            else:
+                markers = self.db.table_marker.select().where(self.db.table_marker.type == type)
+                for marker in markers:
+                    child = QtGui.QStandardItem("Marker #%d" % marker.id)
+                    child.setEditable(False)
+                    item.appendRow(child)
+                    self.marker_modelitems[marker.id] = child
+                    self.modelItems_marker[child] = marker
+
+            model.setItem(row, 0, item)
+
+        self.modelItems_marker = {item.index(): self.modelItems_marker[item] for item in self.modelItems_marker}
+
+        tree.setUniformRowHeights(True)
+        tree.setHeaderHidden(True)
+        tree.setAnimated(True)
+        tree.setModel(model)
+        tree.clicked.connect(lambda x: print(self.setMarker(self.modelItems_marker[x])))
+        self.tree = tree
+
+        self.layout = QtGui.QVBoxLayout()
+        main_layout.addLayout(self.layout)
 
         self.label = AddQLabel(self.layout)
 
         AddQHLine(self.layout)
 
-        self.cb_type = AddQComboBox(self.layout, "Type:", [t.name for t in marker_item.marker_handler.marker_file.get_type_list()])
+        self.cb_indices = {t.id: index for index, t in enumerate(self.db.get_type_list())}
+        self.cb_type = AddQComboBox(self.layout, "Type:", [t.name for t in self.db.get_type_list()])
         self.sb_x = AddQSpinBox(self.layout, "X:")
         self.sb_y = AddQSpinBox(self.layout, "Y:")
 
@@ -251,31 +306,36 @@ class MarkerEditor(QWidget):
         self.pushbutton_Cancel.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
-        self.setMarker(marker_item)
+        if marker_item:
+            self.setMarker(marker_item.data, marker_item)
 
-    def setMarker(self, marker_item):
+    def setMarker(self, data, marker_item=None):
         self.marker_item = marker_item
+        self.data = data
 
-        data = marker_item.data
-        if marker_item.partner:
-            data2 = marker_item.partner.data
+        print("data.partner_id", data.partner_id)
+        data2 = data.partner if data.partner_id is not None else None
+
+        self.tree.setCurrentIndex(self.marker_modelitems[data.id].index())
 
         text = 'Marker #%d (%s %.2f, %.2f)' % (data.id, data.type.name, data.x, data.y)
 
-        if marker_item.data.type.mode & TYPE_Line:
-            if marker_item.partner:
+        if data.type.mode & TYPE_Line:
+            if data2 is not None:
                 text += '\nLine Length %.2f' % np.linalg.norm(np.array([data.x, data.y])-np.array([data2.x, data2.y]))
             else:
                 text += '\nLine not connected'
-        if marker_item.data.type.mode & TYPE_Rect:
-            if marker_item.partner:
+        elif data.type.mode & TYPE_Rect:
+            if data2 is not None:
                 text += '\nRect width %.2f height %.2f' % (abs(data.x-data2.x), abs(data.y-data2.y))
             else:
                 text += '\nRect not connected'
+        else:
+            text += '\n'
 
         self.label.setText(text)
 
-        self.cb_type.setEditText(data.type.name)
+        self.cb_type.setCurrentIndex(self.cb_indices[data.type.id])
         self.sb_x.setValue(data.x)
         self.sb_y.setValue(data.y)
         self.le_text.setText(data.text if data.text else "")
@@ -283,23 +343,28 @@ class MarkerEditor(QWidget):
     def saveMarker(self):
         print("Saving changes...")
         # set parameters
-        self.marker_item.data.x = self.sb_x.value()
-        self.marker_item.data.y = self.sb_y.value()
-        self.marker_item.data.type = self.marker_item.marker_handler.marker_file.get_type(self.cb_type.currentText())
-        self.marker_item.data.text = self.le_text.text()
-
-        # save
-        self.marker_item.saved = False
-        self.marker_item.save()
+        self.data.x = self.sb_x.value()
+        self.data.y = self.sb_y.value()
+        self.data.type = self.marker_handler.marker_file.get_type(self.cb_type.currentText())
+        self.data.text = self.le_text.text()
+        self.data.save()
 
         # load updated data
-        self.marker_item.ReloadData()
+        if not self.marker_item:
+            for point in self.marker_handler.points:
+                if point.data.id == self.data.id:
+                    point.ReloadData()
+                    break
+        else:
+            self.marker_item.ReloadData()
 
         # close widget
+        self.marker_handler.marker_edit_window = None
         self.close()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Escape:
+            self.marker_handler.marker_edit_window = None
             self.close()
         if event.key() == QtCore.Qt.Key_Return:
             self.saveMarker()
@@ -449,10 +514,10 @@ class MyMarkerItem(QGraphicsPathItem):
         if event.button() == 2:  # right mouse button
             # open marker edit menu
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
-                self.marker_handler.marker_edit_window = MarkerEditor(self)
+                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self)
                 self.marker_handler.marker_edit_window.show()
             else:
-                self.marker_handler.marker_edit_window.setMarker(self)
+                self.marker_handler.marker_edit_window.setMarker(self.data, self)
         if event.button() == 1:  # left mouse button
             # left click with Ctrl -> delete
             if event.modifiers() == QtCore.Qt.ControlModifier:
