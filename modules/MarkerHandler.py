@@ -83,7 +83,7 @@ class MarkerFile:
             y = peewee.FloatField()
             type = peewee.ForeignKeyField(Types)
             processed = peewee.IntegerField(default=0)
-            partner_id = peewee.IntegerField(null=True)
+            partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
             track = peewee.ForeignKeyField(Tracks, null=True)
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
