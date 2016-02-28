@@ -180,6 +180,7 @@ def AddQSpinBox(layout, text, value=0):
     spinBox.setValue(value)
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(spinBox)
+    spinBox.managingLayout = horizontal_layout
     return spinBox
 
 def AddQLineEdit(layout, text, value=None):
@@ -191,6 +192,7 @@ def AddQLineEdit(layout, text, value=None):
         lineEdit.setText(value)
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(lineEdit)
+    lineEdit.managingLayout = horizontal_layout
     return lineEdit
 
 def AddQComboBox(layout, text, values=None, selectedValue=None):
@@ -204,6 +206,7 @@ def AddQComboBox(layout, text, values=None, selectedValue=None):
         comboBox.setCurrentIndex(values.index(selectedValue))
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(comboBox)
+    comboBox.managingLayout = horizontal_layout
     return comboBox
 
 def AddQLabel(layout, text=None):
@@ -233,6 +236,7 @@ class MarkerEditor(QWidget):
         self.marker_handler = marker_handler
         self.db = marker_handler.marker_file
 
+        """ Tree View """
         tree = QtGui.QTreeView()
         main_layout.addWidget(tree)
 
@@ -244,11 +248,13 @@ class MarkerEditor(QWidget):
         for row, type in enumerate(types):
             item = QtGui.QStandardItem(type.name)
             item.setEditable(False)
+            self.modelItems_marker[item] = type
 
             if type.mode & TYPE_Track:
                 tracks = self.db.table_tracks.select().join(self.db.table_marker).where(self.db.table_marker.type == type).group_by(self.db.table_tracks.id)
                 for track in tracks:
                     child = QtGui.QStandardItem("Track #%d" % track.id)
+                    self.modelItems_marker[child] = track
                     child.setEditable(False)
                     item.appendRow(child)
                     markers = self.db.table_marker.select().where(self.db.table_marker.type == type, self.db.table_marker.track == track)
@@ -278,24 +284,49 @@ class MarkerEditor(QWidget):
         tree.setHeaderHidden(True)
         tree.setAnimated(True)
         tree.setModel(model)
-        tree.clicked.connect(lambda x: print(self.setMarker(self.modelItems_marker[x])))
+        tree.clicked.connect(lambda x: self.setMarker(self.modelItems_marker[x]))
         self.tree = tree
 
         self.layout = QtGui.QVBoxLayout()
         main_layout.addLayout(self.layout)
 
-        self.label = AddQLabel(self.layout)
+        self.StackedWidget = QtGui.QStackedWidget(self)
+        self.layout.addWidget(self.StackedWidget)
 
-        AddQHLine(self.layout)
+        """ Marker Properties """
+        self.markerWidget = QtGui.QGroupBox()
+        self.StackedWidget.addWidget(self.markerWidget)
+        layout = QtGui.QVBoxLayout(self.markerWidget)
+        self.markerWidget.type_indices = {t.id: index for index, t in enumerate(self.db.get_type_list())}
+        self.markerWidget.type = AddQComboBox(layout, "Type:", [t.name for t in self.db.get_type_list()])
+        self.markerWidget.x = AddQSpinBox(layout, "X:")
+        self.markerWidget.y = AddQSpinBox(layout, "Y:")
+        self.markerWidget.style = AddQLineEdit(layout, "Style:")
+        self.markerWidget.text = AddQLineEdit(layout, "Text:")
+        self.markerWidget.label = AddQLabel(layout)
+        layout.addStretch()
 
-        self.cb_indices = {t.id: index for index, t in enumerate(self.db.get_type_list())}
-        self.cb_type = AddQComboBox(self.layout, "Type:", [t.name for t in self.db.get_type_list()])
-        self.sb_x = AddQSpinBox(self.layout, "X:")
-        self.sb_y = AddQSpinBox(self.layout, "Y:")
+        """ Type Properties """
+        self.typeWidget = QtGui.QGroupBox()
+        self.StackedWidget.addWidget(self.typeWidget)
+        layout = QtGui.QVBoxLayout(self.typeWidget)
+        self.typeWidget.name = AddQLineEdit(layout, "Name:")
+        self.typeWidget.mode_indices = {TYPE_Normal: 0, TYPE_Line: 1, TYPE_Rect: 2,TYPE_Track: 3}
+        self.typeWidget.mode_values = {0: TYPE_Normal, 1: TYPE_Line, 2: TYPE_Rect, 3: TYPE_Track}
+        self.typeWidget.mode = AddQComboBox(layout, "Mode:", ["TYPE_Normal", "TYPE_Line", "TYPE_Rect", "TYPE_Track"])
+        self.typeWidget.style = AddQLineEdit(layout, "Style:")
+        self.typeWidget.text = AddQLineEdit(layout, "Text:")
+        layout.addStretch()
 
-        self.le_text = AddQLineEdit(self.layout, "Text:")
+        """ Track Properties """
+        self.trackWidget = QtGui.QGroupBox()
+        self.StackedWidget.addWidget(self.trackWidget)
+        layout = QtGui.QVBoxLayout(self.trackWidget)
+        self.trackWidget.style = AddQLineEdit(layout, "Style:")
+        self.trackWidget.text = AddQLineEdit(layout, "Text:")
+        layout.addStretch()
 
-        # add Confirm and Cancel button
+        """ Control Buttons """
         horizontal_layout = QHBoxLayout()
         self.layout.addLayout(horizontal_layout)
         self.pushbutton_Confirm = QPushButton('S&ave', self)
@@ -313,50 +344,81 @@ class MarkerEditor(QWidget):
         self.marker_item = marker_item
         self.data = data
 
-        print("data.partner_id", data.partner_id)
-        data2 = data.partner if data.partner_id is not None else None
+        if type(data) == self.db.table_marker:
+            self.StackedWidget.setCurrentIndex(0)
+            self.markerWidget.setTitle("Marker #%d" % data.id)
 
-        self.tree.setCurrentIndex(self.marker_modelitems[data.id].index())
+            self.tree.setCurrentIndex(self.marker_modelitems[data.id].index())
 
-        text = 'Marker #%d (%s %.2f, %.2f)' % (data.id, data.type.name, data.x, data.y)
+            data2 = data.partner if data.partner_id is not None else None
 
-        if data.type.mode & TYPE_Line:
-            if data2 is not None:
-                text += '\nLine Length %.2f' % np.linalg.norm(np.array([data.x, data.y])-np.array([data2.x, data2.y]))
+            text = ''
+
+            if data.type.mode & TYPE_Line:
+                if data2 is not None:
+                    text += 'Line Length %.2f' % np.linalg.norm(np.array([data.x, data.y])-np.array([data2.x, data2.y]))
+                else:
+                    text += 'Line not connected'
+            elif data.type.mode & TYPE_Rect:
+                if data2 is not None:
+                    text += 'Rect width %.2f height %.2f' % (abs(data.x-data2.x), abs(data.y-data2.y))
+                else:
+                    text += 'Rect not connected'
             else:
-                text += '\nLine not connected'
-        elif data.type.mode & TYPE_Rect:
-            if data2 is not None:
-                text += '\nRect width %.2f height %.2f' % (abs(data.x-data2.x), abs(data.y-data2.y))
-            else:
-                text += '\nRect not connected'
-        else:
-            text += '\n'
+                text += ''
 
-        self.label.setText(text)
+            self.markerWidget.label.setText(text)
 
-        self.cb_type.setCurrentIndex(self.cb_indices[data.type.id])
-        self.sb_x.setValue(data.x)
-        self.sb_y.setValue(data.y)
-        self.le_text.setText(data.text if data.text else "")
+            self.markerWidget.type.setCurrentIndex(self.markerWidget.type_indices[data.type.id])
+            self.markerWidget.x.setValue(data.x)
+            self.markerWidget.y.setValue(data.y)
+            self.markerWidget.text.setText(data.text if data.text else "")
+
+        elif type(data) == self.db.table_tracks:
+            self.StackedWidget.setCurrentIndex(2)
+            self.trackWidget.setTitle("Track #%d" % data.id)
+            self.trackWidget.style.setText(data.style if data.style else "")
+            #self.le_text2.setText(data.text if data.text else "")
+            pass
+
+        elif type(data) == self.db.table_types:
+            self.StackedWidget.setCurrentIndex(1)
+            self.typeWidget.setTitle("Type #%s" % data.name)
+            self.typeWidget.name.setText(data.name)
+            self.typeWidget.mode.setCurrentIndex(self.typeWidget.mode_indices[data.mode])
+            self.typeWidget.style.setText(data.style if data.style else "")
+            #self.typeWidget.text.setText(data.text if data.text else "")
+            pass
 
     def saveMarker(self):
         print("Saving changes...")
         # set parameters
-        self.data.x = self.sb_x.value()
-        self.data.y = self.sb_y.value()
-        self.data.type = self.marker_handler.marker_file.get_type(self.cb_type.currentText())
-        self.data.text = self.le_text.text()
-        self.data.save()
+        if type(self.data) == self.db.table_marker:
+            self.data.x = self.markerWidget.x.value()
+            self.data.y = self.markerWidget.y.value()
+            self.data.type = self.marker_handler.marker_file.get_type(self.markerWidget.type.currentText())
+            self.data.style = self.markerWidget.style.text()
+            self.data.text = self.markerWidget.text.text()
+            self.data.save()
 
-        # load updated data
-        if not self.marker_item:
-            for point in self.marker_handler.points:
-                if point.data.id == self.data.id:
-                    point.ReloadData()
-                    break
-        else:
-            self.marker_item.ReloadData()
+            # load updated data
+            if not self.marker_item:
+                for point in self.marker_handler.points:
+                    if point.data.id == self.data.id:
+                        point.ReloadData()
+                        break
+            else:
+                self.marker_item.ReloadData()
+        elif type(self.data) == self.db.table_tracks:
+            self.data.style = self.trackWidget.style.text()
+            #self.data.text = self.trackWidget.text.text()
+            self.data.save()
+        elif type(self.data) == self.db.table_types:
+            self.data.name = self.typeWidget.name.text()
+            self.data.mode = self.typeWidget.mode_values[self.markerWidget.type.currentIndex()]
+            self.data.style = self.typeWidget.style.text()
+            #self.data.text = self.typeWidget.text.text()
+            self.data.save()
 
         # close widget
         self.marker_handler.marker_edit_window = None
@@ -1020,7 +1082,7 @@ class MarkerHandler:
         self.scale = 1
         self.config = config
         self.data_file = datafile
-        self.text=None
+        self.text = None
 
         self.marker_edit_window = None
 
