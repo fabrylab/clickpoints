@@ -15,7 +15,7 @@ except IOError:
 
 print("ClickPoints", version)
 
-print("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro), sys.version_info.releaselevel)
+print("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro), sys.version_info.releaselevel, "64bit" if sys.maxsize > 2**32 else "32bit")
 
 import sip
 sip.setapi('QVariant', 2)
