@@ -872,6 +872,7 @@ class MyTrackItem(MyMarkerItem):
         self.data.x, self.data.y = x, y
         if self.active is False:
             self.AddTrackPoint()
+            self.saved = False
         self.UpdateLine()
 
     def setScale(self, scale):
