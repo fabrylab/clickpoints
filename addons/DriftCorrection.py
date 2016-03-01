@@ -32,9 +32,9 @@ if len(x) < 2:
 
 # get drift correction rectangle
 roi_x2 = np.min(x)
-roi_width2 = np.diff(x)
+roi_width2 = np.abs(np.diff(x))
 roi_y2 = np.min(y)
-roi_height2 = np.diff(y)
+roi_height2 = np.abs(np.diff(y))
 
 # get start data
 start_frame = int(sys.argv[2])
