@@ -55,7 +55,27 @@ while True:
     res = cv2.matchTemplate(img[roi_y2:roi_y2+roi_height2, roi_x2:roi_x2+roi_width2], template, cv2.TM_CCOEFF)
     res += np.amin(res)
     res = res**4.
-    shift = np.array(center_of_mass(res)) - np.array([border_y, border_x])
+
+    # get 2D max
+    shift = np.unravel_index(res.argmax(), res.shape)
+
+    # get sub pixel accurate center of mass
+    try:
+        # fail if there it is too close to border
+        if not (shift[0] > 2 and shift[1] > 2):
+            raise Exception
+
+        subres = res[shift[0]-2:shift[0]+3,shift[1]-2:shift[1]+3]
+        subshift = center_of_mass(subres)
+
+
+        # calculate coordinates of subshift
+        shift = shift + (subshift - np.array([2,2]))
+        # calculate full image coordinates of shift
+        shift = shift - np.array([border_y, border_x])
+    except:
+        # calculate full image coordinates of shift
+        shift = shift - np.array([border_y, border_x])
 
     # get new template if compare_to_first is off
     if not compare_to_first:
