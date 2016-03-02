@@ -24,7 +24,7 @@ def CheckValidColor(color):
         for c in color:
             if not "0" <= c.upper() <= "F":
                 raise NoValidColor(color+" is no valid color")
-        if len(color) != 6 or len(color) != 8:
+        if len(color) != 6 and len(color) != 8:
             raise NoValidColor(color+" is no valid color")
         return "#"+color
     color_string = ""
