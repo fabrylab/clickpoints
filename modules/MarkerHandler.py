@@ -538,7 +538,10 @@ class MyMarkerItem(QGraphicsPathItem):
     def ConnectToPartner(self, point, back=True):
         if not self.data.id:
             self.data.save()
-        point.data.partner_id = self.data.id
+        point.data.partner = self.data
+        self.data.partner = point.data
+        self.saved = False
+        point.saved = False
         self.partner = point
         self.UseCrosshair = False
         if back:
