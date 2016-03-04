@@ -110,12 +110,14 @@ class DataFile:
             y = peewee.FloatField()
             type = peewee.ForeignKeyField(Types)
             processed = peewee.IntegerField(default=0)
-            partner_id = peewee.IntegerField(null=True)
+            partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
             track = peewee.ForeignKeyField(Tracks, null=True)
             class Meta:
                 indexes = ((('image', 'image_frame', 'track'), True), )
+            def pos(self):
+                return np.array([self.x, self.y])
 
         self.table_marker = Marker
         self.table_tracks = Tracks
