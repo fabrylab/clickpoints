@@ -1254,7 +1254,7 @@ class MarkerHandler:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
             tracks = [track for track in self.tracks if track.data.type.id == self.active_type.id]
             if self.active_type.mode & TYPE_Track and self.config.tracking_connect_nearest and \
-                    len(tracks) and not event.modifiers() & Qt.ControlModifier:
+                    len(tracks) and not event.modifiers() & Qt.AltModifier:
                 distances = [np.linalg.norm(PosToArray(point.pos() - event.pos())) for point in tracks]
                 index = np.argmin(distances)
                 tracks[index].setCurrentPoint(event.pos().x(), event.pos().y())
