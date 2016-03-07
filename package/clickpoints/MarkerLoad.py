@@ -114,6 +114,26 @@ class DataFile:
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
             track = peewee.ForeignKeyField(Tracks, null=True)
+
+            def correctedXY(self):
+                join_condition = ((Marker.image == Offsets.image) & \
+                                 (Marker.image_frame == Offsets.image_frame))
+
+                querry = Marker.select( Marker.x,
+                                        Marker.y,
+                                        Offsets.x,
+                                        Offsets.y)\
+                                .join(  Offsets, peewee.JOIN_LEFT_OUTER, on=join_condition)\
+                                .where( Marker.id == self.id)
+
+                for q in querry:
+                    if not (q.offsets.x is None) or not (q.offsets.y is None):
+                        pt = [q.x + q.offsets.x, q.y + q.offsets.y]
+                    else:
+                        pt = [q.x, q.y]
+
+                return pt
+
             class Meta:
                 indexes = ((('image', 'image_frame', 'track'), True), )
             def pos(self):
