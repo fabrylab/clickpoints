@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import os
 import re
 import datetime
+import numpy as np
 from peewee import *
 from playhouse.reflection import Introspector
 try:
@@ -214,3 +215,21 @@ class DataFile:
             return [offset.x, offset.y]
         except DoesNotExist:
             return [0, 0]
+
+    def get_offset_maxmin(self,round=True):
+        try:
+            query = self.table_offsets.select( fn.Max(self.table_offsets.x).alias('max_x'),
+                                               fn.Min(self.table_offsets.x).alias('min_x'),
+                                               fn.Max(self.table_offsets.y).alias('max_y'),
+                                               fn.Min(self.table_offsets.y).alias('min_y'))
+            for q in query:
+                if round:
+                    return [np.ceil(q.max_x), np.floor(q.min_x), np.ceil(q.max_y), np.floor(q.min_y)]
+                else:
+                    return [q.max_x, q.min_x, q.max_y, q.min_y]
+        except DoesNotExist:
+            return [0,0,0,0]
+
+
+if __name__ == '__main__':
+    db = DataFile(r'C:\Users\fox\Dropbox\PhD\python\CountPenugs\activity\clickpoints.db')
