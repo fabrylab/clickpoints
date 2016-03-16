@@ -4,11 +4,11 @@ import os
 import ctypes
 
 try:
-    with open("version.txt") as fp:
+    with open(os.path.join(os.path.dirname(__file__), "version.txt")) as fp:
         version = fp.read().strip()
 except IOError:
     try:
-        with open("../version.txt") as fp:
+        with open(os.path.join(os.path.dirname(__file__), "..", "version.txt")) as fp:
             version = fp.read().strip()
     except IOError:
         version = "unknown"
