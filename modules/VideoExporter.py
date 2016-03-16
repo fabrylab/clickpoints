@@ -253,6 +253,13 @@ class VideoExporterDialog(QWidget):
             self.time_drawing.color = tuple(HTMLColorToRGB(self.cbTimeColor.text()))
         self.progressbar.setMinimum(start)
         self.progressbar.setMaximum(end)
+
+        # check if offsets for stabilisation are available in db
+        offset_limits = self.window.data_file.get_offset_maxmin()
+        if not any(v is None for v in offset_limits):
+            offsets_available= True
+
+        # iterate over frames
         for frame in range(start, end+1, skip):
             self.progressbar.setValue(frame)
             self.window.JumpToFrame(frame)
@@ -269,13 +276,18 @@ class VideoExporterDialog(QWidget):
             if end_y > start_y + self.config.max_image_size: end_y = start_y + self.config.max_image_size
             if (end_y-start_y) % 2 != 0: end_y -= 1
             if (end_x-start_x) % 2 != 0: end_x -= 1
+
+            # extract cropped image
             self.preview_slice = self.image[start_y:end_y, start_x:end_x, :]
 
+            # stack image if not RGB
             if self.preview_slice.shape[2] == 1:
                 self.preview_slice = np.dstack((self.preview_slice, self.preview_slice, self.preview_slice))
 
+            # use min/max & gamma correction
             if self.window.ImageDisplay.conversion is not None:
                 self.preview_slice = self.window.ImageDisplay.conversion[self.preview_slice.astype(np.uint8)[:, :, :3]].astype(np.uint8)
+
             pil_image = Image.fromarray(self.preview_slice)
             draw = ImageDraw.Draw(pil_image)
             if marker_handler:
