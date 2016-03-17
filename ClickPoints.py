@@ -80,8 +80,6 @@ class ClickPointsWindow(QWidget):
         super(QWidget, self).__init__(parent)
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
 
-        self.move(50,50)
-
         self.updater = Updater(self)
 
         self.layout = QtGui.QVBoxLayout()
@@ -131,10 +129,12 @@ class ClickPointsWindow(QWidget):
             if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
                 break
 
-        self.media_handler.set_index(select_index)
         self.media_handler.signals.loaded.connect(self.FrameLoaded)
-        self.UpdateImage()
-        BroadCastEvent(self.modules, "FrameChangeEvent")
+        self.FrameLoaded(select_index)
+        #self.media_handler.set_index(select_index)
+        #
+        #self.UpdateImage()
+        #BroadCastEvent(self.modules, "FrameChangeEvent")
 
         if config.rotation != 0:
             self.view.rotate(config.rotation)
@@ -144,55 +144,80 @@ class ClickPointsWindow(QWidget):
         index = module_names.index(name)
         return self.modules[index]
 
-    def UpdateImage(self):
-        if not self.media_handler.get_file_entry():
-            return
-        filename = self.media_handler.get_filename()
-        frame_number = self.media_handler.get_index()
-        BroadCastEvent(self.modules, "PreLoadImageEvent", filename, frame_number)
-        self.setWindowTitle(filename)
-        self.LoadImage()
-        self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame(), self.media_handler.get_timestamp())
-        BroadCastEvent(self.modules, "LoadImageEvent", filename, frame_number)
-
-    def LoadImage(self):
-        global im
-        im = self.media_handler.get_file()
-        _, frame = self.media_handler.id_lookup[self.media_handler.get_index()]
-        filename = self.media_handler.get_filename()
-        offset = self.data_file.get_offset(filename, frame)
-        self.ImageDisplay.SetImage(im, offset)
-        self.view.setExtend(*im.shape[:2][::-1])
-
     def save(self):
         BroadCastEvent(self.modules, "save")
         self.data_file.check_to_save()
 
-    def JumpFrames(self, amount, next_amount=None):
-        if next_amount:
-            self.JumpToFrame(self.media_handler.get_index() + amount, self.media_handler.get_index() + amount + next_amount)
-        else:
-            self.JumpToFrame(self.media_handler.get_index() + amount)
+    def JumpFrames(self, amount):
+        # redirect to an absolute jump
+        self.JumpToFrame(self.media_handler.get_index() + amount)
 
     # jump absolute
-    def JumpToFrame(self, target_id, next_id=None):
+    def JumpToFrame(self, target_id):
+        # save the data on frame change
         self.save()
+
+        # Test if the new frame is valid
+        if target_id >= self.media_handler.total_frame_count:
+            if self.media_handler.get_index() == self.media_handler.total_frame_count-1:
+                target_id = 0
+            else:
+                target_id = self.media_handler.total_frame_count-1
+        if target_id < 0:
+            if self.media_handler.get_index() == 0:
+                target_id = self.media_handler.total_frame_count-1
+            else:
+                target_id = 0
+
         if config.threaded_image_load:
+            # The frame should be preloaded, buffer the frame first
+            # buffer_frame_threaded then calls FrameLoaded
             self.media_handler.buffer_frame_threaded(target_id)
         else:
-            self.media_handler.set_index(target_id)
-            self.UpdateImage()
-            BroadCastEvent(self.modules, "FrameChangeEvent")
-        #self.media_handler.buffer_frame_threaded(target_id)
-        #if next_id is not None:
-        #    self.media_handler.buffer_frame_threaded(next_id, call=False)
+            # if we don't want to buffer the frame, call FrameLoaded directly
+            self.FrameLoaded(target_id)
 
     def FrameLoaded(self, frame_number):
-        #if next_id is not None:
-        #    self.media_handler.buffer_frame_threaded(next_id)
+        # set the index of the current frame
         self.media_handler.set_index(frame_number)
-        self.UpdateImage()
+        # notify all modules that a new frame is displayed
         BroadCastEvent(self.modules, "FrameChangeEvent")
+        # load image
+        self.UpdateImage()
+
+    def UpdateImage(self):
+        # test if an image is available for the frame number
+        if not self.media_handler.get_file_entry():
+            return
+
+        # get filename and frame number
+        self.new_filename = self.media_handler.get_filename()
+        self.new_frame_number = self.media_handler.get_index()
+
+        # Notify that the frame will be loaded
+        BroadCastEvent(self.modules, "PreLoadImageEvent", self.new_filename, self.new_frame_number)
+        self.setWindowTitle(self.new_filename)
+
+        # get image
+        self.im = self.media_handler.get_file()
+
+        # get offsets
+        _, frame = self.media_handler.id_lookup[self.media_handler.get_index()]
+        filename = self.media_handler.get_filename()
+        offset = self.data_file.get_offset(filename, frame)
+
+        # display the image
+        self.ImageDisplay.SetImage(self.im, offset)  # calls DisplayedImage
+
+    def DisplayedImage(self):
+        # tell the QExtendedGraphicsView the shape of the new image
+        self.view.setExtend(*self.im.shape[:2][::-1])
+
+        # set the new image in the database
+        self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame(), self.media_handler.get_timestamp())
+
+        # notify all modules that a new frame is loaded
+        BroadCastEvent(self.modules, "LoadImageEvent", self.new_filename, self.new_frame_number)
 
     def closeEvent(self, QCloseEvent):
         self.save()
@@ -294,7 +319,8 @@ class ClickPointsWindow(QWidget):
             for key, jump in zip(keys, config.jumps):
                 if event.key() == key and event.modifiers() == Qt.KeypadModifier:
                     self.JumpFrames(jump)
-                    print(jump)
+
+
 def main():
     if sys.platform[:3] == 'win':
         myappid = 'fabrybiophysics.clickpoints' # arbitrary string

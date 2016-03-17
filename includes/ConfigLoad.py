@@ -49,8 +49,8 @@ hide_interfaces = True
 # @config `addons =` a list of additional python files to load
 addons = []
 
-threaded_image_display = False
-threaded_image_load = False
+threaded_image_display = True
+threaded_image_load = True
 
 """ @config Marker """
 # @config `logname_tag =` specifies what to append to the log file.
@@ -67,7 +67,7 @@ types = {0: ["marker", [255, 0, 0], TYPE_Normal]}
 # @config `tracking = ` specify whether to use tracking mode
 tracking = False
 # @config `tracking_connect_nearest =` if set to true, a new marker will always be connected to the nearest track
-tracking_connect_nearest = False
+tracking_connect_nearest = True
 # @config `tracking_show_trailing =` how many track points to show before the current frame, to show all use -1
 tracking_show_trailing = -1
 # @confing `tracking_show_leading =` how many track points to show after the current frame, to show all use -1

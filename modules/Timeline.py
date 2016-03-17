@@ -875,9 +875,9 @@ class Timeline:
             self.window.JumpToFrame(nr)
         else:
             if self.media_handler.get_index() < self.frameSlider.startValue() or self.media_handler.get_index()+1+self.skip > self.frameSlider.endValue():
-                self.window.JumpToFrame(self.frameSlider.startValue(), self.frameSlider.startValue()+1+self.skip)
+                self.window.JumpToFrame(self.frameSlider.startValue())
             else:
-                self.window.JumpFrames(1+self.skip, 1+self.skip)
+                self.window.JumpFrames(1+self.skip)
 
     def updateLabel(self):
         if self.slider_update:
