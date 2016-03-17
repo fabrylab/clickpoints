@@ -20,6 +20,7 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
         """ Test the GUI in its default state """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
         self.window.JumpFrames(20)
+        self.wait_for_image_load()
         self.assertFalse(os.path.exists(self.database_path))
 
     def test_createMarker(self):
@@ -28,6 +29,9 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
 
         # check if no marker is present
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
@@ -42,6 +46,9 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
 
         # check if no marker is present
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
@@ -69,6 +76,9 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
 
         # check if no marker is present
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")

@@ -100,6 +100,11 @@ class BaseTest():
     def wait(self, millies=100):
         QTest.qWait(millies)
 
+    def wait_for_image_load(self):
+        # wait for image to be loaded
+        while self.window.loading_image:
+            QTest.qWait(1)
+
     def tearDown(self):
         # close window
         QTest.qWait(100)
