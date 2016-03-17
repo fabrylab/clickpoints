@@ -69,10 +69,6 @@ def GetModuleInitArgs(mod):
     return inspect.getargspec(mod.__init__).args
 
 class ClickPointsWindow(QWidget):
-    def zoomEvent(self, scale, pos):
-        for module in self.modules:
-            if "zoomEvent" in dir(module):
-                module.zoomEvent(scale, pos)
 
     def __init__(self, my_config, parent=None):
         global config
@@ -80,12 +76,15 @@ class ClickPointsWindow(QWidget):
         super(QWidget, self).__init__(parent)
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
 
+        # init updater
         self.updater = Updater(self)
 
+        # add layout
         self.layout = QtGui.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
+        # setup mono space font
         QtGui.QFontDatabase.addApplicationFont(os.path.join(clickpoints_path, "icons", "FantasqueSansMono-Regular.ttf"))
         self.mono_font = QtGui.QFont("Fantasque Sans Mono")
 
@@ -96,18 +95,21 @@ class ClickPointsWindow(QWidget):
         self.origin = self.view.origin
         self.layout.addWidget(self.view)
 
+        # init image display
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
+        # init media handler
         exclude_ending = None
         if len(config.draw_types):
             exclude_ending = "_mask.png"#config.maskname_tag
         self.media_handler, select_index = MediaHandler(config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending, config=config)
 
-        # DataFile
+        # init DataFile for storage
         if config.database_file == "":
             config.database_file = "clickpoints.db"
         self.data_file = DataFile(config.database_file)
 
+        # init the modules
         self.modules = []
         arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
         for mod, hud in zip(used_modules, used_huds):
@@ -124,18 +126,22 @@ class ClickPointsWindow(QWidget):
                 arg_dict2 = {k: v for k, v in arg_dict.items() if k in arg_name_list}
                 # Initialize the module
                 self.modules.append(mod(**arg_dict2))
-        # Find next module, which can be activated
+        # find next module, which can be activated
         for module in self.modules:
             if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
                 break
 
+        # initialize some variables
+        self.new_filename = None
+        self.new_frame_number = None
+        self.im = None
+
+        # select the first frame
+        self.target_frame = 0
         self.media_handler.signals.loaded.connect(self.FrameLoaded)
         self.FrameLoaded(select_index)
-        #self.media_handler.set_index(select_index)
-        #
-        #self.UpdateImage()
-        #BroadCastEvent(self.modules, "FrameChangeEvent")
 
+        # apply image rotation from condig
         if config.rotation != 0:
             self.view.rotate(config.rotation)
             
@@ -144,18 +150,18 @@ class ClickPointsWindow(QWidget):
         index = module_names.index(name)
         return self.modules[index]
 
-    def save(self):
+    def Save(self):
         BroadCastEvent(self.modules, "save")
         self.data_file.check_to_save()
 
     def JumpFrames(self, amount):
         # redirect to an absolute jump
-        self.JumpToFrame(self.media_handler.get_index() + amount)
+        self.JumpToFrame(self.target_frame + amount)
 
     # jump absolute
     def JumpToFrame(self, target_id):
         # save the data on frame change
-        self.save()
+        self.Save()
 
         # Test if the new frame is valid
         if target_id >= self.media_handler.total_frame_count:
@@ -168,6 +174,8 @@ class ClickPointsWindow(QWidget):
                 target_id = self.media_handler.total_frame_count-1
             else:
                 target_id = 0
+
+        self.target_frame = target_id
 
         if config.threaded_image_load:
             # The frame should be preloaded, buffer the frame first
@@ -220,18 +228,25 @@ class ClickPointsWindow(QWidget):
         BroadCastEvent(self.modules, "LoadImageEvent", self.new_filename, self.new_frame_number)
 
     def closeEvent(self, QCloseEvent):
-        self.save()
+        # save the data
+        self.Save()
+        # broadcast event the image display and the mediahandler (so that they can terminate their threads)
         self.ImageDisplay.closeEvent(QCloseEvent)
         self.media_handler.closeEvent(QCloseEvent)
+        # broadcast event to the modules
         BroadCastEvent(self.modules, "closeEvent", QCloseEvent)
 
     def resizeEvent(self, event):
+        # broadcast event to the modules
         BroadCastEvent(self.modules, "resizeEvent", event)
 
-    def keyPressEvent(self, event):
+    def zoomEvent(self, scale, pos):
+        # broadcast event to the modules
+        BroadCastEvent(self.modules, "zoomEvent", scale, pos)
 
-        for module in self.modules:
-            module.keyPressEvent(event)
+    def keyPressEvent(self, event):
+        # broadcast event to the modules
+        BroadCastEvent(self.modules, "keyPressEvent", event)
 
         # @key ---- General ----
         if event.key() == QtCore.Qt.Key_F:
@@ -255,7 +270,7 @@ class ClickPointsWindow(QWidget):
 
         if event.key() == QtCore.Qt.Key_S:
             # @key S: save marker and mask
-            self.save()
+            self.Save()
 
         if event.key() == QtCore.Qt.Key_Escape:
             # @key Escape: close window
@@ -295,49 +310,52 @@ class ClickPointsWindow(QWidget):
                     break
 
         # @key ---- Frame jumps ----
-        if self.view.painted is True:
-            if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:
-                # @key Left: previous image
-                self.JumpFrames(-1)
-            if event.key() == QtCore.Qt.Key_Right and not event.modifiers() & Qt.ControlModifier:
-                # @key Right: next image
-                self.JumpFrames(+1)
+        if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:
+            # @key Left: previous image
+            self.JumpFrames(-1)
+        if event.key() == QtCore.Qt.Key_Right and not event.modifiers() & Qt.ControlModifier:
+            # @key Right: next image
+            self.JumpFrames(+1)
 
-            if event.key() == QtCore.Qt.Key_Home:
-                # @key Home: jump to beginning
-                self.JumpToFrame(0)
-            if event.key() == QtCore.Qt.Key_End:
-                # @key End: jump to end
-                self.JumpToFrame(self.media_handler.get_frame_count()-1)
+        if event.key() == QtCore.Qt.Key_Home:
+            # @key Home: jump to beginning
+            self.JumpToFrame(0)
+        if event.key() == QtCore.Qt.Key_End:
+            # @key End: jump to end
+            self.JumpToFrame(self.media_handler.get_frame_count()-1)
 
-            # JUMP keys
-            # @key Numpad 2,3: Jump -/+ 1 frame
-            # @key Numpad 5,6: Jump -/+ 10 frames
-            # @key Numpad 8,9: Jump -/+ 100 frames
-            # @key Numpad /,*: Jump -/+ 100 frames
-            keys = [Qt.Key_2, Qt.Key_3, Qt.Key_5, Qt.Key_6, Qt.Key_8, Qt.Key_9, Qt.Key_Slash, Qt.Key_Asterisk]
-            for key, jump in zip(keys, config.jumps):
-                if event.key() == key and event.modifiers() == Qt.KeypadModifier:
-                    self.JumpFrames(jump)
+        # JUMP keys
+        # @key Numpad 2,3: Jump -/+ 1 frame
+        # @key Numpad 5,6: Jump -/+ 10 frames
+        # @key Numpad 8,9: Jump -/+ 100 frames
+        # @key Numpad /,*: Jump -/+ 100 frames
+        keys = [Qt.Key_2, Qt.Key_3, Qt.Key_5, Qt.Key_6, Qt.Key_8, Qt.Key_9, Qt.Key_Slash, Qt.Key_Asterisk]
+        for key, jump in zip(keys, config.jumps):
+            if event.key() == key and event.modifiers() == Qt.KeypadModifier:
+                self.JumpFrames(jump)
 
 
 def main():
+    # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
-        myappid = 'fabrybiophysics.clickpoints' # arbitrary string
+        myappid = 'fabrybiophysics.clickpoints'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
+    # start the Qt application
     app = QApplication(sys.argv)
 
+    # load config and exec addon code
     config = LoadConfig()
     for addon in config.addons:
         with open(addon + ".py") as f:
             code = compile(f.read(), addon + ".py", 'exec')
             exec(code)
 
+    # init and open the ClickPoints window
     window = ClickPointsWindow(config)
     window.show()
     app.exec_()
 
+# start the main function as entry point
 if __name__ == '__main__':
     main()
-    
