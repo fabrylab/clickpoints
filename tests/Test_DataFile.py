@@ -20,6 +20,9 @@ class Test_DataFile(unittest.TestCase, BaseTest):
         """ Test if creating the database on demand works """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
 
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
         # switch interface on
         self.keyPress(Qt.Key_F2)
 

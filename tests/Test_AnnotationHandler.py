@@ -26,6 +26,7 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # jump to next annotation
         self.keyPress(Qt.Key_Right, Qt.ControlModifier)
+        self.wait_for_image_load()
 
         # open annotation window
         self.keyPress(Qt.Key_A)
@@ -38,6 +39,9 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
     def test_addAnnotations(self):
         """ Add and remove annotation """
         self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"))
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
 
         # open annotation window
         self.keyPress(Qt.Key_A)
@@ -56,6 +60,7 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # jump to next frame and open annotation editor
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.keyPress(Qt.Key_A)
 
         # check if the window is empty
@@ -67,6 +72,7 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # jump back and assure the data is still there
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
         self.keyPress(Qt.Key_A)
         annotationWindow = self.window.GetModule("AnnotationHandler").AnnotationEditorWindow
         self.assertEqual(annotationWindow.leTag.getTagList(), ["bird"], "Tags not saved")
@@ -86,6 +92,9 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
         """ Jumping to next/previous annotation """
         self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"))
 
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
         # open annotation window
         self.keyPress(Qt.Key_A)
         self.assertIsNotNone(self.window.GetModule("AnnotationHandler").AnnotationEditorWindow, "Annotation window was not opened")
@@ -97,6 +106,7 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # jump 10 frames
         self.window.JumpFrames(10)
+        self.wait_for_image_load()
 
         # add an annotation
         self.keyPress(Qt.Key_A)
@@ -106,15 +116,20 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # jump back to the first annotation
         self.keyPress(Qt.Key_Left, Qt.ControlModifier)
+        self.wait_for_image_load()
         self.assertEqual(self.window.media_handler.get_index(), 1, "Didn't jump to annotation in frame 1 in Ctrl+Left")
 
         # jump to the second annotation
         self.keyPress(Qt.Key_Right, Qt.ControlModifier)
+        self.wait_for_image_load()
         self.assertEqual(self.window.media_handler.get_index(), 10, "Didn't jump to annotation in frame 10 in Ctrl+Right")
 
     def test_addTagsAnnotations(self):
         """ Add and remove annotation """
         self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "addTagsAnnotations.db")
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
 
         # open annotation window
         self.keyPress(Qt.Key_A)
@@ -134,7 +149,9 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # change frame back and forth to reload this frame
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
 
         # Check Annotation tags
         self.keyPress(Qt.Key_A)
@@ -151,7 +168,9 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # change frame back and forth to reload this frame
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
 
         # Check tag and remove tag
         self.keyPress(Qt.Key_A)
@@ -164,7 +183,9 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # change frame back and forth to reload this frame
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
 
         # Check tag
         self.keyPress(Qt.Key_A)
@@ -176,7 +197,9 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
         # change frame back and forth to reload this frame
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
 
         # Check if all tags are removed
         self.keyPress(Qt.Key_A)
@@ -188,6 +211,9 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
         """ Add and remove annotation """
         self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"))
 
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
         # Add annotation
         self.keyPress(Qt.Key_A)
         self.assertIsNotNone(self.window.GetModule("AnnotationHandler").AnnotationEditorWindow, "Annotation window was not opened")
@@ -195,6 +221,7 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
         annotationWindow.pteAnnotation.setPlainText("A bird attacks.")
         QTest.mouseClick(annotationWindow.pbConfirm, Qt.LeftButton)
         self.window.JumpFrames(10)
+        self.wait_for_image_load()
 
         # open overview window
         self.keyPress(Qt.Key_Y)
@@ -213,6 +240,7 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
 
         self.window.JumpFrames(10)
+        self.wait_for_image_load()
         xPos = AnnotationOverviewWindow.table.columnViewportPosition( 2 ) + 5
         yPos = AnnotationOverviewWindow.table.rowViewportPosition( 1 ) + 10
         # TODO fix

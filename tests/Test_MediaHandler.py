@@ -104,6 +104,7 @@ class Test_MediaHandler(unittest.TestCase, BaseTest):
         """ Open a video """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
         self.assertEqual(len(self.window.media_handler.id_lookup), 6, "Didn't load tiff properly")
+        self.wait_for_image_load()
         self.assertEqual(self.window.ImageDisplay.image.shape, (1024, 1024, 3))
         self.assertTrue(8 < np.mean(self.window.ImageDisplay.image) < 128)
 

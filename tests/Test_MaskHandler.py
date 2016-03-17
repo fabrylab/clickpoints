@@ -23,6 +23,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         """ Load a database with masks """
         self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "clickpoints.db", "mask")
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
 
     def test_createMask(self):
         """ Test if creating a mask works """
@@ -33,11 +34,15 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # switch interface on
         self.keyPress(Qt.Key_F2)
 
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
         # draw a line
         self.mouseDrag(50, 50, 50, 100)
 
         # save and check
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.assertTrue(os.path.exists(path), "Mask was not created")
 
     def test_missingMask(self):
@@ -48,11 +53,15 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # switch interface on
         self.keyPress(Qt.Key_F2)
 
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
         # draw something
         self.mouseClick(50, 50)
 
         # save and verify
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.assertTrue(os.path.exists(path), "Mask was not created")
 
         # remove mask
@@ -61,7 +70,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # go to the frame used and see if an error occurs
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
         # If the program can't cope with the deleted mask an error would occur
 
     def test_maskTypeSelectorKey(self):
@@ -70,6 +81,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
 
         # select color 1 by pressing 1
         self.keyPress(Qt.Key_1)
@@ -89,6 +103,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
 
         # click on first button
         self.mouseClick(-50, 20, coordinates="scene")
@@ -110,6 +127,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # switch interface on
         self.keyPress(Qt.Key_F2)
 
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
         ''' Test size of normal circle '''
 
         # draw circle at 50 50
@@ -117,7 +137,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # change frame to save mask
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
 
         # check size of circle
         im = np.asarray(Image.open(path))
@@ -134,7 +156,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # save mask
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
 
         # check size of bigger circle
         im = np.asarray(Image.open(path))
@@ -156,7 +180,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # save mask
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
         self.window.JumpFrames(-1)
+        self.wait_for_image_load()
 
         # check size of smaller circle
         im = np.asarray(Image.open(path))
@@ -168,6 +194,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
 
         # draw circle at 50 50 with color 1
         self.keyPress(Qt.Key_1)
@@ -204,6 +233,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # switch interface on
         self.keyPress(Qt.Key_F2)
 
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
         # draw circle at 50 50 with color 2
         self.keyPress(Qt.Key_2)
         self.mouseClick(50, 50)
@@ -218,6 +250,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # save mask
         self.window.JumpFrames(1)
+        self.wait_for_image_load()
 
         # read mask and check colors
         im2 = imageio.imread(path)[:, :, :3]

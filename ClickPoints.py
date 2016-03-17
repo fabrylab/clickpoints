@@ -139,6 +139,7 @@ class ClickPointsWindow(QWidget):
         # select the first frame
         self.target_frame = 0
         self.media_handler.signals.loaded.connect(self.FrameLoaded)
+        self.loading_image = 1
         self.FrameLoaded(select_index)
 
         # apply image rotation from condig
@@ -163,14 +164,17 @@ class ClickPointsWindow(QWidget):
         # save the data on frame change
         self.Save()
 
+        # increase loading image count
+        self.loading_image += 1
+
         # Test if the new frame is valid
         if target_id >= self.media_handler.total_frame_count:
-            if self.media_handler.get_index() == self.media_handler.total_frame_count-1:
+            if self.target_frame == self.media_handler.total_frame_count-1:
                 target_id = 0
             else:
                 target_id = self.media_handler.total_frame_count-1
         if target_id < 0:
-            if self.media_handler.get_index() == 0:
+            if self.target_frame == 0:
                 target_id = self.media_handler.total_frame_count-1
             else:
                 target_id = 0
@@ -226,6 +230,9 @@ class ClickPointsWindow(QWidget):
 
         # notify all modules that a new frame is loaded
         BroadCastEvent(self.modules, "LoadImageEvent", self.new_filename, self.new_frame_number)
+
+        # decrease loading image counter
+        self.loading_image -= 1
 
     def closeEvent(self, QCloseEvent):
         # save the data
