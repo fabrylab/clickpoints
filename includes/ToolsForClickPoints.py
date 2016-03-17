@@ -46,7 +46,7 @@ class BigImageDisplay:
 
         self.eventFilters = []
 
-        self.signal =ImageDisplaySignal()
+        self.signal = ImageDisplaySignal()
         self.signal.display.connect(self.UpdatePixmaps)
         self.thread = None
 
@@ -126,6 +126,7 @@ class BigImageDisplay:
             self.UpdatePreviewImage()
             self.Change()
         self.window.view.painted = False
+        self.window.DisplayedImage()
 
     def ResetPreview(self):
         self.preview_pixMapItem.setPixmap(QPixmap())
