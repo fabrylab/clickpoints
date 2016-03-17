@@ -35,7 +35,7 @@ class Test_DataFile(unittest.TestCase, BaseTest):
         self.assertFalse(os.path.exists(self.database_path), "Database file already present.")
 
         # Test saving database
-        self.window.save()
+        self.window.Save()
         self.assertTrue(os.path.exists(self.database_path), "Database file was not created.")
 
 if __name__ == '__main__':

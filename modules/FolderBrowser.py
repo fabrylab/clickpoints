@@ -50,7 +50,7 @@ class FolderBrowser:
         print(self.media_handler_list)
 
     def LoadFolder(self):
-        self.window.save()
+        self.window.Save()
         if self.config.relative_outputpath:
             self.config.outputpath = os.path.dirname(self.folder_list[self.index])
         self.config.srcpath = self.folder_list[self.index]

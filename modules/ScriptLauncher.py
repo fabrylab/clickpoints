@@ -174,7 +174,7 @@ class ScriptLauncher(QObject):
                     else:
                         process.send_signal(signal.SIGTERM)
                     continue
-                self.window.save()
+                self.window.Save()
                 args = [sys.executable, os.path.abspath(script), " ", str(self.media_handler.get_index()), str(self.PORT)]
                 print('arags:', args)
                 if hasattr(os.sys, 'winver'):
