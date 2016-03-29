@@ -143,9 +143,15 @@ class DataFile:
         if nr_version < 4:
             print("\tto 4")
             # Add text fields for Tracks
-            self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
+            try:
+                self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
+            except OperationalError:
+                pass
             # Add text fields for Types
-            self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
+            try:
+                self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
+            except OperationalError:
+                pass
             nr_new_version = 4
 
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
