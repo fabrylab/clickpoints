@@ -39,7 +39,7 @@ icon_path = os.path.join(os.path.dirname(__file__), "icons")
 
 class image_segmenter():
     def __init__(self, image, coords, mean_pixel_size=200, k_mean_cluster_number=5, compactness=24, iterations=10, enforced_connectivity=True, min_size=0.4,
-                 verbose=True, k_means_cluster_mode=1, colorspace=1,  ratio_sobel_image=0.0, connect_first=True,
+                 verbose=True, k_means_cluster_mode=1, colorspace=1, ratio_sobel_image=0.0, connect_first=True,
                  histogram_bins=3, create_all_images=False, just_super_pixel_segmentation_im=False,
                  create_mean_col_regions=False, clickpoints_addon=True, already_given_regions=[], already_give_regions=False, highlight_whole_cluster=False):
         """
@@ -130,7 +130,8 @@ class image_segmenter():
         if(self.im_color_space.max())<=1:
             self.im_color_space *= 255
 
-        if ratio_sobel_image>0:
+        self.ratio_sobel_image=ratio_sobel_image
+        if self.ratio_sobel_image>0:
             #create sobel image
             sobel_image_x=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=1),dtype=float)
             sobel_image_y=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=0),dtype=float)
@@ -139,10 +140,10 @@ class image_segmenter():
             self.sobel_im=self.sobel_im*(self.im_color_space.mean()/self.sobel_im.mean())
 
             #put image and sobeled_image in one image which is then treated as an image with twice the number of colors as the original image
-            if ratio_sobel_image<1:
+            if self.ratio_sobel_image<1:
                 new_im=np.zeros((self.im_color_space.shape[0],self.im_color_space.shape[1],self.im_color_space.shape[2]+self.sobel_im.shape[2]),np.float)
-                new_im[:,:,0:self.im_color_space.shape[2]]=self.im_color_space*(1 - ratio_sobel_image)
-                new_im[:,:,self.im_color_space.shape[2]:self.im_color_space.shape[2]+self.sobel_im.shape[2]]= self.sobel_im * ratio_sobel_image
+                new_im[:,:,0:self.im_color_space.shape[2]]=self.im_color_space*(1 - self.ratio_sobel_image)
+                new_im[:,:,self.im_color_space.shape[2]:self.im_color_space.shape[2]+self.sobel_im.shape[2]]= self.sobel_im * self.ratio_sobel_image
                 self.im_color_space=new_im
             #exchange im with sobel image
             else:
@@ -345,14 +346,20 @@ class image_segmenter():
 
 
     #creates mean of superpixel for each color in lab-space
-    def get_mean_regions_col(self):
-        self.mean_regions_col = np.zeros((np.shape(self.image)), int)
+    def get_mean_regions(self):
+        self.mean_regions_col = np.zeros((np.shape(self.im_color_space)), float)
+        # if self.colors>3:
+        #     colors_for_mean_image=3
+        # elif self.colors==2:
+        #     colors_for_mean_image=1
+        # else:
+        #     colors_for_mean_image=self.colors
         for color in range(self.colors):
             for row in range(self.mean_regions_col.shape[0]):
                 for column in range(self.mean_regions_col.shape[1]):
                     self.mean_regions_col[row, column, color] = self.props_col[color][self.superpixel_segmentation_labels[row, column]-1].mean_intensity
                 if row % 50 == 0 :
-                    print('row=%i color=%i Processed Percentage %i' % (row,color,100 * row / np.shape(self.image)[0]))
+                    print('row=%i color=%i Processed Percentage %i Creating Mean Image' % (row,color,100 * row / np.shape(self.image)[0]))
 
 
     def get_super_pixel_marked_image(self):
@@ -410,6 +417,10 @@ class Param_Delivery(QWidget):
                 self.show_border_image=int(arg.replace('show_border_image=', ''))
             if arg.startswith('show_mask='):
                 self.show_mask=int(arg.replace('show_mask=',''))
+            if arg.startswith('show_mean_image='):
+                self.show_mean_image=int(arg.replace('show_mean_image=',''))
+            if arg.startswith('show_sobel_image='):
+                self.show_sobel_image=int(arg.replace('show_sobel_image=',''))
             if arg.startswith('highlight_whole_cluster='):
                 self.highlight_whole_cluster=int(arg.replace('highlight_whole_cluster=',''))
             if arg.startswith('compactness='):
@@ -421,7 +432,8 @@ class Param_Delivery(QWidget):
             if arg.startswith('verbose='):
                 self.verbose=int(arg.replace('verbose=',''))
 
-
+        print(self.show_sobel_image)
+        print(self.show_mean_image)
 
 
         if not hasattr(self,'super_pixel_size'):
@@ -446,6 +458,10 @@ class Param_Delivery(QWidget):
             self.show_border_image=False
         if not hasattr(self,'show_mask'):
             self.show_mask=False
+        if not hasattr(self,'show_mean_image'):
+            self.show_mean_image=False
+        if not hasattr(self,'show_sobel_image'):
+            self.show_sobel_image=False
         if not hasattr(self,'highlight_whole_cluster'):
             self.highlight_whole_cluster=False
         if not hasattr(self,'compactness'):
@@ -460,6 +476,7 @@ class Param_Delivery(QWidget):
 
 #region Gui
         if self.open_gui:
+
             Application_Window=QWidget.__init__(self)               #eigentliches Graphikfenster
             # widget layout and elements
             #self.setMinimumWidth(500)       #minimum width
@@ -584,7 +601,7 @@ class Param_Delivery(QWidget):
             layout_hor.addWidget(self.colorspace_spin_box)
 
 
-            # ration sobel image spinbox
+            # ratio sobel image spinbox
             layout_hor = QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
@@ -629,6 +646,29 @@ class Param_Delivery(QWidget):
             self.show_super_pixel_image_checkbox.setToolTip('<font color="black">Show Superpixelimage: An image in which the Superpixels are clearly visible. Usefull to adjust the superpixelsize.Default value: False.</font>')
             layout_hor.addWidget(self.show_super_pixel_image_checkbox)
 
+            #Checkbox Mean image
+            layout_hor=QHBoxLayout()
+            layout_vert.addLayout(layout_hor)
+            layout_hor.addStretch()
+            self.label_show_mean_image=QLabel('Show Mean Image')
+            layout_hor.addWidget(self.label_show_mean_image,Qt.AlignLeft)
+            self.show_mean_image_checkbox=QCheckBox(self)
+            self.show_mean_image_checkbox.setChecked(2*self.show_mean_image)
+            self.show_mean_image_checkbox.setToolTip('<font color="black">Show Mean Image: An Image where the mean value of each superpixel in all used colors is shown. Usefull to determine if the derivation of the mean actually helps to cluster the superpixel in this colorspace. The first 3/1 image are from the colorspace the last 3/1 images are from the sobel image. Warning: The creation of the mean image is REEAALLYY slow. Default value: False.</font>')
+            layout_hor.addWidget(self.show_mean_image_checkbox)
+
+
+            #Checkbox Sobel image
+            layout_hor=QHBoxLayout()
+            layout_vert.addLayout(layout_hor)
+            layout_hor.addStretch()
+            self.label_show_sobel_image=QLabel('Show Sobel Image')
+            layout_hor.addWidget(self.label_show_sobel_image,Qt.AlignLeft)
+            self.show_sobel_image_checkbox=QCheckBox(self)
+            self.show_sobel_image_checkbox.setChecked(2*self.show_sobel_image)
+            self.show_sobel_image_checkbox.setToolTip('<font color="black">Show Sobel Image: An image where the sobel image (each pixel replaced by the absolute value of its gradient) is shown. Usefull to determine if the derivation of the sobel image actually helps for clustering. Default value: False.</font>')
+            layout_hor.addWidget(self.show_sobel_image_checkbox)
+
             #Checkbox Show K-Clustered Image
             layout_hor=QHBoxLayout()
             layout_vert.addLayout(layout_hor)
@@ -664,6 +704,7 @@ class Param_Delivery(QWidget):
             self.show_mask_checkbox.setChecked(2*self.show_mask)
             self.show_mask_checkbox.setToolTip('<font color="black">For Debug-Mode only. Shows the final mask created in the script in matplotlib.Default value: False</font>')
             layout_hor.addWidget(self.show_mask_checkbox)
+
 
             layout_vert.addSpacing(15)
 
@@ -743,6 +784,8 @@ class Param_Delivery(QWidget):
             self.ratio_sobel_image=self.ratio_sobel_image_spin_box.value()
             self.verbose=self.checkbox_verbose.checkState()
             self.show_super_pixel_image=self.show_super_pixel_image_checkbox.checkState()
+            self.show_mean_image=self.show_mean_image_checkbox.checkState()
+            self.show_sobel_image=self.show_sobel_image_checkbox.checkState()
             self.show_k_clustered_image=self.show_k_clustered_image_checkbox.checkState()
             self.show_border_image=self.show_border_image_checkbox.checkState()
             self.show_mask=self.show_mask_checkbox.checkState()
@@ -773,6 +816,10 @@ class Param_Delivery(QWidget):
             self.file.write('\nverbose=%i'%int(bool(self.verbose)))
             self.file.write('\nopen_gui=%i'%int(bool(self.open_gui)))
             self.file.write('\nshow_super_pixel_image=%i'%int(bool(self.show_super_pixel_image)))
+            self.file.write('\nshow_mean_image=%i'%int(bool(self.show_mean_image)))
+            self.file.write('\nshow_sobel_image=%i'%int(bool(self.show_sobel_image)))
+            self.file.write('\nshow_mean_image=%i'%int(bool(self.show_mean_image)))
+            self.file.write('\nshow_sobel_image=%i'%int(bool(self.show_sobel_image)))
             self.file.write('\nshow_k_clustered_image=%i'%int(bool(self.show_k_clustered_image)))
             self.file.write('\nshow_border_image=%i'%int(bool(self.show_border_image)))
             self.file.write('\nshow_mask=%i'%int(bool(self.show_mask)))
@@ -859,6 +906,20 @@ if __name__ == '__main__':
                 plt.figure(used_figures)
                 plt.imshow(image_segmented.super_pixel_image)
                 plt.title('Superpixel segmented image')
+                used_figures+=1
+            if Param_object.show_mean_image:
+                image_segmented.get_mean_regions()
+                for color in range(image_segmented.mean_regions_col.shape[2]):
+                    plt.figure(used_figures)
+                    plt.imshow(image_segmented.mean_regions_col[:,:,color])
+                    plt.title('Mean Image color=%i'%(color))
+                    used_figures+=1
+            if Param_object.show_sobel_image:
+                for color in range(image_segmented.sobel_im.shape[2]):
+                    plt.figure(used_figures)
+                    plt.imshow(image_segmented.sobel_im[:,:,color])
+                    plt.title('Sobel Image color=%i'%(color))
+                    used_figures+=1
                 used_figures+=1
             if Param_object.show_k_clustered_image:
                 plt.figure(used_figures)
