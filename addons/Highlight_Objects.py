@@ -384,7 +384,12 @@ class Param_Delivery(QWidget):
 
         # self.file=open('Highlight_objects_config_file.dat','w+')
         # self.file.close()
-        self.file=open('Highlight_objects_config_file.dat','r+')
+        try:
+            self.file=open('ConfigHighlightObjects.txt','r+')
+        except IOError:
+            print('Config-File does not exist. Created new config file')
+            self.file=open('ConfigHighlightObjects.txt','w')
+
 
 
         #endregion
@@ -431,9 +436,6 @@ class Param_Delivery(QWidget):
                 self.minimum_size_superpixel=float(arg.replace('minimum_size_superpixel=',''))
             if arg.startswith('verbose='):
                 self.verbose=int(arg.replace('verbose=',''))
-
-        print(self.show_sobel_image)
-        print(self.show_mean_image)
 
 
         if not hasattr(self,'super_pixel_size'):
