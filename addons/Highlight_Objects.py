@@ -795,7 +795,8 @@ class Param_Delivery(QWidget):
             self.highlight_whole_cluster=self.highlight_whole_cluster_checkbox.checkState()
 
         self.application_canceled=False
-        if self.show_super_pixel_image | self.show_k_clustered_image |self.show_border_image |self.show_mask:             ##insert more condtions later for example return true also if clustered image is required
+        if self.show_super_pixel_image | self.show_k_clustered_image | self.show_border_image\
+                |self.show_mask | self.show_sobel_image | self.show_mean_image:             ##insert more condtions later for example return true also if clustered image is required
             self.return_just_mask=False
         else:
             self.return_just_mask=True
@@ -918,11 +919,14 @@ if __name__ == '__main__':
                     plt.title('Mean Image color=%i'%(color))
                     used_figures+=1
             if Param_object.show_sobel_image:
-                for color in range(image_segmented.sobel_im.shape[2]):
-                    plt.figure(used_figures)
-                    plt.imshow(image_segmented.sobel_im[:,:,color])
-                    plt.title('Sobel Image color=%i'%(color))
-                    used_figures+=1
+                if hasattr(image_segmented,'sobel_im'):
+                    for color in range(image_segmented.sobel_im.shape[2]):
+                        plt.figure(used_figures)
+                        plt.imshow(image_segmented.sobel_im[:,:,color])
+                        plt.title('Sobel Image color=%i'%(color))
+                        used_figures+=1
+                else:
+                    print('No Sobel Image created so no Sobel Image shown')
                 used_figures+=1
             if Param_object.show_k_clustered_image:
                 plt.figure(used_figures)
