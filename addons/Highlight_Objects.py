@@ -19,6 +19,7 @@ import sklearn.cluster
 import skimage.color
 import os, sys
 import scipy.ndimage.filters
+import distutils.util
 from clickpoints.SendCommands import GetImage, ReloadMask
 from clickpoints.MarkerLoad import DataFile
 
@@ -411,23 +412,23 @@ class Param_Delivery(QWidget):
             if arg.startswith('colorspace='):
                 self.colorspace=int(arg.replace('colorspace=',''))
             if arg.startswith('open_gui='):
-                self.open_gui=int(arg.replace('open_gui=',''))
+                self.open_gui=distutils.util.strtobool(arg.replace('open_gui=',''))
             if arg.startswith('ratio_sobel_image='):
                 self.ratio_sobel_image=float(arg.replace('ratio_sobel_image=',''))
             if arg.startswith('show_super_pixel_image='):
-                self.show_super_pixel_image=int(arg.replace('show_super_pixel_image=',''))
+                self.show_super_pixel_image=distutils.util.strtobool(arg.replace('show_super_pixel_image=',''))
             if arg.startswith('show_k_clustered_image='):
-                self.show_k_clustered_image=int(arg.replace('show_k_clustered_image=',''))
+                self.show_k_clustered_image=distutils.util.strtobool(arg.replace('show_k_clustered_image=',''))
             if arg.startswith('show_border_image='):
-                self.show_border_image=int(arg.replace('show_border_image=', ''))
+                self.show_border_image=distutils.util.strtobool(arg.replace('show_border_image=', ''))
             if arg.startswith('show_mask='):
-                self.show_mask=int(arg.replace('show_mask=',''))
+                self.show_mask=distutils.util.strtobool(arg.replace('show_mask=',''))
             if arg.startswith('show_mean_image='):
-                self.show_mean_image=int(arg.replace('show_mean_image=',''))
+                self.show_mean_image=distutils.util.strtobool(arg.replace('show_mean_image=',''))
             if arg.startswith('show_sobel_image='):
-                self.show_sobel_image=int(arg.replace('show_sobel_image=',''))
+                self.show_sobel_image=distutils.util.strtobool(arg.replace('show_sobel_image=',''))
             if arg.startswith('highlight_whole_cluster='):
-                self.highlight_whole_cluster=int(arg.replace('highlight_whole_cluster=',''))
+                self.highlight_whole_cluster=distutils.util.strtobool(arg.replace('highlight_whole_cluster=',''))
             if arg.startswith('compactness='):
                 self.compactness=int(arg.replace('compactness=',''))
             if arg.startswith('maximum_number_iterations='):
@@ -435,7 +436,7 @@ class Param_Delivery(QWidget):
             if arg.startswith('minimum_size_superpixel='):
                 self.minimum_size_superpixel=float(arg.replace('minimum_size_superpixel=',''))
             if arg.startswith('verbose='):
-                self.verbose=int(arg.replace('verbose=',''))
+                self.verbose=distutils.util.strtobool(arg.replace('verbose=',''))
 
 
         if not hasattr(self,'super_pixel_size'):
@@ -805,7 +806,7 @@ class Param_Delivery(QWidget):
             print('Saving changes')
             self.file.seek(0)
             self.file.truncate(0)
-            self.file.write('This is an auto-generated config file with the values from the GUI. Note that booleans as show_k_clustered_image are saved as an integer so 1 means true and 0 means false')
+            self.file.write('This is an auto-generated config file with the values from the GUI.')
             self.file.write('\ncluster_number=%i'%(self.cluster_number))
             self.file.write('\nsuper_pixel_size=%i'%(self.super_pixel_size))
             self.file.write('\ncompactness=%i'%(self.compactness))
@@ -815,17 +816,17 @@ class Param_Delivery(QWidget):
             self.file.write('\nhistogram_bins=%i'%(self.histogram_bins))
             self.file.write('\ncolorspace=%i'%(self.colorspace))
             self.file.write('\nratio_sobel_image=%f'%(self.ratio_sobel_image))
-            self.file.write('\nverbose=%i'%int(bool(self.verbose)))
-            self.file.write('\nopen_gui=%i'%int(bool(self.open_gui)))
-            self.file.write('\nshow_super_pixel_image=%i'%int(bool(self.show_super_pixel_image)))
-            self.file.write('\nshow_mean_image=%i'%int(bool(self.show_mean_image)))
-            self.file.write('\nshow_sobel_image=%i'%int(bool(self.show_sobel_image)))
-            self.file.write('\nshow_mean_image=%i'%int(bool(self.show_mean_image)))
-            self.file.write('\nshow_sobel_image=%i'%int(bool(self.show_sobel_image)))
-            self.file.write('\nshow_k_clustered_image=%i'%int(bool(self.show_k_clustered_image)))
-            self.file.write('\nshow_border_image=%i'%int(bool(self.show_border_image)))
-            self.file.write('\nshow_mask=%i'%int(bool(self.show_mask)))
-            self.file.write('\nhighlight_whole_cluster=%i'%int(bool(self.highlight_whole_cluster)))
+            self.file.write('\nverbose=%s'%str((bool(self.verbose))))
+            self.file.write('\nopen_gui=%s'%str((bool(self.open_gui))))
+            self.file.write('\nshow_super_pixel_image=%s'%(bool(self.show_super_pixel_image)))
+            self.file.write('\nshow_mean_image=%s'%str((bool(self.show_mean_image))))
+            self.file.write('\nshow_sobel_image=%s'%str((bool(self.show_sobel_image))))
+            self.file.write('\nshow_mean_image=%s'%str((bool(self.show_mean_image))))
+            self.file.write('\nshow_sobel_image=%s'%str((bool(self.show_sobel_image))))
+            self.file.write('\nshow_k_clustered_image=%s'%str((bool(self.show_k_clustered_image))))
+            self.file.write('\nshow_border_image=%s'%str((bool(self.show_border_image))))
+            self.file.write('\nshow_mask=%s'%str((bool(self.show_mask))))
+            self.file.write('\nhighlight_whole_cluster=%s'%str((bool(self.highlight_whole_cluster))))
 
 
             self.file.close()
