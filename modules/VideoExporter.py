@@ -12,25 +12,9 @@ import re
 from PIL import ImageDraw, Image, ImageFont
 from scipy.ndimage import shift
 
+from Tools import HTMLColorToRGB, BoundBy
 from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox
 
-def BoundBy(value, min, max):
-    # return value bound by min and max
-    if value is None:
-        return min
-    if value < min:
-        return min
-    if value > max:
-        return max
-    return value
-
-def HTMLColorToRGB(colorstring):
-    """ convert #RRGGBB to an (R, G, B) tuple """
-    colorstring = str(colorstring).strip()
-    if colorstring[0] == '#': colorstring = colorstring[1:]
-    if len(colorstring) != 6 and len(colorstring) != 8:
-        raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
-    return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
 
 class VideoExporterDialog(QtGui.QWidget):
     def __init__(self, parent, window, media_handler, config, modules):
@@ -49,7 +33,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.parent = parent
 
         # add combo box to choose export mode
-        Hlayout = QtGui.QHBoxLayout(self)
+        Hlayout = QtGui.QHBoxLayout()
         self.cbType = QtGui.QComboBox(self)
         self.cbType.insertItem(0, "Video")
         self.cbType.insertItem(1, "Images")
@@ -108,12 +92,16 @@ class VideoExporterDialog(QtGui.QWidget):
 
         """ Progress bar """
 
-        Hlayout = QtGui.QHBoxLayout(self)
+        Hlayout = QtGui.QHBoxLayout()
         self.progressbar = QtGui.QProgressBar()
         Hlayout.addWidget(self.progressbar)
-        button = QtGui.QPushButton("Start")
-        button.pressed.connect(self.SaveImage)
-        Hlayout.addWidget(button)
+        self.button_start = QtGui.QPushButton("Start")
+        self.button_start.pressed.connect(self.SaveImage)
+        Hlayout.addWidget(self.button_start)
+        self.button_stop = QtGui.QPushButton("Stop")
+        self.button_stop.pressed.connect(self.StopSaving)
+        self.button_stop.setHidden(True)
+        Hlayout.addWidget(self.button_stop)
         self.layout.addLayout(Hlayout)
 
     def CheckImageFilename(self, srcpath):
@@ -129,7 +117,16 @@ class VideoExporterDialog(QtGui.QWidget):
             srcpath = os.path.join(path, basename_new+ext)
         return srcpath
 
+    def StopSaving(self):
+        # schedule an abortion of the export
+        self.abort = True
+
     def SaveImage(self):
+        # hide the start button and display the abort button
+        self.abort = False
+        self.button_start.setHidden(True)
+        self.button_stop.setHidden(False)
+
         # get the marker handler for marker drawing
         marker_handler = self.window.GetModule("MarkerHandler")
 
@@ -215,7 +212,8 @@ class VideoExporterDialog(QtGui.QWidget):
             self.preview_slice[:] = 0
             self.preview_slice[start_y3-start_y2:self.preview_slice.shape[0]+(end_y3-end_y2), start_x3-start_x2:self.preview_slice.shape[1]+(end_x3-end_x2), :] = image[start_y3:end_y3, start_x3:end_x3, :]
             # apply the subpixel decimal shift
-            self.preview_slice = shift(self.preview_slice, -np.hstack((offset_float, 0)))
+            if offset_float[0] or offset_float[1]:
+                self.preview_slice = shift(self.preview_slice, -np.hstack((offset_float, 0)))
 
             # use min/max & gamma correction
             if self.window.ImageDisplay.conversion is not None:
@@ -251,11 +249,20 @@ class VideoExporterDialog(QtGui.QWidget):
                 if writer is None:
                     writer = imageio.get_writer(path, **writer_params)
                 writer.append_data(np.array(pil_image))
+            # process events so that the program doesn't stall
+            self.window.app.processEvents()
+            # abort if the user clicked the abort button
+            if self.abort:
+                break
 
         # set progress bar to the end and close output file
         self.progressbar.setValue(end)
         if self.cbType.currentIndex() == 2 or self.cbType.currentIndex() == 0:
             writer.close()
+
+        # show the start button again
+        self.button_start.setHidden(False)
+        self.button_stop.setHidden(True)
 
 class VideoExporter:
     def __init__(self, window, media_handler, modules, config=None):
@@ -270,8 +277,11 @@ class VideoExporter:
 
         # @key Z: Export Video
         if event.key() == QtCore.Qt.Key_Z:
-            self.ExporterWindow = VideoExporterDialog(self, self.window, self.media_handler, self.config, self.modules)
-            self.ExporterWindow.show()
+            if self.ExporterWindow:
+                self.ExporterWindow.raise_()
+            else:
+                self.ExporterWindow = VideoExporterDialog(self, self.window, self.media_handler, self.config, self.modules)
+                self.ExporterWindow.show()
 
     def closeEvent(self, event):
         if self.ExporterWindow:

@@ -25,8 +25,8 @@ import json
 import matplotlib.pyplot as plt
 import random
 
-from QtShortCuts import *
-from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
+from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox
+from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
 
 w = 1.
 b = 7
@@ -148,14 +148,6 @@ def ReadTypeDict(string):
         dictionary[int(match[0])] = [match[1], map(float, match[2:5]), int(match[5])]
     return dictionary
 
-
-def HTMLColorToRGB(colorstring):
-    """ convert #RRGGBB to an (R, G, B) tuple """
-    colorstring = colorstring.strip()
-    if colorstring[0] == '#': colorstring = colorstring[1:]
-    if len(colorstring) != 6 and len(colorstring) != 8:
-        raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
-    return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
 
 def GetColorFromMap(identifier, id):
     match = re.match(r"([^\(]*)\((\d*)\)", identifier)

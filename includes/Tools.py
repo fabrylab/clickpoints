@@ -228,3 +228,22 @@ class dotdict(dict):
     __setattr__= dict.__setitem__
     __delattr__= dict.__delitem__
 
+
+def HTMLColorToRGB(colorstring):
+    """ convert #RRGGBB to an (R, G, B) tuple """
+    colorstring = str(colorstring).strip()
+    if colorstring[0] == '#': colorstring = colorstring[1:]
+    if len(colorstring) != 6 and len(colorstring) != 8:
+        raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
+    return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
+
+
+def BoundBy(value, min, max):
+    # return value bound by min and max
+    if value is None:
+        return min
+    if value < min:
+        return min
+    if value > max:
+        return max
+    return value
