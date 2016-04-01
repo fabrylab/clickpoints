@@ -1,4 +1,20 @@
 from __future__ import division, print_function
+
+if __name__ == "__main__":
+    import sys, os
+    import sip
+    sip.setapi('QVariant', 2)
+    from PyQt4 import QtGui, QtCore
+    # start the Qt application
+    app = QtGui.QApplication(sys.argv)
+
+    # Create and display the splash screen
+    splash_pix = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), 'icons', 'Splash.png'))
+    splash = QtGui.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
+    splash.setMask(splash_pix.mask())
+    splash.show()
+    app.processEvents()
+
 import sys
 import os
 import ctypes
@@ -343,13 +359,11 @@ class ClickPointsWindow(QWidget):
 
 
 def main():
+    global app, splash
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
         myappid = 'fabrybiophysics.clickpoints'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-
-    # start the Qt application
-    app = QApplication(sys.argv)
 
     # load config and exec addon code
     config = LoadConfig()
@@ -361,6 +375,7 @@ def main():
     # init and open the ClickPoints window
     window = ClickPointsWindow(config)
     window.show()
+    splash.finish(window)
     app.exec_()
 
 # start the main function as entry point
