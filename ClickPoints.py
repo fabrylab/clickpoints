@@ -158,7 +158,7 @@ class ClickPointsWindow(QWidget):
         self.loading_image = 1
         self.FrameLoaded(select_index)
 
-        # apply image rotation from condig
+        # apply image rotation from config
         if config.rotation != 0:
             self.view.rotate(config.rotation)
             
@@ -170,6 +170,8 @@ class ClickPointsWindow(QWidget):
     def Save(self):
         BroadCastEvent(self.modules, "save")
         self.data_file.check_to_save()
+
+    """ jumping frames and displaying images """
 
     def JumpFrames(self, amount):
         # redirect to an absolute jump
@@ -249,6 +251,8 @@ class ClickPointsWindow(QWidget):
 
         # decrease loading image counter
         self.loading_image -= 1
+
+    """ some Qt events which should be passed around """
 
     def closeEvent(self, QCloseEvent):
         # save the data
