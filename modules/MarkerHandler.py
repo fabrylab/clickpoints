@@ -487,17 +487,38 @@ class MyMarkerItem(QGraphicsPathItem):
 
     def GetStyle(self):
         self.style = {}
+
+        # get style from marker type
         if self.data.type.style:
-            self.style.update(json.loads(self.data.type.style))
+            style_text = self.data.type.style
+            try:
+                type_style = json.loads(style_text)
+            except ValueError:
+                type_style = {}
+                print("WARNING: type %d style could not be read: %s" % (self.data.type.id, style_text))
+            self.style.update(type_style)
+
+        # get style from marker
         if self.data.style:
-            self.style.update(json.loads(self.data.style))
+            style_text = self.data.style
+            try:
+                marker_style = json.loads(style_text)
+            except ValueError:
+                marker_style = {}
+                print("WARNING: marker %d style could not be read: %s" % (self.data.track.id, style_text))
+            self.style.update(marker_style)
+
+        # get color from old color field
         if "color" not in self.style:
             self.style["color"] = self.data.type.color
 
+        # change color text to rgb by interpreting it as html text or a color map
         if self.style["color"][0] != "#":
             self.style["color"] = GetColorFromMap(self.style["color"], self.data.id)
         else:
             self.style["color"] = HTMLColorToRGB(self.style["color"])
+
+        # store color
         self.color = self.style["color"]
 
     def ReloadData(self):
@@ -684,6 +705,7 @@ class MyTrackItem(MyMarkerItem):
                 self.points_data[frame] = point
 
         self.track = track
+        self.track_style = {}
         self.UpdateStyle()
         self.current_frame = 0
         self.min_frame = min(self.points_data.keys())
@@ -699,23 +721,55 @@ class MyTrackItem(MyMarkerItem):
 
     def UpdateStyle(self):
         self.style = {}
+
+        # get style from marker type
         if self.data.type.style:
-            self.style.update(json.loads(self.data.type.style))
+            style_text = self.data.type.style
+            try:
+                type_style = json.loads(style_text)
+            except ValueError:
+                type_style = {}
+                print("WARNING: type %d style could not be read: %s" % (self.data.type.id, style_text))
+            self.style.update(type_style)
+
+        # get style from track
         if self.track.style:
-            self.style.update(json.loads(self.data.track.style))
+            style_text = self.data.track.style
+            try:
+                track_style = json.loads(style_text)
+            except ValueError:
+                track_style = {}
+                print("WARNING: track %d style could not be read: %s" % (self.data.track.id, style_text))
+            self.style.update(track_style)
+
+        # get color from old color field
         if "color" not in self.style:
             self.style["color"] = self.data.type.color
+
+        # change color text to rgb by interpreting it as html text or a color map
         if self.style["color"][0] != "#":
             self.style["color"] = GetColorFromMap(self.style["color"], self.track.id)
         else:
             self.style["color"] = HTMLColorToRGB(self.style["color"])
-        self.track_style = self.style.copy()
-        if self.data.style:
-            self.style.update(json.loads(self.data.style))
 
+        # remember the style which is specific for the track before adding marker specific styles
+        self.track_style = self.style.copy()
+
+        # get style from current marker
+        if self.data.style:
+            style_text = self.data.style
+            try:
+                marker_style = json.loads(style_text)
+            except ValueError:
+                marker_style = {}
+                print("WARNING: marker %d style could not be read: %s" % (self.data.track.id, style_text))
+            self.style.update(marker_style)
+
+        # convert html color to rgb
         if self.style["color"][0] == "#":
             self.style["color"] = HTMLColorToRGB(self.style["color"])
 
+        # apply the style
         self.ApplyStyle()
 
     def FrameChanged(self, image, image_frame, frame):
