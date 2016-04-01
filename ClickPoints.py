@@ -378,6 +378,7 @@ def main():
 
     # init and open the ClickPoints window
     window = ClickPointsWindow(config)
+    window.app = app
     window.show()
     splash.finish(window)
     app.exec_()
