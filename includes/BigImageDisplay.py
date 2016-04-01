@@ -91,10 +91,10 @@ class BigImageDisplay:
             self.pixMapItems[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
             self.pixMapItems[i].setOffset(0, 0)
 
-    def SetImage(self, image, offset):
+    def SetImage(self, image, offset, no_threaded_load):
         # call PrepareImageDisplay threaded or directly
         offset = np.array(offset)
-        if self.config.threaded_image_display:
+        if self.config.threaded_image_display and not no_threaded_load:
             self.thread = Thread(target=self.PrepareImageDisplay, args=(image, offset))
             self.thread.start()
         else:

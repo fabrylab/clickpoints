@@ -40,6 +40,19 @@ except ImportError:
 import numpy as np
 import re
 from PIL import ImageDraw, Image, ImageFont
+from scipy.ndimage import shift
+
+from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox
+
+def BoundBy(value, min, max):
+    # return value bound by min and max
+    if value is None:
+        return min
+    if value < min:
+        return min
+    if value > max:
+        return max
+    return value
 
 def HTMLColorToRGB(colorstring):
     """ convert #RRGGBB to an (R, G, B) tuple """
@@ -82,30 +95,11 @@ class VideoExporterDialog(QWidget):
         videoWidget = QtGui.QGroupBox("Video Settings")
         self.StackedWidget.addWidget(videoWidget)
         Vlayout = QtGui.QVBoxLayout(videoWidget)
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Filename:'))
-        self.leAName = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export/export.avi"), self)
-        self.leAName.setEnabled(False)
-        Hlayout.addWidget(self.leAName)
-        button = QtGui.QPushButton("Choose File")
-        button.pressed.connect(self.OpenDialog)
-        Hlayout.addWidget(button)
 
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Codec:'))
-        self.leCodec = QtGui.QLineEdit("libx264", self)
-        Hlayout.addWidget(self.leCodec)
-
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Quality (0 lowest, 10 highest):'))
-        self.sbQuality = QtGui.QSpinBox(self)
-        self.sbQuality.setValue(5)
+        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/export.avi"), "Choose Video", "Videos (*.avi)")
+        self.leCodec = AddQLineEdit(Vlayout, "Codec:", "libx264", strech=True)
+        self.sbQuality = AddQSpinBox(Vlayout, 'Quality (0 lowest, 10 highest):', 5, float=False, strech=True)
         self.sbQuality.setRange(0, 10)
-        Hlayout.addWidget(self.sbQuality)
-        Hlayout.addStretch()
 
         Vlayout.addStretch()
 
@@ -113,31 +107,19 @@ class VideoExporterDialog(QWidget):
         imageWidget = QtGui.QGroupBox("Image Settings")
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtGui.QVBoxLayout(imageWidget)
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Filename:'))
-        self.leANameI = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export/images%d.jpg"), self)
-        self.leANameI.setEnabled(False)
-        Hlayout.addWidget(self.leANameI)
-        button = QtGui.QPushButton("Choose File")
-        button.pressed.connect(self.OpenDialog2)
-        Hlayout.addWidget(button)
-        Vlayout.addWidget(QtGui.QLabel('Image names have to contain %d as a placeholder for the image number.'))
+
+        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/images%d.jpg"), "Choose Image", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
+        AddQLabel(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
+
         Vlayout.addStretch()
 
         """ Gif """
         gifWidget = QtGui.QGroupBox("Animated Gif Settings")
         self.StackedWidget.addWidget(gifWidget)
         Vlayout = QtGui.QVBoxLayout(gifWidget)
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Filename:'))
-        self.leANameG = QtGui.QLineEdit(os.path.join(self.config.outputpath, "export/export.gif"), self)
-        self.leANameG.setEnabled(False)
-        Hlayout.addWidget(self.leANameG)
-        button = QtGui.QPushButton("Choose File")
-        button.pressed.connect(self.OpenDialog3)
-        Hlayout.addWidget(button)
+
+        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/export.gif"), "Choose Gif", "Animated Gifs (*.gif)")
+
         Vlayout.addStretch()
 
         """ Time """
@@ -145,37 +127,10 @@ class VideoExporterDialog(QWidget):
         self.layout.addWidget(timeWidget)
         Vlayout = QtGui.QVBoxLayout(timeWidget)
 
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Display time:'))
-        self.cbTime = QtGui.QCheckBox(self)
-        self.cbTime.setChecked(True)
-        Hlayout.addWidget(self.cbTime)
-        Hlayout.addStretch()
-
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Start from zero:'))
-        self.cbTimeZero = QtGui.QCheckBox(self)
-        self.cbTimeZero.setChecked(True)
-        Hlayout.addWidget(self.cbTimeZero)
-        Hlayout.addStretch()
-
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Font size:'))
-        self.cbTimeFontSize = QtGui.QSpinBox(self)
-        self.cbTimeFontSize.setValue(50)
-        Hlayout.addWidget(self.cbTimeFontSize)
-        Hlayout.addStretch()
-
-        Hlayout = QtGui.QHBoxLayout()
-        Vlayout.addLayout(Hlayout)
-        Hlayout.addWidget(QtGui.QLabel('Color:'))
-        self.cbTimeColor = QtGui.QLineEdit(self)
-        self.cbTimeColor.setText("#FFFFFF")
-        Hlayout.addWidget(self.cbTimeColor)
-        Hlayout.addStretch()
+        self.cbTime = AddQCheckBox(Vlayout, 'Display time:', True, strech=True)
+        self.cbTimeZero = AddQCheckBox(Vlayout, 'Start from zero:', True, strech=True)
+        self.cbTimeFontSize = AddQSpinBox(Vlayout, 'Font size:', 50, float=False, strech=True)
+        self.cbTimeColor = AddQLineEdit(Vlayout, "Color:", "#FFFFFF", strech=True)
 
         Vlayout.addStretch()
 
@@ -201,12 +156,7 @@ class VideoExporterDialog(QWidget):
             for layout in self.images_layouts:
                 layout.setHidden(False)
 
-    def OpenDialog(self):
-        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Video", os.getcwd(), "Videos (*.avi)"))
-        self.leAName.setText(srcpath)
-
-    def OpenDialog2(self):
-        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Image", os.getcwd(), "Images (*.jpg *.png *.tif)"))
+    def CheckImageFilename(self, srcpath):
         match = re.match(r"%\s*\d*d", srcpath)
         if not match:
             path, name = os.path.split(srcpath)
@@ -215,11 +165,7 @@ class VideoExporterDialog(QWidget):
             if basename_new == basename:
                 basename_new = basename+"%04d"
             srcpath = os.path.join(path, basename_new+ext)
-        self.leANameI.setText(srcpath)
-
-    def OpenDialog3(self):
-        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Choose Gif", os.getcwd(), "Animated Gifs (*.gif)"))
-        self.leANameG.setText(srcpath)
+        return srcpath
 
     def SaveImage(self):
         timeline = self.window.GetModule("Timeline")
@@ -259,30 +205,45 @@ class VideoExporterDialog(QWidget):
         if not any(v is None for v in offset_limits):
             offsets_available= True
 
+        # determine export rect
+        image = self.window.ImageDisplay.image
+        offset = self.window.ImageDisplay.last_offset
+        start_x, start_y, end_x, end_y = np.array(self.window.view.GetExtend(True)).astype("int") + np.hstack((offset, offset)).astype("int")
+        # constrain start points
+        start_x = BoundBy(start_x, 0, image.shape[1])
+        start_y = BoundBy(start_y, 0, image.shape[0])
+        # constrain end points
+        end_x = BoundBy(end_x, start_x+1, image.shape[1])
+        end_y = BoundBy(end_y, start_y+1, image.shape[0])
+        if (end_y-start_y) % 2 != 0: end_y -= 1
+        if (end_x-start_x) % 2 != 0: end_x -= 1
+        self.preview_slice = np.zeros((end_y-start_y, end_x-start_x, 3), "uint8")
+
         # iterate over frames
         for frame in range(start, end+1, skip):
             self.progressbar.setValue(frame)
-            self.window.JumpToFrame(frame)
-            self.preview_rect = self.window.view.GetExtend(True)
-            self.image = self.window.ImageDisplay.image
-            start_x, start_y, end_x, end_y = self.preview_rect
-            if start_x < 0: start_x = 0
-            if start_y < 0: start_y = 0
-            if end_x > self.image.shape[1]: end_x = self.image.shape[1]
-            if end_y > self.image.shape[0]: end_y = self.image.shape[0]
-            if end_x < start_x: end_x = start_x+1
-            if end_y < start_y: end_y = start_y+1
-            if end_x > start_x + self.config.max_image_size: end_x = start_x + self.config.max_image_size
-            if end_y > start_y + self.config.max_image_size: end_y = start_y + self.config.max_image_size
-            if (end_y-start_y) % 2 != 0: end_y -= 1
-            if (end_x-start_x) % 2 != 0: end_x -= 1
+            self.window.JumpToFrame(frame, no_threaded_load=True)
+
+            image = self.window.ImageDisplay.image
+            offset = self.window.ImageDisplay.last_offset
+            offset_int = offset.astype("int")
+            offset_float = offset - offset_int
+
+            start_x2 = start_x-offset_int[0]
+            start_y2 = start_y-offset_int[1]
+            end_x2 = end_x-offset_int[0]
+            end_y2 = end_y-offset_int[1]
+            start_x3 = BoundBy(start_x2, 0, image.shape[1])
+            start_y3 = BoundBy(start_y2, 0, image.shape[0])
+            end_x3 = BoundBy(end_x2, start_x3+1, image.shape[1])
+            end_y3 = BoundBy(end_y2, start_y3+1, image.shape[0])
 
             # extract cropped image
-            self.preview_slice = self.image[start_y:end_y, start_x:end_x, :]
-
-            # stack image if not RGB
-            if self.preview_slice.shape[2] == 1:
-                self.preview_slice = np.dstack((self.preview_slice, self.preview_slice, self.preview_slice))
+            self.preview_slice[:] = 0
+            print("x", start_x2, start_x3, end_x2, end_x3)
+            print("y", start_y2, start_y3, end_y2, end_y3)
+            self.preview_slice[start_y3-start_y2:self.preview_slice.shape[0]+(end_y3-end_y2), start_x3-start_x2:self.preview_slice.shape[1]+(end_x3-end_x2), :] = image[start_y3:end_y3, start_x3:end_x3, :]
+            self.preview_slice = shift(self.preview_slice, -np.hstack((offset_float, 0)))
 
             # use min/max & gamma correction
             if self.window.ImageDisplay.conversion is not None:
@@ -291,7 +252,7 @@ class VideoExporterDialog(QWidget):
             pil_image = Image.fromarray(self.preview_slice)
             draw = ImageDraw.Draw(pil_image)
             if marker_handler:
-                marker_handler.drawToImage(draw, start_x, start_y)
+                marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1])
             if self.time_drawing is not None:
                 time = self.window.media_handler.get_timestamp()
                 if time is not None:
