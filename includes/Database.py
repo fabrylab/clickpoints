@@ -216,13 +216,12 @@ class DataFile:
     def get_offset(self, filename, frame):
         try:
             image = self.table_images.get(filename=filename)
-            print("image", image, frame)
             offset = self.table_offsets.get(image=image, image_frame=frame)
             return [offset.x, offset.y]
         except DoesNotExist:
             return [0, 0]
 
-    def get_offset_maxmin(self,round=True):
+    def get_offset_maxmin(self, round=True):
         try:
             query = self.table_offsets.select( fn.Max(self.table_offsets.x).alias('max_x'),
                                                fn.Min(self.table_offsets.x).alias('min_x'),
@@ -234,7 +233,7 @@ class DataFile:
                 else:
                     return [q.max_x, q.min_x, q.max_y, q.min_y]
         except DoesNotExist:
-            return [0,0,0,0]
+            return [0, 0, 0, 0]
 
 
 if __name__ == '__main__':
