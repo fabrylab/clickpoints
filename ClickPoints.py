@@ -178,7 +178,7 @@ class ClickPointsWindow(QWidget):
         self.JumpToFrame(self.target_frame + amount)
 
     # jump absolute
-    def JumpToFrame(self, target_id):
+    def JumpToFrame(self, target_id, no_threaded_load=False):
         # save the data on frame change
         self.Save()
 
@@ -199,23 +199,23 @@ class ClickPointsWindow(QWidget):
 
         self.target_frame = target_id
 
-        if config.threaded_image_load:
+        if config.threaded_image_load and not no_threaded_load:
             # The frame should be preloaded, buffer the frame first
             # buffer_frame_threaded then calls FrameLoaded
             self.media_handler.buffer_frame_threaded(target_id)
         else:
             # if we don't want to buffer the frame, call FrameLoaded directly
-            self.FrameLoaded(target_id)
+            self.FrameLoaded(target_id, no_threaded_load)
 
-    def FrameLoaded(self, frame_number):
+    def FrameLoaded(self, frame_number, no_threaded_load=False):
         # set the index of the current frame
         self.media_handler.set_index(frame_number)
         # notify all modules that a new frame is displayed
         BroadCastEvent(self.modules, "FrameChangeEvent")
         # load image
-        self.UpdateImage()
+        self.UpdateImage(no_threaded_load)
 
-    def UpdateImage(self):
+    def UpdateImage(self, no_threaded_load=False):
         # test if an image is available for the frame number
         if not self.media_handler.get_file_entry():
             return
@@ -237,7 +237,7 @@ class ClickPointsWindow(QWidget):
         offset = self.data_file.get_offset(filename, frame)
 
         # display the image
-        self.ImageDisplay.SetImage(self.im, offset)  # calls DisplayedImage
+        self.ImageDisplay.SetImage(self.im, offset, no_threaded_load)  # calls DisplayedImage
 
     def DisplayedImage(self):
         # tell the QExtendedGraphicsView the shape of the new image

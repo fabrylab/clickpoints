@@ -25,6 +25,7 @@ import json
 import matplotlib.pyplot as plt
 import random
 
+from QtShortCuts import *
 from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
 
 w = 1.
@@ -170,57 +171,6 @@ def GetColorFromMap(identifier, id):
     color = np.array(cmap(index))
     color = color[:3]*255
     return color
-
-def AddQSpinBox(layout, text, value=0):
-    horizontal_layout = QHBoxLayout()
-    layout.addLayout(horizontal_layout)
-    text = QLabel(text)
-    spinBox = QtGui.QDoubleSpinBox()
-    spinBox.setRange(-99999, 99999)
-    spinBox.setValue(value)
-    horizontal_layout.addWidget(text)
-    horizontal_layout.addWidget(spinBox)
-    spinBox.managingLayout = horizontal_layout
-    return spinBox
-
-def AddQLineEdit(layout, text, value=None):
-    horizontal_layout = QHBoxLayout()
-    layout.addLayout(horizontal_layout)
-    text = QLabel(text)
-    lineEdit = QtGui.QLineEdit()
-    if value:
-        lineEdit.setText(value)
-    horizontal_layout.addWidget(text)
-    horizontal_layout.addWidget(lineEdit)
-    lineEdit.managingLayout = horizontal_layout
-    return lineEdit
-
-def AddQComboBox(layout, text, values=None, selectedValue=None):
-    horizontal_layout = QHBoxLayout()
-    layout.addLayout(horizontal_layout)
-    text = QLabel(text)
-    comboBox = QtGui.QComboBox()
-    for value in values:
-        comboBox.addItem(value)
-    if selectedValue:
-        comboBox.setCurrentIndex(values.index(selectedValue))
-    horizontal_layout.addWidget(text)
-    horizontal_layout.addWidget(comboBox)
-    comboBox.managingLayout = horizontal_layout
-    return comboBox
-
-def AddQLabel(layout, text=None):
-    text = QLabel(text)
-    if text:
-        layout.addWidget(text)
-    return text
-
-def AddQHLine(layout):
-    line = QtGui.QFrame()
-    line.setFrameShape(QtGui.QFrame.HLine)
-    line.setFrameShadow(QtGui.QFrame.Sunken)
-    layout.addWidget(line)
-    return line
 
 
 class MarkerEditor(QWidget):
