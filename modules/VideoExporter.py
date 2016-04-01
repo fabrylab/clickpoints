@@ -2,41 +2,11 @@ from __future__ import division, print_function
 import os
 
 try:
-    from PyQt5 import QtCore
+    from PyQt5 import QtCore, QtGui
 except ImportError:
     from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import QWidget
 
-from scipy.misc import imsave
-try:
-    import cv2
-    cv2_loaded = True
-    try:
-        from cv2.cv import CV_CAP_PROP_POS_FRAMES as CAP_PROP_POS_FRAMES
-        from cv2.cv import CV_CAP_PROP_FRAME_COUNT as CAP_PROP_FRAME_COUNT
-        from cv2.cv import CV_CAP_PROP_FRAME_WIDTH as CAP_PROP_FRAME_WIDTH
-        from cv2.cv import CV_CAP_PROP_FRAME_HEIGHT as CAP_PROP_FRAME_HEIGHT
-        from cv2.cv import CV_CAP_PROP_FPS as CAP_PROP_FPS
-
-        from cv2.cv import CV_FOURCC as VideoWriter_fourcc
-        from cv2.cv import CV_RGB2BGR as COLOR_RGB2BGR
-    except ImportError:
-        from cv2 import CAP_PROP_POS_FRAMES as CAP_PROP_POS_FRAMES
-        from cv2 import CAP_PROP_FRAME_COUNT as CAP_PROP_FRAME_COUNT
-        from cv2 import CAP_PROP_FRAME_WIDTH as CAP_PROP_FRAME_WIDTH
-        from cv2 import CAP_PROP_FRAME_HEIGHT as CAP_PROP_FRAME_HEIGHT
-        from cv2 import CAP_PROP_FPS as CAP_PROP_FPS
-
-        from cv2 import VideoWriter_fourcc
-        from cv2 import COLOR_RGB2BGR as COLOR_RGB2BGR
-except ImportError:
-    cv2_loaded = False
-try:
-    import imageio
-    imageio_loaded = True
-except ImportError:
-    imageio_loaded = False
-
+import imageio
 import numpy as np
 import re
 from PIL import ImageDraw, Image, ImageFont
@@ -62,9 +32,9 @@ def HTMLColorToRGB(colorstring):
         raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
     return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
 
-class VideoExporterDialog(QWidget):
+class VideoExporterDialog(QtGui.QWidget):
     def __init__(self, parent, window, media_handler, config, modules):
-        QWidget.__init__(self)
+        QtGui.QWidget.__init__(self)
         # default settings and parameters
         self.window = window
         self.media_handler = media_handler
@@ -78,6 +48,7 @@ class VideoExporterDialog(QWidget):
         self.layout = QtGui.QVBoxLayout(self)
         self.parent = parent
 
+        # add combo box to choose export mode
         Hlayout = QtGui.QHBoxLayout(self)
         self.cbType = QtGui.QComboBox(self)
         self.cbType.insertItem(0, "Video")
@@ -86,6 +57,7 @@ class VideoExporterDialog(QWidget):
         Hlayout.addWidget(self.cbType)
         self.layout.addLayout(Hlayout)
 
+        # add stacked widget to store export mode parameter
         self.StackedWidget = QtGui.QStackedWidget(self)
         self.layout.addWidget(self.StackedWidget)
 
@@ -144,20 +116,10 @@ class VideoExporterDialog(QWidget):
         Hlayout.addWidget(button)
         self.layout.addLayout(Hlayout)
 
-    def ComboBoxChanged(self, index):
-        if index == 0:
-            for layout in self.video_layouts:
-                layout.setHidden(False)
-            for layout in self.images_layouts:
-                layout.setHidden(True)
-        if index == 1:
-            for layout in self.video_layouts:
-                layout.setHidden(True)
-            for layout in self.images_layouts:
-                layout.setHidden(False)
-
     def CheckImageFilename(self, srcpath):
+        # ensure that image filenames contain %d placeholder for the number
         match = re.match(r"%\s*\d*d", srcpath)
+        # if not add one, between filename and extension
         if not match:
             path, name = os.path.split(srcpath)
             basename, ext = os.path.splitext(name)
@@ -168,26 +130,35 @@ class VideoExporterDialog(QWidget):
         return srcpath
 
     def SaveImage(self):
-        timeline = self.window.GetModule("Timeline")
+        # get the marker handler for marker drawing
         marker_handler = self.window.GetModule("MarkerHandler")
+
+        # get the timeline for start and end frames
+        timeline = self.window.GetModule("Timeline")
+        # extract start, end and skip
         start = timeline.frameSlider.startValue()
         end = timeline.frameSlider.endValue()
         skip = timeline.skip if timeline.skip >= 1 else 1
+
+        # initialize writer object according to export mode
         writer = None
-        if self.cbType.currentIndex() == 0:
+        if self.cbType.currentIndex() == 0:  # video
             path = str(self.leAName.text())
             writer_params = dict(format="avi", mode="I", fps=timeline.fps, codec=str(self.leCodec.text()), quality=self.sbQuality.value())
-        elif self.cbType.currentIndex() == 1:
+        elif self.cbType.currentIndex() == 1:  # image
             path = str(self.leANameI.text())
-        elif self.cbType.currentIndex() == 2:
+        elif self.cbType.currentIndex() == 2:  # gif
             path = str(self.leANameG.text())
             writer_params = dict(format="gif", mode="I", fps=timeline.fps)
+
+        # create the output path if it doesn't exist
         if not os.path.exists(os.path.dirname(path)):
             try:
                 os.mkdir(os.path.dirname(path))
             except OSError:
                 print("ERROR: can't create folder %s", os.path.dirname(path))
                 return
+        # get timestamp draw parameter
         self.time_drawing = None
         if self.cbTime.isChecked():
             class TimeDrawing: pass
@@ -197,13 +168,10 @@ class VideoExporterDialog(QWidget):
             self.time_drawing.x = 15
             self.time_drawing.y = 10
             self.time_drawing.color = tuple(HTMLColorToRGB(self.cbTimeColor.text()))
+
+        # initialize progress bar
         self.progressbar.setMinimum(start)
         self.progressbar.setMaximum(end)
-
-        # check if offsets for stabilisation are available in db
-        offset_limits = self.window.data_file.get_offset_maxmin()
-        if not any(v is None for v in offset_limits):
-            offsets_available= True
 
         # determine export rect
         image = self.window.ImageDisplay.image
@@ -221,18 +189,23 @@ class VideoExporterDialog(QWidget):
 
         # iterate over frames
         for frame in range(start, end+1, skip):
+            # advance progress bar and load next image
             self.progressbar.setValue(frame)
             self.window.JumpToFrame(frame, no_threaded_load=True)
 
+            # get new image and offsets
             image = self.window.ImageDisplay.image
             offset = self.window.ImageDisplay.last_offset
+            # split offsets in integer and decimal part
             offset_int = offset.astype("int")
             offset_float = offset - offset_int
 
+            # calculate new slices
             start_x2 = start_x-offset_int[0]
             start_y2 = start_y-offset_int[1]
             end_x2 = end_x-offset_int[0]
             end_y2 = end_y-offset_int[1]
+            # adapt new slices to fit in image
             start_x3 = BoundBy(start_x2, 0, image.shape[1])
             start_y3 = BoundBy(start_y2, 0, image.shape[0])
             end_x3 = BoundBy(end_x2, start_x3+1, image.shape[1])
@@ -240,19 +213,21 @@ class VideoExporterDialog(QWidget):
 
             # extract cropped image
             self.preview_slice[:] = 0
-            print("x", start_x2, start_x3, end_x2, end_x3)
-            print("y", start_y2, start_y3, end_y2, end_y3)
             self.preview_slice[start_y3-start_y2:self.preview_slice.shape[0]+(end_y3-end_y2), start_x3-start_x2:self.preview_slice.shape[1]+(end_x3-end_x2), :] = image[start_y3:end_y3, start_x3:end_x3, :]
+            # apply the subpixel decimal shift
             self.preview_slice = shift(self.preview_slice, -np.hstack((offset_float, 0)))
 
             # use min/max & gamma correction
             if self.window.ImageDisplay.conversion is not None:
                 self.preview_slice = self.window.ImageDisplay.conversion[self.preview_slice.astype(np.uint8)[:, :, :3]].astype(np.uint8)
 
+            # convert image to PIL draw object
             pil_image = Image.fromarray(self.preview_slice)
             draw = ImageDraw.Draw(pil_image)
+            # draw marker on the image
             if marker_handler:
                 marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1])
+            # draw timestamp
             if self.time_drawing is not None:
                 time = self.window.media_handler.get_timestamp()
                 if time is not None:
@@ -263,16 +238,21 @@ class VideoExporterDialog(QWidget):
                     else:
                         text = time.strftime("%Y-%m-%d %H:%M:%S")
                     draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
+            # add to video ...
             if self.cbType.currentIndex() == 0:
-                if writer == None:
+                if writer is None:
                     writer = imageio.get_writer(path, **writer_params)
                 writer.append_data(np.array(pil_image))
+            # ... or save image ...
             elif self.cbType.currentIndex() == 1:
                 pil_image.save(path % (frame-start))
+            # ... or add to gif
             elif self.cbType.currentIndex() == 0 or self.cbType.currentIndex() == 2:
-                if writer == None:
+                if writer is None:
                     writer = imageio.get_writer(path, **writer_params)
                 writer.append_data(np.array(pil_image))
+
+        # set progress bar to the end and close output file
         self.progressbar.setValue(end)
         if self.cbType.currentIndex() == 2 or self.cbType.currentIndex() == 0:
             writer.close()
