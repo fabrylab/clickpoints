@@ -66,6 +66,7 @@ class image_segmenter():
         :param create_mean_col_regions: Picture of Mean of Luminescence is created. Just to visualize how strong the mean-col clustering is
         :return:
         """
+        self.verbose=verbose
 
         if image.shape[2]>3:
             image=image[:,:,0:3]
@@ -150,7 +151,7 @@ class image_segmenter():
             else:
                 self.im_color_space=self.sobel_im
             self.colors=self.im_color_space.shape[2]
-            if verbose:
+            if self.verbose:
                 print('Sobeled image created')
 
 
@@ -179,7 +180,7 @@ class image_segmenter():
                                                                             multichannel=True, max_iter=10,
                                                                             enforce_connectivity=enforced_connectivity,
                                                                             min_size_factor=min_size)  # segmentiert in regions
-            if verbose:
+            if self.verbose:
                 print('superpixelization done')
             # endregion
 
@@ -193,7 +194,7 @@ class image_segmenter():
                 for i in range(self.colors):
                     self.props_col.append(skimage.measure.regionprops(self.superpixel_segmentation_labels, self.im_color_space[:, :, i]))
 
-                if verbose:
+                if self.verbose:
                     print('Created regionprops')
 
                 #create list with shape number_of_superpixels x number_of_colors with mean of every superpixel in every color
@@ -211,10 +212,10 @@ class image_segmenter():
                 for row in range(np.shape(self.image)[0]):
                     for column in range(np.shape(self.image)[1]):
                         self.k_mean_clustered_regions[row, column] = cluster_labels_col[self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmeans-Clustering
-                    if row % 50 == 0 & verbose:
+                    if row % 50 == 0 & self.verbose:
                         print('Creating Clustered Image row=%i Processed Percentage %i' % (row, 100 * row / np.shape(self.image)[0]))
 
-                if verbose:
+                if self.verbose:
                     print('clustering done')
             # endregion
 
@@ -233,7 +234,7 @@ class image_segmenter():
                     local_hist = local_hist.reshape(histogram_bins * self.colors)
                     local_hist /= sum(local_hist)
                     self.histogramms.append(local_hist)
-                    if num_superpixel % 1000 == 0 & verbose:
+                    if num_superpixel % 1000 == 0 & self.verbose:
                         print('%i histograms of superpixels created. Processed Percentage %i' % (
                         num_superpixel, 100 * num_superpixel / np.max(self.superpixel_segmentation_labels)))
                     # if num_superpixel%1000==0:
@@ -256,12 +257,12 @@ class image_segmenter():
                         self.k_mean_clustered_regions[row, column] = cluster_labels_col[
                             self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmean-Clustering
 
-                    if row % 50 == 0 & verbose:
+                    if row % 50 == 0 & self.verbose:
                         print('Creating image with cluster labels row=%i Processed Percentage %i' % (
                         row, 100 * row / np.shape(self.image)[0]))
                 #endregion
 
-                if verbose:
+                if self.verbose:
                     print('clustering done')
 
 
@@ -283,7 +284,7 @@ class image_segmenter():
                 self.mask_clicked_clusters=(self.k_mean_clustered_regions==label_list[0])
                 for label in label_list[1:]:
                     self.mask_clicked_clusters=self.mask_clicked_clusters|(self.k_mean_clustered_regions==label)
-                if verbose:
+                if self.verbose:
                     print('label list=',label_list)
                     print('Merging clicked clusters done')
             # endregion
@@ -299,7 +300,7 @@ class image_segmenter():
                     self.regions_for_mask=skimage.measure.label(self.mask_clicked_clusters)
                 else:
                     self.regions_for_mask = skimage.measure.label(self.k_mean_clustered_regions)
-            if verbose:
+            if self.verbose:
                 print('connected_regions done')
 
     #endregion
@@ -315,7 +316,7 @@ class image_segmenter():
                     already_marked = True
             if (~already_marked):
                 pointed_regions.append(pointed_region)
-        if (verbose):
+        if (self.verbose):
             print('clicked coordinates are')
             print(coords)
             print('pointed_regions=' % (pointed_regions))
@@ -336,7 +337,7 @@ class image_segmenter():
             self.mask = np.zeros([self.image.shape[0], self.image.shape[1]], np.uint8)
         for mask_one_region in masks_one_region:
             self.mask = self.mask | mask_one_region
-        if verbose:
+        if self.verbose:
             print('creating mask done')
         #endregion
 
@@ -359,7 +360,7 @@ class image_segmenter():
             for row in range(self.mean_regions_col.shape[0]):
                 for column in range(self.mean_regions_col.shape[1]):
                     self.mean_regions_col[row, column, color] = self.props_col[color][self.superpixel_segmentation_labels[row, column]-1].mean_intensity
-                if row % 50 == 0 :
+                if row % 50 == 0 & self.verbose :
                     print('row=%i color=%i Processed Percentage %i Creating Mean Image' % (row,color,100 * row / np.shape(self.image)[0]))
 
 
@@ -399,7 +400,7 @@ class Param_Delivery(QWidget):
 
         parameter_string=self.file.read()
         for arg in parameter_string.split("\n"):
-            print(arg)
+            # print(arg)
             if arg.startswith('super_pixel_size='):
                 self.super_pixel_size=int(arg.replace('super_pixel_size=',''))
                 #print('found superpixelsize', int(super_pixel_size))
@@ -716,7 +717,7 @@ class Param_Delivery(QWidget):
             layout_hor=QHBoxLayout()
             layout_vert.addLayout(layout_hor)
             layout_hor.addStretch()
-            self.label_verbose=QLabel('Printmode activated')
+            self.label_verbose=QLabel('Verbose mode activated')
             layout_hor.addWidget(self.label_verbose,Qt.AlignLeft)
             self.checkbox_verbose=QCheckBox(self)
             self.checkbox_verbose.setChecked(self.verbose)
@@ -804,7 +805,8 @@ class Param_Delivery(QWidget):
 
         if (hasattr(self,'checkbox_saving') and self.checkbox_saving.checkState()):
             self.open_gui=bool(self.checkbox_gui_next_time.checkState())
-            print('Saving changes')
+            if Param_object.verbose:
+                print('Saving changes')
             self.file.seek(0)
             self.file.truncate(0)
             self.file.write('This is an auto-generated config file with the values from the GUI.')
@@ -833,16 +835,14 @@ class Param_Delivery(QWidget):
             self.file.close()
         #endregion
 
-        print('Input window shut down normally')
-        print('Number of clusters for k-means-clustering = %i'%(self.cluster_number))
-        print('Super-Pixel-Size = %i'%(self.super_pixel_size))
-        print('Open gui next time=',self.open_gui)
-        print('Segmentation Starting')
+        if Param_object.verbose:
+            print('Input window shut down normally')
+            # print('Number of clusters for k-means-clustering = %i'%(self.cluster_number))
+            # print('Super-Pixel-Size = %i'%(self.super_pixel_size))
+            # print('Open gui next time=',self.open_gui)
+            print('Segmentation Starting')
 
         self.close()
-        #the_close_event=self.closeEvent()
-        #print(application_canceled)
-        #% starte
 
 
 if __name__ == '__main__':
