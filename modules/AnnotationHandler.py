@@ -36,7 +36,6 @@ class AnnotationFile:
                 reffilename = peewee.CharField()
                 reffileext = peewee.CharField()
                 file_id = peewee.IntegerField(null=True)
-                image_frame = peewee.IntegerField()
                 comment = peewee.TextField(default="")
                 rating = peewee.IntegerField(default=0)
                 tag_type = peewee.CharField(default="SQLTags")
@@ -47,7 +46,6 @@ class AnnotationFile:
             class Annotation(base_model):
                 timestamp = peewee.DateTimeField(null=True)
                 image = peewee.ForeignKeyField(datafile.table_images)
-                image_frame = peewee.IntegerField()
                 comment = peewee.TextField(default="")
                 rating = peewee.IntegerField(default=0)
             self.table_annotation = Annotation
@@ -74,8 +72,7 @@ class AnnotationFile:
         if self.server:
             kwargs.update(dict(timestamp=self.data_file.timestamp, reffilename=self.data_file.image.filename, reffileext=self.data_file.image.ext, fileid=self.data_file.image.external_id))
         else:
-            kwargs.update(dict(timestamp=self.data_file.timestamp, image=self.data_file.image, image_frame=self.data_file.image_frame))
-            self.data_file.image_uses += 1
+            kwargs.update(dict(timestamp=self.data_file.timestamp, image=self.data_file.image))
         self.annotation = self.table_annotation(**kwargs)
         return self.annotation
 
@@ -83,11 +80,11 @@ class AnnotationFile:
         try:
             if self.server:
                 if self.data_file.image.external_id is not None:
-                    self.annotation = self.table_annotation.get(self.table_annotation.fileid == self.data_file.image.external_id, self.table_annotation.image_frame == self.data_file.image_frame)
+                    self.annotation = self.table_annotation.get(self.table_annotation.fileid == self.data_file.image.external_id)
                 else:
-                    self.annotation = self.table_annotation.get(self.table_annotation.reffilename == self.data_file.image.filename, self.table_annotation.image_frame == self.data_file.image_frame)
+                    self.annotation = self.table_annotation.get(self.table_annotation.reffilename == self.data_file.image.filename)
             else:
-                self.annotation = self.table_annotation.get(self.table_annotation.image == self.data_file.image.id, self.table_annotation.image_frame == self.data_file.image_frame)
+                self.annotation = self.table_annotation.get(self.table_annotation.image == self.data_file.image.id)
         except peewee.DoesNotExist:
             self.annotation = None
         return self.annotation
@@ -130,8 +127,8 @@ class AnnotationFile:
 
     def get_annotation_frames(self):
         if self.server:
-            return self.table_annotation.select()#.group_by(self.table_annotation.reffilename.concat(self.table_annotation.image_frame))
-        return self.table_annotation.select().group_by(self.table_annotation.image.concat(self.table_annotation.image_frame))
+            return self.table_annotation.select()
+        return self.table_annotation.select()
 
     def getAnnotationsByIds(self, id_list):
         return self.table_annotation.select(peewee.SQL("*"), peewee.SQL("GROUP_CONCAT(t3.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tags, join_type="LEFT JOIN").group_by(self.table_annotation.id)
@@ -356,13 +353,9 @@ class AnnotationOverview(QWidget):
 
     def JumpToAnnotation(self, idx):
         # get file basename
-        image_name = self.table.item(idx.row(), 4).text()
-        image_frame = int(self.table.item(idx.row(), 5).text())
+        image_index = int(self.table.item(idx.row(), 5).text())
 
-        # TODO
-        #frame = self.window.media_handler.get_frame_number_by_id(image_name, image_frame)
-        #if frame is not None:
-        #    self.window.JumpToFrame(frame)
+        self.window.JumpToFrame(image_index)
 
     def UpdateRow(self, row, annotation, sort_if_new=False):
         new = False
@@ -381,7 +374,7 @@ class AnnotationOverview(QWidget):
             timestamp = datetime.strftime(annotation.timestamp, '%Y%m%d-%H%M%S')
         else:
             timestamp = ""
-        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(annotation.image_frame), str(annotation.id)]
+        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(annotation.image.sort_index), str(annotation.id)]
         for index, text in enumerate(texts):
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
@@ -428,23 +421,18 @@ class AnnotationHandler:
             self.db = AnnotationFile(datafile, self.server)
 
             # place tick marks for already present masks
-            #for item in self.db.get_annotation_frames():
-            #    print(item)
-            #    frame = self.window.media_handler.get_frame_number_by_id(item.reffilename, item.image_frame)
-            #    if frame is not None:
-            #        BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
-            #        self.annoation_ids.append(item.id)
+            for item in self.db.get_annotation_frames():
+                BroadCastEvent(self.modules, "AnnotationMarkerAdd", item.image.sort_index)
+                self.annoation_ids.append(item.id)
 
         else:
             self.data_file = datafile
             self.db = AnnotationFile(datafile)
 
             # place tick marks for already present masks
-            #for item in self.db.get_annotation_frames():
-            #    frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
-            #    if frame is not None:
-            #        BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
-            #        self.annoation_ids.append(item.id)
+            for item in self.db.get_annotation_frames():
+                BroadCastEvent(self.modules, "AnnotationMarkerAdd", item.image.sort_index)
+                self.annoation_ids.append(item.id)
 
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None

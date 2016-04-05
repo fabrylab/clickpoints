@@ -64,7 +64,7 @@ class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
-        self.current_version = "4"
+        self.current_version = "5"
         if self.exists:
             self.db = SqliteDatabase(database_filename)
             introspector = Introspector.from_database(self.db)
@@ -99,6 +99,7 @@ class DataFile:
             frame = IntegerField(default=0)
             external_id = IntegerField(null=True)
             timestamp = DateTimeField(null=True)
+            sort_index = IntegerField(default=0)
 
         class Offsets(BaseModel):
             image = ForeignKeyField(Images, unique=True)
@@ -119,28 +120,24 @@ class DataFile:
         if not self.exists:
             self.table_meta(key="version", value=self.current_version).save()
 
+        # image, file reader and current index
         self.image = None
-        self.next_image_index = 1
-        query = self.table_images.select().order_by(-self.table_images.id).limit(1)
-        for image in query:
-            self.next_image_index = image.id+1
-
         self.reader = None
-        self.image = None
         self.current_image_index = None
+        self.timestamp = None
+        self.next_sort_index = 0
+
+        # image data loading buffer and thread
         self.buffer = FrameBuffer(100)#self.config.buffer_size)
         self.thread = None
 
+        # signals to notify others when a frame is loaded
         class DataFileSignals(QtCore.QObject):
             loaded = QtCore.pyqtSignal(int)
         self.signals = DataFileSignals()
 
-        self.image_frame = 0
-        self.timestamp = 0
-        self.image_uses = 0
-        self.image_saved = True
-
     def migrateDBFrom(self, version):
+        # migrate database from an older version
         nr_new_version = None
         print("Migrating DB from version %s" % version)
         nr_version = int(version)
@@ -168,28 +165,21 @@ class DataFile:
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(nr_new_version))
 
-    def save_current_image(self):
+    def save_database(self):
+        # if the database hasn't been written to file, write it
         if not self.exists:
             SaveDB(self.db, self.database_filename)
             self.db = SqliteDatabase(self.database_filename)
             for table in self.tables:
                 table._meta.database = self.db
             self.exists = True
-        if self.image.timestamp:
-            self.image.timestamp = str(self.image.timestamp)
-        self.image.save(force_insert=True)
-        self.image_saved = True
-        self.next_image_index += 1
-
-    def check_to_save(self):
-        if self.image and not self.image_saved:
-            if self.image_uses > 0:
-                self.save_current_image()
 
     def get_image_count(self):
+        # return the total count of images in the database
         return self.table_images.select().count()
 
     def get_current_image(self):
+        # return the current image index
         return self.current_image_index
 
     def load_frame(self, index, threaded):
@@ -229,9 +219,11 @@ class DataFile:
         self.signals.loaded.emit(index)
 
     def get_image_data(self):
+        # get the pixel data from the current image
         return self.buffer.get_frame(self.current_image_index)
 
     def add_image(self, filename, extension, external_id, frames):
+        # add an entry for every frame in the image container
         for i in range(frames):
             image = self.table_images()
             image.filename = filename
@@ -240,52 +232,20 @@ class DataFile:
             image.frame = i
             image.external_id = external_id
             image.timestamp = None#file_entry.timestamp
+            image.sort_index = self.next_sort_index
+            self.next_sort_index += 1
             image.save()
 
-    def set_image(self, index):#file_entry, frame, timestamp):
-        self.image = self.table_images.select().limit(1).offset(index)[0]
+    def set_image(self, index):
+        # the the current image number and retrieve its information from the database
+        self.image = self.table_images.get(sort_index=index)
         self.current_image_index = index
-        return
-        self.check_to_save()
-        try:
-            self.image = self.table_images.get(self.table_images.filename == file_entry.filename)
-            self.image_saved = True
-        except DoesNotExist:
-            self.image = self.table_images(id=self.next_image_index)
-            self.image.filename = file_entry.filename
-            self.image.ext = file_entry.extension
-            self.image.frames = file_entry.frames
-            self.image.external_id = file_entry.external_id
-            self.image.id = self.next_image_index
-            self.image.timestamp = file_entry.timestamp
-            self.image_uses = 0
-            self.image_saved = False
-        self.image_frame = frame
-        self.timestamp = timestamp
-        return self.image
-
-    def get_image(self, file_entry, frame, timestamp):
-        try:
-            image = self.table_images.get(self.table_images.filename == file_entry.filename)
-        except DoesNotExist:
-            if self.image and not self.image_saved:
-                self.save_current_image()
-            try:
-                image = self.table_images.get(self.table_images.filename == file_entry.filename)
-            except DoesNotExist:
-                image = self.table_images(id=self.next_image_index)
-                image.filename = file_entry.filename
-                image.ext = file_entry.extension
-                image.frames = file_entry.frames
-                image.external_id = file_entry.external_id
-                image.id = self.next_image_index
-                self.next_image_index += 1
-                image.save(force_insert=True)
-        return image
 
     def get_offset(self, image=None):
+        # if no image is specified, use the current one
         if image is None:
             image = self.image
+        # try to get offset data for the image
         try:
             offset = self.table_offsets.get(image=image)
             return [offset.x, offset.y]
@@ -293,6 +253,9 @@ class DataFile:
             return [0, 0]
 
     def closeEvent(self, QCloseEvent):
+        # join the thread on closing
+        if self.thread:
+            self.thread.join()
         pass
 
 

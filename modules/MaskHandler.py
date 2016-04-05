@@ -25,14 +25,13 @@ class MaskFile:
         self.data_file = datafile
 
         class Mask(datafile.base_model):
-            image = peewee.ForeignKeyField(datafile.table_images)
-            image_frame = peewee.IntegerField()
+            image = peewee.ForeignKeyField(datafile.table_images, unique=True)
             filename = peewee.CharField()
 
         class MaskTypes(datafile.base_model):
             name = peewee.CharField()
             color = peewee.CharField()
-            index = peewee.IntegerField()
+            index = peewee.IntegerField(unique=True)
 
         self.table_mask = Mask
         self.table_maskTypes = MaskTypes
@@ -54,18 +53,17 @@ class MaskFile:
         return type
 
     def add_mask(self, **kwargs):
-        kwargs.update(dict(image=self.data_file.image, image_frame=self.data_file.image_frame))
-        self.data_file.image_uses += 1
+        kwargs.update(dict(image=self.data_file.image))
         return self.table_mask(**kwargs)
 
     def get_mask(self):
         try:
-            return self.table_mask.get(self.table_mask.image == self.data_file.image.id, self.table_mask.image_frame == self.data_file.image_frame)
+            return self.table_mask.get(self.table_mask.image == self.data_file.image.id)
         except peewee.DoesNotExist:
             return None
 
     def get_mask_frames(self):
-        return self.table_mask.select().group_by(self.table_mask.image.concat(self.table_mask.image_frame))
+        return self.table_mask.select().group_by(self.table_mask.image)
 
     def get_mask_path(self, config_outputpath_mask):
         if self.mask_path:
@@ -301,10 +299,8 @@ class MaskHandler:
         self.UpdateCounter()
 
         # place tick marks for already present masks
-        #for item in self.mask_file.get_mask_frames():
-        #    frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
-        #    if frame is not None:
-        #        BroadCastEvent(self.modules, "MarkerPointsAdded", frame)
+        for item in self.mask_file.get_mask_frames():
+            BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
 
     def UpdateCounter(self):
         for counter in self.counter:
@@ -327,7 +323,7 @@ class MaskHandler:
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
         image = self.data_file.image
-        image_frame = self.data_file.image_frame
+        image_frame = self.data_file.image.frame
         mask_entry = self.mask_file.get_mask()
 
         mask_path = self.mask_file.get_mask_path(self.config.outputpath_mask)

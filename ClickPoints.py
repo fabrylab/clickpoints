@@ -71,8 +71,8 @@ from modules import VideoExporter
 from modules import InfoHud
 from modules import Overview
 
-used_modules = [Timeline, MarkerHandler]#, MaskHandler, AnnotationHandler, GammaCorrection, InfoHud, VideoExporter, ScriptLauncher, HelpText]
-used_huds = ["", "hud"]#, "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft", "", "", ""]
+used_modules = [Timeline, MarkerHandler, MaskHandler, AnnotationHandler, GammaCorrection, InfoHud, VideoExporter, ScriptLauncher, HelpText]
+used_huds = ["", "hud", "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft", "", "", ""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
@@ -118,15 +118,20 @@ class ClickPointsWindow(QWidget):
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
         # init DataFile for storage
+        load_list = True
         if config.database_file == "":
             config.database_file = "clickpoints.db"
+        if os.path.splitext(config.srcpath)[1] == ".db":
+            config.database_file = config.srcpath
+            load_list = False
         self.data_file = DataFile(config.database_file)
 
         # init media handler
         exclude_ending = None
         if len(config.draw_types):
             exclude_ending = "_mask.png"#config.maskname_tag
-        ListFiles(self.data_file, config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending, config=config)
+        if load_list:
+            ListFiles(self.data_file, config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending, config=config)
 
         # init the modules
         self.modules = []
@@ -173,7 +178,7 @@ class ClickPointsWindow(QWidget):
 
     def Save(self):
         BroadCastEvent(self.modules, "save")
-        self.data_file.check_to_save()
+        #self.data_file.check_to_save()
 
     """ jumping frames and displaying images """
 
@@ -285,6 +290,7 @@ class ClickPointsWindow(QWidget):
 
         if event.key() == QtCore.Qt.Key_S:
             # @key S: save marker and mask
+            self.data_file.save_database()
             self.Save()
 
         if event.key() == QtCore.Qt.Key_Escape:

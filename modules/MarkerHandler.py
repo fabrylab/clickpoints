@@ -114,7 +114,6 @@ class MarkerFile:
 
     def add_marker(self, **kwargs):
         kwargs.update(dict(image=self.data_file.image))
-        self.data_file.image_uses += 1
         return self.table_marker(**kwargs)
 
     def get_marker_list(self, image_id=None):
@@ -134,8 +133,8 @@ class MarkerFile:
     def get_track_points(self, track):
         return self.table_marker.select().where(self.table_marker.track == track)
 
-    #def get_marker_frames(self):
-    #    return self.table_marker.select().group_by(self.table_marker.image.concat(self.table_marker.image_frame))
+    def get_marker_frames(self):
+        return self.table_marker.select().group_by(self.table_marker.image)
 
 
 def ReadTypeDict(string):
@@ -639,10 +638,8 @@ class MyTrackItem(MyMarkerItem):
     def __init__(self, marker_handler, points_data, track, saved=False):
         MyMarkerItem.__init__(self, marker_handler, points_data[0])
         self.points_data = SortedDict()
-        #for point in points_data:
-        #    frame = self.marker_handler.window.media_handler.get_frame_number_by_id(point.image.filename, point.image_frame)
-        #    if frame is not None:
-        #        self.points_data[frame] = point
+        for point in points_data:
+            self.points_data[point.image.sort_index] = point
 
         self.track = track
         self.track_style = {}
@@ -712,7 +709,7 @@ class MyTrackItem(MyMarkerItem):
         # apply the style
         self.ApplyStyle()
 
-    def FrameChanged(self, image, image_frame, frame):
+    def FrameChanged(self, frame):
 
         self.current_frame = frame
         hide = not self.CheckToDisplay()
@@ -1106,10 +1103,8 @@ class MarkerHandler:
         self.active_type_index = 0
 
         # place tick marks for already present markers
-        #for item in self.marker_file.get_marker_frames():
-        #    frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
-        #    if frame is not None:
-        #        BroadCastEvent(self.modules, "MarkerPointsAdded", frame)
+        for item in self.marker_file.get_marker_frames():
+            BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
 
     def drawToImage(self, image, start_x, start_y, scale=1):
         for point in self.points:
@@ -1133,7 +1128,7 @@ class MarkerHandler:
         for index in self.counter:
             if self.counter[index].type == type:
                 return self.counter[index]
-        raise NameError("A non existant type was referenced")
+        raise NameError("A non existing type was referenced")
 
     def ReloadMarker(self, frame):
         image_id = self.data_file.image.id
@@ -1153,13 +1148,12 @@ class MarkerHandler:
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
         image = self.data_file.image
-        image_frame = self.data_file.image_frame
 
         if len(self.tracks) == 0:
             self.LoadTracks()
         else:
             for track in self.tracks:
-                track.FrameChanged(image, image_frame, framenumber)
+                track.FrameChanged(framenumber)
         self.LoadPoints()
 
     def FolderChangeEvent(self):
