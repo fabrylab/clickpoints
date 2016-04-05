@@ -213,7 +213,7 @@ class pyQtTagSelector(QWidget):
 
 
 class AnnotationEditor(QWidget):
-    def __init__(self, filename, image_frame, filenr, db, modules, config):
+    def __init__(self, filename, filenr, db, modules, config):
         QWidget.__init__(self)
 
         # default settings and parameters
@@ -359,9 +359,10 @@ class AnnotationOverview(QWidget):
         image_name = self.table.item(idx.row(), 4).text()
         image_frame = int(self.table.item(idx.row(), 5).text())
 
-        frame = self.window.media_handler.get_frame_number_by_id(image_name, image_frame)
-        if frame is not None:
-            self.window.JumpToFrame(frame)
+        # TODO
+        #frame = self.window.media_handler.get_frame_number_by_id(image_name, image_frame)
+        #if frame is not None:
+        #    self.window.JumpToFrame(frame)
 
     def UpdateRow(self, row, annotation, sort_if_new=False):
         new = False
@@ -406,12 +407,12 @@ class AnnotationOverview(QWidget):
 
 
 class AnnotationHandler:
-    def __init__(self, window, media_handler, modules, datafile, config=None):
+    def __init__(self, window, data_file, modules, datafile, config=None):
         self.config = config
 
         # default settings and parameters
         self.window = window
-        self.media_handler = media_handler
+        self.data_file = data_file
         self.config = config
         self.modules = modules
 
@@ -427,23 +428,23 @@ class AnnotationHandler:
             self.db = AnnotationFile(datafile, self.server)
 
             # place tick marks for already present masks
-            for item in self.db.get_annotation_frames():
-                print(item)
-                frame = self.window.media_handler.get_frame_number_by_id(item.reffilename, item.image_frame)
-                if frame is not None:
-                    BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
-                    self.annoation_ids.append(item.id)
+            #for item in self.db.get_annotation_frames():
+            #    print(item)
+            #    frame = self.window.media_handler.get_frame_number_by_id(item.reffilename, item.image_frame)
+            #    if frame is not None:
+            #        BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
+            #        self.annoation_ids.append(item.id)
 
         else:
             self.data_file = datafile
             self.db = AnnotationFile(datafile)
 
             # place tick marks for already present masks
-            for item in self.db.get_annotation_frames():
-                frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
-                if frame is not None:
-                    BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
-                    self.annoation_ids.append(item.id)
+            #for item in self.db.get_annotation_frames():
+            #    frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
+            #    if frame is not None:
+            #        BroadCastEvent(self.modules, "AnnotationMarkerAdd", frame)
+            #        self.annoation_ids.append(item.id)
 
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
@@ -462,8 +463,8 @@ class AnnotationHandler:
     def keyPressEvent(self, event):
         # @key A: add/edit annotation
         if event.key() == Qt.Key_A:
-            self.AnnotationEditorWindow = AnnotationEditor(self.media_handler.get_filename(),
-                                                           self.media_handler.get_file_frame(), self.media_handler.get_index(), self.db,
+            self.AnnotationEditorWindow = AnnotationEditor(self.data_file.image.filename,
+                                                           self.data_file.get_current_image(), self.db,
                                                            modules=self.modules, config=self.config)
             self.AnnotationEditorWindow.show()
         # @key Y: show annotation overview

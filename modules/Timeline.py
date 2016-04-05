@@ -734,9 +734,9 @@ class PreciseTimer(QObject):
             time.sleep(0.01)
 
 class Timeline:
-    def __init__(self, window, media_handler, layout, outputpath, config, modules):
+    def __init__(self, window, data_file, layout, outputpath, config, modules):
         self.window = window
-        self.media_handler = media_handler
+        self.data_file = data_file
         self.config = config
         self.modules = modules
 
@@ -754,7 +754,7 @@ class Timeline:
         self.layoutCtrlParent.addLayout(self.layoutCtrl)
 
         # second
-        if self.config.datetimeline_show and self.media_handler.time_data_count:
+        if 0:#self.config.datetimeline_show and self.media_handler.time_data_count:
             self.layoutCtrl2 = QtGui.QHBoxLayout()
             self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 
@@ -781,19 +781,19 @@ class Timeline:
         self.frameSlider = TimeLineSlider()
         self.frameSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
         self.frameSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider)
-        self.frameSlider.setRange(0, self.media_handler.get_frame_count() - 1)
-        self.frameSlider.setValue(self.media_handler.get_index())
+        self.frameSlider.setRange(0, self.get_frame_count() - 1)
+        self.frameSlider.setValue(self.get_frame_count())
         if self.config.play_start is not None:
             # if >1 its a frame nr if < 1 its a fraction
             if self.config.play_start >= 1:
                 self.frameSlider.setStartValue(self.config.play_start)
             else:
-                self.frameSlider.setStartValue(int(self.media_handler.get_frame_count()*self.config.play_start))
+                self.frameSlider.setStartValue(int(self.get_frame_count()*self.config.play_start))
         if self.config.play_end is not None:
             if self.config.play_end > 1:
                 self.frameSlider.setEndValue(self.config.play_end)
             else:
-                self.frameSlider.setEndValue(int(self.media_handler.get_frame_count()*self.config.play_end))
+                self.frameSlider.setEndValue(int(self.get_frame_count()*self.config.play_end))
         self.slider_update = True
         self.layoutCtrl.addWidget(self.frameSlider)
 
@@ -823,15 +823,21 @@ class Timeline:
 
         self.FolderChangeEvent()
 
+    def get_current_frame(self):
+        return self.data_file.get_current_image()
+
+    def get_frame_count(self):
+        return self.data_file.get_image_count()
+
     def FolderChangeEvent(self):
-        self.media_handler = self.window.media_handler
+        self.data_file = self.window.data_file
         if self.config.play_end is not None:
             if self.config.play_end > 1:
                 self.frameSlider.setEndValue(self.config.play_end)
             else:
-                self.frameSlider.setEndValue(int(self.media_handler.get_frame_count()*self.config.play_end))
+                self.frameSlider.setEndValue(int(self.get_frame_count()*self.config.play_end))
         else:
-            self.frameSlider.setMaximum(self.media_handler.get_frame_count() - 1)
+            self.frameSlider.setMaximum(self.get_frame_count() - 1)
         self.updateLabel()
 
         self.frameSlider.clearTickMarker()
@@ -852,6 +858,7 @@ class Timeline:
 
     def ReleasedSlider2(self):
         timestamp = self.timeSlider.value()
+        # TODO
         n = self.media_handler.get_frame_number_by_timestamp(timestamp)
         self.slider_update = True
         self.updateLabel()
@@ -874,20 +881,24 @@ class Timeline:
         if nr != -1:
             self.window.JumpToFrame(nr)
         else:
-            if self.media_handler.get_index() < self.frameSlider.startValue() or self.media_handler.get_index()+1+self.skip > self.frameSlider.endValue():
+            if self.get_current_frame() < self.frameSlider.startValue() or self.get_current_frame()+1+self.skip > self.frameSlider.endValue():
                 self.window.JumpToFrame(self.frameSlider.startValue())
             else:
                 self.window.JumpFrames(1+self.skip)
 
     def updateLabel(self):
         if self.slider_update:
-            self.frameSlider.setValue(self.media_handler.get_index())
-            if self.timeSlider:
-                self.timeSlider.setValue(self.media_handler.get_timestamp())
-            digits = "%d" % np.ceil(np.log10(self.media_handler.get_frame_count()))
-            format_string = ('%0'+digits+'d/%d  %.1ffps')
-            fps = self.current_fps if self.current_fps is not None else 0
-            label_string = format_string % (self.media_handler.get_index(), self.media_handler.get_frame_count() - 1, fps)
+            self.frameSlider.setValue(self.get_current_frame())
+            # TODO
+            #if self.timeSlider:
+            #    self.timeSlider.setValue(self.media_handler.get_timestamp())
+            if self.get_current_frame() is not None:
+                digits = "%d" % np.ceil(np.log10(self.get_frame_count()))
+                format_string = ('%0'+digits+'d/%d  %.1ffps')
+                fps = self.current_fps if self.current_fps is not None else 0
+                label_string = format_string % (self.get_current_frame(), self.get_frame_count() - 1, fps)
+            else:
+                label_string = ""
             self.label_frame.setText(label_string + "\n" + str(self.window.data_file.timestamp))
 
     def FrameChangeEvent(self):
@@ -903,22 +914,22 @@ class Timeline:
         self.timer.allow_next()
 
     def MaskAdded(self):
-        self.frameSlider.addTickMarker(self.media_handler.get_index(), type=1)
+        self.frameSlider.addTickMarker(self.get_current_frame(), type=1)
 
     def MarkerPointsAdded(self, frame=None):
         if frame:
             self.frameSlider.addTickMarker(frame, type=1)
         else:
-            self.frameSlider.addTickMarker(self.media_handler.get_index(), type=1)
+            self.frameSlider.addTickMarker(self.get_current_frame(), type=1)
 
     def MarkerPointsRemoved(self):
-        self.frameSlider.removeTickMarker(self.media_handler.get_index(), type=1)
+        self.frameSlider.removeTickMarker(self.get_current_frame(), type=1)
 
     def AnnotationAdded(self, *args):
-        self.frameSlider.addTickMarker(self.media_handler.get_index(), type=0)
+        self.frameSlider.addTickMarker(self.get_current_frame(), type=0)
 
     def AnnotationRemoved(self, *args):
-        self.frameSlider.removeTickMarker(self.media_handler.get_index(), type=0)
+        self.frameSlider.removeTickMarker(self.get_current_frame(), type=0)
 
     def AnnotationMarkerAdd(self, position, *args):
         self.frameSlider.addTickMarker(position, type=0)
@@ -949,28 +960,28 @@ class Timeline:
 
         # @key B: move start marker here
         if event.key() == QtCore.Qt.Key_B:
-            self.frameSlider.setStartValue(self.media_handler.get_index())
+            self.frameSlider.setStartValue(self.get_current_frame())
         # @key N: move start marker here
         if event.key() == QtCore.Qt.Key_N:
-            self.frameSlider.setEndValue(self.media_handler.get_index())
+            self.frameSlider.setEndValue(self.get_current_frame())
 
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left and event.modifiers() & Qt.ControlModifier:
             # @key Ctrl+Left: previous annotated image
-            tick = self.frameSlider.getNextTick(self.media_handler.get_index(), back=True)
+            tick = self.frameSlider.getNextTick(self.get_current_frame(), back=True)
             self.window.JumpToFrame(tick)
         if event.key() == QtCore.Qt.Key_Right and event.modifiers() & Qt.ControlModifier:
             # @key Ctrl+Right: next annotated image
-            tick = self.frameSlider.getNextTick(self.media_handler.get_index())
+            tick = self.frameSlider.getNextTick(self.get_current_frame())
             self.window.JumpToFrame(tick)
 
         if event.key() == QtCore.Qt.Key_Left and event.modifiers() & Qt.AltModifier:
             # @key Alt+Left: previous annotation block
-            tick = self.frameSlider.getNextTickChange(self.media_handler.get_index(), back=True)
+            tick = self.frameSlider.getNextTickChange(self.get_current_frame(), back=True)
             self.window.JumpToFrame(tick)
         if event.key() == QtCore.Qt.Key_Right and event.modifiers() & Qt.AltModifier:
             # @key Alt+Right: next annotation block
-            tick = self.frameSlider.getNextTickChange(self.media_handler.get_index())
+            tick = self.frameSlider.getNextTickChange(self.get_current_frame())
             self.window.JumpToFrame(tick)
 
     def closeEvent(self, event):

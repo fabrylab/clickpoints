@@ -9,6 +9,7 @@ try:
     from StringIO import StringIO  # python 2
 except ImportError:
     from io import StringIO  # python 3
+import imageio
 
 def SQLMemoryDBFromFile(filename, *args, **kwargs):
 
@@ -92,6 +93,7 @@ class DataFile:
             filename = CharField()
             ext = CharField()
             frames = IntegerField(default=0)
+            frame = IntegerField(default=0)
             external_id = IntegerField(null=True)
             timestamp = DateTimeField(null=True)
 
@@ -123,7 +125,9 @@ class DataFile:
         for image in query:
             self.next_image_index = image.id+1
 
+        self.reader = None
         self.image = None
+        self.current_image_index = None
         self.image_frame = 0
         self.timestamp = 0
         self.image_uses = 0
@@ -175,7 +179,37 @@ class DataFile:
             if self.image_uses > 0:
                 self.save_current_image()
 
-    def set_image(self, file_entry, frame, timestamp):
+    def get_image_count(self):
+        return self.table_images.select().count()
+
+    def get_current_image(self):
+        return self.current_image_index
+
+    def get_image_data(self):
+        if self.reader:
+            if self.image.filename != self.reader.filename:
+                del self.reader
+                self.reader = None
+        if self.reader is None:
+            self.reader = imageio.get_reader(self.image.filename)
+            self.reader.filename = self.image.filename
+        return self.reader.get_data(self.image.frame)
+
+    def add_image(self, filename, extension, external_id, frames):
+        for i in range(frames):
+            image = self.table_images()
+            image.filename = filename
+            image.ext = extension
+            image.frames = frames
+            image.frame = i
+            image.external_id = external_id
+            image.timestamp = None#file_entry.timestamp
+            image.save()
+
+    def set_image(self, index):#file_entry, frame, timestamp):
+        self.image = self.table_images.select().limit(1).offset(index)[0]
+        self.current_image_index = index
+        return
         self.check_to_save()
         try:
             self.image = self.table_images.get(self.table_images.filename == file_entry.filename)
@@ -220,6 +254,9 @@ class DataFile:
             return [offset.x, offset.y]
         except DoesNotExist:
             return [0, 0]
+
+    def closeEvent(self, QCloseEvent):
+        pass
 
 
 if __name__ == '__main__':

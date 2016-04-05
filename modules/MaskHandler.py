@@ -301,10 +301,10 @@ class MaskHandler:
         self.UpdateCounter()
 
         # place tick marks for already present masks
-        for item in self.mask_file.get_mask_frames():
-            frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
-            if frame is not None:
-                BroadCastEvent(self.modules, "MarkerPointsAdded", frame)
+        #for item in self.mask_file.get_mask_frames():
+        #    frame = self.window.media_handler.get_frame_number_by_id(item.image.filename, item.image_frame)
+        #    if frame is not None:
+        #        BroadCastEvent(self.modules, "MarkerPointsAdded", frame)
 
     def UpdateCounter(self):
         for counter in self.counter:

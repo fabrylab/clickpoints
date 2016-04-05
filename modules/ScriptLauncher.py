@@ -39,10 +39,10 @@ def isPortInUse(type,ip,port_nr):
 class ScriptLauncher(QObject):
     signal = pyqtSignal(str, socketobject, tuple)
 
-    def __init__(self, window, media_handler, modules, config=None):
+    def __init__(self, window, data_file, modules, config=None):
         QObject.__init__(self)
         self.window = window
-        self.media_handler = media_handler
+        self.data_file = data_file
         self.config = config
         self.modules = modules
 
@@ -92,7 +92,7 @@ class ScriptLauncher(QObject):
         if cmd == "ReloadMarker":
             frame = int(value)
             if frame == -1:
-                frame = self.window.media_handler.get_index()
+                frame = self.data_file.get_current_image()
             BroadCastEvent(self.modules, "ReloadMarker", frame)
             socket.sendto(cmd, client_address)
         if cmd == "ReloadTypes":
@@ -100,6 +100,7 @@ class ScriptLauncher(QObject):
             socket.sendto(cmd, client_address)
         if cmd == "GetImage":
             try:
+                # TODO
                 file_entry, image_id, image_frame = self.window.media_handler.get_file_entry(int(value))
                 #image_id, image_frame = self.window.media_handler.id_lookup[int(value)]
             except IndexError:
@@ -175,7 +176,7 @@ class ScriptLauncher(QObject):
                         process.send_signal(signal.SIGTERM)
                     continue
                 self.window.Save()
-                args = [sys.executable, os.path.abspath(script), " ", str(self.media_handler.get_index()), str(self.PORT)]
+                args = [sys.executable, os.path.abspath(script), " ", str(self.data_file.get_current_image()), str(self.PORT)]
                 print('arags:', args)
                 if hasattr(os.sys, 'winver'):
                     process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
