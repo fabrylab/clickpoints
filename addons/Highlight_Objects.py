@@ -478,10 +478,11 @@ class Param_Delivery(QWidget):
             self.verbose=True
 #endregion
 
+        Application_Window=QWidget.__init__(self)               #eigentliches Graphikfenster
 #region Gui
         if self.open_gui:
 
-            Application_Window=QWidget.__init__(self)               #eigentliches Graphikfenster
+
             # widget layout and elements
             #self.setMinimumWidth(500)       #minimum width
             #self.setMinimumHeight(400)      #minimum height
@@ -832,26 +833,32 @@ class Param_Delivery(QWidget):
             self.file.write('\nhighlight_whole_cluster=%s'%str((bool(self.highlight_whole_cluster))))
 
 
-            self.file.close()
+        self.file.close()
         #endregion
 
-        if Param_object.verbose:
+        #if hasobject('Param_object') & Param_object.verbose:
+        if self.open_gui:
             print('Input window shut down normally')
+        print('Parameters Extracted')
             # print('Number of clusters for k-means-clustering = %i'%(self.cluster_number))
             # print('Super-Pixel-Size = %i'%(self.super_pixel_size))
             # print('Open gui next time=',self.open_gui)
-            print('Segmentation Starting')
+        print('Segmentation Starting')
 
         self.close()
 
 
 if __name__ == '__main__':
-
+    print("Starting HighlightObjects", sys.argv)
     #region get image and marker position from clickpoints
     start_frame = int(sys.argv[2])
+    #print("Highlight", start_frame)
     image, image_id, image_frame = GetImage(start_frame)
+    #print(image, image_id, image_frame)
     df = DataFile()
     points = df.GetMarker(image=image_id, image_frame=image_frame)
+    #print("query", points)
+    print("hightlight", points.count(), image_id, image_frame)
 
     try:
         x, y = points[0].x, points[0].y
@@ -875,9 +882,11 @@ if __name__ == '__main__':
     app.setStyle('cleanlooks')
 
     Param_object = Param_Delivery()
-    Param_object.show()
+    if Param_object.open_gui:
+        Param_object.show()
+        app.exec_()
 
-    app.exec_()
+
     if Param_object.verbose:
         print('Got Parameter')
 
