@@ -50,7 +50,7 @@ hide_interfaces = True
 addons = []
 
 threaded_image_display = True
-threaded_image_load = False
+threaded_image_load = True
 
 """ @config Marker """
 # @config `logname_tag =` specifies what to append to the log file.
