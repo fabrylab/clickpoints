@@ -38,7 +38,7 @@ print("Stated metaDB Display Addon ...")
 # Database access
 sys.path.append(r'C:\Users\fox\Dropbox\PhD\python\atkaSPOT_MetaDB')
 from accessMetaDB import *
-db=atkaSPOT_MetaDB(dbpath=db_path)
+db=MetaDB(dbpath=db_path)
 
 # input
 start_frame = int(sys.argv[2])
