@@ -71,8 +71,8 @@ from modules import VideoExporter
 from modules import InfoHud
 from modules import Overview
 
-used_modules = [Timeline, MarkerHandler, MaskHandler, AnnotationHandler, GammaCorrection, InfoHud, VideoExporter, ScriptLauncher, HelpText]
-used_huds = ["", "hud", "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft", "", "", ""]
+used_modules = [Timeline, MarkerHandler]#, MaskHandler, AnnotationHandler, GammaCorrection, InfoHud, VideoExporter, ScriptLauncher, HelpText]
+used_huds = ["", "hud"]#, "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft", "", "", ""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
@@ -91,6 +91,9 @@ class ClickPointsWindow(QWidget):
         config = my_config
         super(QWidget, self).__init__(parent)
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
+
+        self.setMinimumWidth(650)
+        self.setMinimumHeight(400)
 
         # init updater
         self.updater = Updater(self)
@@ -114,20 +117,22 @@ class ClickPointsWindow(QWidget):
         # init image display
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
-        # init media handler
-        exclude_ending = None
-        if len(config.draw_types):
-            exclude_ending = "_mask.png"#config.maskname_tag
-        self.media_handler, select_index = MediaHandler(config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending, config=config)
-
         # init DataFile for storage
         if config.database_file == "":
             config.database_file = "clickpoints.db"
         self.data_file = DataFile(config.database_file)
 
+        # init media handler
+        exclude_ending = None
+        if len(config.draw_types):
+            exclude_ending = "_mask.png"#config.maskname_tag
+        from FilelistLoader import ListFiles
+        ListFiles(self.data_file, config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending, config=config)
+
+
         # init the modules
         self.modules = []
-        arg_dict = {"window": self, "layout": self.layout, "media_handler": self.media_handler, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
+        arg_dict = {"window": self, "layout": self.layout, "data_file": self.data_file, "media_handler": self, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
         for mod, hud in zip(used_modules, used_huds):
             allowed = True
             if "can_create_module" in dir(mod):
@@ -142,6 +147,7 @@ class ClickPointsWindow(QWidget):
                 arg_dict2 = {k: v for k, v in arg_dict.items() if k in arg_name_list}
                 # Initialize the module
                 self.modules.append(mod(**arg_dict2))
+
         # find next module, which can be activated
         for module in self.modules:
             if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
@@ -154,9 +160,10 @@ class ClickPointsWindow(QWidget):
 
         # select the first frame
         self.target_frame = 0
-        self.media_handler.signals.loaded.connect(self.FrameLoaded)
+        #self.media_handler.signals.loaded.connect(self.FrameLoaded)
         self.loading_image = 1
-        self.FrameLoaded(select_index)
+        if self.data_file.get_image_count():
+            self.FrameLoaded(0)
 
         # apply image rotation from config
         if config.rotation != 0:
@@ -186,14 +193,14 @@ class ClickPointsWindow(QWidget):
         self.loading_image += 1
 
         # Test if the new frame is valid
-        if target_id >= self.media_handler.total_frame_count:
-            if self.target_frame == self.media_handler.total_frame_count-1:
+        if target_id >= self.data_file.get_image_count():
+            if self.target_frame == self.data_file.get_image_count()-1:
                 target_id = 0
             else:
-                target_id = self.media_handler.total_frame_count-1
+                target_id = self.data_file.get_image_count()-1
         if target_id < 0:
             if self.target_frame == 0:
-                target_id = self.media_handler.total_frame_count-1
+                target_id = self.data_file.get_image_count()-1
             else:
                 target_id = 0
 
@@ -202,39 +209,39 @@ class ClickPointsWindow(QWidget):
         if config.threaded_image_load and not no_threaded_load:
             # The frame should be preloaded, buffer the frame first
             # buffer_frame_threaded then calls FrameLoaded
-            self.media_handler.buffer_frame_threaded(target_id)
+            #TODO self.media_handler.buffer_frame_threaded(target_id)
+            pass
         else:
             # if we don't want to buffer the frame, call FrameLoaded directly
             self.FrameLoaded(target_id, no_threaded_load)
 
     def FrameLoaded(self, frame_number, no_threaded_load=False):
         # set the index of the current frame
-        self.media_handler.set_index(frame_number)
+        self.data_file.set_image(frame_number)
+
         # notify all modules that a new frame is displayed
         BroadCastEvent(self.modules, "FrameChangeEvent")
         # load image
         self.UpdateImage(no_threaded_load)
 
     def UpdateImage(self, no_threaded_load=False):
-        # test if an image is available for the frame number
-        if not self.media_handler.get_file_entry():
-            return
 
         # get filename and frame number
-        self.new_filename = self.media_handler.get_filename()
-        self.new_frame_number = self.media_handler.get_index()
+        self.new_filename = self.data_file.image.filename#self.media_handler.get_filename()
+        self.new_frame_number = self.target_frame
 
         # Notify that the frame will be loaded
         BroadCastEvent(self.modules, "PreLoadImageEvent", self.new_filename, self.new_frame_number)
         self.setWindowTitle(self.new_filename)
 
         # get image
-        self.im = self.media_handler.get_file()
+        self.im = self.data_file.get_image_data()
 
         # get offsets
-        _, frame = self.media_handler.id_lookup[self.media_handler.get_index()]
-        filename = self.media_handler.get_filename()
-        offset = self.data_file.get_offset(filename, frame)
+        #_, frame = self.media_handler.id_lookup[self.media_handler.get_index()]
+        #filename = self.media_handler.get_filename()
+        #offset = self.data_file.get_offset(filename, frame)
+        offset = [0, 0]
 
         # display the image
         self.ImageDisplay.SetImage(self.im, offset, no_threaded_load)  # calls DisplayedImage
@@ -244,7 +251,7 @@ class ClickPointsWindow(QWidget):
         self.view.setExtend(*self.im.shape[:2][::-1])
 
         # set the new image in the database
-        self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame(), self.media_handler.get_timestamp())
+        #self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame(), self.media_handler.get_timestamp())
 
         # notify all modules that a new frame is loaded
         BroadCastEvent(self.modules, "LoadImageEvent", self.new_filename, self.new_frame_number)
@@ -259,7 +266,7 @@ class ClickPointsWindow(QWidget):
         self.Save()
         # broadcast event the image display and the mediahandler (so that they can terminate their threads)
         self.ImageDisplay.closeEvent(QCloseEvent)
-        self.media_handler.closeEvent(QCloseEvent)
+        self.data_file.closeEvent(QCloseEvent)
         # broadcast event to the modules
         BroadCastEvent(self.modules, "closeEvent", QCloseEvent)
 
@@ -349,7 +356,7 @@ class ClickPointsWindow(QWidget):
             self.JumpToFrame(0)
         if event.key() == QtCore.Qt.Key_End:
             # @key End: jump to end
-            self.JumpToFrame(self.media_handler.get_frame_count()-1)
+            self.JumpToFrame(self.data_file.get_image_count()-1)
 
         # JUMP keys
         # @key Numpad 2,3: Jump -/+ 1 frame

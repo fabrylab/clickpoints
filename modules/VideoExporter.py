@@ -17,11 +17,11 @@ from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel
 
 
 class VideoExporterDialog(QtGui.QWidget):
-    def __init__(self, parent, window, media_handler, config, modules):
+    def __init__(self, parent, window, data_file, config, modules):
         QtGui.QWidget.__init__(self)
         # default settings and parameters
         self.window = window
-        self.media_handler = media_handler
+        self.data_file = data_file
         self.config = config
         self.modules = modules
 
@@ -226,7 +226,7 @@ class VideoExporterDialog(QtGui.QWidget):
             if marker_handler:
                 marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1])
             # draw timestamp
-            if self.time_drawing is not None:
+            if self.time_drawing is not None or 0:  # TODO
                 time = self.window.media_handler.get_timestamp()
                 if time is not None:
                     if frame == start and self.cbTimeZero.isChecked():
@@ -265,10 +265,10 @@ class VideoExporterDialog(QtGui.QWidget):
         self.button_stop.setHidden(True)
 
 class VideoExporter:
-    def __init__(self, window, media_handler, modules, config=None):
+    def __init__(self, window, data_file, modules, config=None):
         # default settings and parameters
         self.window = window
-        self.media_handler = media_handler
+        self.data_file = data_file
         self.config = config
         self.modules = modules
         self.ExporterWindow = None
@@ -280,7 +280,7 @@ class VideoExporter:
             if self.ExporterWindow:
                 self.ExporterWindow.raise_()
             else:
-                self.ExporterWindow = VideoExporterDialog(self, self.window, self.media_handler, self.config, self.modules)
+                self.ExporterWindow = VideoExporterDialog(self, self.window, self.data_file, self.config, self.modules)
                 self.ExporterWindow.show()
 
     def closeEvent(self, event):

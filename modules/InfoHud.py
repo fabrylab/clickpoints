@@ -101,7 +101,7 @@ class InfoHud(QGraphicsRectItem):
 
     def LoadImageEvent(self, filename="", frame_number=0):
         if not self.config.info_hud_string=="@script":
-            file = os.path.join(*self.window.media_handler.get_filename())
+            file = os.path.join(*self.window.data_file.image.filename)
             regex = re.match(self.config.filename_data_regex, file)
             if regex:
                 regex = regex.groupdict()
