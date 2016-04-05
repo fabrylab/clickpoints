@@ -10,6 +10,8 @@ try:
 except ImportError:
     from io import StringIO  # python 3
 import imageio
+from threading import Thread
+from PyQt4 import QtCore
 
 def SQLMemoryDBFromFile(filename, *args, **kwargs):
 
@@ -57,6 +59,7 @@ def SaveDBAPSW(db_memory, filename):
     with db_file.get_conn().backup("main", db_memory.get_conn(), "main") as backup:
         backup.step()  # copy whole database in one go
 
+
 class DataFile:
     def __init__(self, database_filename='clickpoints.db'):
         self.database_filename = database_filename
@@ -98,12 +101,9 @@ class DataFile:
             timestamp = DateTimeField(null=True)
 
         class Offsets(BaseModel):
-            image = ForeignKeyField(Images)
-            image_frame = IntegerField()
+            image = ForeignKeyField(Images, unique=True)
             x = FloatField()
             y = FloatField()
-            class Meta:
-                indexes = ((('image', 'image_frame'), True), )
 
         self.tables = [BaseModel, Meta, Images, Offsets]
 
@@ -128,6 +128,13 @@ class DataFile:
         self.reader = None
         self.image = None
         self.current_image_index = None
+        self.buffer = FrameBuffer(100)#self.config.buffer_size)
+        self.thread = None
+
+        class DataFileSignals(QtCore.QObject):
+            loaded = QtCore.pyqtSignal(int)
+        self.signals = DataFileSignals()
+
         self.image_frame = 0
         self.timestamp = 0
         self.image_uses = 0
@@ -185,15 +192,44 @@ class DataFile:
     def get_current_image(self):
         return self.current_image_index
 
-    def get_image_data(self):
+    def load_frame(self, index, threaded):
+        # check if frame is already buffered then we don't need to load it
+        if self.buffer.get_frame(index) is not None:
+            self.signals.loaded.emit(index)
+            return
+        # if we are still loading a frame finish first
+        if self.thread:
+            self.thread.join()
+        # query the information on the image to load
+        image = self.table_images.select().limit(1).offset(index)[0]
+        # prepare a slot in the buffer
+        slots, slot_index, = self.buffer.prepare_slot(index)
+        # call buffer_frame in a separate thread or directly
+        if threaded:
+            self.thread = Thread(target=self.buffer_frame, args=(image, slots, slot_index, index))
+            self.thread.start()
+        else:
+            return self.buffer_frame(image, slots, slot_index, index)
+
+    def buffer_frame(self, image, slots, slot_index, index):
+        # if we have already a reader...
         if self.reader:
-            if self.image.filename != self.reader.filename:
+            # ... check if it is the right one, if not delete it
+            if image.filename != self.reader.filename:
                 del self.reader
                 self.reader = None
+        # if we don't have a reader, create a new one
         if self.reader is None:
-            self.reader = imageio.get_reader(self.image.filename)
-            self.reader.filename = self.image.filename
-        return self.reader.get_data(self.image.frame)
+            self.reader = imageio.get_reader(image.filename)
+            self.reader.filename = image.filename
+        # get the data from the reader and store it in the slot
+        image_data = self.reader.get_data(image.frame)
+        slots[slot_index] = image_data
+        # notify that the frame has been loaded
+        self.signals.loaded.emit(index)
+
+    def get_image_data(self):
+        return self.buffer.get_frame(self.current_image_index)
 
     def add_image(self, filename, extension, external_id, frames):
         for i in range(frames):
@@ -247,10 +283,11 @@ class DataFile:
                 image.save(force_insert=True)
         return image
 
-    def get_offset(self, filename, frame):
+    def get_offset(self, image=None):
+        if image is None:
+            image = self.image
         try:
-            image = self.table_images.get(filename=filename)
-            offset = self.table_offsets.get(image=image, image_frame=frame)
+            offset = self.table_offsets.get(image=image)
             return [offset.x, offset.y]
         except DoesNotExist:
             return [0, 0]
@@ -259,5 +296,35 @@ class DataFile:
         pass
 
 
-if __name__ == '__main__':
-    db = DataFile(r'C:\Users\fox\Dropbox\PhD\python\CountPenugs\activity\clickpoints.db')
+class FrameBuffer:
+    def __init__(self, buffer_count):
+        self.slots = [[]]*buffer_count
+        self.indices = [None]*buffer_count
+        self.last_index = 0
+
+    def add_frame(self, number, image):
+        self.slots[self.last_index] = image
+        self.indices[self.last_index] = number
+        self.last_index = (self.last_index+1) % len(self.slots)
+
+    def prepare_slot(self, number):
+        if self.get_slot_index(number) is not None:
+            return None, None
+        index = self.last_index
+        self.last_index = (self.last_index+1) % len(self.slots)
+        self.indices[index] = number
+        self.slots[index] = None
+        return self.slots, index
+
+    def get_slot_index(self, number):
+        try:
+            return self.indices.index(number)
+        except ValueError:
+            return None
+
+    def get_frame(self, number):
+        try:
+            index = self.indices.index(number)
+            return self.slots[index]
+        except ValueError:
+            return None

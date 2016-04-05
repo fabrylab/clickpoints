@@ -55,7 +55,7 @@ from includes import HelpText, BroadCastEvent, rotate_list
 from includes import LoadConfig
 from includes import BigImageDisplay
 from includes import QExtendedGraphicsView
-from includes import MediaHandler
+from includes.FilelistLoader import ListFiles
 from includes import DataFile
 
 from update import Updater
@@ -126,13 +126,11 @@ class ClickPointsWindow(QWidget):
         exclude_ending = None
         if len(config.draw_types):
             exclude_ending = "_mask.png"#config.maskname_tag
-        from FilelistLoader import ListFiles
         ListFiles(self.data_file, config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending, config=config)
-
 
         # init the modules
         self.modules = []
-        arg_dict = {"window": self, "layout": self.layout, "data_file": self.data_file, "media_handler": self, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
+        arg_dict = {"window": self, "layout": self.layout, "data_file": self.data_file, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
         for mod, hud in zip(used_modules, used_huds):
             allowed = True
             if "can_create_module" in dir(mod):
@@ -160,10 +158,9 @@ class ClickPointsWindow(QWidget):
 
         # select the first frame
         self.target_frame = 0
-        #self.media_handler.signals.loaded.connect(self.FrameLoaded)
-        self.loading_image = 1
+        self.data_file.signals.loaded.connect(self.FrameLoaded)
         if self.data_file.get_image_count():
-            self.FrameLoaded(0)
+            self.JumpToFrame(0)
 
         # apply image rotation from config
         if config.rotation != 0:
@@ -186,11 +183,12 @@ class ClickPointsWindow(QWidget):
 
     # jump absolute
     def JumpToFrame(self, target_id, no_threaded_load=False):
+        # if no frame is loaded yet, do nothing
+        if self.data_file.get_image_count() == 0:
+            return
+
         # save the data on frame change
         self.Save()
-
-        # increase loading image count
-        self.loading_image += 1
 
         # Test if the new frame is valid
         if target_id >= self.data_file.get_image_count():
@@ -206,31 +204,23 @@ class ClickPointsWindow(QWidget):
 
         self.target_frame = target_id
 
+        # load the next frame (threaded or not)
+        # this will call FrameLoaded afterwards
         if config.threaded_image_load and not no_threaded_load:
-            # The frame should be preloaded, buffer the frame first
-            # buffer_frame_threaded then calls FrameLoaded
-            #TODO self.media_handler.buffer_frame_threaded(target_id)
-            pass
+            self.data_file.load_frame(target_id, threaded=1)
         else:
-            # if we don't want to buffer the frame, call FrameLoaded directly
-            self.FrameLoaded(target_id, no_threaded_load)
+            self.data_file.load_frame(target_id, threaded=0)
 
     def FrameLoaded(self, frame_number, no_threaded_load=False):
         # set the index of the current frame
         self.data_file.set_image(frame_number)
 
-        # notify all modules that a new frame is displayed
-        BroadCastEvent(self.modules, "FrameChangeEvent")
-        # load image
-        self.UpdateImage(no_threaded_load)
-
-    def UpdateImage(self, no_threaded_load=False):
-
         # get filename and frame number
-        self.new_filename = self.data_file.image.filename#self.media_handler.get_filename()
+        self.new_filename = self.data_file.image.filename
         self.new_frame_number = self.target_frame
 
-        # Notify that the frame will be loaded
+        # Notify that the frame will be loaded TODO are all these events necessary?
+        BroadCastEvent(self.modules, "FrameChangeEvent")
         BroadCastEvent(self.modules, "PreLoadImageEvent", self.new_filename, self.new_frame_number)
         self.setWindowTitle(self.new_filename)
 
@@ -238,10 +228,7 @@ class ClickPointsWindow(QWidget):
         self.im = self.data_file.get_image_data()
 
         # get offsets
-        #_, frame = self.media_handler.id_lookup[self.media_handler.get_index()]
-        #filename = self.media_handler.get_filename()
-        #offset = self.data_file.get_offset(filename, frame)
-        offset = [0, 0]
+        offset = self.data_file.get_offset()
 
         # display the image
         self.ImageDisplay.SetImage(self.im, offset, no_threaded_load)  # calls DisplayedImage
@@ -250,14 +237,8 @@ class ClickPointsWindow(QWidget):
         # tell the QExtendedGraphicsView the shape of the new image
         self.view.setExtend(*self.im.shape[:2][::-1])
 
-        # set the new image in the database
-        #self.data_file.set_image(self.media_handler.get_file_entry(), self.media_handler.get_file_frame(), self.media_handler.get_timestamp())
-
         # notify all modules that a new frame is loaded
         BroadCastEvent(self.modules, "LoadImageEvent", self.new_filename, self.new_frame_number)
-
-        # decrease loading image counter
-        self.loading_image -= 1
 
     """ some Qt events which should be passed around """
 
