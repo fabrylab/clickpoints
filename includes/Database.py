@@ -59,10 +59,11 @@ def SaveDBAPSW(db_memory, filename):
 
 
 class DataFile:
-    def __init__(self, database_filename='clickpoints.db'):
+    def __init__(self, database_filename=None):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
         self.current_version = "5"
+        version = None
         if self.exists:
             self.db = peewee.SqliteDatabase(database_filename)
             introspector = Introspector.from_database(self.db)
@@ -80,8 +81,7 @@ class DataFile:
                       % (int(version), int(self.current_version)))
                 print("Proceeding on own risk!")
         else:
-            print(":memory:")
-            self.db = peewee.SqliteDatabase(":memory:", check_same_thread=False)
+            self.db = peewee.SqliteDatabase(":memory:")
 
         class BaseModel(peewee.Model):
             class Meta:
@@ -118,6 +118,10 @@ class DataFile:
                 table.create_table()
         if not self.exists:
             self.table_meta(key="version", value=self.current_version).save()
+
+        # second migration part which needs the peewee model
+        if version is not None and int(version) < int(self.current_version):
+            self.migrateDBFrom2(version)
 
         # image, file reader and current index
         self.image = None
@@ -184,8 +188,28 @@ class DataFile:
                 pass
             nr_new_version = 4
 
+        if nr_version < 5:
+            print("\tto 5")
+            # Add text fields for Tracks
+            try:
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN frame int")
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN sort_index int")
+            except peewee.OperationalError:
+                pass
+            nr_new_version = 5
+
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(nr_new_version))
+
+    def migrateDBFrom2(self, nr_version):
+        nr_version = int(nr_version)
+        if nr_version < 5:
+            print("second migration step to 5")
+            images = self.table_images.select().order_by(self.table_images.filename)
+            for index, image in enumerate(images):
+                image.sort_index = index
+                image.frame = 0
+                image.save()
 
     def save_database(self):
         # if the database hasn't been written to file, write it

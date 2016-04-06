@@ -904,8 +904,8 @@ class Timeline:
     def updateLabel(self):
         if self.slider_update:
             self.frameSlider.setValue(self.get_current_frame())
-            # TODO
-            if self.timeSlider and self.data_file.image:
+
+            if self.timeSlider and self.data_file.image and self.data_file.image.timestamp:
                 self.timeSlider.setValue(self.data_file.image.timestamp)
             if self.get_current_frame() is not None:
                 digits = "%d" % np.ceil(np.log10(self.get_frame_count()))
