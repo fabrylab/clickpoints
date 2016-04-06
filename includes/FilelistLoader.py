@@ -193,6 +193,7 @@ def ListFiles(data_file, input, file_ids=[], rettype='img', buffer_size=10, filt
         extension = os.path.splitext(file)[1]
         frames = getFrameNumber(file, extension)
         data_file.add_image(file, extension, None, frames)
+    data_file.start_adding_timestamps()
     #filelist = FileList(config)
     #select_index = filelist.add_files(path_list, file_ids, select)
 

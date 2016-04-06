@@ -482,9 +482,14 @@ class RealTimeSlider(QGraphicsView):
         event.setAccepted(False)
         return
 
-    def setTimes(self, media_handler):
-        self.media_handler = media_handler
-        timestamps = [t for t in self.media_handler.timestamps if t is not None]
+    def setTimes(self, data_file):
+        self.data_file = data_file
+        timestamps = [t.timestamp for t in self.data_file.table_images.select(self.data_file.table_images.timestamp) if t.timestamp]
+        if len(timestamps) == 0:
+            self.min_value = datetime.datetime.today()
+            self.max_value = datetime.datetime.today()+datetime.timedelta(hours=1)
+            self.slider_position.setValueRange(self.min_value, self.max_value)
+            return
         self.min_value = np.amin(timestamps)
         self.max_value = np.amax(timestamps)
         if self.max_value == self.min_value:
@@ -748,7 +753,7 @@ class Timeline:
         self.config = config
         self.modules = modules
 
-        self.fps = 0#self.media_handler.fps
+        self.fps = 0
         if self.fps == 0:
             self.fps = 25
         if self.config.fps != 0:
@@ -762,12 +767,12 @@ class Timeline:
         self.layoutCtrlParent.addLayout(self.layoutCtrl)
 
         # second
-        if 0:#self.config.datetimeline_show and self.media_handler.time_data_count:
+        if self.config.datetimeline_show:
             self.layoutCtrl2 = QtGui.QHBoxLayout()
             self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 
             self.timeSlider = RealTimeSlider()
-            self.timeSlider.setTimes(self.media_handler)
+            self.timeSlider.setTimes(self.data_file)
             self.layoutCtrl2.addWidget(self.timeSlider)
 
             self.timeSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
@@ -866,8 +871,10 @@ class Timeline:
 
     def ReleasedSlider2(self):
         timestamp = self.timeSlider.value()
-        # TODO
-        n = self.media_handler.get_frame_number_by_timestamp(timestamp)
+        n = self.data_file.table_images.select(self.data_file.table_images.sort_index).where(self.data_file.table_images.timestamp > timestamp).limit(1)
+        if n.count() == 0:
+            return
+        n = n[0].sort_index
         self.slider_update = True
         self.updateLabel()
         self.updateFrame(nr=n)
@@ -898,8 +905,8 @@ class Timeline:
         if self.slider_update:
             self.frameSlider.setValue(self.get_current_frame())
             # TODO
-            #if self.timeSlider:
-            #    self.timeSlider.setValue(self.media_handler.get_timestamp())
+            if self.timeSlider and self.data_file.image:
+                self.timeSlider.setValue(self.data_file.image.timestamp)
             if self.get_current_frame() is not None:
                 digits = "%d" % np.ceil(np.log10(self.get_frame_count()))
                 format_string = ('%0'+digits+'d/%d  %.1ffps')
@@ -907,7 +914,9 @@ class Timeline:
                 label_string = format_string % (self.get_current_frame(), self.get_frame_count() - 1, fps)
             else:
                 label_string = ""
-            self.label_frame.setText(label_string + "\n" + str(self.window.data_file.timestamp))
+            if self.data_file.image:
+                label_string += "\n" + str(self.data_file.image.timestamp)
+            self.label_frame.setText(label_string)
 
     def FrameChangeEvent(self):
         dt = time.time()-self.last_time

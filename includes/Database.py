@@ -1,9 +1,7 @@
 from __future__ import division, print_function
 import os
-import re
-import datetime
-import numpy as np
-from peewee import *
+from datetime import datetime
+import peewee
 from playhouse.reflection import Introspector
 try:
     from StringIO import StringIO  # python 2
@@ -15,7 +13,7 @@ from PyQt4 import QtCore
 
 def SQLMemoryDBFromFile(filename, *args, **kwargs):
 
-    db_file = SqliteDatabase(filename, *args, **kwargs)
+    db_file = peewee.SqliteDatabase(filename, *args, **kwargs)
 
     db_file.connect()
     con = db_file.get_conn()
@@ -24,7 +22,7 @@ def SQLMemoryDBFromFile(filename, *args, **kwargs):
         tempfile.write('%s\n' % line)
     tempfile.seek(0)
 
-    db_memory = SqliteDatabase(":memory:", *args, **kwargs)
+    db_memory = peewee.SqliteDatabase(":memory:", *args, **kwargs)
     db_memory.get_conn().cursor().executescript(tempfile.read())
     db_memory.get_conn().commit()
     return db_memory
@@ -32,7 +30,7 @@ def SQLMemoryDBFromFile(filename, *args, **kwargs):
 def SaveDB(db_memory, filename):
     if os.path.exists(filename):
         os.remove(filename)
-    db_file = SqliteDatabase(filename)
+    db_file = peewee.SqliteDatabase(filename)
     con_file = db_file.get_conn()
     con_memory = db_memory.get_conn()
 
@@ -66,12 +64,12 @@ class DataFile:
         self.exists = os.path.exists(database_filename)
         self.current_version = "5"
         if self.exists:
-            self.db = SqliteDatabase(database_filename)
+            self.db = peewee.SqliteDatabase(database_filename)
             introspector = Introspector.from_database(self.db)
             models = introspector.generate_models()
             try:
                 version = models["meta"].get(models["meta"].key == "version").value
-            except (KeyError, DoesNotExist):
+            except (KeyError, peewee.DoesNotExist):
                 version = "0"
             print("Open database with version", version)
             if int(version) < int(self.current_version):
@@ -82,29 +80,30 @@ class DataFile:
                       % (int(version), int(self.current_version)))
                 print("Proceeding on own risk!")
         else:
-            self.db = SqliteDatabase(":memory:")
+            print(":memory:")
+            self.db = peewee.SqliteDatabase(":memory:", check_same_thread=False)
 
-        class BaseModel(Model):
+        class BaseModel(peewee.Model):
             class Meta:
                 database = self.db
 
         class Meta(BaseModel):
-            key = CharField(unique=True)
-            value = CharField()
+            key = peewee.CharField(unique=True)
+            value = peewee.CharField()
 
         class Images(BaseModel):
-            filename = CharField()
-            ext = CharField()
-            frames = IntegerField(default=0)
-            frame = IntegerField(default=0)
-            external_id = IntegerField(null=True)
-            timestamp = DateTimeField(null=True)
-            sort_index = IntegerField(default=0)
+            filename = peewee.CharField()
+            ext = peewee.CharField()
+            frames = peewee.IntegerField(default=0)
+            frame = peewee.IntegerField(default=0)
+            external_id = peewee.IntegerField(null=True)
+            timestamp = peewee.DateTimeField(null=True)
+            sort_index = peewee.IntegerField(default=0)
 
         class Offsets(BaseModel):
-            image = ForeignKeyField(Images, unique=True)
-            x = FloatField()
-            y = FloatField()
+            image = peewee.ForeignKeyField(Images, unique=True)
+            x = peewee.FloatField()
+            y = peewee.FloatField()
 
         self.tables = [BaseModel, Meta, Images, Offsets]
 
@@ -131,10 +130,33 @@ class DataFile:
         self.buffer = FrameBuffer(100)#self.config.buffer_size)
         self.thread = None
 
+        self.last_added_timestamp = -1
+        self.timestamp_thread = None
+
         # signals to notify others when a frame is loaded
         class DataFileSignals(QtCore.QObject):
             loaded = QtCore.pyqtSignal(int)
         self.signals = DataFileSignals()
+
+    def start_adding_timestamps(self):
+        if self.timestamp_thread:
+            return
+        #self.timestamp_thread = Thread(target=self.add_timestamps, args=())
+        #self.timestamp_thread.start()
+        self.add_timestamps()
+
+    def add_timestamps(self):
+        while True:
+            next_frame = self.last_added_timestamp+1
+            try:
+                image = self.table_images.get(sort_index=next_frame)
+            except peewee.DoesNotExist:
+                break
+            timestamp, _ = getTimeStamp(image.filename, image.ext)
+            if timestamp:
+                image.timestamp = timestamp
+                image.save()
+            self.last_added_timestamp += 1
 
     def migrateDBFrom(self, version):
         # migrate database from an older version
@@ -153,12 +175,12 @@ class DataFile:
             # Add text fields for Tracks
             try:
                 self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
-            except OperationalError:
+            except peewee.OperationalError:
                 pass
             # Add text fields for Types
             try:
                 self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
-            except OperationalError:
+            except peewee.OperationalError:
                 pass
             nr_new_version = 4
 
@@ -169,7 +191,7 @@ class DataFile:
         # if the database hasn't been written to file, write it
         if not self.exists:
             SaveDB(self.db, self.database_filename)
-            self.db = SqliteDatabase(self.database_filename)
+            self.db = peewee.SqliteDatabase(self.database_filename)
             for table in self.tables:
                 table._meta.database = self.db
             self.exists = True
@@ -249,7 +271,7 @@ class DataFile:
         try:
             offset = self.table_offsets.get(image=image)
             return [offset.x, offset.y]
-        except DoesNotExist:
+        except peewee.DoesNotExist:
             return [0, 0]
 
     def closeEvent(self, QCloseEvent):
@@ -291,3 +313,62 @@ class FrameBuffer:
             return self.slots[index]
         except ValueError:
             return None
+
+import re
+filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})'
+filename_data_regex = re.compile(filename_data_regex)
+filename_data_regex2 = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<timestamp2>\d{8}-\d{6})'
+filename_data_regex2 = re.compile(filename_data_regex2)
+def getTimeStamp(file, extension):
+    global filename_data_regex
+    if extension.lower() == ".tif" or extension.lower() == ".tiff":
+        dt = get_meta(file)
+        return dt, dt
+    match = filename_data_regex.match(file)
+    if match:
+        match2 = filename_data_regex2.match(file)
+        if match2:
+            match = match2
+        par_dict = match.groupdict()
+        if "timestamp" in par_dict:
+            dt = datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S')
+            if "timestamp2" in par_dict:
+                dt2 = datetime.strptime(par_dict["timestamp2"], '%Y%m%d-%H%M%S')
+            else:
+                dt2 = dt
+            return dt, dt2
+    elif extension.lower() == ".jpg":
+        dt = getExifTime(file)
+        return dt, dt
+    else:
+        print("no time", extension)
+    return None, None
+
+def getExifTime(path):
+    from PIL import Image
+    import PIL
+    img = Image.open(path)
+    try:
+        exif = {
+            PIL.ExifTags.TAGS[k]: v
+            for k, v in img._getexif().items()
+            if k in PIL.ExifTags.TAGS
+        }
+        return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
+    except (AttributeError, ValueError):
+        return None
+
+def get_meta(file):
+    import tifffile
+    import json
+    with tifffile.TiffFile(file) as tif:
+        try:
+            metadata = tif[0].image_description
+        except AttributeError:
+            return None
+        try:
+            t = json.loads(metadata.decode('utf-8'))["Time"]
+            return datetime.strptime(t, '%Y%m%d-%H%M%S')
+        except (AttributeError, ValueError, KeyError):
+            return None
+    return None
