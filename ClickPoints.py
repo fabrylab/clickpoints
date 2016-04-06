@@ -119,8 +119,6 @@ class ClickPointsWindow(QWidget):
 
         # init DataFile for storage
         load_list = True
-        if config.database_file == "":
-            config.database_file = "clickpoints.db"
         if os.path.splitext(config.srcpath)[1] == ".db":
             config.database_file = config.srcpath
             load_list = False
