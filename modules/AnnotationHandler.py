@@ -7,6 +7,7 @@ except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QWidget, QDialog, QGridLayout, QHBoxLayout, QVBoxLayout,QSizePolicy, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QRadioButton
     from PyQt4.QtCore import Qt, QTextStream, QFile
+import qtawesome as qta
 
 import sys
 import os
@@ -434,6 +435,13 @@ class AnnotationHandler:
                 BroadCastEvent(self.modules, "AnnotationMarkerAdd", item.image.sort_index)
                 self.annoation_ids.append(item.id)
 
+        self.button_brightness = QtGui.QPushButton()
+        #self.button_brightness.setCheckable(True)
+        self.button_brightness.setIcon(qta.icon("fa.file-text-o"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_annotation.png")))
+        self.button_brightness.setIcon(qta.icon("ei.list-alt"))
+        self.button_brightness.clicked.connect(self.showAnnotationEditor)
+        self.window.layoutButtons.addWidget(self.button_brightness)
+
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
 
@@ -448,13 +456,17 @@ class AnnotationHandler:
         if self.AnnotationOverviewWindow:
             self.AnnotationOverviewWindow.AnnotationRemoved(annotation)
 
+    def showAnnotationEditor(self):
+        self.AnnotationEditorWindow = AnnotationEditor(self.data_file.image.filename,
+                                                           self.data_file.get_current_image(), self.db,
+                                                           modules=self.modules, config=self.config)
+        self.AnnotationEditorWindow.show()
+
     def keyPressEvent(self, event):
         # @key A: add/edit annotation
         if event.key() == Qt.Key_A:
-            self.AnnotationEditorWindow = AnnotationEditor(self.data_file.image.filename,
-                                                           self.data_file.get_current_image(), self.db,
-                                                           modules=self.modules, config=self.config)
-            self.AnnotationEditorWindow.show()
+            self.showAnnotationEditor()
+
         # @key Y: show annotation overview
         if event.key() == Qt.Key_Y:
             self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.config, self.annoation_ids, self.db)

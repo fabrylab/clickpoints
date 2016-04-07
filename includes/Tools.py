@@ -8,6 +8,7 @@ except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QGraphicsRectItem, QGraphicsPathItem, QColor, QGraphicsItem, QCursor, QBrush, QPen, QGraphicsSimpleTextItem, QFont, QPainterPath
     from PyQt4.QtCore import QRectF, QPointF
+import qtawesome as qta
 
 import numpy as np
 import os
@@ -49,10 +50,19 @@ class HelpText(QGraphicsRectItem):
         self.setPos(100, 100)
         self.setZValue(19)
 
+        self.button_brightness = QtGui.QPushButton()
+        self.button_brightness.setCheckable(True)
+        self.button_brightness.setIcon(qta.icon('fa.question'))#QtGui.QIcon(os.path.join(window.icon_path, "icon_help.png")))
+        self.button_brightness.clicked.connect(self.ShowHelpText)
+        window.layoutButtons.addWidget(self.button_brightness)
+
         self.text = ""
         self.UpdateText(file)
         for mod in modules:
-            self.UpdateText(mod.file())
+            try:
+                self.UpdateText(mod.file())
+            except AttributeError:
+                pass
         self.DisplayText()
         BoxGrabber(self)
         self.setVisible(False)

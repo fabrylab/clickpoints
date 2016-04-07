@@ -211,9 +211,11 @@ class DataFile:
                 image.frame = 0
                 image.save()
 
-    def save_database(self):
+    def save_database(self, file=None):
         # if the database hasn't been written to file, write it
-        if not self.exists:
+        if not self.exists or file != self.database_filename:
+            if file:
+                self.database_filename = file
             SaveDB(self.db, self.database_filename)
             self.db = peewee.SqliteDatabase(self.database_filename)
             for table in self.tables:
