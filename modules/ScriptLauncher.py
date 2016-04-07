@@ -171,7 +171,7 @@ class ScriptLauncher(QObject):
                         process.send_signal(signal.SIGTERM)
                     continue
                 self.window.Save()
-                args = [sys.executable, os.path.abspath(script), " ", str(self.data_file.get_current_image()), str(self.PORT)]
+                args = [sys.executable, os.path.abspath(script), " ", str(self.data_file.get_current_image()), str(self.PORT), str(self.data_file.database_filename)]
                 print('arags:', args)
                 if hasattr(os.sys, 'winver'):
                     process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
