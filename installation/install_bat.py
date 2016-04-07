@@ -59,6 +59,27 @@ else:
     for ext in ["inode/directory", "ideo/mp4", "video/x-msvideo", "video/mpeg", "image/bmp", "image/png", "image/jpeg", "image/gif", "image/tiff"]:
         print("Setting ClickPoints as default application for %s" % ext)
         os.popen("sudo xdg-mime default clickpoints.desktop "+ext)
+    
+    print("Installing packets via apt-get ...")
+    os.popen("sudo apt-get install python-pip \
+              python-numpy \
+              python-scipy \
+              python-qt4 \
+              python-opencv \
+              python-matplotlib ")
+
+    print("Installing packets via pip ...")
+    import pip
+    packetlist = [ 'peewee', 
+                   'qimage2ndarray',
+                   'natsort',
+                   'sortedcontainers',
+                   'imageio']
+    for packet in packetlist:
+	print("Installing packet \"%s\"" % packet)
+        pip.main(['install', packet])
+
+
     os.chdir("package")
     os.popen("sudo python setup.py develop")
     os.chdir("..")
