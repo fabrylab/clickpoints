@@ -48,7 +48,7 @@ else:
         fp.write("Name=ClickPoints\n")
         fp.write("GenericName=View Images/Videos and Annotate them\n")
         fp.write("Comment=Display images and videos and annotate them\n")
-        fp.write("Exec="+sh_file+" \"%f\"\n")
+        fp.write("Exec="+sh_file+" \"\"%f\"\"\n")
         fp.write("NoDisplay=false\n")
         fp.write("Terminal=true\n")
         fp.write("Icon="+icon_path+"\n")
