@@ -20,6 +20,7 @@ except ImportError:
     from PyQt4.QtGui import QIcon, QGraphicsRectItem, QPen, QBrush, QColor, QLinearGradient, QGraphicsPathItem, QPainterPath, QGraphicsScene, QGraphicsView, QPalette, QCursor
     from PyQt4.QtCore import Qt, QPointF, QObject
     from PyQt4.QtCore import pyqtSignal
+import qtawesome as qta
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
@@ -759,6 +760,12 @@ class Timeline:
         if self.config.fps != 0:
             self.fps = self.config.fps
         self.skip = 0
+
+        self.button = QtGui.QPushButton()
+        self.button.setCheckable(True)
+        self.button.setIcon(qta.icon("fa.play"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_slider.png")))
+        self.button.clicked.connect(lambda: self.HideInterface(self.hidden is False))
+        self.window.layoutButtons.addWidget(self.button)
 
         # control elements
         self.layoutCtrlParent = QtGui.QVBoxLayout()

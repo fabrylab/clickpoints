@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 
 if __name__ == "__main__":
+    import qtawesome as qta
     import sys, os
     import sip
     sip.setapi('QVariant', 2)
@@ -50,6 +51,7 @@ except ImportError:
     from sip import SIP_VERSION_STR
 
     print("Using PyQt4 (PyQt %s, SIP %s, Qt %s)" % (PYQT_VERSION_STR, SIP_VERSION_STR, QT_VERSION_STR))
+import qtawesome as qta
 
 from includes import HelpText, BroadCastEvent, rotate_list
 from includes import LoadConfig
@@ -71,8 +73,19 @@ from modules import VideoExporter
 from modules import InfoHud
 from modules import Overview
 
-used_modules = [Timeline, MarkerHandler, MaskHandler, AnnotationHandler, GammaCorrection, InfoHud, VideoExporter, ScriptLauncher, HelpText]
-used_huds = ["", "hud", "hud_upperRight", "", "hud_lowerRight", "hud_lowerLeft", "", "", ""]
+class AddVLine():
+    def __init__(self, window):
+        line = QtGui.QFrame()
+        line.setFrameShape(QtGui.QFrame.VLine)
+        line.setFrameShadow(QtGui.QFrame.Sunken)
+        window.layoutButtons.addWidget(line)
+
+class AddStrech():
+    def __init__(self, window):
+        window.layoutButtons.addStretch()
+
+used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, InfoHud, ScriptLauncher, AddStrech, HelpText]
+used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "hud_lowerLeft", "", "", "", "", ""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
@@ -106,6 +119,20 @@ class ClickPointsWindow(QWidget):
         # setup mono space font
         QtGui.QFontDatabase.addApplicationFont(os.path.join(clickpoints_path, "icons", "FantasqueSansMono-Regular.ttf"))
         self.mono_font = QtGui.QFont("Fantasque Sans Mono")
+
+        self.icon_path = icon_path
+        self.layoutButtons = QtGui.QHBoxLayout()
+        self.button_play = QtGui.QPushButton()
+        self.button_play.clicked.connect(self.SaveDatabase)
+        self.button_play.setIcon(qta.icon("fa.save"))#QIcon(os.path.join(icon_path, "icon_database.png")))
+        self.layoutButtons.addWidget(self.button_play)
+
+        self.button_play = QtGui.QPushButton()
+        self.button_play.setCheckable(True)
+        self.button_play.setIcon(qta.icon("fa.folder-open"))#QIcon(os.path.join(icon_path, "icon_database.png")))
+        self.layoutButtons.addWidget(self.button_play)
+
+        self.layout.addLayout(self.layoutButtons)
 
         # view/scene setup
         self.view = QExtendedGraphicsView()
@@ -149,6 +176,8 @@ class ClickPointsWindow(QWidget):
                 # Initialize the module
                 self.modules.append(mod(**arg_dict2))
 
+        #self.layoutButtons.addStretch()
+
         # find next module, which can be activated
         for module in self.modules:
             if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
@@ -177,6 +206,11 @@ class ClickPointsWindow(QWidget):
     def Save(self):
         BroadCastEvent(self.modules, "save")
         #self.data_file.check_to_save()
+
+    def SaveDatabase(self):
+        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Save ClickPoints data", os.getcwd(), "ClickPoints Database *.db"))
+        if srcpath:
+            self.data_file.save_database(file=srcpath)
 
     """ jumping frames and displaying images """
 

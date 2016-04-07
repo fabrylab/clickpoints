@@ -10,6 +10,7 @@ except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QGraphicsRectItem, QColor, QGraphicsPathItem, QBrush, QPen, QPainterPath, QCursor, QFont, QGraphicsSimpleTextItem, QGraphicsPixmapItem, QImage, QPixmap
     from PyQt4.QtCore import Qt
+import qtawesome as qta
 
 import numpy as np
 
@@ -285,6 +286,12 @@ class MaskHandler:
         self.DrawCursor.setZValue(10)
         self.DrawCursor.setVisible(False)
         self.UpdateDrawCursorSize()
+
+        self.button_brightness = QtGui.QPushButton()
+        self.button_brightness.setCheckable(True)
+        self.button_brightness.setIcon(qta.icon("fa.paint-brush"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_mask.png")))
+        self.button_brightness.clicked.connect(self.ToggleInterfaceEvent)
+        self.window.layoutButtons.addWidget(self.button_brightness)
 
         self.DrawMode = False
         self.MaskChanged = False

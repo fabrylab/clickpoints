@@ -5,6 +5,7 @@ try:
     from PyQt5 import QtCore, QtGui
 except ImportError:
     from PyQt4 import QtCore, QtGui
+import qtawesome as qta
 
 import imageio
 import numpy as np
@@ -273,15 +274,24 @@ class VideoExporter:
         self.modules = modules
         self.ExporterWindow = None
 
+        self.button = QtGui.QPushButton()
+        self.button.setIcon(qta.icon('fa.film'))
+        self.button.clicked.connect(self.showDialog)
+        window.layoutButtons.addWidget(self.button)
+
+    def showDialog(self):
+        if self.ExporterWindow:
+            self.ExporterWindow.raise_()
+            self.ExporterWindow.show()
+        else:
+            self.ExporterWindow = VideoExporterDialog(self, self.window, self.data_file, self.config, self.modules)
+            self.ExporterWindow.show()
+
     def keyPressEvent(self, event):
 
         # @key Z: Export Video
         if event.key() == QtCore.Qt.Key_Z:
-            if self.ExporterWindow:
-                self.ExporterWindow.raise_()
-            else:
-                self.ExporterWindow = VideoExporterDialog(self, self.window, self.data_file, self.config, self.modules)
-                self.ExporterWindow.show()
+            self.showDialog()
 
     def closeEvent(self, event):
         if self.ExporterWindow:

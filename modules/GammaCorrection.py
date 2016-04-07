@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 
+import os
+
 try:
     from PyQt5 import QtGui, QtCore
     from PyQt5.QtWidgets import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem, QApplication, QPainterPath, QIcon
@@ -8,6 +10,7 @@ except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4.QtGui import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem, QApplication, QPainterPath, QIcon
     from PyQt4.QtCore import QRectF, Qt
+import qtawesome as qta
 
 from Tools import MySlider, BoxGrabber
 
@@ -15,6 +18,7 @@ class GammaCorrection(QGraphicsRectItem):
     def __init__(self, parent_hud, image_display, config, window):
         QGraphicsRectItem.__init__(self, parent_hud)
         self.config = config
+        self.window = window
 
         self.image = image_display
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
@@ -49,6 +53,12 @@ class GammaCorrection(QGraphicsRectItem):
         self.setRect(QRectF(0, 0, 110, 110))
         BoxGrabber(self)
         self.dragged = False
+
+        self.button_brightness = QtGui.QPushButton()
+        self.button_brightness.setCheckable(True)
+        self.button_brightness.setIcon(qta.icon("fa.adjust"))#QIcon(os.path.join(self.window.icon_path, "icon_brightness.png")))
+        self.button_brightness.clicked.connect(self.ToggleInterfaceEvent)
+        self.window.layoutButtons.addWidget(self.button_brightness)
 
         self.hidden = False
         if self.config.hide_interfaces:

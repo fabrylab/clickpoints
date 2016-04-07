@@ -13,6 +13,7 @@ except ImportError:
     from PyQt4.QtGui import QGraphicsPixmapItem, QPixmap, QPainterPath, QGraphicsPathItem, QGraphicsRectItem, QGraphicsLineItem, QCursor, QFont, QGraphicsSimpleTextItem, QPen, QBrush, QColor
     from PyQt4.QtGui import QWidget, QGridLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel
     from PyQt4.QtCore import Qt
+import qtawesome as qta
 
 import numpy as np
 from sortedcontainers import SortedDict
@@ -1066,21 +1067,28 @@ class MyCounter(QGraphicsRectItem):
 
 
 class MarkerHandler:
+    points = []
+    tracks = []
+    counter = []
+    scale = 1
+
+    text = None
+    marker_edit_window = None
+
     def __init__(self, window, data_file, parent, parent_hud, view, image_display, config, modules, datafile):
         self.window = window
         self.data_file = data_file
         self.view = view
         self.parent_hud = parent_hud
         self.modules = modules
-        self.points = []
-        self.tracks = []
-        self.counter = []
-        self.scale = 1
         self.config = config
         self.data_file = datafile
-        self.text = None
 
-        self.marker_edit_window = None
+        self.button = QtGui.QPushButton()
+        self.button.setCheckable(True)
+        self.button.setIcon(qta.icon("fa.crosshairs"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_marker.png")))
+        self.button.clicked.connect(self.ToggleInterfaceEvent)
+        self.window.layoutButtons.addWidget(self.button)
 
         self.marker_file = MarkerFile(datafile)
 
@@ -1098,9 +1106,8 @@ class MarkerHandler:
 
         self.Crosshair = Crosshair(parent, view, image_display, config)
 
+        self.active_type_index = None
         self.UpdateCounter()
-        self.active_type = self.counter[list(self.counter.keys())[0]].type
-        self.active_type_index = 0
 
         # place tick marks for already present markers
         for item in self.marker_file.get_marker_frames():
@@ -1119,7 +1126,10 @@ class MarkerHandler:
         type_list = [self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2]) for type_id, type_def in self.config.types.items()]
         type_list = self.marker_file.get_type_list()
         self.counter = {index: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
-        self.active_type = self.counter[list(self.counter.keys())[0]].type
+        if len(list(self.counter.keys())):
+            self.active_type = self.counter[list(self.counter.keys())[0]].type
+        else:
+            self.active_type = None
 
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
@@ -1200,7 +1210,8 @@ class MarkerHandler:
             counter = counter_list[0]
         except IndexError:
             return
-        self.counter[self.active_type_index].SetToInactiveColor()
+        if self.active_type_index is not None:
+            self.counter[self.active_type_index].SetToInactiveColor()
         self.active_type = counter.type
         self.active_type_index = new_index
         self.counter[self.active_type_index].SetToActiveColor()
@@ -1220,9 +1231,11 @@ class MarkerHandler:
             point.setActive(active)
         if active:
             self.view.setCursor(QCursor(QtCore.Qt.ArrowCursor))
-            self.counter[self.active_type_index].SetToActiveColor()
+            if self.active_type_index is not None:
+                self.counter[self.active_type_index].SetToActiveColor()
         else:
-            self.counter[self.active_type_index].SetToInactiveColor()
+            if self.active_type_index is not None:
+                self.counter[self.active_type_index].SetToInactiveColor()
         return True
 
     def toggleMarkerShape(self):
