@@ -38,7 +38,14 @@ def CheckValidColor(color):
 class DataFile:
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
-            database_filename = sys.argv[4]
+            import argparse
+            parser = argparse.ArgumentParser()
+            parser.add_argument("--database", dest='database', help='specify which database file to use')
+            args, unknown = parser.parse_known_args()
+            if args.database:
+                database_filename = args.database
+        if database_filename is None:
+            raise TypeError("No database filename supplied. Pass it either as an argument to DataFile or as a command line parameter e.g. --database clickpoints.db")
         self.database_filename = database_filename
 
         self.current_version = "3"
