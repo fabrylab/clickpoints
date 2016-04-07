@@ -70,14 +70,7 @@ else:
 
     print("Installing packets via pip ...")
     import pip
-    packetlist = [ 'peewee', 
-                   'qimage2ndarray',
-                   'natsort',
-                   'sortedcontainers',
-                   'imageio']
-    for packet in packetlist:
-	print("Installing packet \"%s\"" % packet)
-        pip.main(['install', packet])
+    pip.main(['install','-r', 'installation/pip_req.txt'])
 
 
     os.chdir("package")
