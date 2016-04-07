@@ -36,7 +36,9 @@ def CheckValidColor(color):
 
 
 class DataFile:
-    def __init__(self, database_filename='clickpoints.db',mode='r'):
+    def __init__(self, database_filename=None, mode='r'):
+        if database_filename is None:
+            database_filename = sys.argv[4]
         self.database_filename = database_filename
 
         self.current_version = "3"
@@ -89,7 +91,7 @@ class DataFile:
             def points(self):
                 return np.array([[point.x, point.y] for point in self.marker()])
             def marker(self):
-                return Marker.select().where(Marker.track == self).join(Images).order_by(Images.filename).order_by(Marker.image_frame)
+                return Marker.select().where(Marker.track == self).join(Images).order_by(Images.sort_index)
             def times(self):
                 return np.array([point.image.timestamp for point in self.marker()])
 
