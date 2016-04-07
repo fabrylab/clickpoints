@@ -408,7 +408,19 @@ class DataFile:
         query += ");"
 
         self.db.execute_sql(query)
-    
+
+    def GetMaskTypes(self):
+        """
+        Get all mask type entries
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains all marker types.
+        """
+        query = self.table_maskTypes.select()
+        return query
+
     def GetMask(self, image):
         """
         Get the mask image data for the image with the id `image`. If the database already has an entry the corresponding
