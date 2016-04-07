@@ -4,6 +4,7 @@ import os
 import peewee
 import time
 from PIL import Image
+import imageio
 import sys
 
 def isstring(object):
@@ -64,6 +65,7 @@ class DataFile:
         class BaseModel(peewee.Model):
             class Meta:
                 database = self.db
+            database_class = self
 
         class Meta(BaseModel):
             key = peewee.CharField()
@@ -76,6 +78,23 @@ class DataFile:
             external_id = peewee.IntegerField(null=True)
             timestamp = peewee.DateTimeField(null=True)
             sort_index = peewee.IntegerField(default=0)
+
+            image_data = None
+
+            def get_data(self):
+                if self.image_data is None:
+                    reader = imageio.get_reader(self.filename)
+                    self.image_data = reader.get_data(self.frame)
+                return self.image_data
+
+            def __getattr__(self, item):
+                if item == "mask":
+                    return self.masks[0]
+                if item == "data":
+                    return self.get_data()
+                else:
+                    return BaseModel(self, item)
+
 
         self.base_model = BaseModel
         self.table_meta = Meta
@@ -150,8 +169,23 @@ class DataFile:
 
         """ Mask Tables """
         class Mask(BaseModel):
-            image = peewee.ForeignKeyField(Images)
+            image = peewee.ForeignKeyField(Images, related_name="masks")
             filename = peewee.CharField()
+
+            mask_data = None
+
+            def get_data(self):
+                if self.mask_data is None:
+                    im = np.asarray(Image.open(os.path.join(self.database_class.GetMaskPath(), self.filename)))
+                    im.setflags(write=True)
+                    self.mask_data = im
+                return self.mask_data
+
+            def __getattr__(self, item):
+                if item == "data":
+                    return self.get_data()
+                else:
+                    return BaseModel(self, item)
 
         class MaskTypes(BaseModel):
             name = peewee.CharField()
@@ -215,7 +249,7 @@ class DataFile:
         """
 
         query = self.table_images.select()
-        query.order_by(self.table_images.filename)
+        query = query.order_by(self.table_images.sort_index)
         return query
 
     def AddImage(self,filename,ext,frames=1,external_id=None,timestamp=None):
