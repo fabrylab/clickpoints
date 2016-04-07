@@ -19,7 +19,7 @@ setup(name='clickpoints',
       license='MIT',
       packages=['clickpoints'],
       install_requires=[
-          'pyqt4',
+          'qtawesome',
           'numpy',
           'scipy',
           'pillow',
