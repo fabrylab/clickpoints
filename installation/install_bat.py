@@ -35,6 +35,10 @@ else:
         
     print("Copying ClickPoints bash file to /bin/")
     os.popen("sudo cp %s /bin/" % sh_file)
+
+    application_path = "/home/"+os.popen('whoami').read()[:-1]+"/.local/share/applications/"
+    if not os.path.exists(application_path):
+        os.mkdir(application_path)
         
     desktop_file = "/home/"+os.popen('whoami').read()[:-1]+"/.local/share/applications/clickpoints.desktop"
     with open(desktop_file, 'w') as fp:
