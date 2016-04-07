@@ -2,8 +2,6 @@ from __future__ import print_function, division
 import numpy as np
 import os
 import peewee
-# from playhouse import apsw_ext
-# from playhouse.apsw_ext import apsw, DateTimeField
 import time
 from PIL import Image
 import sys
@@ -65,9 +63,10 @@ class DataFile:
         class Images(BaseModel):
             filename = peewee.CharField(unique=True)
             ext = peewee.CharField()
-            frames = peewee.IntegerField(default=0)
+            frame = peewee.IntegerField(default=0)
             external_id = peewee.IntegerField(null=True)
             timestamp = peewee.DateTimeField(null=True)
+            sort_index = peewee.IntegerField(default=0)
 
         self.base_model = BaseModel
         self.table_meta = Meta
@@ -76,12 +75,9 @@ class DataFile:
 
         """ Offset Table """
         class Offsets(BaseModel):
-            image = peewee.ForeignKeyField(Images)
-            image_frame = peewee.IntegerField()
+            image = peewee.ForeignKeyField(Images, unique=True)
             x = peewee.FloatField()
             y = peewee.FloatField()
-            class Meta:
-                indexes = ((('image', 'image_frame'), True), )
 
         self.table_offsets = Offsets
         self.tables.extend([Offsets])
@@ -105,7 +101,6 @@ class DataFile:
 
         class Marker(BaseModel):
             image = peewee.ForeignKeyField(Images)
-            image_frame = peewee.IntegerField()
             x = peewee.FloatField()
             y = peewee.FloatField()
             type = peewee.ForeignKeyField(Types)
@@ -147,7 +142,6 @@ class DataFile:
         """ Mask Tables """
         class Mask(BaseModel):
             image = peewee.ForeignKeyField(Images)
-            image_frame = peewee.IntegerField()
             filename = peewee.CharField()
 
         class MaskTypes(BaseModel):
@@ -305,7 +299,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
     
-    def GetMarker(self,image=None, image_filename=None, image_frame=None, processed=None, type=None, type_name=None, track=None):
+    def GetMarker(self,image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
         """
         Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
         ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
@@ -315,8 +309,6 @@ class DataFile:
         ----------
         image : int, array, optional
             the image id(s) for the markers to be selected.
-        image_frame : int, array, optional
-            the image frame(s) for the markers to be selected.
         processed : bool, array, optional
             the processed flag(s) for the markers to be selected.
         type : int, array, optional
@@ -332,9 +324,9 @@ class DataFile:
         # join marker and type table
         query = query=self.table_marker.select(self.table_marker,self.table_types,self.table_images).join(self.table_types,peewee.JOIN.LEFT_OUTER)\
                                                                           .switch(self.table_marker).join(self.table_images,peewee.JOIN.LEFT_OUTER)
-        parameter = [image,image_filename, image_frame, processed, type, type_name, track]
+        parameter = [image,image_filename, processed, type, type_name, track]
         table = self.table_marker
-        fields = [table.image, self.table_images.filename ,table.image_frame, table.processed, table.type, self.table_types.name, table.track]
+        fields = [table.image, self.table_images.filename, table.processed, table.type, self.table_types.name, table.track]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
                 continue
@@ -344,7 +336,7 @@ class DataFile:
                 query = query.where(field == parameter)
         return query
     
-    def SetMarker(self,id=None, image=None, image_frame=1, x=None, y=None, processed=0, partner=None, type=None, track=None ,marker_text=None):
+    def SetMarker(self, id=None, image=None, x=None, y=None, processed=0, partner=None, type=None, track=None, marker_text=None):
         """
         Insert or update markers in the database file. Every parameter can either be omitted, to use the default value,
         supplied with a single value, to use the same value for all entries, or be supplied with a list of values, to use a
@@ -357,8 +349,6 @@ class DataFile:
             the id(s) for the markers to be inserted.
         image : int, array, optional
             the image id(s) for the markers to be inserted.
-        image_frame : int, array, optional
-            the image frame(s) for the markers to be inserted.
         x : float, array, optional
             the x coordinate(s) for the markers to be inserted.
         y : float, array, optional
@@ -374,13 +364,13 @@ class DataFile:
         """
         data_sets = []
         table = self.table_marker
-        fields = [table.id, table.image, table.image_frame, table.x, table.y, table.processed, table.partner_id, table.type, table.text, table.track ]
-        names = ["id", "image_id", "image_frame", "x", "y", "processed", "partner_id", "type_id", "text", "track_id"]
-        for data in np.broadcast(id, image, image_frame, x, y, processed, partner, type, marker_text, track):
+        fields = [table.id, table.image, table.x, table.y, table.processed, table.partner_id, table.type, table.text, table.track ]
+        names = ["id", "image_id", "x", "y", "processed", "partner_id", "type_id", "text", "track_id"]
+        for data in np.broadcast(id, image, x, y, processed, partner, type, marker_text, track):
             data_set = []
-            condition_list  = ["image_id","image_frame", "track_id"]
+            condition_list = ["image_id", "track_id"]
             # TODO: track_id param as position=[-1] is BAD
-            condition_param = [data[1]   ,data[2]      , data[-1]]
+            condition_param = [data[1], data[-1]]
             condition = "WHERE "
             for idx,cond in enumerate(condition_list):
                 if not condition_param[idx] is None:
@@ -392,7 +382,7 @@ class DataFile:
 
             # print(condition)
 
-            # condition = "WHERE image_id = %d AND image_frame = %d AND track_id = %d" % (data[1], data[2], data[-1])
+            # condition = "WHERE image_id = %d AND track_id = %d" % (data[1], data[2], data[-1])
 
             for field, name, value in zip(fields, names, data):
                 if value is None:
@@ -404,21 +394,13 @@ class DataFile:
                     else:
                         data_set.append(str(value))
             data_sets.append(",\n ".join(data_set))
-        query = "INSERT OR REPLACE INTO marker (id, image_id, image_frame, x, y, processed, partner_id, type_id, text, track_id)\n VALUES (\n"
+        query = "INSERT OR REPLACE INTO marker (id, image_id, x, y, processed, partner_id, type_id, text, track_id)\n VALUES (\n"
         query += "),\n (".join(data_sets)
         query += ");"
 
-        # print(query)
-        while 1:
-            try:
-                self.db.execute_sql(query)
-            except apsw.BusyError:
-                time.sleep(0.01)
-                continue
-            else:
-                break
+        self.db.execute_sql(query)
     
-    def GetMask(self,image, image_frame=0):
+    def GetMask(self, image):
         """
         Get the mask image data for the image with the id `image`. If the database already has an entry the corresponding
         mask will be loaded, otherwise a new empty mask array will be created.
@@ -429,8 +411,6 @@ class DataFile:
         ----------
         image : int
             image id.
-        image_frame : int, optional
-            image frame number (default=0).
     
         Returns
         -------
@@ -439,7 +419,7 @@ class DataFile:
         """
         try:
             # Test if mask already exists in database
-            mask_entry = self.table_mask.get(self.table_mask.image == image, self.table_mask.image_frame == image_frame)
+            mask_entry = self.table_mask.get(self.table_mask.image == image)
             # Load it
             im = np.asarray(Image.open(os.path.join(self.GetMaskPath(), mask_entry.filename)))
             im.setflags(write=True)
@@ -451,9 +431,9 @@ class DataFile:
             im = np.zeros(pil_image.size, dtype=np.uint8)
             return im
     
-    def SetMask(self,mask, image, image_frame=0):
+    def SetMask(self,mask, image):
         """
-        Add or overwrite the mask file for the image with the id `image` and the frame number `image_frame`
+        Add or overwrite the mask file for the image with the id `image`
     
         Parameters
         ----------
@@ -461,19 +441,17 @@ class DataFile:
             mask image data.
         image : int
             image id.
-        image_frame : int, optional
-            image frame number (default=0).
         """
         try:
             # Test if mask already exists in database
-            mask_entry = self.table_mask.get(self.table_mask.image == image, self.table_mask.image_frame == image_frame)
+            mask_entry = self.table_mask.get(self.table_mask.image == image)
             filename = os.path.join(self.GetMaskPath(), mask_entry.filename)
         except peewee.DoesNotExist:
             # Create new entry
-            mask_entry = self.table_mask(image=image, image_frame=image_frame)
+            mask_entry = self.table_mask(image=image)
             # Get mask image name
             image_entry = self.table_images.get(id=image)
-            if image_entry.frames > 1:
+            if image_entry.frames > 1:  # TODO
                 number = "_"+("%"+"%d" % np.ceil(np.log10(image_entry.frames))+"d") % image_frame
             else:
                 number = ""
@@ -497,14 +475,13 @@ class DataFile:
         pil_image.save(filename)
 
 
-    def AddMaskFile(self,image_id,filename,image_frame=0):
+    def AddMaskFile(self, image_id, filename):
         try:
-            item = self.table_mask.get(self.table_mask.image==image_id)
+            item = self.table_mask.get(self.table_mask.image == image_id)
         except peewee.DoesNotExist:
             item = self.table_mask()
 
         item.image = image_id
-        item.image_frame = image_frame
         item.filename = filename
 
         item.save()

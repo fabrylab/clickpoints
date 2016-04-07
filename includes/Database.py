@@ -249,7 +249,7 @@ class DataFile:
         else:
             return self.buffer_frame(image, slots, slot_index, index)
 
-    def buffer_frame(self, image, slots, slot_index, index):
+    def buffer_frame(self, image, slots, slot_index, index, signal=True):
         # if we have already a reader...
         if self.reader:
             # ... check if it is the right one, if not delete it
@@ -264,11 +264,23 @@ class DataFile:
         image_data = self.reader.get_data(image.frame)
         slots[slot_index] = image_data
         # notify that the frame has been loaded
-        self.signals.loaded.emit(index)
+        if signal:
+            self.signals.loaded.emit(index)
 
-    def get_image_data(self):
-        # get the pixel data from the current image
-        return self.buffer.get_frame(self.current_image_index)
+    def get_image_data(self, index=None):
+        if index is None or index == self.current_image_index:
+            # get the pixel data from the current image
+            return self.buffer.get_frame(self.current_image_index)
+        buffer = self.buffer.get_frame(index)
+        if buffer is not None:
+            return buffer
+        try:
+            image = self.table_images.get(sort_index=index)
+        except peewee.DoesNotExist:
+            return None
+        slots, slot_index, = self.buffer.prepare_slot(index)
+        self.buffer_frame(image, slots, slot_index, index, signal=False)
+        return self.buffer.get_frame(index)
 
     def add_image(self, filename, extension, external_id, frames):
         # add an entry for every frame in the image container

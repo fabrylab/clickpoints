@@ -98,14 +98,14 @@ def GetImage(value):
     """
     results = send_and_receive("GetImage %d \n" % value)
     try:
-        image_path, id, frame = results.split(" ")
+        image_path, id = results.split(" ")
     except ValueError:
-        return None, None, None
+        return None, None
 
     memmap = MemMap(image_path)
     shape = memmap.shape
     image = memmap.data[:np.prod(shape)].reshape(shape).copy()
-    return image, int(id), int(frame)
+    return image, int(id)
 
 
 def updateHUD(value):
