@@ -107,6 +107,12 @@ class DatabaseFiles:
         self.SQL_Tags = tags
         self.SQL_Tags._meta.database = self.db
 
+
+        # check if table exists - otherwise create
+        for table in [self.SQL_Systems,self.SQL_SystemAlias,self.SQL_Devices,self.SQL_DeviceAlias,self.SQL_Files,self.SQL_Folder,self.SQL_Annotation,self.SQL_Tags,self.SQL_TagAssociation]:
+            if not table.table_exists():
+                table.create_table()
+
         self.system_dict = {}
         self.updateSystemDict()
         self.systemalias_dict = {}
@@ -117,6 +123,8 @@ class DatabaseFiles:
         self.updateDeviceDict()
         self.devicealias_dict = {}
         self.updateDeviceAliasDict()
+
+
         #print(self.device_dict)
 
         #self.saveFile()
