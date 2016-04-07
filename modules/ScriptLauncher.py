@@ -99,16 +99,11 @@ class ScriptLauncher(QObject):
             BroadCastEvent(self.modules, "UpdateCounter")
             socket.sendto(cmd, client_address)
         if cmd == "GetImage":
-            try:
-                # TODO
-                file_entry, image_id, image_frame = self.window.media_handler.get_file_entry(int(value))
-                #image_id, image_frame = self.window.media_handler.id_lookup[int(value)]
-            except IndexError:
+            image = self.window.data_file.get_image_data(int(value))
+            if image is None:
                 socket.sendto(cmd + "", client_address)
                 return
-            image_entry = self.window.data_file.get_image(file_entry, image_frame, self.window.media_handler.get_timestamp(int(value)))
-            image_id = image_entry.id
-            image = self.window.media_handler.get_file(int(value))
+            image_id = self.window.data_file.image.id
 
             shape = image.shape
             if len(shape) == 2:
@@ -137,7 +132,7 @@ class ScriptLauncher(QObject):
             self.memmap.shape[:] = shape
             self.memmap.type = str(image.dtype)
             self.memmap.data[:size] = image.flatten()
-            socket.sendto(cmd + " " + self.memmap_path_xml + " " + str(image_id) + " " + str(image_frame), client_address)
+            socket.sendto(cmd + " " + self.memmap_path_xml + " " + str(image_id), client_address)
         if cmd == "updateHUD":
             try:
                 self.window.GetModule('InfoHud').updateHUD(value)
