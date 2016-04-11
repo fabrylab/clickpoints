@@ -161,7 +161,7 @@ class VideoExporterDialog(QtGui.QWidget):
         if self.cbTime.isChecked():
             class TimeDrawing: pass
             self.time_drawing = TimeDrawing()
-            self.time_drawing.font = ImageFont.truetype("tahoma.ttf", self.cbTimeFontSize.value())
+            self.time_drawing.font = ImageFont.truetype("arial.ttf", self.cbTimeFontSize.value())
             self.time_drawing.start = None
             self.time_drawing.x = 15
             self.time_drawing.y = 10
@@ -228,7 +228,7 @@ class VideoExporterDialog(QtGui.QWidget):
                 marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1])
             # draw timestamp
             if self.time_drawing is not None or 0:  # TODO
-                time = self.window.media_handler.get_timestamp()
+                time = self.window.data_file.image.timestamp
                 if time is not None:
                     if frame == start and self.cbTimeZero.isChecked():
                         self.time_drawing.start = time
