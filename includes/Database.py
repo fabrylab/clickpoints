@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 import os
+import sys
+import importlib
 from datetime import datetime
 import peewee
 from playhouse.reflection import Introspector
@@ -11,6 +13,19 @@ import imageio
 from threading import Thread
 from PyQt4 import QtCore
 import numpy as np
+
+
+# add plugins to imageIO if available
+plugin_searchpath = os.path.join(os.path.split(__file__)[0],'..',r'addons/imageio_plugin')
+sys.path.append(plugin_searchpath)
+if os.path.exists(plugin_searchpath):
+    print("Searching ImageIO Plugins ...")
+    plugin_list = os.listdir(os.path.abspath(plugin_searchpath))
+    for plugin in plugin_list:
+        if plugin.startswith('imageio_plugin_') and plugin.endswith('.py'):
+            importlib.import_module(os.path.splitext(plugin)[0])
+            print('Adding %s' % plugin)
+
 
 def SQLMemoryDBFromFile(filename, *args, **kwargs):
 
