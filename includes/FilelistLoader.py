@@ -9,6 +9,9 @@ import peewee
 import time
 import numpy as np
 
+from PyQt4 import QtGui, QtCore
+import qtawesome as qta
+
 try:
     from itertools import izip_longest as zip_longest  # python 2
 except ImportError:
@@ -16,7 +19,6 @@ except ImportError:
 
 from threading import Thread
 
-from PyQt4 import QtCore
 from PIL import Image
 import PIL
 
@@ -105,8 +107,12 @@ def WalkSubdirectories(path):
     return matches
 
 
+def GetSubdirectories(directory):
+    return [x[0] for x in os.walk(directory)]
+
+
 def GetFilesInDirectory(root):
-    return [os.path.join(root, filename) for filename in os.listdir(root) if filename.lower().endswith(formats)]
+    return [filename for filename in os.listdir(root) if filename.lower().endswith(formats)]
 
 
 def PathToFilelist(paths):
@@ -121,6 +127,120 @@ def PathToFilelist(paths):
         elif os.path.exists(path):
             path_list.extend(WalkSubdirectories(path))
     return path_list
+
+
+class FolderEditor(QtGui.QWidget):
+    def __init__(self, data_file):
+        QtGui.QWidget.__init__(self)
+        self.data_file = data_file
+
+        # Widget
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(200)
+        self.setWindowTitle("Folder Selector")
+        self.layout = QtGui.QVBoxLayout(self)
+
+        self.setWindowIcon(qta.icon("fa.folder-open"))
+
+        """ """
+        self.list = QtGui.QListWidget(self)
+        for path in self.data_file.table_paths.select():
+            QtGui.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
+        self.layout.addWidget(self.list)
+
+        group_box = QtGui.QGroupBox("Add Folder")
+        self.layout.addWidget(group_box)
+        layout = QtGui.QVBoxLayout()
+        group_box.setLayout(layout)
+        """ """
+
+        horizontal_layout = QtGui.QHBoxLayout()
+        layout.addLayout(horizontal_layout)
+
+        horizontal_layout.addWidget(QtGui.QLabel("Folder:"))
+
+        self.text_input = QtGui.QLineEdit(self)
+        self.text_input.setDisabled(True)
+        horizontal_layout.addWidget(self.text_input)
+
+        self.pushbutton_folder = QtGui.QPushButton('Open F&older', self)
+        self.pushbutton_folder.pressed.connect(self.selectFolder)
+        horizontal_layout.addWidget(self.pushbutton_folder)
+
+        self.pushbutton_file = QtGui.QPushButton('Open F&ile', self)
+        self.pushbutton_file.pressed.connect(self.selectFile)
+        horizontal_layout.addWidget(self.pushbutton_file)
+
+        """ """
+
+        horizontal_layout = QtGui.QHBoxLayout()
+        layout.addLayout(horizontal_layout)
+
+        horizontal_layout.addWidget(QtGui.QLabel("Filter:"))
+
+        self.text_input_filter = QtGui.QLineEdit(self)
+        self.text_input_filter.setToolTip("Use any expression with an wildcard * to filter the files in the selected folder.")
+        horizontal_layout.addWidget(self.text_input_filter)
+
+        """ """
+
+        horizontal_layout = QtGui.QHBoxLayout()
+        layout.addLayout(horizontal_layout)
+
+        self.checkbox_subfolders = QtGui.QCheckBox("subfolders")
+        self.checkbox_subfolders.setToolTip("Add all the subfolders of the selected folder, too.")
+        horizontal_layout.addWidget(self.checkbox_subfolders)
+        self.checkbox_natsort = QtGui.QCheckBox("natsort")
+        self.checkbox_natsort.setToolTip("Use natural sorting of filenames. This will sort numbers correctly (e.g. not 1 10 2 3). Takes more time to load.")
+        horizontal_layout.addWidget(self.checkbox_natsort)
+
+        self.pushbutton_folder = QtGui.QPushButton('Load', self)
+        self.pushbutton_folder.pressed.connect(self.add_folder)
+        horizontal_layout.addWidget(self.pushbutton_folder)
+
+        """ """
+
+        horizontal_layout = QtGui.QHBoxLayout()
+        self.layout.addLayout(horizontal_layout)
+
+        horizontal_layout.addStretch()
+
+        self.pushbutton_Confirm = QtGui.QPushButton('O&k', self)
+        self.pushbutton_Confirm.pressed.connect(self.close)
+        horizontal_layout.addWidget(self.pushbutton_Confirm)
+
+    def selectFolder(self):
+        srcpath = str(QtGui.QFileDialog.getExistingDirectory(None, "Open Folder", os.getcwd()))
+        if srcpath:
+            self.text_input.setText(srcpath)
+
+    def selectFile(self):
+        srcpath = str(QtGui.QFileDialog.getOpenFileName(None, "Open Folder", os.getcwd()))
+        if srcpath:
+            self.text_input.setText(srcpath)
+
+    def add_folder(self):
+        srcpath = str(self.text_input.text())
+        if self.checkbox_subfolders.isChecked():
+            srcpaths = GetSubdirectories(srcpath)
+        else:
+            srcpaths = [srcpath]
+        filter = str(self.text_input_filter.text())
+        for srcpath in srcpaths:
+            if filter != "":
+                path_list = glob.glob(os.path.join(srcpath, filter))
+            else:
+                path_list = GetFilesInDirectory(srcpath)
+            if len(path_list) == 0:
+                continue
+            path_entry = self.data_file.add_path(srcpath)
+            QtGui.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (srcpath, len(path_list)), self.list)
+            if self.checkbox_natsort.isChecked():
+                path_list = natsorted(path_list)
+            for file in path_list:#, file_ids:
+                extension = os.path.splitext(file)[1]
+                frames = getFrameNumber(file, extension)
+                self.data_file.add_image(file, extension, None, frames, path=path_entry)
 
 
 def GetFileListFromInput(input, filterparam, config):

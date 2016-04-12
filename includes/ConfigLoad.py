@@ -229,6 +229,7 @@ def LoadConfig():
                     raise ExceptionPathDoesntExist("ERROR: path "+value+" does not exist.")
 
     # if no srcpath is given, ask for one
+    """
     if srcpath is "":
         srcpath = getFiles()
         if srcpath is "":
@@ -237,6 +238,7 @@ def LoadConfig():
         if isstring(srcpath) and not os.path.exists(srcpath):
             sys.tracebacklimit = 0
             raise ExceptionPathDoesntExist("ERROR: path "+srcpath+" does not exist.")
+    """
 
     # if srcpath is a filelist load it
     dont_process_filelist = False

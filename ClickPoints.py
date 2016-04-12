@@ -57,7 +57,7 @@ from includes import HelpText, BroadCastEvent, rotate_list
 from includes import LoadConfig
 from includes import BigImageDisplay
 from includes import QExtendedGraphicsView
-from includes.FilelistLoader import ListFiles
+from includes.FilelistLoader import ListFiles, FolderEditor
 from includes import DataFile
 
 from update import Updater
@@ -84,8 +84,8 @@ class AddStrech():
     def __init__(self, window):
         window.layoutButtons.addStretch()
 
-used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, InfoHud, ScriptLauncher, AddStrech, HelpText]
-used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "hud_lowerLeft", "", "", "", "", ""]
+used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText]
+used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", ""]
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
@@ -128,7 +128,7 @@ class ClickPointsWindow(QWidget):
         self.layoutButtons.addWidget(self.button_play)
 
         self.button_play = QtGui.QPushButton()
-        self.button_play.setCheckable(True)
+        self.button_play.clicked.connect(self.Folder)
         self.button_play.setIcon(qta.icon("fa.folder-open"))#QIcon(os.path.join(icon_path, "icon_database.png")))
         self.layoutButtons.addWidget(self.button_play)
 
@@ -155,7 +155,7 @@ class ClickPointsWindow(QWidget):
         exclude_ending = None
         if len(config.draw_types):
             exclude_ending = "_mask.png"#config.maskname_tag
-        if load_list:
+        if load_list and config.srcpath != "":
             ListFiles(self.data_file, config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending, config=config)
 
         # init the modules
@@ -197,7 +197,11 @@ class ClickPointsWindow(QWidget):
         # apply image rotation from config
         if config.rotation != 0:
             self.view.rotate(config.rotation)
-            
+
+    def Folder(self):
+        self.editor = FolderEditor(self.data_file)
+        self.editor.show()
+
     def GetModule(self, name):
         module_names = [a.__class__.__name__ for a in self.modules]
         index = module_names.index(name)
