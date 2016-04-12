@@ -5,11 +5,12 @@ import psutil
 import signal
 
 try:
-    from PyQt5 import QtCore
+    from PyQt5 import QtCore, QtGui
     from PyQt5.QtCore import pyqtSignal, QThread, QObject
 except ImportError:
-    from PyQt4 import QtCore
+    from PyQt4 import QtCore, QtGui
     from PyQt4.QtCore import pyqtSignal, QThread, QObject
+import qtawesome as qta
 
 import socket, threading, subprocess
 try:
@@ -71,6 +72,12 @@ class ScriptLauncher(QObject):
         self.memmap = None
         self.memmap_path = None
         self.memmap_size = 0
+
+        self.button = QtGui.QPushButton()
+        self.button.setCheckable(True)
+        self.button.setIcon(qta.icon("fa.code"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_marker.png")))
+        #self.button.clicked.connect(self.ToggleInterfaceEvent)
+        self.window.layoutButtons.addWidget(self.button)
 
         #self.running_processes = [None]*len(self.config.launch_scripts)
 

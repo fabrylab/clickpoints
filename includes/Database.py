@@ -10,6 +10,7 @@ except ImportError:
 import imageio
 from threading import Thread
 from PyQt4 import QtCore
+import numpy as np
 
 def SQLMemoryDBFromFile(filename, *args, **kwargs):
 
@@ -62,7 +63,7 @@ class DataFile:
     def __init__(self, database_filename=None):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
-        self.current_version = "5"
+        self.current_version = "6"
         version = None
         if self.exists:
             self.db = peewee.SqliteDatabase(database_filename)
@@ -91,29 +92,35 @@ class DataFile:
             key = peewee.CharField(unique=True)
             value = peewee.CharField()
 
+        class Paths(BaseModel):
+            path = peewee.CharField()
+
         class Images(BaseModel):
             filename = peewee.CharField()
             ext = peewee.CharField()
-            frames = peewee.IntegerField(default=0)
             frame = peewee.IntegerField(default=0)
             external_id = peewee.IntegerField(null=True)
             timestamp = peewee.DateTimeField(null=True)
             sort_index = peewee.IntegerField(default=0)
+            width = peewee.IntegerField(null=True)
+            height = peewee.IntegerField(null=True)
+            path = peewee.ForeignKeyField(Paths, related_name="images")
 
         class Offsets(BaseModel):
             image = peewee.ForeignKeyField(Images, unique=True)
             x = peewee.FloatField()
             y = peewee.FloatField()
 
-        self.tables = [BaseModel, Meta, Images, Offsets]
+        self.tables = [BaseModel, Meta, Paths, Images, Offsets]
 
         self.base_model = BaseModel
         self.table_meta = Meta
+        self.table_paths = Paths
         self.table_images = Images
         self.table_offsets = Offsets
 
         self.db.connect()
-        for table in [self.table_meta, self.table_images, self.table_offsets]:
+        for table in [self.table_meta, self.table_paths, self.table_images, self.table_offsets]:
             if not table.table_exists():
                 table.create_table()
         if not self.exists:
@@ -198,6 +205,17 @@ class DataFile:
                 pass
             nr_new_version = 5
 
+        if nr_version < 6:
+            print("\tto 6")
+            # Add text fields for Tracks
+            try:
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN path_id int")
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN width int NULL")
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN height int NULL")
+            except peewee.OperationalError:
+                pass
+            nr_new_version = 5
+
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(nr_new_version))
 
@@ -210,6 +228,29 @@ class DataFile:
                 image.sort_index = index
                 image.frame = 0
                 image.save()
+        if nr_version < 6:
+            print("second migration step to 6")
+            images = self.table_images.select().order_by(self.table_images.filename)
+            for image in images:
+                path = None
+                if os.path.exists(image.filename):
+                    path = ""
+                else:
+                    for root, dirs, files in os.walk('python/Lib/email'):
+                        if image.filename in files:
+                            path = root
+                            break
+                if path is None:
+                    print("ERROR: image not found", image.filename)
+                    continue
+                try:
+                    path_entry = self.table_paths.get(path=path)
+                except peewee.DoesNotExist:
+                    path_entry = self.table_paths(path=path)
+                    path_entry.save()
+                image.path = path_entry
+                image.save()
+
 
     def save_database(self, file=None):
         # if the database hasn't been written to file, write it
@@ -221,6 +262,11 @@ class DataFile:
             for table in self.tables:
                 table._meta.database = self.db
             self.exists = True
+
+    def add_path(self, path):
+        path = self.table_paths(path=path)
+        path.save()
+        return path
 
     def get_image_count(self):
         # return the total count of images in the database
@@ -240,28 +286,35 @@ class DataFile:
             self.thread.join()
         # query the information on the image to load
         image = self.table_images.select().limit(1).offset(index)[0]
+        filename = os.path.join(image.path.path, image.filename)
         # prepare a slot in the buffer
         slots, slot_index, = self.buffer.prepare_slot(index)
         # call buffer_frame in a separate thread or directly
         if threaded:
-            self.thread = Thread(target=self.buffer_frame, args=(image, slots, slot_index, index))
+            self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index))
             self.thread.start()
         else:
-            return self.buffer_frame(image, slots, slot_index, index)
+            return self.buffer_frame(image, filename, slots, slot_index, index)
 
-    def buffer_frame(self, image, slots, slot_index, index, signal=True):
+    def buffer_frame(self, image, filename, slots, slot_index, index, signal=True):
         # if we have already a reader...
         if self.reader:
             # ... check if it is the right one, if not delete it
-            if image.filename != self.reader.filename:
+            if filename != self.reader.filename:
                 del self.reader
                 self.reader = None
         # if we don't have a reader, create a new one
         if self.reader is None:
-            self.reader = imageio.get_reader(image.filename)
-            self.reader.filename = image.filename
+            try:
+                self.reader = imageio.get_reader(filename)
+                self.reader.filename = filename
+            except IOError:
+                pass
         # get the data from the reader and store it in the slot
-        image_data = self.reader.get_data(image.frame)
+        if self.reader is not None:
+            image_data = self.reader.get_data(image.frame)
+        else:
+            image_data = np.zeros((640, 480))
         slots[slot_index] = image_data
         # notify that the frame has been loaded
         if signal:
@@ -282,8 +335,9 @@ class DataFile:
         self.buffer_frame(image, slots, slot_index, index, signal=False)
         return self.buffer.get_frame(index)
 
-    def add_image(self, filename, extension, external_id, frames):
+    def add_image(self, filename, extension, external_id, frames, path):
         # add an entry for every frame in the image container
+        print(filename, extension, external_id, frames, path)
         for i in range(frames):
             image = self.table_images()
             image.filename = filename
@@ -293,6 +347,7 @@ class DataFile:
             image.external_id = external_id
             image.timestamp = None#file_entry.timestamp
             image.sort_index = self.next_sort_index
+            image.path = path.id
             self.next_sort_index += 1
             image.save()
 
