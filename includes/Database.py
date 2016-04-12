@@ -59,19 +59,19 @@ def SaveDB(db_memory, filename):
     con_file.commit()
 
 
-def SQLMemoryDBFromFileAPSW(filename):
-    from playhouse import apsw_ext
-    db_file = apsw_ext.APSWDatabase(filename)
-    db_memory = apsw_ext.APSWDatabase(':memory:')
-    with db_memory.get_conn().backup("main", db_file.get_conn(), "main") as backup:
-        backup.step()  # copy whole database in one go
-    return db_memory
-
-def SaveDBAPSW(db_memory, filename):
-    from playhouse import apsw_ext
-    db_file = apsw_ext.APSWDatabase(filename)
-    with db_file.get_conn().backup("main", db_memory.get_conn(), "main") as backup:
-        backup.step()  # copy whole database in one go
+# def SQLMemoryDBFromFileAPSW(filename):
+#     from playhouse import apsw_ext
+#     db_file = apsw_ext.APSWDatabase(filename)
+#     db_memory = apsw_ext.APSWDatabase(':memory:')
+#     with db_memory.get_conn().backup("main", db_file.get_conn(), "main") as backup:
+#         backup.step()  # copy whole database in one go
+#     return db_memory
+#
+# def SaveDBAPSW(db_memory, filename):
+#     from playhouse import apsw_ext
+#     db_file = apsw_ext.APSWDatabase(filename)
+#     with db_file.get_conn().backup("main", db_memory.get_conn(), "main") as backup:
+#         backup.step()  # copy whole database in one go
 
 
 class DataFile:
@@ -460,13 +460,17 @@ class FrameBuffer:
         except ValueError:
             return None
 
+
 import re
 filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})'
 filename_data_regex = re.compile(filename_data_regex)
 filename_data_regex2 = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<timestamp2>\d{8}-\d{6})'
 filename_data_regex2 = re.compile(filename_data_regex2)
+
+
 def getTimeStamp(file, extension):
     global filename_data_regex
+
     if extension.lower() == ".tif" or extension.lower() == ".tiff":
         dt = get_meta(file)
         return dt, dt
@@ -490,6 +494,7 @@ def getTimeStamp(file, extension):
         print("no time", extension)
     return None, None
 
+
 def getExifTime(path):
     from PIL import Image
     import PIL
@@ -503,6 +508,7 @@ def getExifTime(path):
         return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
     except (AttributeError, ValueError):
         return None
+
 
 def get_meta(file):
     import tifffile
