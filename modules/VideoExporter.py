@@ -29,6 +29,7 @@ class VideoExporterDialog(QtGui.QWidget):
         # widget layout and elements
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
+        self.setWindowIcon(qta.icon('fa.film'))
         self.setWindowTitle('Video Export')
         self.layout = QtGui.QVBoxLayout(self)
         self.parent = parent
