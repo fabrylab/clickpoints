@@ -223,9 +223,7 @@ class ClickPointsWindow(QWidget):
         self.editor.show()
 
     def ImagesAdded(self):
-        print(self.data_file.image, self.data_file.get_image_count())
         if self.data_file.image is None and self.data_file.get_image_count():
-            print("Jump to frame")
             self.JumpToFrame(0)
 
     def GetModule(self, name):

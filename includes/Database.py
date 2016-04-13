@@ -296,6 +296,24 @@ class DataFile:
             path.save()
         return path
 
+    def add_image(self, filename, extension, external_id, frames, path):
+        # add an entry for every frame in the image container
+        for i in range(frames):
+            image = self.table_images()
+            image.filename = filename
+            image.ext = extension
+            image.frames = frames
+            image.frame = i
+            image.external_id = external_id
+            image.timestamp = None#file_entry.timestamp
+            image.sort_index = self.next_sort_index
+            image.path = path.id
+            try:
+                image.save()
+            except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
+                pass
+            self.next_sort_index += 1
+
     def get_image_count(self):
         # return the total count of images in the database
         return self.table_images.select().count()
@@ -365,25 +383,6 @@ class DataFile:
         slots, slot_index, = self.buffer.prepare_slot(index)
         self.buffer_frame(image, slots, slot_index, index, signal=False)
         return self.buffer.get_frame(index)
-
-    def add_image(self, filename, extension, external_id, frames, path):
-        # add an entry for every frame in the image container
-        print(filename, extension, external_id, frames, path)
-        for i in range(frames):
-            image = self.table_images()
-            image.filename = filename
-            image.ext = extension
-            image.frames = frames
-            image.frame = i
-            image.external_id = external_id
-            image.timestamp = None#file_entry.timestamp
-            image.sort_index = self.next_sort_index
-            image.path = path.id
-            try:
-                image.save()
-            except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
-                pass
-            self.next_sort_index += 1
 
     def set_image(self, index):
         # the the current image number and retrieve its information from the database
