@@ -4,6 +4,8 @@ import glob
 import sys
 from distutils.version import LooseVersion
 
+from includes import BroadCastEvent2
+
 from PyQt4 import QtGui, QtCore
 import qtawesome as qta
 
@@ -41,8 +43,9 @@ imgformats = tuple(imgformats)
 
 
 class FolderEditor(QtGui.QWidget):
-    def __init__(self, data_file):
+    def __init__(self, window, data_file):
         QtGui.QWidget.__init__(self)
+        self.window = window
         self.data_file = data_file
 
         # Widget
@@ -55,9 +58,8 @@ class FolderEditor(QtGui.QWidget):
 
         """ """
         self.list = QtGui.QListWidget(self)
-        for path in self.data_file.table_paths.select():
-            QtGui.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
         self.layout.addWidget(self.list)
+        self.update_folder_list()
 
         group_box = QtGui.QGroupBox("Add Folder")
         self.layout.addWidget(group_box)
@@ -120,6 +122,11 @@ class FolderEditor(QtGui.QWidget):
         self.pushbutton_Confirm.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
+    def update_folder_list(self):
+        self.list.clear()
+        for path in self.data_file.table_paths.select():
+            QtGui.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
+
     def select_folder(self):
         # ask for a directory path
         new_path = str(QtGui.QFileDialog.getExistingDirectory(None, "Select Folder", os.getcwd()))
@@ -148,15 +155,18 @@ class FolderEditor(QtGui.QWidget):
         selected_path = str(self.text_input.text())
         # if selected path is a directory, add it with the options
         if os.path.isdir(selected_path):
-            addPath(self.data_file, selected_path, str(self.text_input_filter), self.checkbox_subfolders.isChecked(),
-                    self.checkbox_natsort.isChecked(), list_gui=self.list)
+            addPath(self.data_file, selected_path, str(self.text_input_filter.text()), self.checkbox_subfolders.isChecked(),
+                    self.checkbox_natsort.isChecked())
         # if it is a path, set the filter to the filename to just import this file
         else:
             selected_path, filename = os.path.split(selected_path)
-            addPath(self.data_file, selected_path, filename, list_gui=self.list)
+            addPath(self.data_file, selected_path, filename)
+        self.update_folder_list()
+        self.window.ImagesAdded()
 
 
-def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=False, list_gui=None):
+def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=False):
+    print("addPath", path, file_filter, subdirectories, use_natsort)
     # if we should add subdirectories, add them or create a list with only one path
     if subdirectories:
         path_list = GetSubdirectories(path)
@@ -175,9 +185,6 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
             continue
         # add the folder to the database
         path_entry = data_file.add_path(path)
-        # if a gui window is open add the path to the display list
-        if list_gui:
-            QtGui.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path, len(path_list)), list_gui)
         # maybe sort the files
         if use_natsort:
             file_list = natsorted(file_list)
@@ -188,6 +195,7 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
             frames = getFrameNumber(filename, extension)
             # add the file to the database
             data_file.add_image(filename, extension, None, frames, path=path_entry)
+    BroadCastEvent2("ImagesAdded")
 
 
 def GetSubdirectories(directory):

@@ -849,6 +849,15 @@ class Timeline:
     def get_frame_count(self):
         return self.data_file.get_image_count()
 
+    def ImagesAdded(self):
+        update_end = False
+        if self.frameSlider.endValue() == self.frameSlider.max_value:
+            update_end = True
+        self.frameSlider.setRange(0, self.get_frame_count() - 1)
+        if update_end:
+            self.frameSlider.setEndValue(self.get_frame_count() - 1)
+        self.updateLabel()
+
     def FolderChangeEvent(self):
         self.data_file = self.window.data_file
         if self.config.play_end is not None:
