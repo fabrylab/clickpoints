@@ -57,7 +57,7 @@ from includes import HelpText, BroadCastEvent, rotate_list
 from includes import LoadConfig
 from includes import BigImageDisplay
 from includes import QExtendedGraphicsView
-from includes.FilelistLoader import ListFiles, FolderEditor
+from includes.FilelistLoader import FolderEditor, addPath, imgformats, vidformats
 from includes import DataFile
 
 from update import Updater
@@ -124,12 +124,12 @@ class ClickPointsWindow(QWidget):
         self.layoutButtons = QtGui.QHBoxLayout()
         self.button_play = QtGui.QPushButton()
         self.button_play.clicked.connect(self.SaveDatabase)
-        self.button_play.setIcon(qta.icon("fa.save"))#QIcon(os.path.join(icon_path, "icon_database.png")))
+        self.button_play.setIcon(qta.icon("fa.save"))
         self.layoutButtons.addWidget(self.button_play)
 
         self.button_play = QtGui.QPushButton()
         self.button_play.clicked.connect(self.Folder)
-        self.button_play.setIcon(qta.icon("fa.folder-open"))#QIcon(os.path.join(icon_path, "icon_database.png")))
+        self.button_play.setIcon(qta.icon("fa.folder-open"))
         self.layoutButtons.addWidget(self.button_play)
 
         self.layout.addLayout(self.layoutButtons)
@@ -152,11 +152,23 @@ class ClickPointsWindow(QWidget):
         self.data_file = DataFile(config.database_file)
 
         # init media handler
-        exclude_ending = None
-        if len(config.draw_types):
-            exclude_ending = "_mask.png"#config.maskname_tag
-        if load_list and config.srcpath != "":
-            ListFiles(self.data_file, config.srcpath, config.file_ids, filterparam=config.filterparam, force_recursive=True, dont_process_filelist=config.dont_process_filelist, exclude_ending=exclude_ending, config=config)
+        if load_list:
+            # if it is a directory add it
+            if os.path.isdir(config.srcpath):
+                addPath(self.data_file, config.srcpath)
+            # if not check what type of file it is
+            else:
+                directory, filename = os.path.split(config.srcpath)
+                ext = os.path.splitext(filename)[1]
+                # for images load the folder
+                if ext.lower() in imgformats:
+                    addPath(self.data_file, directory)
+                # for videos just load the file
+                elif ext.lower() in vidformats:
+                    addPath(self.data_file, directory, file_filter=filename)
+                # if the extension is not known, raise an exception
+                else:
+                    raise Exception("unknown file extension "+ext)
 
         # init the modules
         self.modules = []
