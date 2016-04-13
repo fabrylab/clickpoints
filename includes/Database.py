@@ -266,8 +266,11 @@ class DataFile:
             new_directory = os.path.dirname(file)
             paths = self.table_paths.select()
             for path in paths:
-                old_path = os.path.join(old_directory, path.path)
-                path.path = os.path.relpath(old_path, new_directory)
+                abs_path = os.path.join(old_directory, path.path)
+                try:
+                    path.path = os.path.relpath(abs_path, new_directory)
+                except ValueError:
+                    path.path = abs_path
                 path.save()
             if file:
                 self.database_filename = file
@@ -281,7 +284,10 @@ class DataFile:
 
     def add_path(self, path):
         if self.database_filename:
-            path = os.path.relpath(path, os.path.dirname(self.database_filename))
+            try:
+                path = os.path.relpath(path, os.path.dirname(self.database_filename))
+            except ValueError:
+                path = os.path.abspath(path)
         path = os.path.normpath(path)
         try:
             path = self.table_paths.get(path=path)
@@ -334,7 +340,10 @@ class DataFile:
                 pass
         # get the data from the reader and store it in the slot
         if self.reader is not None:
-            image_data = self.reader.get_data(image.frame)
+            try:
+                image_data = self.reader.get_data(image.frame)
+            except ValueError:
+                image_data = np.zeros((640, 480))
         else:
             image_data = np.zeros((640, 480))
         slots[slot_index] = image_data
