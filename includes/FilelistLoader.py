@@ -59,9 +59,10 @@ class FolderEditor(QtGui.QWidget):
         """ """
         self.list = QtGui.QListWidget(self)
         self.layout.addWidget(self.list)
-        self.update_folder_list()
+        self.list.itemSelectionChanged.connect(self.list_selected)
 
         group_box = QtGui.QGroupBox("Add Folder")
+        self.group_box = group_box
         self.layout.addWidget(group_box)
         layout = QtGui.QVBoxLayout()
         group_box.setLayout(layout)
@@ -107,9 +108,13 @@ class FolderEditor(QtGui.QWidget):
         self.checkbox_natsort.setToolTip("Use natural sorting of filenames. This will sort numbers correctly (e.g. not 1 10 2 3). Takes more time to load.")
         horizontal_layout.addWidget(self.checkbox_natsort)
 
-        self.pushbutton_folder = QtGui.QPushButton('Load', self)
-        self.pushbutton_folder.pressed.connect(self.add_folder)
-        horizontal_layout.addWidget(self.pushbutton_folder)
+        self.pushbutton_load = QtGui.QPushButton('Load', self)
+        self.pushbutton_load.pressed.connect(self.add_folder)
+        horizontal_layout.addWidget(self.pushbutton_load)
+
+        self.pushbutton_delete = QtGui.QPushButton('Remove', self)
+        self.pushbutton_delete.pressed.connect(self.remove_folder)
+        horizontal_layout.addWidget(self.pushbutton_delete)
 
         """ """
 
@@ -122,10 +127,32 @@ class FolderEditor(QtGui.QWidget):
         self.pushbutton_Confirm.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
+        self.update_folder_list()
+        self.list.setCurrentRow(self.list.count()-1)
+
+    def list_selected(self):
+        selections = self.list.selectedItems()
+        if len(selections) == 0 or self.list.currentRow() == self.list.count()-1:
+            self.text_input.setText("")
+            self.group_box.setTitle("Add Folder")
+            self.pushbutton_folder.setHidden(False)
+            self.pushbutton_file.setHidden(False)
+            self.pushbutton_load.setText("Load")
+            self.pushbutton_delete.setHidden(True)
+        else:
+            self.text_input.setText(selections[0].text().rsplit("  ", 1)[0])
+            self.group_box.setTitle("Update Folder")
+            self.pushbutton_folder.setHidden(True)
+            self.pushbutton_file.setHidden(True)
+            self.pushbutton_load.setText("Reload")
+            self.pushbutton_delete.setHidden(False)
+
     def update_folder_list(self):
         self.list.clear()
         for path in self.data_file.table_paths.select():
-            QtGui.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
+            item = QtGui.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
+            item.path_entry = path
+        QtGui.QListWidgetItem(qta.icon("fa.plus"), "add folder", self.list)
 
     def select_folder(self):
         # ask for a directory path
@@ -153,6 +180,8 @@ class FolderEditor(QtGui.QWidget):
 
     def add_folder(self):
         selected_path = str(self.text_input.text())
+        if selected_path == "":
+            return
         # if selected path is a directory, add it with the options
         if os.path.isdir(selected_path):
             addPath(self.data_file, selected_path, str(self.text_input_filter.text()), self.checkbox_subfolders.isChecked(),
@@ -164,9 +193,24 @@ class FolderEditor(QtGui.QWidget):
         self.update_folder_list()
         self.window.ImagesAdded()
 
+    def remove_folder(self):
+        path = self.list.selectedItems()[0].path_entry
+        query = self.data_file.table_images.select().where(self.data_file.table_images.path == path)
+        if query.count() == 0:
+            path.delete_instance()
+        else:
+            reply = QtGui.QMessageBox.question(None, 'Delete Folder',
+                "Do you really want to remove folder %s with %d images?" % (path.path, query.count()), QtGui.QMessageBox.Yes, QtGui.QMessageBox.Cancel)
+            if reply == QtGui.QMessageBox.Yes:
+                for image in query:
+                    image.delete_instance()
+                path.delete_instance()
+        self.update_folder_list()
+        BroadCastEvent2("ImagesAdded")
+        self.window.ImagesAdded()
+
 
 def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=False):
-    print("addPath", path, file_filter, subdirectories, use_natsort)
     # if we should add subdirectories, add them or create a list with only one path
     if subdirectories:
         path_list = GetSubdirectories(path)
@@ -181,7 +225,8 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
         else:
             file_list = GetFilesInDirectory(path)
         # if no files are left skip this folder
-        if len(path_list) == 0:
+        if len(file_list) == 0:
+            print("WARNING: folder %s doesn't contain any files ClickPoints can read." % path)
             continue
         # add the folder to the database
         path_entry = data_file.add_path(path)
