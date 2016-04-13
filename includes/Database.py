@@ -93,7 +93,7 @@ class DataFile:
             value = peewee.CharField()
 
         class Paths(BaseModel):
-            path = peewee.CharField()
+            path = peewee.CharField(unique=True)
 
         class Images(BaseModel):
             filename = peewee.CharField()
@@ -105,6 +105,10 @@ class DataFile:
             width = peewee.IntegerField(null=True)
             height = peewee.IntegerField(null=True)
             path = peewee.ForeignKeyField(Paths, related_name="images")
+
+            class Meta:
+                # image and path in combination have to be unique
+                indexes = ((('filename', 'path'), True), )
 
         class Offsets(BaseModel):
             image = peewee.ForeignKeyField(Images, unique=True)
@@ -214,7 +218,7 @@ class DataFile:
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN height int NULL")
             except peewee.OperationalError:
                 pass
-            nr_new_version = 5
+            nr_new_version = 6
 
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(nr_new_version))
@@ -251,21 +255,39 @@ class DataFile:
                 image.path = path_entry
                 image.save()
 
-
     def save_database(self, file=None):
         # if the database hasn't been written to file, write it
         if not self.exists or file != self.database_filename:
+            # rewrite the paths
+            if self.database_filename:
+                old_directory = os.path.dirname(self.database_filename)
+            else:
+                old_directory = ""
+            new_directory = os.path.dirname(file)
+            paths = self.table_paths.select()
+            for path in paths:
+                old_path = os.path.join(old_directory, path.path)
+                path.path = os.path.relpath(old_path, new_directory)
+                path.save()
             if file:
                 self.database_filename = file
+            # save the database and reload it
             SaveDB(self.db, self.database_filename)
             self.db = peewee.SqliteDatabase(self.database_filename)
+            # update peewee models
             for table in self.tables:
                 table._meta.database = self.db
             self.exists = True
 
     def add_path(self, path):
-        path = self.table_paths(path=path)
-        path.save()
+        if self.database_filename:
+            path = os.path.relpath(path, os.path.dirname(self.database_filename))
+        path = os.path.normpath(path)
+        try:
+            path = self.table_paths.get(path=path)
+        except peewee.DoesNotExist:
+            path = self.table_paths(path=path)
+            path.save()
         return path
 
     def get_image_count(self):
@@ -348,8 +370,11 @@ class DataFile:
             image.timestamp = None#file_entry.timestamp
             image.sort_index = self.next_sort_index
             image.path = path.id
+            try:
+                image.save()
+            except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
+                pass
             self.next_sort_index += 1
-            image.save()
 
     def set_image(self, index):
         # the the current image number and retrieve its information from the database
