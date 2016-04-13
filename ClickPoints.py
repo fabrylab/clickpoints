@@ -53,7 +53,7 @@ except ImportError:
     print("Using PyQt4 (PyQt %s, SIP %s, Qt %s)" % (PYQT_VERSION_STR, SIP_VERSION_STR, QT_VERSION_STR))
 import qtawesome as qta
 
-from includes import HelpText, BroadCastEvent, rotate_list
+from includes import HelpText, BroadCastEvent, SetBroadCastModules, rotate_list
 from includes import LoadConfig
 from includes import BigImageDisplay
 from includes import QExtendedGraphicsView
@@ -158,7 +158,7 @@ class ClickPointsWindow(QWidget):
         self.data_file = DataFile(config.database_file)
 
         # init media handler
-        if load_list:
+        if load_list and config.srcpath != "":
             # if it is a directory add it
             if os.path.isdir(config.srcpath):
                 addPath(self.data_file, config.srcpath)
@@ -194,6 +194,8 @@ class ClickPointsWindow(QWidget):
                 # Initialize the module
                 self.modules.append(mod(**arg_dict2))
 
+        SetBroadCastModules(self.modules)
+
         #self.layoutButtons.addStretch()
 
         # find next module, which can be activated
@@ -217,8 +219,14 @@ class ClickPointsWindow(QWidget):
             self.view.rotate(config.rotation)
 
     def Folder(self):
-        self.editor = FolderEditor(self.data_file)
+        self.editor = FolderEditor(self, self.data_file)
         self.editor.show()
+
+    def ImagesAdded(self):
+        print(self.data_file.image, self.data_file.get_image_count())
+        if self.data_file.image is None and self.data_file.get_image_count():
+            print("Jump to frame")
+            self.JumpToFrame(0)
 
     def GetModule(self, name):
         module_names = [a.__class__.__name__ for a in self.modules]
