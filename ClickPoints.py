@@ -108,6 +108,12 @@ class ClickPointsWindow(QWidget):
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
 
+        # center window
+        screen_geometry = QtGui.QApplication.desktop().screenGeometry()
+        x = (screen_geometry.width()-self.width()) / 2
+        y = (screen_geometry.height()-self.height()) / 2
+        self.move(x, y*0.5)
+
         # init updater
         self.updater = Updater(self)
 
