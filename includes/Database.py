@@ -140,6 +140,7 @@ class DataFile:
         self.current_image_index = None
         self.timestamp = None
         self.next_sort_index = 0
+        self.image_count = None
 
         # image data loading buffer and thread
         self.buffer = FrameBuffer(100)#self.config.buffer_size)
@@ -312,11 +313,15 @@ class DataFile:
                 image.save()
             except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
                 pass
+            if self.image_count is not None:
+                self.image_count += 1
             self.next_sort_index += 1
 
     def get_image_count(self):
+        if self.image_count is None:
+            self.image_count = self.table_images.select().count()
         # return the total count of images in the database
-        return self.table_images.select().count()
+        return self.image_count
 
     def get_current_image(self):
         # return the current image index
