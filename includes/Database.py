@@ -97,7 +97,7 @@ class DataFile:
 
         class Images(BaseModel):
             filename = peewee.CharField()
-            ext = peewee.CharField()
+            ext = peewee.CharField(max_length=10)
             frame = peewee.IntegerField(default=0)
             external_id = peewee.IntegerField(null=True)
             timestamp = peewee.DateTimeField(null=True)
@@ -108,7 +108,7 @@ class DataFile:
 
             class Meta:
                 # image and path in combination have to be unique
-                indexes = ((('filename', 'path'), True), )
+                indexes = ((('filename', 'path', 'frame'), True), )
 
         class Offsets(BaseModel):
             image = peewee.ForeignKeyField(Images, unique=True)
