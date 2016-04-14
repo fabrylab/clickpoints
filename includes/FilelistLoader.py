@@ -237,7 +237,7 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
         for filename in file_list:
             # extract the extension and frame number
             extension = os.path.splitext(filename)[1]
-            frames = getFrameNumber(filename, extension)
+            frames = getFrameNumber(os.path.join(path, filename), extension)
             # add the file to the database
             data_file.add_image(filename, extension, None, frames, path=path_entry)
     BroadCastEvent2("ImagesAdded")
