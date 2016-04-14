@@ -882,7 +882,6 @@ class Timeline:
     def ReleasedSlider(self):
         n = self.frameSlider.value()
         self.slider_update = True
-        self.updateLabel()
         self.updateFrame(nr=n)
 
     def ReleasedSlider2(self):
