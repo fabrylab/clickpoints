@@ -374,5 +374,5 @@ class DatabaseFiles:
 
 if __name__ == '__main__':
     from Config import Config
-    config = Config('sql.cnf').sql
+    config = Config('sql.cfg').sql
     db = DatabaseFiles(config)

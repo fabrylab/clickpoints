@@ -9,9 +9,13 @@ import numpy as np
 from datetime import datetime, timedelta
 import time
 
-from databaseFiles import DatabaseFiles, config
+from databaseFiles import DatabaseFiles
 from PIL import Image
 import PIL.ExifTags
+
+from Config import Config
+config = Config('sql.cfg').sql
+
 
 #region imports
 # import imageio or opencv
@@ -191,7 +195,7 @@ max_block_commit_size=10000
 verbose = False
 
 # load mysqlDB
-database = DatabaseFiles(config())
+database = DatabaseFiles(config)
 
 ## process inline parameters
 try:
