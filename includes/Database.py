@@ -75,10 +75,11 @@ def SaveDB(db_memory, filename):
 
 
 class DataFile:
-    def __init__(self, database_filename=None):
+    def __init__(self, database_filename=None, config=None):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
         self.current_version = "6"
+        self.config = config
         version = None
         if self.exists:
             self.db = peewee.SqliteDatabase(database_filename)
@@ -158,7 +159,7 @@ class DataFile:
         self.image_count = None
 
         # image data loading buffer and thread
-        self.buffer = FrameBuffer(100)#self.config.buffer_size)
+        self.buffer = FrameBuffer(self.config.buffer_size)
         self.thread = None
 
         self.last_added_timestamp = -1
@@ -376,14 +377,26 @@ class DataFile:
                 self.reader.filename = filename
             except IOError:
                 pass
-        # get the data from the reader and store it in the slot
+        # get the data from the reader
         if self.reader is not None:
             try:
                 image_data = self.reader.get_data(image.frame)
             except ValueError:
                 image_data = np.zeros((640, 480))
         else:
+            # if the image can't be opened, open a black image instead
             image_data = np.zeros((640, 480))
+        # do an automatic contrast enhancement
+        if self.config.auto_contrast:
+            image_data = image_data-np.amin(image_data)
+            image_data = (image_data/np.amax(image_data)*256).astype(np.uint8)
+        # scale 12 bit images
+        elif 2**8 < np.amax(image_data) < 2**12:
+            image_data = (image_data/16).astype(np.uint8)
+        # or 16 bit images
+        elif 2**12 < np.amax(image_data) < 2**16:
+            image_data = (image_data/256).astype(np.uint8)
+        # store data in the slot
         slots[slot_index] = image_data
         # notify that the frame has been loaded
         if signal:

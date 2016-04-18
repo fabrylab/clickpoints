@@ -155,7 +155,7 @@ class ClickPointsWindow(QWidget):
         if os.path.splitext(config.srcpath)[1] == ".db":
             config.database_file = config.srcpath
             load_list = False
-        self.data_file = DataFile(config.database_file)
+        self.data_file = DataFile(config.database_file, config)
 
         # init media handler
         if load_list and config.srcpath != "":
