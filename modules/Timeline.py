@@ -5,10 +5,7 @@ import glob
 import time
 import numpy as np
 import datetime
-try:
-    import thread  # python 2
-except ImportError:
-    import _thread as thread  # python 3
+from threading import Thread
 
 try:
     from PyQt5 import QtGui, QtCore
@@ -714,15 +711,16 @@ def PosToArray(pos):
 
 class PreciseTimer(QObject):
     timeout = pyqtSignal()
+    thread = None
+    timer_start = None
+    delta = 1
+    count = 1
+    run = False
+    active = 1
 
     def __init__(self, ):
         QObject.__init__(self)
-        self.thread = None
-        self.delta = 1
         self.timer_start = time.time()
-        self.count = 1
-        self.run = False
-        self.active = 1
 
     def start(self, delta=None):
         if delta is not None:
@@ -731,10 +729,14 @@ class PreciseTimer(QObject):
         self.count = 1
         if not self.run:
             self.run = True
-            thread.start_new_thread(self.thread_timer, tuple())
+            if self.thread is not None:
+                self.thread.join()
+            self.thread = Thread(self.thread_timer, args=tuple())
 
     def stop(self):
         self.run = False
+        if self.thread is not None:
+            self.thread.join()
 
     def allow_next(self):
         self.active = 1
