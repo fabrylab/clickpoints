@@ -406,16 +406,28 @@ class DataFile:
         if index is None or index == self.current_image_index:
             # get the pixel data from the current image
             return self.buffer.get_frame(self.current_image_index)
-        buffer = self.buffer.get_frame(index)
-        if buffer is not None:
-            return buffer
         try:
             image = self.table_images.get(sort_index=index)
         except peewee.DoesNotExist:
             return None
+
+        buffer = self.buffer.get_frame(index)
+        if buffer is not None:
+            return buffer
+        filename = os.path.join(image.path.path, image.filename)
         slots, slot_index, = self.buffer.prepare_slot(index)
-        self.buffer_frame(image, slots, slot_index, index, signal=False)
+        self.buffer_frame(image, filename, slots, slot_index, index, signal=False)
         return self.buffer.get_frame(index)
+
+    def get_image(self, index=None):
+        if index is None or index == self.current_image_index:
+            return self.image
+
+        try:
+            image = self.table_images.get(sort_index=index)
+        except peewee.DoesNotExist:
+            return None
+        return image
 
     def set_image(self, index):
         # the the current image number and retrieve its information from the database
