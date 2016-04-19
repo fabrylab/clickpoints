@@ -36,7 +36,7 @@ def SetBroadCastModules(modules):
 
 def BroadCastEvent(modules, function, *args, **kwargs):
     global broadcast_modules
-    for module in broadcast_modules:
+    for module in modules:
         if function in dir(module):
             eval("module."+function+"(*args, **kwargs)")
 
