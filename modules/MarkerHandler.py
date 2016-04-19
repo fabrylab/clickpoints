@@ -26,7 +26,7 @@ import json
 import matplotlib.pyplot as plt
 import random
 
-from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox
+from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose
 from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
 
 w = 1.
@@ -164,13 +164,14 @@ def GetColorFromMap(identifier, id):
 
 
 class MarkerEditor(QWidget):
-    def __init__(self, marker_handler, marker_item=None):
+    def __init__(self, marker_handler, marker_item=None, type_item=None):
         QWidget.__init__(self)
 
         # Widget
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
         self.setWindowTitle("MarkerEditor")
+        self.setWindowIcon(qta.icon("fa.crosshairs"))
         main_layout = QtGui.QHBoxLayout(self)
 
         self.marker_handler = marker_handler
@@ -187,6 +188,7 @@ class MarkerEditor(QWidget):
         types = self.db.table_types.select()
         for row, type in enumerate(types):
             item = QtGui.QStandardItem(type.name)
+            item.setIcon(qta.icon("fa.crosshairs", color=QColor(*HTMLColorToRGB(type.color))))
             item.setEditable(False)
             self.modelItems_marker[item] = type
 
@@ -255,6 +257,7 @@ class MarkerEditor(QWidget):
         self.typeWidget.mode_values = {0: TYPE_Normal, 1: TYPE_Line, 2: TYPE_Rect, 3: TYPE_Track}
         self.typeWidget.mode = AddQComboBox(layout, "Mode:", ["TYPE_Normal", "TYPE_Line", "TYPE_Rect", "TYPE_Track"])
         self.typeWidget.style = AddQLineEdit(layout, "Style:")
+        self.typeWidget.color = AddQColorChoose(layout, "Color:")
         self.typeWidget.text = AddQLineEdit(layout, "Text:")
         layout.addStretch()
 
@@ -279,6 +282,8 @@ class MarkerEditor(QWidget):
 
         if marker_item:
             self.setMarker(marker_item.data, marker_item)
+        if type_item:
+            self.setMarker(type_item.type)
 
     def setMarker(self, data, marker_item=None):
         self.marker_item = marker_item
@@ -327,6 +332,7 @@ class MarkerEditor(QWidget):
             self.typeWidget.name.setText(data.name)
             self.typeWidget.mode.setCurrentIndex(self.typeWidget.mode_indices[data.mode])
             self.typeWidget.style.setText(data.style if data.style else "")
+            self.typeWidget.color.setColor(data.color)
             #self.typeWidget.text.setText(data.text if data.text else "")
             pass
 
@@ -357,8 +363,10 @@ class MarkerEditor(QWidget):
             self.data.name = self.typeWidget.name.text()
             self.data.mode = self.typeWidget.mode_values[self.markerWidget.type.currentIndex()]
             self.data.style = self.typeWidget.style.text()
+            self.data.color = self.typeWidget.color.getColor()
             #self.data.text = self.typeWidget.text.text()
             self.data.save()
+            self.marker_handler.UpdateCounter()
 
         # close widget
         self.marker_handler.marker_edit_window = None
@@ -1068,6 +1076,12 @@ class MyCounter(QGraphicsRectItem):
             self.setBrush(QBrush(QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
+        if event.button() == 2:
+            if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
+                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, type_item=self)
+                self.marker_handler.marker_edit_window.show()
+            else:
+                self.marker_handler.marker_edit_window.setMarker(self.type)
         if event.button() == 1:
             if not self.marker_handler.active:
                 BroadCastEvent([module for module in self.marker_handler.modules if module != self.marker_handler], "setActiveModule", False)
@@ -1122,6 +1136,9 @@ class MarkerHandler:
 
         self.Crosshair = Crosshair(parent, view, image_display, config)
 
+        for type_id, type_def in self.config.types.items():
+            self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2])
+
         self.UpdateCounter()
 
         # place tick marks for already present markers
@@ -1138,8 +1155,6 @@ class MarkerHandler:
         for counter in self.counter:
             self.view.scene.removeItem(self.counter[counter])
 
-        for type_id, type_def in self.config.types.items():
-            self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2])
         type_list = self.marker_file.get_type_list()
         self.counter = {index: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
         if len(list(self.counter.keys())):
