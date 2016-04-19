@@ -218,6 +218,8 @@ class ClickPointsWindow(QWidget):
         if config.rotation != 0:
             self.view.rotate(config.rotation)
 
+        self.setFocus()
+
     def Folder(self):
         self.editor = FolderEditor(self, self.data_file)
         self.editor.show()
