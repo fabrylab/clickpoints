@@ -1183,7 +1183,10 @@ class MarkerHandler:
     def LoadPoints(self):
         while len(self.points):
             self.RemovePoint(self.points[0], no_notice=True)
-        marker_list = self.marker_file.get_marker_list()
+        marker_list = (self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_types)
+            .join(self.marker_file.table_types)
+            .where(self.marker_file.table_marker.image == self.data_file.image.id)
+            )
         for marker in marker_list:
             if not marker.track:
                 self.points.append(MyMarkerItem(self, marker, saved=True))
