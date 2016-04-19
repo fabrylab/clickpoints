@@ -373,18 +373,27 @@ class MarkerEditor(QWidget):
 
 
 class MyMarkerItem(QGraphicsPathItem):
-    def __init__(self, marker_handler, data, saved=False):
-        QGraphicsPathItem.__init__(self, marker_handler.MarkerParent)
-        self.parent = marker_handler.MarkerParent
+    style = {}
+    scale_value = 1
+
+    dragged = False
+    UseCrosshair = True
+
+    partner = None
+    rectObj = None
+
+    font = None
+    text = None
+
+    def __init__(self, marker_handler, parent, data, saved=False):
+        QGraphicsPathItem.__init__(self, parent)
+        self.parent = parent
         self.marker_handler = marker_handler
         self.data = data
         self.config = self.marker_handler.config
         self.saved = saved
 
-        self.style = {}
         self.GetStyle()
-
-        self.scale_value = 1
 
         self.UpdatePath()
         self.setPos(self.data.x, self.data.y)
@@ -393,25 +402,11 @@ class MyMarkerItem(QGraphicsPathItem):
         if len(self.marker_handler.counter):
             self.marker_handler.GetCounter(self.data.type).AddCount(1)
 
-        self.dragged = False
         self.setAcceptHoverEvents(True)
 
-        self.UseCrosshair = True
-
-        self.font = QFont()
-        self.font.setPointSize(10)
-        self.text_parent = QGraphicsPathItem(self)
-        self.text_parent.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
-        self.text = QGraphicsSimpleTextItem(self.text_parent)
-        self.text.setFont(self.font)
-        self.text.setPos(5, 5)
-        self.text.setZValue(10)
-
         if self.data.text is not None:
-            self.text.setText(self.data.text)
+            self.setText(self.data.text)
 
-        self.partner = None
-        self.rectObj = None
         if self.data.type.mode & TYPE_Rect or self.data.type.mode & TYPE_Line:
             self.FindPartner()
 
@@ -424,6 +419,19 @@ class MyMarkerItem(QGraphicsPathItem):
             self.UpdateRect()
 
         self.ApplyStyle()
+
+    def setText(self, text):
+        if self.text is None:
+            self.font = QFont()
+            self.font.setPointSize(10)
+            self.text_parent = QGraphicsPathItem(self)
+            self.text_parent.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
+            self.text = QGraphicsSimpleTextItem(self.text_parent)
+            self.text.setFont(self.font)
+            self.text.setPos(5, 5)
+            self.text.setZValue(10)
+            self.text.setBrush(QBrush(QColor(self.color)))
+        self.text.setText(text)
 
     def GetStyle(self):
         self.style = {}
@@ -476,7 +484,8 @@ class MyMarkerItem(QGraphicsPathItem):
         else:
             self.setBrush(QBrush(QColor(0, 0, 0, 0)))
             self.setPen(QPen(self.color, self.style.get("line-width", 1)))
-        self.text.setBrush(QBrush(QColor(self.color)))
+        if self.text:
+            self.text.setBrush(QBrush(QColor(self.color)))
         self.UpdatePath()
         self.setScale(None)
 
@@ -586,12 +595,12 @@ class MyMarkerItem(QGraphicsPathItem):
             pass
 
     def setActive(self, active):
-        if active:
-            self.setAcceptedMouseButtons(Qt.MouseButtons(3))
-            self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
-        else:
-            self.setAcceptedMouseButtons(Qt.MouseButtons(0))
-            self.unsetCursor()
+        #if active:
+        #    self.setAcceptedMouseButtons(Qt.MouseButtons(3))
+        #    self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        #else:
+        #    self.setAcceptedMouseButtons(Qt.MouseButtons(0))
+        #    self.unsetCursor()
         return True
 
     def UpdatePath(self):
@@ -636,8 +645,8 @@ class MyMarkerItem(QGraphicsPathItem):
 
 
 class MyTrackItem(MyMarkerItem):
-    def __init__(self, marker_handler, points_data, track, saved=False):
-        MyMarkerItem.__init__(self, marker_handler, points_data[0])
+    def __init__(self, marker_handler, parent, points_data, track, saved=False):
+        MyMarkerItem.__init__(self, marker_handler, parent, points_data[0])
         self.points_data = SortedDict()
         for point in points_data:
             self.points_data[point.image.sort_index] = point
@@ -1075,6 +1084,12 @@ class MarkerHandler:
     text = None
     marker_edit_window = None
 
+    active = False
+    frame_number = None
+    hidden = False
+
+    active_type_index = None
+
     def __init__(self, window, data_file, parent, parent_hud, view, image_display, config, modules, datafile):
         self.window = window
         self.data_file = data_file
@@ -1083,30 +1098,30 @@ class MarkerHandler:
         self.modules = modules
         self.config = config
         self.data_file = datafile
+        self.parent = parent
 
         self.button = QtGui.QPushButton()
         self.button.setCheckable(True)
-        self.button.setIcon(qta.icon("fa.crosshairs"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_marker.png")))
+        self.button.setIcon(qta.icon("fa.crosshairs"))
         self.button.clicked.connect(self.ToggleInterfaceEvent)
         self.window.layoutButtons.addWidget(self.button)
 
         self.marker_file = MarkerFile(datafile)
 
-        self.active = False
-        self.frame_number = None
-        self.hidden = False
         if self.config.hide_interfaces:
             self.hidden = True
 
-        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), parent)
+        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
         self.MarkerParent.setZValue(10)
+
+        self.TrackParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
+        self.TrackParent.setZValue(10)
 
         self.scene_event_filter = GraphicsItemEventFilter(parent, self)
         image_display.AddEventFilter(self.scene_event_filter)
 
         self.Crosshair = Crosshair(parent, view, image_display, config)
 
-        self.active_type_index = None
         self.UpdateCounter()
 
         # place tick marks for already present markers
@@ -1167,6 +1182,7 @@ class MarkerHandler:
                 track.FrameChanged(framenumber)
         self.LoadPoints()
 
+
     def FolderChangeEvent(self):
         while len(self.points):
             self.RemovePoint(self.points[0], no_notice=True)
@@ -1174,11 +1190,17 @@ class MarkerHandler:
             self.RemovePoint(self.tracks[0], no_notice=True)
 
     def LoadTracks(self):
-        track_list = self.marker_file.get_track_list()
+        track_list = (self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_types, self.marker_file.table_tracks)
+            .join(self.marker_file.table_types)
+            .switch(self.marker_file.table_marker)
+            .join(self.marker_file.table_tracks)
+            .where(~(self.marker_file.table_marker.track >> None))
+            )
+        #track_list = self.marker_file.get_track_list()
         for track in track_list:
             data = [point for point in self.marker_file.get_track_points(track)]
             if len(data):
-                self.tracks.append(MyTrackItem(self, data, track, saved=True))
+                self.tracks.append(MyTrackItem(self, self.TrackParent, data, track, saved=True))
 
     def LoadPoints(self):
         while len(self.points):
@@ -1189,8 +1211,14 @@ class MarkerHandler:
             )
         for marker in marker_list:
             if not marker.track:
-                self.points.append(MyMarkerItem(self, marker, saved=True))
+                self.points.append(MyMarkerItem(self, self.MarkerParent, marker, saved=True))
                 self.points[-1].setScale(1 / self.scale)
+
+    def ClearPoints(self):
+        self.points = []
+        self.view.scene.removeItem(self.MarkerParent)
+        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
+        self.MarkerParent.setZValue(10)
 
     def RemovePoint(self, point, no_notice=False):
         point.OnRemove()
@@ -1267,11 +1295,11 @@ class MarkerHandler:
             elif self.active_type.mode & TYPE_Track:
                 track = self.marker_file.set_track()
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, track=track)
-                self.tracks.append(MyTrackItem(self, [data], track, saved=False))
+                self.tracks.append(MyTrackItem(self, self.TrackParent, [data], track, saved=False))
                 self.tracks[-1].setScale(1 / self.scale)
             else:
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, text=self.text)
-                self.points.append(MyMarkerItem(self, data, saved=False))
+                self.points.append(MyMarkerItem(self, self.MarkerParent, data, saved=False))
                 self.points[-1].setScale(1 / self.scale)
             return True
         return False
