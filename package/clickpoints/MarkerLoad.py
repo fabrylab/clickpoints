@@ -71,6 +71,9 @@ class DataFile:
             key = peewee.CharField()
             value = peewee.CharField()
 
+        class Paths(BaseModel):
+            path = peewee.CharField(unique=True)
+
         class Images(BaseModel):
             filename = peewee.CharField(unique=True)
             ext = peewee.CharField()
@@ -78,12 +81,13 @@ class DataFile:
             external_id = peewee.IntegerField(null=True)
             timestamp = peewee.DateTimeField(null=True)
             sort_index = peewee.IntegerField(default=0)
+            path = peewee.ForeignKeyField(Paths, related_name="images")
 
             image_data = None
 
             def get_data(self):
                 if self.image_data is None:
-                    reader = imageio.get_reader(self.filename)
+                    reader = imageio.get_reader(os.path.join(self.path.path, self.filename))
                     self.image_data = reader.get_data(self.frame)
                 return self.image_data
 
