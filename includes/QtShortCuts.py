@@ -57,6 +57,38 @@ def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", fil
         horizontal_layout.addStretch()
     return lineEdit
 
+def AddQColorChoose(layout, text, value=None, strech=False):
+    horizontal_layout = QtGui.QHBoxLayout()
+    layout.addLayout(horizontal_layout)
+    text = QtGui.QLabel(text)
+    lineEdit = QtGui.QLineEdit()
+    lineEdit.setHidden(True)
+    button = QtGui.QPushButton("")
+    def OpenDialog():
+        color = QtGui.QColorDialog.getColor()
+        if color:
+            color = "#%02x%02x%02x" % color.getRgb()[:3]
+            button.setColor(color)
+    if value is None:
+        value = "#FF0000"
+    print("color", value)
+    button.setStyleSheet("border-width: 0px; background-color: %s;" % value)
+    button.pressed.connect(OpenDialog)
+    def setColor(value):
+        button.setStyleSheet("border-width: 0px; background-color: %s;" % value)
+        button.color = value
+    def getColor():
+        return button.color
+    button.setColor = setColor
+    button.getColor = getColor
+    horizontal_layout.addWidget(text)
+    horizontal_layout.addWidget(lineEdit)
+    horizontal_layout.addWidget(button)
+    lineEdit.managingLayout = horizontal_layout
+    if strech:
+        horizontal_layout.addStretch()
+    return button
+
 
 def AddQComboBox(layout, text, values=None, selectedValue=None):
     horizontal_layout = QtGui.QHBoxLayout()
