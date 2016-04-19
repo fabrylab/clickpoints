@@ -1123,7 +1123,8 @@ class MarkerHandler:
         for counter in self.counter:
             self.view.scene.removeItem(self.counter[counter])
 
-        type_list = [self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2]) for type_id, type_def in self.config.types.items()]
+        for type_id, type_def in self.config.types.items():
+            self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2])
         type_list = self.marker_file.get_type_list()
         self.counter = {index: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
         if len(list(self.counter.keys())):
