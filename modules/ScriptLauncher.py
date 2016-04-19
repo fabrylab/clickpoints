@@ -110,7 +110,7 @@ class ScriptLauncher(QObject):
             if image is None:
                 socket.sendto(cmd + "", client_address)
                 return
-            image_id = self.window.data_file.image.id
+            image_id = self.window.data_file.get_image(int(value)).id
 
             shape = image.shape
             if len(shape) == 2:
