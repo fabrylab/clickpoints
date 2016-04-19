@@ -731,7 +731,8 @@ class PreciseTimer(QObject):
             self.run = True
             if self.thread is not None:
                 self.thread.join()
-            self.thread = Thread(self.thread_timer, args=tuple())
+            self.thread = Thread(target=self.thread_timer, args=tuple())
+            self.thread.start()
 
     def stop(self):
         self.run = False
