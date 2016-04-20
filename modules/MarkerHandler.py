@@ -482,7 +482,7 @@ class MyMarkerItem(QGraphicsPathItem):
         self.GetStyle()
         self.ApplyStyle()
         if self.data.text is not None:
-            self.text.setText(self.data.text)
+            self.setText(self.data.text)
 
     def ApplyStyle(self):
         self.color = QColor(*self.style["color"])
