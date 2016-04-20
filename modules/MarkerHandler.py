@@ -438,7 +438,7 @@ class MyMarkerItem(QGraphicsPathItem):
             self.text.setFont(self.font)
             self.text.setPos(5, 5)
             self.text.setZValue(10)
-            self.text.setBrush(QBrush(QColor(self.color)))
+            self.text.setBrush(QBrush(QColor(*self.color)))
         self.text.setText(text)
 
     def GetStyle(self):
