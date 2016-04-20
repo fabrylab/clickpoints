@@ -337,6 +337,8 @@ class image_segmenter():
             self.mask = np.zeros([self.image.shape[0], self.image.shape[1]], np.uint8)
         for mask_one_region in masks_one_region:
             self.mask = self.mask | mask_one_region
+        # # filling holes in mask
+        # self.mask=scipy.ndimage.morphology.binary_fill_holes(self.mask)
         if self.verbose:
             print('creating mask done')
         #endregion
@@ -386,60 +388,63 @@ class Param_Delivery(QWidget):
 
         # self.file=open('Highlight_objects_config_file.dat','w+')
         # self.file.close()
+        opened_existing_file=False
         try:
             self.file=open('ConfigHighlightObjects.txt','r+')
+            opened_existing_file=True
         except IOError:
             print('Config-File does not exist. Created new config file')
             self.file=open('ConfigHighlightObjects.txt','w')
+            opened_existing_file=False
 
 
 
         #endregion
 
         #region read parameters from file
+        if opened_existing_file:
+            parameter_string=self.file.read()
+            for arg in parameter_string.split("\n"):
+                # print(arg)
+                if arg.startswith('super_pixel_size='):
+                    self.super_pixel_size=int(arg.replace('super_pixel_size=',''))
+                    #print('found superpixelsize', int(super_pixel_size))
+                if arg.startswith('cluster_number='):
+                    self.cluster_number=int(arg.replace('cluster_number=',''))
+                if arg.startswith('k_means_cluster_mode='):
+                    self.k_means_cluster_mode=int(arg.replace('k_means_cluster_mode=',''))
+                if arg.startswith('histogram_bins='):
+                    self.histogram_bins=int(arg.replace('histogram_bins=',''))
+                if arg.startswith('colorspace='):
+                    self.colorspace=int(arg.replace('colorspace=',''))
+                if arg.startswith('open_gui='):
+                    self.open_gui=distutils.util.strtobool(arg.replace('open_gui=',''))
+                if arg.startswith('ratio_sobel_image='):
+                    self.ratio_sobel_image=float(arg.replace('ratio_sobel_image=',''))
+                if arg.startswith('show_super_pixel_image='):
+                    self.show_super_pixel_image=distutils.util.strtobool(arg.replace('show_super_pixel_image=',''))
+                if arg.startswith('show_k_clustered_image='):
+                    self.show_k_clustered_image=distutils.util.strtobool(arg.replace('show_k_clustered_image=',''))
+                if arg.startswith('show_border_image='):
+                    self.show_border_image=distutils.util.strtobool(arg.replace('show_border_image=', ''))
+                if arg.startswith('show_mask='):
+                    self.show_mask=distutils.util.strtobool(arg.replace('show_mask=',''))
+                if arg.startswith('show_mean_image='):
+                    self.show_mean_image=distutils.util.strtobool(arg.replace('show_mean_image=',''))
+                if arg.startswith('show_sobel_image='):
+                    self.show_sobel_image=distutils.util.strtobool(arg.replace('show_sobel_image=',''))
+                if arg.startswith('highlight_whole_cluster='):
+                    self.highlight_whole_cluster=distutils.util.strtobool(arg.replace('highlight_whole_cluster=',''))
+                if arg.startswith('compactness='):
+                    self.compactness=int(arg.replace('compactness=',''))
+                if arg.startswith('maximum_number_iterations='):
+                    self.maximum_number_iterations=int(arg.replace('maximum_number_iterations=',''))
+                if arg.startswith('minimum_size_superpixel='):
+                    self.minimum_size_superpixel=float(arg.replace('minimum_size_superpixel=',''))
+                if arg.startswith('verbose='):
+                    self.verbose=distutils.util.strtobool(arg.replace('verbose=',''))
 
-        parameter_string=self.file.read()
-        for arg in parameter_string.split("\n"):
-            # print(arg)
-            if arg.startswith('super_pixel_size='):
-                self.super_pixel_size=int(arg.replace('super_pixel_size=',''))
-                #print('found superpixelsize', int(super_pixel_size))
-            if arg.startswith('cluster_number='):
-                self.cluster_number=int(arg.replace('cluster_number=',''))
-            if arg.startswith('k_means_cluster_mode='):
-                self.k_means_cluster_mode=int(arg.replace('k_means_cluster_mode=',''))
-            if arg.startswith('histogram_bins='):
-                self.histogram_bins=int(arg.replace('histogram_bins=',''))
-            if arg.startswith('colorspace='):
-                self.colorspace=int(arg.replace('colorspace=',''))
-            if arg.startswith('open_gui='):
-                self.open_gui=distutils.util.strtobool(arg.replace('open_gui=',''))
-            if arg.startswith('ratio_sobel_image='):
-                self.ratio_sobel_image=float(arg.replace('ratio_sobel_image=',''))
-            if arg.startswith('show_super_pixel_image='):
-                self.show_super_pixel_image=distutils.util.strtobool(arg.replace('show_super_pixel_image=',''))
-            if arg.startswith('show_k_clustered_image='):
-                self.show_k_clustered_image=distutils.util.strtobool(arg.replace('show_k_clustered_image=',''))
-            if arg.startswith('show_border_image='):
-                self.show_border_image=distutils.util.strtobool(arg.replace('show_border_image=', ''))
-            if arg.startswith('show_mask='):
-                self.show_mask=distutils.util.strtobool(arg.replace('show_mask=',''))
-            if arg.startswith('show_mean_image='):
-                self.show_mean_image=distutils.util.strtobool(arg.replace('show_mean_image=',''))
-            if arg.startswith('show_sobel_image='):
-                self.show_sobel_image=distutils.util.strtobool(arg.replace('show_sobel_image=',''))
-            if arg.startswith('highlight_whole_cluster='):
-                self.highlight_whole_cluster=distutils.util.strtobool(arg.replace('highlight_whole_cluster=',''))
-            if arg.startswith('compactness='):
-                self.compactness=int(arg.replace('compactness=',''))
-            if arg.startswith('maximum_number_iterations='):
-                self.maximum_number_iterations=int(arg.replace('maximum_number_iterations=',''))
-            if arg.startswith('minimum_size_superpixel='):
-                self.minimum_size_superpixel=float(arg.replace('minimum_size_superpixel=',''))
-            if arg.startswith('verbose='):
-                self.verbose=distutils.util.strtobool(arg.replace('verbose=',''))
-
-
+        #set default values
         if not hasattr(self,'super_pixel_size'):
             self.super_pixel_size=200
         if not hasattr(self,'cluster_number'):
@@ -803,7 +808,7 @@ class Param_Delivery(QWidget):
         else:
             self.return_just_mask=True
 
-
+        # write settings in config file
         if (hasattr(self,'checkbox_saving') and self.checkbox_saving.checkState()):
             self.open_gui=bool(self.checkbox_gui_next_time.checkState())
             if Param_object.verbose:
@@ -863,7 +868,6 @@ if __name__ == '__main__':
     try:
         x, y = points[0].x, points[0].y
         coords=[]
-        point=[0.0,0.0]
         for i,point in enumerate(points):
             coords.append([points[i].x,points[i].y])
 
