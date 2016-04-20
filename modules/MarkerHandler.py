@@ -361,7 +361,7 @@ class MarkerEditor(QWidget):
             self.data.save()
         elif type(self.data) == self.db.table_types:
             self.data.name = self.typeWidget.name.text()
-            self.data.mode = self.typeWidget.mode_values[self.markerWidget.type.currentIndex()]
+            self.data.mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
             self.data.style = self.typeWidget.style.text()
             self.data.color = self.typeWidget.color.getColor()
             #self.data.text = self.typeWidget.text.text()
