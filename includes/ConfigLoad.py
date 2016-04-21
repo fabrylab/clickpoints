@@ -205,6 +205,7 @@ def LoadConfig():
         if os.path.exists(path):
             with open(path) as f:
                 code = compile(f.read(), path, 'exec')
+                config_path = path
                 print("Loaded config",path)
                 exec(code, globals())
             break
@@ -249,4 +250,6 @@ def LoadConfig():
     for key in globals():
         if key not in start_globals.keys():
             config[key] = globals()[key]
+    config["path_config"] = os.path.dirname(config_path)
+    config["path_clickpoints"] = os.path.join(os.path.dirname(__file__), "..")
     return dotdict(config)

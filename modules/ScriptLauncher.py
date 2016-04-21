@@ -178,7 +178,20 @@ class ScriptLauncher(QObject):
                         process.send_signal(signal.SIGTERM)
                     continue
                 self.window.Save()
-                args = [sys.executable, os.path.abspath(script), "--start_frame", str(self.data_file.get_current_image()), "--port", str(self.PORT), "--database", str(self.data_file.database_filename)]
+                script_path = None
+                # search script relative to the config file
+                print(os.path.join(self.config.path_config, script))
+                print(os.path.join(self.config.path_clickpoints, "addons", script))
+                if os.path.exists(os.path.join(self.config.path_config, script)):
+                    script_path = os.path.join(self.config.path_config, script)
+                # or relative to the clickpoints path
+                elif os.path.exists(os.path.join(self.config.path_clickpoints, "addons", script)):
+                    script_path = os.path.join(self.config.path_clickpoints, "addons", script)
+                # print an error message if no file was found
+                if script_path is None:
+                    print("ERROR: script %s not found." % script)
+                    continue
+                args = [sys.executable, os.path.abspath(script_path), "--start_frame", str(self.data_file.get_current_image()), "--port", str(self.PORT), "--database", str(self.data_file.database_filename)]
                 print('arags:', args)
                 if hasattr(os.sys, 'winver'):
                     process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
