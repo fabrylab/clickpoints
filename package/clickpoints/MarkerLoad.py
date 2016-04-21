@@ -46,7 +46,7 @@ class DataFile:
             if args.database:
                 database_filename = args.database
         if database_filename is None:
-            raise TypeError("No database filename supplied. Pass it either as an argument to DataFile or as a command line parameter e.g. --database clickpoints.db")
+            raise TypeError("No database filename supplied. Pass it either as an argument to DataFile or as a command line parameter e.g. --database clickpoints.cdb")
         self.database_filename = database_filename
 
         self.current_version = "3"

@@ -88,7 +88,7 @@ def CopyInstallerFiles(directory):
         if target.endswith(".nsi"):
             template = env.get_template(target)
             with open(os.path.join(path_to_temporary_installer, target), 'w') as fp:
-                fp.write(template.render(extension_list=[".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif", ".avi", ".mp4"]))
+                fp.write(template.render(extension_list=[".cdb", ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif", ".avi", ".mp4"]))
         elif target.endswith(".cfg"):
             template = env.get_template(target)
             with open(os.path.join(path_to_temporary_installer, target), 'w') as fp:
