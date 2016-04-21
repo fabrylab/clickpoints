@@ -161,7 +161,7 @@ class ClickPointsWindow(QWidget):
         if load_list and config.srcpath != "":
             # if it is a directory add it
             if os.path.isdir(config.srcpath):
-                addPath(self.data_file, config.srcpath)
+                addPath(self.data_file, config.srcpath, subdirectories=True)
             # if not check what type of file it is
             else:
                 directory, filename = os.path.split(config.srcpath)
