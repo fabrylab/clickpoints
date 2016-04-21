@@ -1,5 +1,7 @@
 from PyQt4 import QtGui
 import os
+import colorsys
+import numpy as np
 
 def AddQSpinBox(layout, text, value=0, float=True, strech=False):
     horizontal_layout = QtGui.QHBoxLayout()
@@ -65,6 +67,12 @@ def AddQColorChoose(layout, text, value=None, strech=False):
     lineEdit.setHidden(True)
     button = QtGui.QPushButton("")
     def OpenDialog():
+        colors = np.linspace(0, 1, 16, endpoint=False).tolist()*3
+        saturations = [1]*16+[0.5]*16+[1]*16
+        value = [1]*16+[1]*16+[0.5]*16
+        for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
+            index = index % 8*6+index//8
+            QtGui.QColorDialog.setStandardColor(index, int("%02x%02x%02x" % tuple(np.array(colorsys.hsv_to_rgb(color, sat, val))*255), 16))
         color = QtGui.QColorDialog.getColor()
         if color:
             color = "#%02x%02x%02x" % color.getRgb()[:3]
