@@ -152,7 +152,7 @@ class ClickPointsWindow(QWidget):
 
         # init DataFile for storage
         load_list = True
-        if os.path.splitext(config.srcpath)[1] == ".db":
+        if os.path.splitext(config.srcpath)[1] == ".cdb":
             config.database_file = config.srcpath
             load_list = False
         self.data_file = DataFile(config.database_file, config)
@@ -238,7 +238,7 @@ class ClickPointsWindow(QWidget):
         #self.data_file.check_to_save()
 
     def SaveDatabase(self):
-        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Save ClickPoints data", os.getcwd(), "ClickPoints Database *.db"))
+        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Save ClickPoints data", os.getcwd(), "ClickPoints Database *.cdb"))
         if srcpath:
             self.data_file.save_database(file=srcpath)
 
