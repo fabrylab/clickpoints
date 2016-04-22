@@ -205,6 +205,14 @@ class FolderEditor(QtGui.QWidget):
                 for image in query:
                     image.delete_instance()
                 path.delete_instance()
+        # update sort index
+        images = self.data_file.table_images.select().order_by(self.data_file.table_images.filename)
+        for index, image in enumerate(images):
+            image.sort_index = index
+            image.save()
+        self.data_file.image_count = None
+        self.data_file.reset_buffer()
+        # update list of folders and notify all modules
         self.update_folder_list()
         BroadCastEvent2("ImagesAdded")
         self.window.ImagesAdded()

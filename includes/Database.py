@@ -333,6 +333,9 @@ class DataFile:
                 self.image_count += 1
             self.next_sort_index += 1
 
+    def reset_buffer(self):
+        self.buffer.reset()
+
     def get_image_count(self):
         if self.image_count is None:
             self.image_count = self.table_images.select().count()
@@ -453,9 +456,17 @@ class DataFile:
 
 
 class FrameBuffer:
+    slots = None
+    indices = None
+    last_index = 0
+
     def __init__(self, buffer_count):
-        self.slots = [[]]*buffer_count
-        self.indices = [None]*buffer_count
+        self.buffer_count = buffer_count
+        self.reset()
+
+    def reset(self):
+        self.slots = [[]]*self.buffer_count
+        self.indices = [None]*self.buffer_count
         self.last_index = 0
 
     def add_frame(self, number, image):
