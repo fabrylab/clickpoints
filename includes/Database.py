@@ -273,6 +273,9 @@ class DataFile:
                 image.save()
 
     def save_database(self, file=None):
+        # ensure that the file ends in .cdb
+        if not file.lower().endswith(".cdb"):
+            file += ".cdb"
         # if the database hasn't been written to file, write it
         if not self.exists or file != self.database_filename:
             # rewrite the paths
