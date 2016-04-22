@@ -219,6 +219,11 @@ class MarkerEditor(QWidget):
                     self.modelItems_marker[child] = marker
 
             model.setItem(row, 0, item)
+        item = QtGui.QStandardItem("add type")
+        item.setIcon(qta.icon("fa.plus"))
+        item.setEditable(False)
+        self.modelItems_marker[item] = self.db.table_types()
+        model.setItem(row+1, 0, item)
 
         self.modelItems_marker = {item.index(): self.modelItems_marker[item] for item in self.modelItems_marker}
 
@@ -330,7 +335,10 @@ class MarkerEditor(QWidget):
             self.StackedWidget.setCurrentIndex(1)
             self.typeWidget.setTitle("Type #%s" % data.name)
             self.typeWidget.name.setText(data.name)
-            self.typeWidget.mode.setCurrentIndex(self.typeWidget.mode_indices[data.mode])
+            try:
+                self.typeWidget.mode.setCurrentIndex(self.typeWidget.mode_indices[data.mode])
+            except KeyError:
+                pass
             self.typeWidget.style.setText(data.style if data.style else "")
             self.typeWidget.color.setColor(data.color)
             #self.typeWidget.text.setText(data.text if data.text else "")
