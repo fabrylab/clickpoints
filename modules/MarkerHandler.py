@@ -1104,7 +1104,7 @@ class MarkerHandler:
 
     active_type_index = None
 
-    def __init__(self, window, data_file, parent, parent_hud, view, image_display, config, modules, datafile):
+    def __init__(self, window, data_file, parent, parent_hud, view, image_display, config, modules, datafile, new_database):
         self.window = window
         self.data_file = data_file
         self.view = view
@@ -1136,8 +1136,10 @@ class MarkerHandler:
 
         self.Crosshair = Crosshair(parent, view, image_display, config)
 
-        for type_id, type_def in self.config.types.items():
-            self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2])
+        # if a new database is created will it with markers from the config
+        if new_database:
+            for type_id, type_def in self.config.types.items():
+                self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2])
 
         self.UpdateCounter()
 

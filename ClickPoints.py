@@ -151,14 +151,14 @@ class ClickPointsWindow(QWidget):
         self.ImageDisplay = BigImageDisplay(self.origin, self, config)
 
         # init DataFile for storage
-        load_list = True
+        new_database = True
         if os.path.splitext(config.srcpath)[1] == ".cdb":
             config.database_file = config.srcpath
-            load_list = False
+            new_database = False
         self.data_file = DataFile(config.database_file, config)
 
         # init media handler
-        if load_list and config.srcpath != "":
+        if new_database and config.srcpath != "":
             # if it is a directory add it
             if os.path.isdir(config.srcpath):
                 addPath(self.data_file, config.srcpath, subdirectories=True, use_natsort=config.use_natsort)
@@ -178,7 +178,7 @@ class ClickPointsWindow(QWidget):
 
         # init the modules
         self.modules = []
-        arg_dict = {"window": self, "layout": self.layout, "data_file": self.data_file, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
+        arg_dict = {"new_database": new_database, "window": self, "layout": self.layout, "data_file": self.data_file, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
         for mod, hud in zip(used_modules, used_huds):
             allowed = True
             if "can_create_module" in dir(mod):
