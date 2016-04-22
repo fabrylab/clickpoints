@@ -712,17 +712,18 @@ class MyMarkerItem(QGraphicsPathItem):
             self.dragged = False
             self.marker_handler.PointsUnsaved = True
             self.SetProcessed(0)
+            self.data.save()
             self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
             self.marker_handler.Crosshair.Hide()
             pass
 
     def setActive(self, active):
-        #if active:
-        #    self.setAcceptedMouseButtons(Qt.MouseButtons(3))
-        #    self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
-        #else:
-        #    self.setAcceptedMouseButtons(Qt.MouseButtons(0))
-        #    self.unsetCursor()
+        if active:
+            self.setAcceptedMouseButtons(Qt.MouseButtons(3))
+            self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        else:
+            self.setAcceptedMouseButtons(Qt.MouseButtons(0))
+            self.unsetCursor()
         return True
 
     def UpdatePath(self):
@@ -1441,10 +1442,12 @@ class MarkerHandler:
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, track=track)
                 self.tracks.append(MyTrackItem(self, self.TrackParent, [data], track, saved=False))
                 self.tracks[-1].setScale(1 / self.scale)
+                self.tracks[-1].save()
             else:
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, text=self.text)
                 self.points.append(MyMarkerItem(self, self.MarkerParent, data, saved=False))
                 self.points[-1].setScale(1 / self.scale)
+                self.points[-1].save()
             return True
         return False
 
