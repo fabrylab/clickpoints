@@ -13,8 +13,10 @@ from databaseFiles import DatabaseFiles
 from PIL import Image
 import PIL.ExifTags
 
+
+sys.path.append(os.path.dirname(__file__))
 from Config import Config
-config = Config('sql.cfg').sql
+config = Config(os.path.join(os.path.dirname(__file__),'sql.cfg')).sql
 
 
 #region imports
@@ -55,7 +57,9 @@ def getExifTime(path):
 def getFrameNumber(path):
     if imageio_loaded:
         reader = imageio.get_reader(path)
-        return reader.get_length()
+        nrframes = reader.get_length()
+        reader.close()
+        return nrframes
     elif opencv_loaded:
         cap = cv2.VideoCapture(path)
         return int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
@@ -138,13 +142,13 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
     link_name=[]
 
     for line in content:
-        if line.startswith("["):
+        if line.lstrip().startswith("["):
             reg=re.search('\[(.*)\]',line.strip())
             link_name = reg.group(1)
             # print(line.strip(),link_name)
             # link_name_available=True
 
-        if line.startswith("path="):
+        if line.lstrip().startswith("path"):
             # path=line.strip().replace("path=","")
             path=line.split("=")[-1].strip()
             # print("path:",path)
@@ -155,8 +159,9 @@ def getSMBConfig(filename=u"/etc/samba/smb.conf"):
             path=[]
             link_name=[]
 
-        if line.startswith("interfaces"):
+        if line.lstrip().startswith("interfaces"):
             tokens=line.strip().split(" ")
+            print("interflisen",line)
             interface = tokens[-1]
             # print("interface:",interface)
             smbcfg['interface']=interface
@@ -240,10 +245,11 @@ ipaddress=getIpAddress(smbcfg['interface'])
 # differentiate between real root and network mountpoint root
 # all login files must be associated by their network mountpoint root
 # not their root on the file system!
-smb_start_path=os.path.normpath(asSMBPath(ipaddress,smbcfg['mount_points'],start_path))
 
 print('Sambacfg:\n',smbcfg)
 print('ipaddress:',ipaddress)
+
+smb_start_path=os.path.normpath(asSMBPath(ipaddress,smbcfg['mount_points'],start_path))
 
 if mode=='remove':
     ### 1) remove all child files and folders from DB
@@ -271,7 +277,7 @@ if mode=='add':
     for root, dirs, files in os.walk(start_path, topdown=False):
         #print(root, files)
         loadConfigs(root)
-
+        print("Framerate:",fps)
         if ignore:
             print("Ignoring folder:", root)
             continue
