@@ -60,39 +60,43 @@ def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", fil
     return lineEdit
 
 def AddQColorChoose(layout, text, value=None, strech=False):
+    # add a layout
     horizontal_layout = QtGui.QHBoxLayout()
     layout.addLayout(horizontal_layout)
+    # add a text
     text = QtGui.QLabel(text)
-    lineEdit = QtGui.QLineEdit()
-    lineEdit.setHidden(True)
     button = QtGui.QPushButton("")
+
     def OpenDialog():
-        colors = np.linspace(0, 1, 16, endpoint=False).tolist()*3
-        saturations = [1]*16+[0.5]*16+[1]*16
-        value = [1]*16+[1]*16+[0.5]*16
-        for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
-            index = index % 8*6+index//8
-            QtGui.QColorDialog.setStandardColor(index, int("%02x%02x%02x" % tuple(np.array(colorsys.hsv_to_rgb(color, sat, val))*255), 16))
+        # get new color from color picker
         color = QtGui.QColorDialog.getColor()
+        # if a color is set, apply it
         if color:
             color = "#%02x%02x%02x" % color.getRgb()[:3]
             button.setColor(color)
+
+    def setColor(value):
+        # display and save the new color
+        button.setStyleSheet("background-color: %s;" % value)
+        button.color = value
+
+    def getColor():
+        # return the color
+        return button.color
+
+    # default value for the color
     if value is None:
         value = "#FF0000"
-    print("color", value)
-    button.setStyleSheet("border-width: 0px; background-color: %s;" % value)
+    # add functions to button
     button.pressed.connect(OpenDialog)
-    def setColor(value):
-        button.setStyleSheet("border-width: 0px; background-color: %s;" % value)
-        button.color = value
-    def getColor():
-        return button.color
     button.setColor = setColor
     button.getColor = getColor
+    # set the color
+    button.setColor(value)
+    # add widgets to the layout
     horizontal_layout.addWidget(text)
-    horizontal_layout.addWidget(lineEdit)
     horizontal_layout.addWidget(button)
-    lineEdit.managingLayout = horizontal_layout
+    # add a strech if requested
     if strech:
         horizontal_layout.addStretch()
     return button
@@ -139,3 +143,14 @@ def AddQHLine(layout):
     line.setFrameShadow(QtGui.QFrame.Sunken)
     layout.addWidget(line)
     return line
+
+# set the standard colors for the color picker dialog
+colors = np.linspace(0, 1, 16, endpoint=False).tolist()*3  # 16 different hues
+saturations = [1]*16+[0.5]*16+[1]*16  # in two different saturations
+value = [1]*16+[1]*16+[0.5]*16  # and two different values
+for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
+    # deform the index, as the dialog fills them column wise and we want to fill them rowise
+    index = index % 8*6+index//8
+    # convert color from hsv to rgb, to an array, to an tuple, to a hex string then to an integer
+    color_integer = int("%02x%02x%02x" % tuple(np.array(colorsys.hsv_to_rgb(color, sat, val))*255), 16)
+    QtGui.QColorDialog.setStandardColor(index, color_integer)
