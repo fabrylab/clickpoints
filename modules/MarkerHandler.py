@@ -374,6 +374,8 @@ class MarkerEditor(QWidget):
         elif type(data) == self.db.table_types or data_type == "type":
             if data is None:
                 data = self.new_type
+                self.data = data
+                self.data.color = "#FFFFFF"
             self.StackedWidget.setCurrentIndex(1)
             if data.name == None:
                 self.pushbutton_Remove.setHidden(True)
@@ -1222,6 +1224,7 @@ class MarkerHandler:
     hidden = False
 
     active_type_index = None
+    active_type = None
 
     def __init__(self, window, data_file, parent, parent_hud, view, image_display, config, modules, datafile, new_database):
         self.window = window
@@ -1381,14 +1384,11 @@ class MarkerHandler:
             track.save()
 
     def SetActiveMarkerType(self, new_index):
-        try:
-            counter_list = [c for i, c in self.counter.items() if c.index == new_index]
-            counter = counter_list[0]
-        except IndexError:
+        if new_index >= len(self.counter)-1:
             return
         if self.active_type_index is not None:
             self.counter[self.active_type_index].SetToInactiveColor()
-        self.active_type = counter.type
+        self.active_type = self.counter[new_index].type
         self.active_type_index = new_index
         self.counter[self.active_type_index].SetToActiveColor()
 
