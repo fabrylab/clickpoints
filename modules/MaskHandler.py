@@ -18,7 +18,8 @@ from PIL import Image, ImageDraw
 import ImageQt_Stride as ImageQt
 from qimage2ndarray import array2qimage
 
-from Tools import GraphicsItemEventFilter, BroadCastEvent
+from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
+from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose
 
 
 class MaskFile:
@@ -53,6 +54,9 @@ class MaskFile:
             type.save(force_insert=True)
         return type
 
+    def get_mask_type_list(self):
+        return self.table_maskTypes.select()
+
     def add_mask(self, **kwargs):
         kwargs.update(dict(image=self.data_file.image))
         return self.table_mask(**kwargs)
@@ -77,6 +81,7 @@ class MaskFile:
         self.mask_path = os.path.join(os.path.dirname(self.data_file.database_filename), outputpath_mask)
         return self.mask_path
 
+
 class BigPaintableImageDisplay:
     def __init__(self, origin, max_image_size=2**12, config=None):
         self.number_of_imagesX = 0
@@ -92,7 +97,13 @@ class BigPaintableImageDisplay:
 
         self.opacity = 0
         self.colormap = [QColor(255, 0, 255).rgba() for i in range(256)]
+
+    def UpdateColormap(self, types):
+        self.colormap = [QColor(255, 0, 255).rgba() for i in range(256)]
         self.colormap[0] = QColor(0, 0, 0).rgba()
+        for drawtype in types:
+            self.colormap[drawtype.index] = QColor(*HTMLColorToRGB(drawtype.color)).rgb()
+        self.UpdateImage()
 
     def UpdatePixmapCount(self):
         # Create new subimages if needed
@@ -113,8 +124,6 @@ class BigPaintableImageDisplay:
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
-        for drawtype in self.config.draw_types:
-            self.colormap[drawtype[0]] = QColor(*drawtype[1]).rgba()
         self.number_of_imagesX = int(np.ceil(image.size[0] / self.max_image_size))
         self.number_of_imagesY = int(np.ceil(image.size[1] / self.max_image_size))
         self.UpdatePixmapCount()
@@ -142,6 +151,7 @@ class BigPaintableImageDisplay:
             self.pixMapItems[i].setPixmap(pixmap)
 
     def DrawLine(self, x1, x2, y1, y2, size, line_type):
+        color = line_type.index
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
@@ -151,13 +161,13 @@ class BigPaintableImageDisplay:
                                 y + 1) * self.max_image_size:
                         draw = self.DrawImages[i]
                         draw.line((x1 - x * self.max_image_size, y1 - y * self.max_image_size, x2 - x * self.max_image_size,
-                                   y2 - y * self.max_image_size), fill=self.config.draw_types[line_type][0], width=size + 1)
+                                   y2 - y * self.max_image_size), fill=color, width=size + 1)
                         draw.ellipse((x1 - x * self.max_image_size - size // 2, y1 - y * self.max_image_size - size // 2,
                                       x1 - x * self.max_image_size + size // 2, y1 - y * self.max_image_size + size // 2),
-                                     fill=self.config.draw_types[line_type][0])
+                                     fill=color)
         draw = ImageDraw.Draw(self.full_image)
-        draw.line((x1, y1, x2, y2), fill=self.config.draw_types[line_type][0], width=size + 1)
-        draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=self.config.draw_types[line_type][0])
+        draw.line((x1, y1, x2, y2), fill=color, width=size + 1)
+        draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=color)
 
     def GetColor(self, x1, y1):
         if 0 < x1 < self.full_image.size[0] and 0 < y1 < self.full_image.size[1]:
@@ -183,12 +193,150 @@ class BigPaintableImageDisplay:
         self.full_image.save(filename)
 
 
+class MaskEditor(QtGui.QWidget):
+    def __init__(self, mask_handler, data_file):
+        QtGui.QWidget.__init__(self)
+
+        self.data_file = data_file
+
+        # Widget
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(200)
+        self.setWindowTitle("MaskEditor")
+        self.setWindowIcon(qta.icon("fa.paint-brush"))
+        main_layout = QtGui.QHBoxLayout(self)
+
+        self.mask_handler = mask_handler
+        self.db = mask_handler.mask_file
+
+        """ Tree View """
+        tree = QtGui.QTreeView()
+        main_layout.addWidget(tree)
+
+        self.mask_modelitems = {}
+        self.modelItems_mask = {}
+
+        model = QtGui.QStandardItemModel(0, 0)
+        types = self.db.table_maskTypes.select()
+        for row, type in enumerate(types):
+            item = QtGui.QStandardItem(type.name)
+            item.setIcon(qta.icon("fa.paint-brush", color=QColor(*HTMLColorToRGB(type.color))))
+            item.setEditable(False)
+            self.modelItems_mask[item] = type
+
+            model.setItem(row, 0, item)
+        item = QtGui.QStandardItem("add type")
+        item.setIcon(qta.icon("fa.plus"))
+        item.setEditable(False)
+        self.new_type = self.db.table_maskTypes()
+        self.modelItems_mask[item] = self.new_type
+        model.setItem(row+1, 0, item)
+
+        self.modelItems_mask = {item.index(): self.modelItems_mask[item] for item in self.modelItems_mask}
+
+        tree.setUniformRowHeights(True)
+        tree.setHeaderHidden(True)
+        tree.setAnimated(True)
+        tree.setModel(model)
+        tree.clicked.connect(lambda x: self.setMaskType(self.modelItems_mask[x]))
+        self.tree = tree
+
+        self.layout = QtGui.QVBoxLayout()
+        main_layout.addLayout(self.layout)
+
+        self.StackedWidget = QtGui.QStackedWidget(self)
+        self.layout.addWidget(self.StackedWidget)
+
+        """ Type Properties """
+        self.typeWidget = QtGui.QGroupBox()
+        self.StackedWidget.addWidget(self.typeWidget)
+        layout = QtGui.QVBoxLayout(self.typeWidget)
+        self.typeWidget.name = AddQLineEdit(layout, "Name:")
+        self.typeWidget.color = AddQColorChoose(layout, "Color:")
+        #self.typeWidget.text = AddQLineEdit(layout, "Text:")
+        layout.addStretch()
+
+        """ Control Buttons """
+        horizontal_layout = QtGui.QHBoxLayout()
+        self.layout.addLayout(horizontal_layout)
+        self.pushbutton_Confirm = QtGui.QPushButton('S&ave', self)
+        self.pushbutton_Confirm.pressed.connect(self.saveMaskType)
+        horizontal_layout.addWidget(self.pushbutton_Confirm)
+
+        self.pushbutton_Remove = QtGui.QPushButton('R&emove', self)
+        self.pushbutton_Remove.pressed.connect(self.removeMarker)
+        horizontal_layout.addWidget(self.pushbutton_Remove)
+
+        self.pushbutton_Cancel = QtGui.QPushButton('&Cancel', self)
+        self.pushbutton_Cancel.pressed.connect(self.close)
+        horizontal_layout.addWidget(self.pushbutton_Cancel)
+
+    def setMaskType(self, data, marker_item=None):
+        self.marker_item = marker_item
+        if data is None:
+            data = self.new_type
+            data.color = "#FFFFFF"
+        self.data = data
+
+        self.pushbutton_Remove.setHidden(False)
+
+        self.StackedWidget.setCurrentIndex(1)
+        if data.name == None:
+            self.pushbutton_Remove.setHidden(True)
+        self.typeWidget.setTitle("Type #%s" % data.name)
+        self.typeWidget.name.setText(data.name)
+        self.typeWidget.color.setColor(data.color)
+
+    def saveMaskType(self):
+        print("Saving changes...")
+        # set parameters
+
+        self.data.name = self.typeWidget.name.text()
+        self.data.color = self.typeWidget.color.getColor()
+        if self.data.index is None:
+            new_index = 1
+            while True:
+                try:
+                    self.data_file.table_maskTypes.get(index=new_index)
+                except peewee.DoesNotExist:
+                    break
+                new_index += 1
+            self.data.index = new_index
+        self.data.save()
+        self.mask_handler.UpdateCounter()
+
+        # close widget
+        self.mask_handler.marker_edit_window = None
+        self.close()
+
+    def removeMarker(self):
+        # delete the database entry
+        self.data.delete_instance()
+
+        # update display
+        self.mask_handler.UpdateCounter()
+
+        # close widget
+        self.mask_handler.marker_edit_window = None
+        self.close()
+
+    def keyPressEvent(self, event):
+        # close the window with esc
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.mask_handler.marker_edit_window = None
+            self.close()
+        # save marker with return
+        if event.key() == QtCore.Qt.Key_Return:
+            self.saveMaskType()
+
+
 class MyCounter2(QGraphicsRectItem):
-    def __init__(self, parent, mask_handler, point_type):
+    def __init__(self, parent, mask_handler, point_type, index):
         QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
         self.mask_handler = mask_handler
         self.type = point_type
+        self.index = index
         self.count = 0
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
@@ -198,18 +346,25 @@ class MyCounter2(QGraphicsRectItem):
         self.font = self.mask_handler.window.mono_font
         self.font.setPointSize(14)
 
-        self.label_text = "%d: Color %s" % (point_type + 1, chr(ord('A') + point_type))
-        if len(self.mask_handler.config.draw_types[self.type]) == 3:
-            self.label_text = self.mask_handler.config.draw_types[self.type][2]
+        if self.type is None:
+            self.label_text = "+ add type"
+        else:
+            self.label_text = "%d: %s" % (index + 1, self.type.name) #chr(ord('A') + index)
+        #if len(self.mask_handler.config.draw_types[self.type]) == 3:
+        #    self.label_text = self.mask_handler.config.draw_types[self.type][2]
 
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setText(self.label_text)
         self.text.setFont(self.font)
-        self.text.setBrush(QBrush(QColor(*self.mask_handler.config.draw_types[self.type][1])))
+        if self.type is not None:
+            self.color = QColor(*HTMLColorToRGB(self.type.color))
+        else:
+            self.color = QColor("white")
+        self.text.setBrush(QBrush(self.color))#QColor(*self.mask_handler.config.draw_types[self.type][1])))
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.setPos(-110, 10 + 25 * self.type)
+        self.setPos(-110, 10 + 25 * index)
         self.setZValue(9)
 
         count = 0
@@ -222,7 +377,7 @@ class MyCounter2(QGraphicsRectItem):
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
         self.setRect(rect)
-        self.setPos(-rect.width() - 5, 10 + 25 * self.type)
+        self.setPos(-rect.width() - 5, 10 + 25 * self.index)
 
     def SetToActiveColor(self):
         self.active = True
@@ -241,15 +396,26 @@ class MyCounter2(QGraphicsRectItem):
             self.setBrush(QBrush(QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
-        if event.button() == 1:
+        if event.button() == 2 or self.type is None:  # right mouse button
+            # open marker edit menu
+            if not self.mask_handler.mask_edit_window or not self.mask_handler.mask_edit_window.isVisible():
+                self.mask_handler.mask_edit_window = MaskEditor(self.mask_handler, self.mask_handler.mask_file)
+                self.mask_handler.mask_edit_window.show()
+            self.mask_handler.mask_edit_window.setMaskType(self.type, self)
+        elif event.button() == 1:
             if not self.mask_handler.active:
                 BroadCastEvent([module for module in self.mask_handler.modules if module != self.mask_handler], "setActiveModule", False)
                 self.mask_handler.setActiveModule(True)
-            self.mask_handler.SetActiveDrawType(self.type)
+            self.mask_handler.SetActiveDrawType(self.index)
 
 
 class MaskHandler:
-    def __init__(self, window, parent, parent_hud, view, image_display, config, modules, datafile):
+    mask_edit_window = None
+
+    active_draw_type_index = None
+    active_draw_type = None
+
+    def __init__(self, window, parent, parent_hud, view, image_display, config, modules, datafile, new_database):
         self.window = window
         self.view = view
         self.parent_hud = parent_hud
@@ -263,8 +429,6 @@ class MaskHandler:
         self.data_file = datafile
 
         self.mask_file = MaskFile(datafile)
-
-        self.active_draw_type = 1
 
         self.mask_opacity = 0
         self.current_maskname = None
@@ -303,6 +467,12 @@ class MaskHandler:
             self.hidden = True
 
         self.counter = []
+
+        # if a new database is created take mask types from config
+        if new_database:
+            for type_id, type_def in enumerate(self.config.draw_types):
+                self.mask_file.set_type(type_id, "Color", type_def[1], type_def[0])
+
         self.UpdateCounter()
 
         # place tick marks for already present masks
@@ -310,12 +480,28 @@ class MaskHandler:
             BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
 
     def UpdateCounter(self):
+        print("update counter")
+        # remove all counter
         for counter in self.counter:
-            self.view.scene.removeItem(counter)
-        type_list = [self.mask_file.set_type(type_id, "Color", type_def[1], type_def[0]) for type_id, type_def in enumerate(self.config.draw_types)]
-        self.counter = [MyCounter2(self.parent_hud, self, i) for i in range(len(self.config.draw_types))]
-        for counter in self.counter:
-            counter.setVisible(not self.hidden)
+            self.view.scene.removeItem(self.counter[counter])
+        # create new ones
+
+        type_list = self.mask_file.get_mask_type_list()
+        print(type_list.count())
+        self.counter = {index: MyCounter2(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
+        self.counter[-1] = MyCounter2(self.parent_hud, self, None, len(self.counter))
+
+        if len(list(self.counter.keys())):
+            self.active_draw_type = self.counter[list(self.counter.keys())[0]].type
+            self.active_draw_type_index = 0
+        else:
+            self.active_draw_type = None
+            self.active_draw_type_index = None
+
+        self.MaskDisplay.UpdateColormap(type_list)
+
+        for key in self.counter:
+            self.counter[key].setVisible(not self.hidden)
 
     def LoadImageEvent(self, filename, frame_number):
         if self.current_maskname is not None:
@@ -372,14 +558,17 @@ class MaskHandler:
         self.MaskDisplay.SetImage(self.image_mask_full)
 
     def UpdateDrawCursorSize(self):
-        pen = QPen(QColor(*self.config.draw_types[self.active_draw_type][1]), self.DrawCursorSize)
+        if self.active_draw_type is None:
+            return
+        color = QColor(*HTMLColorToRGB(self.active_draw_type.color))
+        pen = QPen(color, self.DrawCursorSize)
         pen.setCapStyle(32)
         self.drawPathItem.setPen(pen)
         draw_cursor_path = QPainterPath()
         draw_cursor_path.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
                                     self.DrawCursorSize)
 
-        self.DrawCursor.setPen(QPen(QColor(*self.config.draw_types[self.active_draw_type][1])))
+        self.DrawCursor.setPen(QPen(color))
         self.DrawCursor.setPath(draw_cursor_path)
 
     def save(self):
@@ -421,16 +610,21 @@ class MaskHandler:
             self.mask_opacity = 0
         self.MaskDisplay.setOpacity(self.mask_opacity)
 
-    def SetActiveDrawType(self, value):
-        self.counter[self.active_draw_type].SetToInactiveColor()
-        self.active_draw_type = value
-        self.counter[self.active_draw_type].SetToActiveColor()
+    def SetActiveDrawType(self, new_index):
+        if new_index >= len(self.counter)-1:
+            return
+        if self.active_draw_type_index is not None:
+            self.counter[self.active_draw_type_index].SetToInactiveColor()
+        self.active_draw_type = self.counter[new_index].type
+        self.active_draw_type_index = new_index
+        self.counter[self.active_draw_type_index].SetToActiveColor()
+
         self.RedrawMask()
         self.UpdateDrawCursorSize()
 
     def PickColor(self):
-        for index, draw_type in enumerate(self.config.draw_types):
-            if draw_type[0] == self.color_under_cursor:
+        for index, draw_type in enumerate(self.mask_file.get_mask_type_list()):
+            if draw_type.index == self.color_under_cursor:
                 self.SetActiveDrawType(index)
                 break
 
@@ -480,7 +674,7 @@ class MaskHandler:
     def keyPressEvent(self, event):
         numberkey = event.key() - 49
         # @key ---- Painting ----
-        if self.active and 0 <= numberkey < len(self.config.draw_types) and event.modifiers() != Qt.KeypadModifier:
+        if self.active and 0 <= numberkey < len(self.mask_file.get_mask_type_list()) and event.modifiers() != Qt.KeypadModifier:
             # @key 0-9: change brush type
             self.SetActiveDrawType(numberkey)
 
@@ -508,13 +702,17 @@ class MaskHandler:
             
     def ToggleInterfaceEvent(self):
         for counter in self.counter:
-            counter.setVisible(self.hidden)
+            self.counter[counter].setVisible(self.hidden)
         self.hidden = not self.hidden
             
     def loadLast(self):
         self.LoadMask(self.last_maskname)
         self.MaskUnsaved = True
         self.RedrawMask()
+
+    def closeEvent(self, event):
+        if self.mask_edit_window:
+            self.mask_edit_window.close()
 
     def canLoadLast(self):
         return self.last_maskname is not None
