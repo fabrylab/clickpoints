@@ -10,24 +10,21 @@ from MemMap import MemMap
 class Commands:
     def __init__(self, port=None, catch_terminate_signal=False):
         self.HOST = "localhost"
-        # if no port is given try to get one from a command line argument
         if port is None:
-            parser = argparse.ArgumentParser()
-            parser.add_argument("--port", type=int, dest='port', help='from which port to communicate with ClickPoints')
-            args, unknown = parser.parse_known_args()
-            if args.port:
-                port = args.port
-        if port is None:
-            raise TypeError("No port supplied. Pass it either as an argument to Commands or as a command line parameter e.g. --port 12345")
+            print("No port supplied. Returning a dummy connection.")
         self.PORT = port
         if catch_terminate_signal:
             self.CatchTerminateSignal()
 
     def _send(self, message):
+        if self.PORT is None:
+            return
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.sendto(message, (self.HOST, self.PORT))
 
     def _send_and_receive(self, message):
+        if self.PORT is None:
+            return
         cmd, value = str(message).split(" ", 1)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.sendto(message, (self.HOST, self.PORT))

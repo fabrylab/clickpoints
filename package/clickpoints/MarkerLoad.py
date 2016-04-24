@@ -36,6 +36,16 @@ def CheckValidColor(color):
     return "#"+color_string
 
 
+def GetCommandLineArgs():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--database", dest='database', help='specify which database file to use')
+    parser.add_argument("--start_frame", type=int, default=0, dest='start_frame', help='specify at which frame to start')
+    parser.add_argument("--port", type=int, dest='port', help='from which port to communicate with ClickPoints')
+    args, unknown = parser.parse_known_args()
+    return args.start_frame, args.database, args.port
+
+
 class DataFile:
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
@@ -96,6 +106,15 @@ class DataFile:
                     return self.masks[0]
                 if item == "data":
                     return self.get_data()
+                if item == "data8":
+                    data = self.get_data()
+                    if data.dtype == np.uint16:
+                        if data.max() < 2**12:
+                            data >>= 4
+                            return data.astype(np.uint8)
+                        data >>= 8
+                        return data.astype(np.uint8)
+                    return data
                 else:
                     return BaseModel(self, item)
 
@@ -242,7 +261,7 @@ class DataFile:
 
         return item.get_id()
     
-    def GetImages(self):
+    def GetImages(self, start_frame=None):
         """
         Get all images sorted by filename
     
@@ -253,6 +272,8 @@ class DataFile:
         """
 
         query = self.table_images.select()
+        if start_frame is not None:
+            query = query.where(self.table_images.sort_index >= start_frame)
         query = query.order_by(self.table_images.sort_index)
         return query
 
