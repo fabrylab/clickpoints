@@ -82,7 +82,7 @@ class MarkerFile:
             image = peewee.ForeignKeyField(datafile.table_images)
             x = peewee.FloatField()
             y = peewee.FloatField()
-            type = peewee.ForeignKeyField(Types)
+            type = peewee.ForeignKeyField(Types, related_name="markers")
             processed = peewee.IntegerField(default=0)
             partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
             track = peewee.ForeignKeyField(Tracks, null=True)
@@ -163,9 +163,42 @@ def GetColorFromMap(identifier, id):
     return color
 
 
+class DeleteType(QtGui.QDialog):
+    def __init__(self, type, count, types):
+        QtGui.QDialog.__init__(self)
+
+        # Widget
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(100)
+        self.setWindowTitle("Delete Type")
+        self.setWindowIcon(qta.icon("fa.crosshairs"))
+        self.setModal(True)
+        main_layout = QtGui.QVBoxLayout(self)
+
+        self.label = QtGui.QLabel("The type %s has %d marker. Do you want to delete all of them or assign them to another type?" % (type.name, count))
+        main_layout.addWidget(self.label)
+
+        self.type_ids = {type.name: type.id for type in types}
+        self.comboBox = AddQComboBox(main_layout, "New Type:", [type.name for type in types])
+
+        layout2 = QtGui.QHBoxLayout(self)
+        main_layout.addLayout(layout2)
+        button1 = QtGui.QPushButton("Delete")
+        button1.clicked.connect(lambda: self.done(-1))
+        layout2.addWidget(button1)
+        button2 = QtGui.QPushButton("Move")
+        button2.clicked.connect(lambda: self.done(self.type_ids[self.comboBox.currentText()]))
+        layout2.addWidget(button2)
+        button3 = QtGui.QPushButton("Cancel")
+        button3.clicked.connect(lambda: self.done(0))
+        layout2.addWidget(button3)
+
+
 class MarkerEditor(QWidget):
-    def __init__(self, marker_handler, marker_item=None, type_item=None):
+    def __init__(self, marker_handler, data_file, marker_item=None, type_item=None):
         QWidget.__init__(self)
+
+        self.data_file = data_file
 
         # Widget
         self.setMinimumWidth(500)
@@ -281,6 +314,10 @@ class MarkerEditor(QWidget):
         self.pushbutton_Confirm.pressed.connect(self.saveMarker)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
+        self.pushbutton_Remove = QPushButton('R&emove', self)
+        self.pushbutton_Remove.pressed.connect(self.removeMarker)
+        horizontal_layout.addWidget(self.pushbutton_Remove)
+
         self.pushbutton_Cancel = QPushButton('&Cancel', self)
         self.pushbutton_Cancel.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Cancel)
@@ -293,6 +330,8 @@ class MarkerEditor(QWidget):
     def setMarker(self, data, marker_item=None):
         self.marker_item = marker_item
         self.data = data
+
+        self.pushbutton_Remove.setHidden(False)
 
         if type(data) == self.db.table_marker:
             self.StackedWidget.setCurrentIndex(0)
@@ -333,6 +372,8 @@ class MarkerEditor(QWidget):
 
         elif type(data) == self.db.table_types:
             self.StackedWidget.setCurrentIndex(1)
+            if data.name == None:
+                self.pushbutton_Remove.setHidden(True)
             self.typeWidget.setTitle("Type #%s" % data.name)
             self.typeWidget.name.setText(data.name)
             try:
@@ -374,6 +415,66 @@ class MarkerEditor(QWidget):
             self.data.color = self.typeWidget.color.getColor()
             #self.data.text = self.typeWidget.text.text()
             self.data.save()
+            self.marker_handler.UpdateCounter()
+
+        # close widget
+        self.marker_handler.marker_edit_window = None
+        self.close()
+
+    def removeMarker(self):
+        print("Remove ...")
+        # currently selected a marker
+        if type(self.data) == self.db.table_marker:
+            # find point
+            if not self.marker_item:
+                for point in self.marker_handler.points:
+                    if point.data.id == self.data.id:
+                        self.marker_item = point
+                        break
+            # delete marker
+            self.marker_item.deleteMarker()
+        # currently selected a track
+        elif type(self.data) == self.db.table_tracks:
+            # delete all markers from this track
+            q = self.data_file.table_marker.delete().where(self.data_file.table_marker.track == self.data.id)
+            q.execute()
+            # find track
+            for track in self.marker_handler.tracks:
+                if track.track.id == self.data.id:
+                    break
+            # delete track
+            self.marker_handler.RemoveTrack(track)
+        # currently selected a type
+        elif type(self.data) == self.db.table_types:
+            count = self.data.markers.count()
+            # if this type doesn't have markers delete it without asking
+            if count == 0:
+                self.data.delete_instance()
+            else:
+                # Ask the user if he wants to delete all markers from this type or assign them to a different type
+                self.window = DeleteType(self.data, count, [marker_type for marker_type in self.data_file.get_type_list() if marker_type != self.data])
+                value = self.window.exec_()
+                if value == 0:  # canceled
+                    return
+                if value == -1:  # delete all of them
+                    # delete all markers from this type
+                    q = self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data.id)
+                    q.execute()
+                    # delete type
+                    self.data.delete_instance()
+                    # reload marker
+                    self.marker_handler.ReloadMarker()
+                else:
+                    # change the type of all markers which belonged to this type
+                    q = self.data_file.table_marker.select().where(self.data_file.table_marker.type == self.data.id)
+                    for marker in q:
+                        marker.type = value
+                        marker.save()
+                    # delete type
+                    self.data.delete_instance()
+                    # reload marker
+                    self.marker_handler.ReloadMarker()
+
             self.marker_handler.UpdateCounter()
 
         # close widget
@@ -565,7 +666,7 @@ class MyMarkerItem(QGraphicsPathItem):
         if event.button() == 2:  # right mouse button
             # open marker edit menu
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
-                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self)
+                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file, self)
                 self.marker_handler.marker_edit_window.show()
             else:
                 self.marker_handler.marker_edit_window.setMarker(self.data, self)
@@ -906,7 +1007,6 @@ class MyTrackItem(MyMarkerItem):
         except AttributeError:
             pass
 
-
     def save(self):
         if not self.saved:
             self.data.save()
@@ -1086,7 +1186,7 @@ class MyCounter(QGraphicsRectItem):
     def mousePressEvent(self, event):
         if event.button() == 2:
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
-                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, type_item=self)
+                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file, type_item=self)
                 self.marker_handler.marker_edit_window.show()
             else:
                 self.marker_handler.marker_edit_window.setMarker(self.type)
@@ -1181,7 +1281,9 @@ class MarkerHandler:
                 return self.counter[index]
         raise NameError("A non existing type was referenced")
 
-    def ReloadMarker(self, frame):
+    def ReloadMarker(self, frame=None):
+        if frame is None:
+            frame = self.data_file.get_current_image()
         image_id = self.data_file.image.id
         # Tracks
         marker_list = self.marker_file.get_marker_list(image_id)
@@ -1254,6 +1356,11 @@ class MarkerHandler:
         self.view.scene.removeItem(point)
         if len(self.points) == 0 and no_notice is False:
             BroadCastEvent(self.modules, "MarkerPointsRemoved")
+
+    def RemoveTrack(self, track):
+        track.OnRemove()
+        self.tracks.remove(track)
+        self.view.scene.removeItem(track)
 
     def save(self):
         for point in self.points:
