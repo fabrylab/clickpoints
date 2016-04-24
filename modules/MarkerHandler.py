@@ -255,7 +255,8 @@ class MarkerEditor(QWidget):
         item = QtGui.QStandardItem("add type")
         item.setIcon(qta.icon("fa.plus"))
         item.setEditable(False)
-        self.modelItems_marker[item] = self.db.table_types()
+        self.new_type = self.db.table_types()
+        self.modelItems_marker[item] = self.new_type
         model.setItem(row+1, 0, item)
 
         self.modelItems_marker = {item.index(): self.modelItems_marker[item] for item in self.modelItems_marker}
@@ -327,7 +328,7 @@ class MarkerEditor(QWidget):
         if type_item:
             self.setMarker(type_item.type)
 
-    def setMarker(self, data, marker_item=None):
+    def setMarker(self, data, marker_item=None, data_type=None):
         self.marker_item = marker_item
         self.data = data
 
@@ -370,7 +371,9 @@ class MarkerEditor(QWidget):
             #self.le_text2.setText(data.text if data.text else "")
             pass
 
-        elif type(data) == self.db.table_types:
+        elif type(data) == self.db.table_types or data_type == "type":
+            if data is None:
+                data = self.new_type
             self.StackedWidget.setCurrentIndex(1)
             if data.name == None:
                 self.pushbutton_Remove.setHidden(True)
@@ -1144,7 +1147,10 @@ class MyCounter(QGraphicsRectItem):
 
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setFont(self.font)
-        self.color = QColor(*HTMLColorToRGB(self.type.color))
+        if self.type is not None:
+            self.color = QColor(*HTMLColorToRGB(self.type.color))
+        else:
+            self.color = QColor("white")
         self.text.setBrush(QBrush(self.color))
         self.text.setZValue(10)
 
@@ -1153,15 +1159,19 @@ class MyCounter(QGraphicsRectItem):
         self.setZValue(9)
 
         count = 0
-        for point in self.marker_handler.points:
-            if point.data.type == self.type:
-                count += 1
+        if self.type:
+            for point in self.marker_handler.points:
+                if point.data.type == self.type:
+                    count += 1
         self.AddCount(count)
 
     def AddCount(self, new_count):
         self.count += new_count
-        self.text.setText(
-            str(self.index+1) + ": " + self.type.name + " %d" % self.count)
+        if self.type:
+            self.text.setText(
+                str(self.index+1) + ": " + self.type.name + " %d" % self.count)
+        else:
+            self.text.setText("+ add type")
         rect = self.text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
@@ -1184,17 +1194,18 @@ class MyCounter(QGraphicsRectItem):
             self.setBrush(QBrush(QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
-        if event.button() == 2:
+        if event.button() == 2 or self.type is None:
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
                 self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file, type_item=self)
                 self.marker_handler.marker_edit_window.show()
-            else:
-                self.marker_handler.marker_edit_window.setMarker(self.type)
-        if event.button() == 1:
+            self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
+        elif event.button() == 1:
             if not self.marker_handler.active:
                 BroadCastEvent([module for module in self.marker_handler.modules if module != self.marker_handler], "setActiveModule", False)
                 self.marker_handler.setActiveModule(True)
             self.marker_handler.SetActiveMarkerType(self.index)
+            if self.marker_handler.marker_edit_window:
+                self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
 
 
 class MarkerHandler:
@@ -1267,6 +1278,7 @@ class MarkerHandler:
 
         type_list = self.marker_file.get_type_list()
         self.counter = {index: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
+        self.counter[-1] = MyCounter(self.parent_hud, self, None, len(self.counter))
         if len(list(self.counter.keys())):
             self.active_type = self.counter[list(self.counter.keys())[0]].type
         else:
