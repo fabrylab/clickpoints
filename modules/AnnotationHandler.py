@@ -432,6 +432,7 @@ class AnnotationHandler:
 
         self.button_annotationEditor = QtGui.QPushButton()
         self.button_annotationEditor.setIcon(qta.icon("fa.edit"))
+        self.button_annotationEditor.setToolTip("add/edit annotation for current frame")
         self.button_annotationEditor.clicked.connect(self.showAnnotationEditor)
         self.window.layoutButtons.addWidget(self.button_annotationEditor)
 

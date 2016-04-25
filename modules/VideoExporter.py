@@ -277,6 +277,7 @@ class VideoExporter:
 
         self.button = QtGui.QPushButton()
         self.button.setIcon(qta.icon('fa.film'))
+        self.button.setToolTip("export images as video/image series")
         self.button.clicked.connect(self.showDialog)
         window.layoutButtons.addWidget(self.button)
 

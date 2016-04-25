@@ -61,11 +61,12 @@ class HelpText(QGraphicsRectItem):
         self.setPos(100, 100)
         self.setZValue(19)
 
-        self.button_brightness = QtGui.QPushButton()
-        self.button_brightness.setCheckable(True)
-        self.button_brightness.setIcon(qta.icon('fa.question'))#QtGui.QIcon(os.path.join(window.icon_path, "icon_help.png")))
-        self.button_brightness.clicked.connect(self.ShowHelpText)
-        window.layoutButtons.addWidget(self.button_brightness)
+        self.button = QtGui.QPushButton()
+        self.button.setCheckable(True)
+        self.button.setIcon(qta.icon('fa.question'))
+        self.button.setToolTip("display help")
+        self.button.clicked.connect(self.ShowHelpText)
+        window.layoutButtons.addWidget(self.button)
 
         self.text = ""
         self.UpdateText(file)

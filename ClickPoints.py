@@ -133,11 +133,13 @@ class ClickPointsWindow(QWidget):
         self.button_play = QtGui.QPushButton()
         self.button_play.clicked.connect(self.SaveDatabase)
         self.button_play.setIcon(qta.icon("fa.save"))
+        self.button_play.setToolTip("save current project")
         self.layoutButtons.addWidget(self.button_play)
 
         self.button_play = QtGui.QPushButton()
         self.button_play.clicked.connect(self.Folder)
         self.button_play.setIcon(qta.icon("fa.folder-open"))
+        self.button_play.setToolTip("add/remove folder from the current project")
         self.layoutButtons.addWidget(self.button_play)
 
         self.layout.addLayout(self.layoutButtons)
