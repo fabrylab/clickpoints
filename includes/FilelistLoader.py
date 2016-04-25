@@ -51,7 +51,7 @@ class FolderEditor(QtGui.QWidget):
         # Widget
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
-        self.setWindowTitle("Folder Selector")
+        self.setWindowTitle("Folder Selector - ClickPoints")
         self.layout = QtGui.QVBoxLayout(self)
 
         self.setWindowIcon(qta.icon("fa.folder-open"))

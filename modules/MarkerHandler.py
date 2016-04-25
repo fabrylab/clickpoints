@@ -203,7 +203,7 @@ class MarkerEditor(QWidget):
         # Widget
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
-        self.setWindowTitle("MarkerEditor")
+        self.setWindowTitle("MarkerEditor - ClickPoints")
         self.setWindowIcon(qta.icon("fa.crosshairs"))
         main_layout = QtGui.QHBoxLayout(self)
 
