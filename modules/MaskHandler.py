@@ -99,10 +99,10 @@ class BigPaintableImageDisplay:
         self.colormap = [QColor(255, 0, 255).rgba() for i in range(256)]
 
     def UpdateColormap(self, types):
-        self.colormap = [QColor(255, 0, 255).rgba() for i in range(256)]
-        self.colormap[0] = QColor(0, 0, 0).rgba()
+        self.colormap = [QColor(255, 0, 255, 0).rgba() for i in range(256)]
         for drawtype in types:
             self.colormap[drawtype.index] = QColor(*HTMLColorToRGB(drawtype.color)).rgb()
+        self.colormap[0] = QColor(0, 0, 0, 0).rgba()
         self.UpdateImage()
 
     def UpdatePixmapCount(self):
@@ -349,9 +349,7 @@ class MyCounter2(QGraphicsRectItem):
         if self.type is None:
             self.label_text = "+ add type"
         else:
-            self.label_text = "%d: %s" % (index + 1, self.type.name) #chr(ord('A') + index)
-        #if len(self.mask_handler.config.draw_types[self.type]) == 3:
-        #    self.label_text = self.mask_handler.config.draw_types[self.type][2]
+            self.label_text = "%d: %s" % (index + 1, self.type.name)
 
         self.text = QGraphicsSimpleTextItem(self)
         self.text.setText(self.label_text)
@@ -360,7 +358,7 @@ class MyCounter2(QGraphicsRectItem):
             self.color = QColor(*HTMLColorToRGB(self.type.color))
         else:
             self.color = QColor("white")
-        self.text.setBrush(QBrush(self.color))#QColor(*self.mask_handler.config.draw_types[self.type][1])))
+        self.text.setBrush(QBrush(self.color))
         self.text.setZValue(10)
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
@@ -478,6 +476,8 @@ class MaskHandler:
         # place tick marks for already present masks
         for item in self.mask_file.get_mask_frames():
             BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
+
+        self.changeOpacity(0.5)
 
     def UpdateCounter(self):
         print("update counter")
