@@ -410,6 +410,25 @@ class MyCounter2(QGraphicsRectItem):
 class MaskHandler:
     mask_edit_window = None
 
+    DrawCursorSize = 10
+
+    mask_opacity = 0
+    current_maskname = None
+    last_maskname = None
+    color_under_cursor = None
+    image_mask_full = None
+    last_x = None
+    last_y = None
+
+    DrawMode = False
+    MaskChanged = False
+    MaskUnsaved = False
+    MaskEmpty = False
+    active = False
+    hidden = False
+
+    counter = []
+
     active_draw_type_index = None
     active_draw_type = None
 
@@ -421,20 +440,11 @@ class MaskHandler:
         self.config = config
         self.modules = modules
         self.MaskDisplay = BigPaintableImageDisplay(parent, config=config)
-        self.DrawCursorSize = 10
         self.drawPathItem = QGraphicsPathItem(parent)
         self.drawPathItem.setBrush(QBrush(QColor(255, 255, 255)))
         self.data_file = datafile
 
         self.mask_file = MaskFile(datafile)
-
-        self.mask_opacity = 0
-        self.current_maskname = None
-        self.last_maskname = None
-        self.color_under_cursor = None
-        self.image_mask_full = None
-        self.last_x = None
-        self.last_y = None
 
         self.scene_event_filter = GraphicsItemEventFilter(parent, self)
         image_display.AddEventFilter(self.scene_event_filter)
@@ -456,16 +466,8 @@ class MaskHandler:
         self.button.clicked.connect(self.ToggleInterfaceEvent)
         self.window.layoutButtons.addWidget(self.button)
 
-        self.DrawMode = False
-        self.MaskChanged = False
-        self.MaskUnsaved = False
-        self.MaskEmpty = False
-        self.active = False
-        self.hidden = False
         if self.config.hide_interfaces:
             self.hidden = True
-
-        self.counter = []
 
         # if a new database is created take mask types from config
         if new_database:
@@ -527,16 +529,6 @@ class MaskHandler:
         # set the new path in the database class
         self.mask_file.mask_path = new_path
 
-    def LoadImageEvent(self, filename, frame_number):
-        if self.current_maskname is not None:
-            self.last_maskname = self.current_maskname
-        self.MaskChanged = False
-        self.drawPath = QPainterPath()
-        self.drawPathItem.setPath(self.drawPath)
-        base_filename = os.path.splitext(filename)[0]
-        self.current_maskname = os.path.join(self.config.outputpath, self.config.outputpath_mask, base_filename + self.config.maskname_tag)
-        self.LoadMask(self.current_maskname)
-
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
         image = self.data_file.image
@@ -571,13 +563,22 @@ class MaskHandler:
                 mask_valid = False
         self.MaskEmpty = False
         if not mask_valid:
-            self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
+            self.image_mask_full = None
             self.MaskEmpty = True
         self.MaskUnsaved = False
         if self.active:
             self.SetActiveDrawType(self.active_draw_type)
 
+        if self.image_mask_full:
+            self.MaskDisplay.SetImage(self.image_mask_full)
+            self.MaskDisplay.setOpacity(self.mask_opacity)
+        else:
+            self.MaskDisplay.setOpacity(0)
+
+    def AddEmptyMask(self):
+        self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
         self.MaskDisplay.SetImage(self.image_mask_full)
+        self.MaskDisplay.setOpacity(self.mask_opacity)
 
     def UpdateDrawCursorSize(self):
         if self.active_draw_type is None:
@@ -671,6 +672,9 @@ class MaskHandler:
 
     def sceneEventFilter(self, event):
         if event.type() == 156 and event.button() == 1:  # Left Mouse ButtonPress
+            # if no mask has been created, create one for painting
+            if self.image_mask_full is None:
+                self.AddEmptyMask()
             self.last_x = event.pos().x()
             self.last_y = event.pos().y()
             self.DrawLine(self.last_x, self.last_x + 0.00001, self.last_y, self.last_y)
@@ -685,9 +689,12 @@ class MaskHandler:
             return True
         if event.type() == 161:  # Mouse Hover
             self.DrawCursor.setPos(event.pos())
-            color = self.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
-            if color is not None:
-                self.color_under_cursor = color
+            if self.image_mask_full is None:
+                self.color_under_cursor = 0
+            else:
+                color = self.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
+                if color is not None:
+                    self.color_under_cursor = color
         return False
 
     def keyPressEvent(self, event):
