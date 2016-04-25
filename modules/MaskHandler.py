@@ -449,11 +449,12 @@ class MaskHandler:
         self.DrawCursor.setVisible(False)
         self.UpdateDrawCursorSize()
 
-        self.button_brightness = QtGui.QPushButton()
-        self.button_brightness.setCheckable(True)
-        self.button_brightness.setIcon(qta.icon("fa.paint-brush"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_mask.png")))
-        self.button_brightness.clicked.connect(self.ToggleInterfaceEvent)
-        self.window.layoutButtons.addWidget(self.button_brightness)
+        self.button = QtGui.QPushButton()
+        self.button.setCheckable(True)
+        self.button.setIcon(qta.icon("fa.paint-brush"))
+        self.button.setToolTip("add/edit mask for current frame")
+        self.button.clicked.connect(self.ToggleInterfaceEvent)
+        self.window.layoutButtons.addWidget(self.button)
 
         self.DrawMode = False
         self.MaskChanged = False

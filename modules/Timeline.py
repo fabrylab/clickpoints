@@ -766,7 +766,8 @@ class Timeline:
 
         self.button = QtGui.QPushButton()
         self.button.setCheckable(True)
-        self.button.setIcon(qta.icon("fa.play"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_slider.png")))
+        self.button.setIcon(qta.icon("fa.play"))
+        self.button.setToolTip("display timeline")
         self.button.clicked.connect(lambda: self.HideInterface(self.hidden is False))
         self.window.layoutButtons.addWidget(self.button)
 
@@ -787,24 +788,29 @@ class Timeline:
 
             self.timeSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
             self.timeSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider2)
+
+            self.timeSlider.setToolTip("current time stamp")
         else:
             self.timeSlider = None
 
         # frame control
         self.button_play = QtGui.QPushButton()
         self.button_play.setCheckable(True)
+        self.button_play.setToolTip("start/stop playback\n[space]")
         self.button_play.toggled.connect(self.Play)
         self.layoutCtrl.addWidget(self.button_play)
 
         self.label_frame = QtGui.QLabel("")
         self.label_frame.setMinimumWidth(40)
         self.label_frame.setAlignment(Qt.AlignVCenter)
+        self.label_frame.setToolTip("current frame number, frame rate and timestamp")
         self.layoutCtrl.addWidget(self.label_frame)
 
         self.frameSlider = TimeLineSlider()
         self.frameSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
         self.frameSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider)
         self.frameSlider.setRange(0, self.get_frame_count() - 1)
+        self.frameSlider.setToolTip("current frame, drag to change current frame\n[b], [n] to set start/end marker")
         self.frameSlider.setValue(self.get_frame_count())
         if self.config.play_start is not None:
             # if >1 its a frame nr if < 1 its a fraction
@@ -825,6 +831,7 @@ class Timeline:
         self.spinBox_FPS.setMaximum(1000)
         self.spinBox_FPS.setValue(self.fps)
         self.spinBox_FPS.valueChanged.connect(self.ChangedFPS)
+        self.spinBox_FPS.setToolTip("play frame rate")
         self.layoutCtrl.addWidget(self.spinBox_FPS)
 
         self.spinBox_Skip = QtGui.QSpinBox()
@@ -832,6 +839,7 @@ class Timeline:
         self.spinBox_Skip.setMaximum(1000)
         self.spinBox_Skip.setValue(self.skip)
         self.spinBox_Skip.valueChanged.connect(self.ChangedSkip)
+        self.spinBox_Skip.setToolTip("how many frames to skip during playback after each frame")
         self.layoutCtrl.addWidget(self.spinBox_Skip)
 
         # video replay

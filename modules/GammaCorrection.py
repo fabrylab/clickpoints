@@ -56,7 +56,8 @@ class GammaCorrection(QGraphicsRectItem):
 
         self.button_brightness = QtGui.QPushButton()
         self.button_brightness.setCheckable(True)
-        self.button_brightness.setIcon(qta.icon("fa.adjust"))#QIcon(os.path.join(self.window.icon_path, "icon_brightness.png")))
+        self.button_brightness.setIcon(qta.icon("fa.adjust"))
+        self.button_brightness.setToolTip("display brightness/gamma adjust")
         self.button_brightness.clicked.connect(self.ToggleInterfaceEvent)
         self.window.layoutButtons.addWidget(self.button_brightness)
 

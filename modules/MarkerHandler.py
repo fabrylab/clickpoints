@@ -1240,6 +1240,7 @@ class MarkerHandler:
         self.button = QtGui.QPushButton()
         self.button.setCheckable(True)
         self.button.setIcon(qta.icon("fa.crosshairs"))
+        self.button.setToolTip("add/edit marker for current frame")
         self.button.clicked.connect(self.ToggleInterfaceEvent)
         self.window.layoutButtons.addWidget(self.button)
 
