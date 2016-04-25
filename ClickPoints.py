@@ -98,6 +98,7 @@ def GetModuleInitArgs(mod):
     return inspect.getargspec(mod.__init__).args
 
 class ClickPointsWindow(QWidget):
+    folderEditor = None
 
     def __init__(self, my_config, parent=None):
         global config
@@ -222,8 +223,8 @@ class ClickPointsWindow(QWidget):
         self.setFocus()
 
     def Folder(self):
-        self.editor = FolderEditor(self, self.data_file)
-        self.editor.show()
+        self.folderEditor = FolderEditor(self, self.data_file)
+        self.folderEditor.show()
 
     def ImagesAdded(self):
         if self.data_file.image is None and self.data_file.get_image_count():
@@ -312,6 +313,9 @@ class ClickPointsWindow(QWidget):
     """ some Qt events which should be passed around """
 
     def closeEvent(self, QCloseEvent):
+        # close the folder editor
+        if self.folderEditor is not None:
+            self.folderEditor.close()
         # save the data
         self.Save()
         # broadcast event the image display and the mediahandler (so that they can terminate their threads)
