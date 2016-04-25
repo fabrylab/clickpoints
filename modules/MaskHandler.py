@@ -569,8 +569,6 @@ class MaskHandler:
             self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
             self.MaskEmpty = True
         self.MaskUnsaved = False
-        if self.active_draw_type >= len(self.config.draw_types):
-            self.active_draw_type = 0
         if self.active:
             self.SetActiveDrawType(self.active_draw_type)
 
