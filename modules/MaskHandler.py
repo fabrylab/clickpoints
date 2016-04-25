@@ -480,14 +480,12 @@ class MaskHandler:
         self.changeOpacity(0.5)
 
     def UpdateCounter(self):
-        print("update counter")
         # remove all counter
         for counter in self.counter:
             self.view.scene.removeItem(self.counter[counter])
-        # create new ones
 
+        # create new ones
         type_list = self.mask_file.get_mask_type_list()
-        print(type_list.count())
         self.counter = {index: MyCounter2(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
         self.counter[-1] = MyCounter2(self.parent_hud, self, None, len(self.counter))
 
