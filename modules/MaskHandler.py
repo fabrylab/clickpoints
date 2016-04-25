@@ -76,7 +76,7 @@ class MaskFile:
         try:
             outputpath_mask = self.data_file.table_meta.get(key="mask_path").value
         except peewee.DoesNotExist:
-            outputpath_mask = config_outputpath_mask
+            outputpath_mask = self.data_file.database_filename+"_"+config_outputpath_mask
             self.data_file.table_meta(key="mask_path", value=outputpath_mask).save()
         self.mask_path = os.path.join(os.path.dirname(self.data_file.database_filename), outputpath_mask)
         return self.mask_path
@@ -500,6 +500,26 @@ class MaskHandler:
 
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
+
+    def DatabaseSaved(self):
+        # get old and new mask path
+        old_path = self.mask_file.get_mask_path(self.config.outputpath_mask)
+        new_path = os.path.splitext(self.data_file.database_filename)[0]+"_"+self.config.outputpath_mask
+        # get all the masks
+        masks = self.mask_file.table_mask.select()
+        # create target folder if it doesn't exist and if we have masks
+        if not os.path.exists(new_path) and masks.count():
+            os.mkdir(new_path)
+        # iterate over all masks and copy them to the new folder
+        for mask in masks:
+            import shutil
+            shutil.copy(os.path.join(old_path, mask.filename), os.path.join(new_path, mask.filename))
+        # change mask path in database meta entry
+        mask_path_entry = self.data_file.table_meta.get(key="mask_path")
+        mask_path_entry.value = os.path.relpath(new_path)
+        mask_path_entry.save()
+        # set the new path in the database class
+        self.mask_file.mask_path = new_path
 
     def LoadImageEvent(self, filename, frame_number):
         if self.current_maskname is not None:

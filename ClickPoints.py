@@ -244,6 +244,8 @@ class ClickPointsWindow(QWidget):
         srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Save project - ClickPoints", os.getcwd(), "ClickPoints Database *.cdb"))
         if srcpath:
             self.data_file.save_database(file=srcpath)
+            BroadCastEvent(self.modules, "DatabaseSaved")
+            self.JumpFrames(0)
 
     """ jumping frames and displaying images """
 
