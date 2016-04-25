@@ -594,12 +594,9 @@ class MaskHandler:
         self.active = active
         self.DrawCursor.setVisible(active)
         if active:
-            self.view.setCursor(QCursor(QtCore.Qt.BlankCursor))
-            self.counter[self.active_draw_type].SetToActiveColor()
+            self.counter[self.active_draw_type_index].SetToActiveColor()
         else:
-            self.counter[self.active_draw_type].SetToInactiveColor()
-        if first_time:
-            self.changeOpacity(0.5)
+            self.counter[self.active_draw_type_index].SetToInactiveColor()
         return True
 
     def changeOpacity(self, value):
@@ -674,7 +671,7 @@ class MaskHandler:
     def keyPressEvent(self, event):
         numberkey = event.key() - 49
         # @key ---- Painting ----
-        if self.active and 0 <= numberkey < len(self.mask_file.get_mask_type_list()) and event.modifiers() != Qt.KeypadModifier:
+        if self.active and 0 <= numberkey < self.mask_file.get_mask_type_list().count() and event.modifiers() != Qt.KeypadModifier:
             # @key 0-9: change brush type
             self.SetActiveDrawType(numberkey)
 
