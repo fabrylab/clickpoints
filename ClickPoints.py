@@ -228,6 +228,7 @@ class ClickPointsWindow(QWidget):
     def ImagesAdded(self):
         if self.data_file.image is None and self.data_file.get_image_count():
             self.JumpToFrame(0)
+            self.view.fitInView()
 
     def GetModule(self, name):
         module_names = [a.__class__.__name__ for a in self.modules]
