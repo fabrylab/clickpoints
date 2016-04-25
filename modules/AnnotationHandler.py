@@ -211,10 +211,11 @@ class pyQtTagSelector(QWidget):
 
 
 class AnnotationEditor(QWidget):
-    def __init__(self, filename, filenr, db, modules, config):
+    def __init__(self, annotation_handler, filename, filenr, db, modules, config):
         QWidget.__init__(self)
 
         # default settings and parameters
+        self.annotation_handler = annotation_handler
         self.db = db
         self.modules = modules
         self.config = config
@@ -229,7 +230,7 @@ class AnnotationEditor(QWidget):
         # widget layout and elements
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
-        self.setWindowTitle("Annotation - ClickPoints")
+        self.setWindowTitle("Edit Annotation - ClickPoints")
         self.setWindowIcon(qta.icon("fa.file-text-o"))
         self.layout = QGridLayout(self)
 
@@ -267,6 +268,10 @@ class AnnotationEditor(QWidget):
             self.pbRemove = QPushButton('&Remove', self)
             self.pbRemove.pressed.connect(self.removeAnnotation)
             self.layout.addWidget(self.pbRemove, 4, 4, Qt.AlignTop)
+
+        self.pbOverview = QPushButton('Show Overview', self)
+        self.pbOverview.pressed.connect(self.annotation_handler.showAnnotationOverview)
+        self.layout.addWidget(self.pbOverview, 5, 4, Qt.AlignTop)
 
         self.pteAnnotation = QPlainTextEdit(self)
         self.pteAnnotation.setFocus()
@@ -318,7 +323,7 @@ class AnnotationOverview(QWidget):
         # widget layout and elements
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
-        self.setWindowTitle('Annotations - ClickPoints')
+        self.setWindowTitle('Annotations Overview - ClickPoints')
         self.layout = QGridLayout(self)
         self.annoation_ids = annoation_ids
         self.window = window
@@ -454,10 +459,14 @@ class AnnotationHandler:
         if self.AnnotationEditorWindow is not None:
             self.AnnotationEditorWindow.close()
             del self.AnnotationEditorWindow
-        self.AnnotationEditorWindow = AnnotationEditor(self.data_file.image.filename,
+        self.AnnotationEditorWindow = AnnotationEditor(self, self.data_file.image.filename,
                                                            self.data_file.get_current_image(), self.db,
                                                            modules=self.modules, config=self.config)
         self.AnnotationEditorWindow.show()
+
+    def showAnnotationOverview(self):
+        self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.config, self.annoation_ids, self.db)
+        self.AnnotationOverviewWindow.show()
 
     def keyPressEvent(self, event):
         # @key A: add/edit annotation
@@ -466,8 +475,7 @@ class AnnotationHandler:
 
         # @key Y: show annotation overview
         if event.key() == Qt.Key_Y:
-            self.AnnotationOverviewWindow = AnnotationOverview(self.window, self.config, self.annoation_ids, self.db)
-            self.AnnotationOverviewWindow.show()
+            self.showAnnotationOverview()
 
     def closeEvent(self, event):
         if self.AnnotationEditorWindow:
