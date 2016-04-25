@@ -79,9 +79,7 @@ maskname_tag = '_mask.png'
 # @config `auto_mask_update =` whether to update the mask display after each stroke or manually by key press
 auto_mask_update = True
 # @config `draw_types = [[0,[255,0,0]]` specifies what categories to use for mask drawing. Every category is an array with two entires. Index and Color.
-draw_types = [[0, (0, 0, 0)],
-              [1, [255, 255, 255]],
-              [2, [124, 124, 255]]]
+draw_types = [[1, [124, 124, 255], "mask"]]
 
 """ @config GammaCorrection """
 
