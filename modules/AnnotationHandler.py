@@ -168,7 +168,7 @@ class pyQtTagSelector(QWidget):
         self.cbTag.activated.connect(self.hPB_add)
 
         self.pbAdd = QtGui.QPushButton(self)
-        self.pbAdd.setText('Add')
+        self.pbAdd.setIcon(qta.icon("fa.plus"))
         self.pbAdd.setMaximumWidth(30)
         self.pbAdd.released.connect(self.hPB_add)
 
@@ -233,15 +233,10 @@ class AnnotationEditor(QWidget):
         self.setWindowIcon(qta.icon("fa.file-text-o"))
         self.layout = QGridLayout(self)
 
-        self.layout.addWidget(QLabel('AFile Name:'), 0, 0)
+        self.layout.addWidget(QLabel('Filename:'), 0, 0)
         self.leAName = QLineEdit(filename, self)
         self.leAName.setEnabled(False)
         self.layout.addWidget(self.leAName, 0, 1, 1, 3)
-
-        self.layout.addWidget(QLabel('Time:', self), 1, 0)
-        self.leTStamp = QLineEdit('uninit', self)
-        self.leTStamp.setEnabled(False)
-        self.layout.addWidget(self.leTStamp, 1, 1)
 
         self.laTag = QLabel('Tag:', self)
         self.laTag.setContentsMargins(0, 4, 0, 0)
@@ -282,8 +277,8 @@ class AnnotationEditor(QWidget):
             self.leTStamp.setText(self.annotation.timestamp)
             self.leSystem.setText(self.annotation.system)
             self.leCamera.setText(self.annotation.camera)
-        if self.annotation.timestamp:
-            self.leTStamp.setText(datetime.strftime(self.annotation.timestamp, '%Y%m%d-%H%M%S'))
+        #if self.annotation.timestamp:
+        #    self.leTStamp.setText(datetime.strftime(self.annotation.timestamp, '%Y%m%d-%H%M%S'))
         if self.annotation.rating:
             self.leRating.setCurrentIndex(self.annotation.rating)
         self.leRating.currentIndexChanged.connect(lambda x: setattr(self.annotation, "rating", x))
@@ -296,7 +291,6 @@ class AnnotationEditor(QWidget):
         self.leTag.setActiveTagList(db.getTagsFromAnnotation())
 
     def saveAnnotation(self):
-        print(self.db.annotation.timestamp)
         # save the annotation
         self.db.annotation.save()
         # update tag association table
@@ -436,12 +430,10 @@ class AnnotationHandler:
                 BroadCastEvent(self.modules, "AnnotationMarkerAdd", item.image.sort_index)
                 self.annoation_ids.append(item.id)
 
-        self.button_brightness = QtGui.QPushButton()
-        #self.button_brightness.setCheckable(True)
-        self.button_brightness.setIcon(qta.icon("fa.file-text-o"))
-        self.button_brightness.setIcon(qta.icon("ei.list-alt"))
-        self.button_brightness.clicked.connect(self.showAnnotationEditor)
-        self.window.layoutButtons.addWidget(self.button_brightness)
+        self.button_annotationEditor = QtGui.QPushButton()
+        self.button_annotationEditor.setIcon(qta.icon("fa.edit"))
+        self.button_annotationEditor.clicked.connect(self.showAnnotationEditor)
+        self.window.layoutButtons.addWidget(self.button_annotationEditor)
 
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
@@ -458,6 +450,9 @@ class AnnotationHandler:
             self.AnnotationOverviewWindow.AnnotationRemoved(annotation)
 
     def showAnnotationEditor(self):
+        if self.AnnotationEditorWindow is not None:
+            self.AnnotationEditorWindow.close()
+            del self.AnnotationEditorWindow
         self.AnnotationEditorWindow = AnnotationEditor(self.data_file.image.filename,
                                                            self.data_file.get_current_image(), self.db,
                                                            modules=self.modules, config=self.config)
