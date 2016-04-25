@@ -367,7 +367,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
     
-    def GetMarker(self,image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
+    def GetMarker(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
         """
         Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
         ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
@@ -387,12 +387,15 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which can be iterated to get the track entries wich where machted by the paremeters provided.
+            a query object which can be iterated to get the track entries which where matched by the parameters provided.
         """
-        # join marker and type table
-        query = query=self.table_marker.select(self.table_marker,self.table_types,self.table_images).join(self.table_types,peewee.JOIN.LEFT_OUTER)\
-                                                                          .switch(self.table_marker).join(self.table_images,peewee.JOIN.LEFT_OUTER)
-        parameter = [image,image_filename, processed, type, type_name, track]
+        # select marker, joined with types and images
+        query = (self.table_marker.select(self.table_marker, self.table_types, self.table_images)
+                                  .join(self.table_types)
+                                  .switch(self.table_marker)
+                                  .join(self.table_images)
+                 )
+        parameter = [image, image_filename, processed, type, type_name, track]
         table = self.table_marker
         fields = [table.image, self.table_images.filename, table.processed, table.type, self.table_types.name, table.track]
         for field, parameter in zip(fields, parameter):
