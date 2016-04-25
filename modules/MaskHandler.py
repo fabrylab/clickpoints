@@ -470,7 +470,11 @@ class MaskHandler:
         # if a new database is created take mask types from config
         if new_database:
             for type_id, type_def in enumerate(self.config.draw_types):
-                self.mask_file.set_type(type_id, "Color", type_def[1], type_def[0])
+                if len(type_def) >= 3:
+                    name = type_def[2]
+                else:
+                    name = "Color"
+                self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
 
         self.UpdateCounter()
 
@@ -487,8 +491,9 @@ class MaskHandler:
 
         # create new ones
         type_list = self.mask_file.get_mask_type_list()
-        self.counter = {index: MyCounter2(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
-        self.counter[-1] = MyCounter2(self.parent_hud, self, None, len(self.counter))
+        self.counter = {index+1: MyCounter2(self.parent_hud, self, type, index+1) for index, type in enumerate(type_list)}
+        self.counter[-1] = MyCounter2(self.parent_hud, self, None, len(self.counter)+1)
+        self.counter[0] = MyCounter2(self.parent_hud, self, self.mask_file.table_mask(name="delete", color="#000000", index=0), 0)
 
         if len(list(self.counter.keys())):
             self.active_draw_type = self.counter[list(self.counter.keys())[0]].type
@@ -688,7 +693,7 @@ class MaskHandler:
     def keyPressEvent(self, event):
         numberkey = event.key() - 49
         # @key ---- Painting ----
-        if self.active and 0 <= numberkey < self.mask_file.get_mask_type_list().count() and event.modifiers() != Qt.KeypadModifier:
+        if self.active and 0 <= numberkey < self.mask_file.get_mask_type_list().count()+1 and event.modifiers() != Qt.KeypadModifier:
             # @key 0-9: change brush type
             self.SetActiveDrawType(numberkey)
 
