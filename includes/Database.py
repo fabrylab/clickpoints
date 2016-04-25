@@ -97,6 +97,9 @@ class DataFile:
                       "- please get an updated Version!"
                       % (int(version), int(self.current_version)))
                 print("Proceeding on own risk!")
+            # go to the folder
+            if os.path.dirname(database_filename):
+                os.chdir(os.path.dirname(database_filename))
         else:
             self.db = peewee.SqliteDatabase(":memory:")
 
@@ -278,6 +281,15 @@ class DataFile:
             file += ".cdb"
         # if the database hasn't been written to file, write it
         if not self.exists or file != self.database_filename:
+            # if the database already exists, copy it now before changing the paths
+            if self.exists:
+                # save the database and reload it
+                SaveDB(self.db, file)
+                self.db = peewee.SqliteDatabase(file)
+                # update peewee models
+                for table in self.tables:
+                    table._meta.database = self.db
+                self.exists = True
             # rewrite the paths
             if self.database_filename:
                 old_directory = os.path.dirname(self.database_filename)
@@ -294,13 +306,19 @@ class DataFile:
                 path.save()
             if file:
                 self.database_filename = file
-            # save the database and reload it
-            SaveDB(self.db, self.database_filename)
-            self.db = peewee.SqliteDatabase(self.database_filename)
-            # update peewee models
-            for table in self.tables:
-                table._meta.database = self.db
-            self.exists = True
+
+            # if the database did not exist, we had to change the paths before saving
+            if not self.exists:
+                # save the database and reload it
+                SaveDB(self.db, self.database_filename)
+                self.db = peewee.SqliteDatabase(self.database_filename)
+                # update peewee models
+                for table in self.tables:
+                    table._meta.database = self.db
+                self.exists = True
+
+            # change the directory to the new database
+            os.chdir(new_directory)
 
     def add_path(self, path):
         if self.database_filename:
