@@ -30,7 +30,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
         self.setWindowIcon(qta.icon('fa.film'))
-        self.setWindowTitle('Video Export')
+        self.setWindowTitle('Video Export - ClickPoints')
         self.layout = QtGui.QVBoxLayout(self)
         self.parent = parent
 
@@ -54,7 +54,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.StackedWidget.addWidget(videoWidget)
         Vlayout = QtGui.QVBoxLayout(videoWidget)
 
-        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/export.avi"), "Choose Video", "Videos (*.avi)")
+        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/export.avi"), "Choose Video - ClickPoints", "Videos (*.avi)")
         self.leCodec = AddQLineEdit(Vlayout, "Codec:", "libx264", strech=True)
         self.sbQuality = AddQSpinBox(Vlayout, 'Quality (0 lowest, 10 highest):', 5, float=False, strech=True)
         self.sbQuality.setRange(0, 10)
@@ -66,7 +66,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtGui.QVBoxLayout(imageWidget)
 
-        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/images%d.jpg"), "Choose Image", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
+        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/images%d.jpg"), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
         AddQLabel(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
 
         Vlayout.addStretch()
@@ -76,7 +76,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.StackedWidget.addWidget(gifWidget)
         Vlayout = QtGui.QVBoxLayout(gifWidget)
 
-        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/export.gif"), "Choose Gif", "Animated Gifs (*.gif)")
+        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/export.gif"), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)")
 
         Vlayout.addStretch()
 

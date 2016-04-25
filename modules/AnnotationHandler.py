@@ -226,10 +226,11 @@ class AnnotationEditor(QWidget):
         else:
             exists = True
 
-        # widget layout and ellements
+        # widget layout and elements
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
-        self.setWindowTitle("Annotation")
+        self.setWindowTitle("Annotation - ClickPoints")
+        self.setWindowIcon(qta.icon("fa.file-text-o"))
         self.layout = QGridLayout(self)
 
         self.layout.addWidget(QLabel('AFile Name:'), 0, 0)
@@ -323,7 +324,7 @@ class AnnotationOverview(QWidget):
         # widget layout and elements
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
-        self.setWindowTitle('Annotations')
+        self.setWindowTitle('Annotations - ClickPoints')
         self.layout = QGridLayout(self)
         self.annoation_ids = annoation_ids
         self.window = window
@@ -437,7 +438,7 @@ class AnnotationHandler:
 
         self.button_brightness = QtGui.QPushButton()
         #self.button_brightness.setCheckable(True)
-        self.button_brightness.setIcon(qta.icon("fa.file-text-o"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_annotation.png")))
+        self.button_brightness.setIcon(qta.icon("fa.file-text-o"))
         self.button_brightness.setIcon(qta.icon("ei.list-alt"))
         self.button_brightness.clicked.connect(self.showAnnotationEditor)
         self.window.layoutButtons.addWidget(self.button_brightness)
