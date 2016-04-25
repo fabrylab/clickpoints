@@ -292,7 +292,7 @@ class ClickPointsWindow(QWidget):
         # Notify that the frame will be loaded TODO are all these events necessary?
         BroadCastEvent(self.modules, "FrameChangeEvent")
         BroadCastEvent(self.modules, "PreLoadImageEvent", self.new_filename, self.new_frame_number)
-        self.setWindowTitle("%s - ClickPoints" % self.new_filename)
+        self.setWindowTitle("%s - %s - ClickPoints" % (self.new_filename, self.data_file.getFilename()))
 
         # get image
         self.im = self.data_file.get_image_data()

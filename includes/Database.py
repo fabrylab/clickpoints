@@ -275,6 +275,11 @@ class DataFile:
                 image.path = path_entry
                 image.save()
 
+    def getFilename(self):
+        if not self.exists:
+            return "unsaved project"
+        return os.path.basename(self.database_filename)
+
     def save_database(self, file=None):
         # ensure that the file ends in .cdb
         if not file.lower().endswith(".cdb"):
