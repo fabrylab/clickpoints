@@ -201,6 +201,7 @@ def LoadConfig():
     if len(sys.argv) >= 2:
         path_list.insert(0, sys.argv[1])
     path_list.append(os.path.join(os.path.dirname(__file__), "..", "ConfigClickPoints.txt"))
+    config_path = "."
     for path in path_list:
         if os.path.exists(path):
             with open(path) as f:
