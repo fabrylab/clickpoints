@@ -37,8 +37,109 @@ def isPortInUse(type,ip,port_nr):
     else:
         return False
 
+
+class ScriptEditor(QtGui.QWidget):
+    def __init__(self, script_launcher):
+        QtGui.QWidget.__init__(self)
+        self.script_launcher = script_launcher
+
+        # Widget
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(200)
+        self.setWindowTitle("Script Selector - ClickPoints")
+        self.layout = QtGui.QVBoxLayout(self)
+
+        self.setWindowIcon(qta.icon("fa.code"))
+
+        """ """
+        self.list = QtGui.QListWidget(self)
+        self.layout.addWidget(self.list)
+        self.list.itemSelectionChanged.connect(self.list_selected)
+
+        group_box = QtGui.QGroupBox("Add Folder")
+        self.group_box = group_box
+        self.layout.addWidget(group_box)
+        layout = QtGui.QVBoxLayout()
+        group_box.setLayout(layout)
+        """ """
+
+        horizontal_layout = QtGui.QHBoxLayout()
+        layout.addLayout(horizontal_layout)
+
+        horizontal_layout.addWidget(QtGui.QLabel("Folder:"))
+
+        self.text_input = QtGui.QLineEdit(self)
+        self.text_input.setDisabled(True)
+        horizontal_layout.addWidget(self.text_input)
+
+        self.pushbutton_file = QtGui.QPushButton('Select F&ile', self)
+        self.pushbutton_file.pressed.connect(self.select_file)
+        horizontal_layout.addWidget(self.pushbutton_file)
+
+        self.pushbutton_delete = QtGui.QPushButton('Remove', self)
+        self.pushbutton_delete.pressed.connect(self.remove_folder)
+        horizontal_layout.addWidget(self.pushbutton_delete)
+
+        """ """
+
+        horizontal_layout = QtGui.QHBoxLayout()
+        self.layout.addLayout(horizontal_layout)
+
+        horizontal_layout.addStretch()
+
+        self.pushbutton_Confirm = QtGui.QPushButton('O&k', self)
+        self.pushbutton_Confirm.pressed.connect(self.close)
+        horizontal_layout.addWidget(self.pushbutton_Confirm)
+
+        self.update_folder_list()
+        self.list.setCurrentRow(self.list.count()-1)
+
+    def list_selected(self):
+        selections = self.list.selectedItems()
+        if len(selections) == 0 or self.list.currentRow() == self.list.count()-1:
+            self.text_input.setText("")
+            self.group_box.setTitle("Add Script")
+            self.pushbutton_file.setHidden(False)
+            self.pushbutton_delete.setHidden(True)
+        else:
+            self.text_input.setText(selections[0].text().rsplit("  ", 1)[0])
+            self.group_box.setTitle("Script")
+            self.pushbutton_file.setHidden(True)
+            self.pushbutton_delete.setHidden(False)
+
+    def update_folder_list(self):
+        self.list.clear()
+        for index, script in enumerate(self.script_launcher.scripts):
+            item = QtGui.QListWidgetItem(qta.icon("fa.code"), "%s  (F%d)" % (script, 12-index), self.list)
+            item.path_entry = script
+        QtGui.QListWidgetItem(qta.icon("fa.plus"), "add script", self.list)
+
+    def select_file(self):
+        # ask for a file name
+        new_path = str(QtGui.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path))
+        # if we got one, set it
+        if new_path:
+            print(new_path, self.script_launcher.script_path)
+            new_path = os.path.relpath(new_path, self.script_launcher.script_path)
+            self.script_launcher.scripts.append(new_path)
+            self.text_input.setText(new_path)
+            self.update_folder_list()
+
+    def remove_folder(self):
+        path = self.list.selectedItems()[0].path_entry
+        self.script_launcher.scripts.remove(path)
+        self.update_folder_list()
+
+    def keyPressEvent(self, event):
+        # close the window with esc
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.close()
+
+
 class ScriptLauncher(QObject):
     signal = pyqtSignal(str, socketobject, tuple)
+
+    scriptSelector = None
 
     def __init__(self, window, data_file, modules, config=None):
         QObject.__init__(self)
@@ -74,12 +175,19 @@ class ScriptLauncher(QObject):
         self.memmap_size = 0
 
         self.button = QtGui.QPushButton()
-        self.button.setCheckable(True)
-        self.button.setIcon(qta.icon("fa.code"))#QtGui.QIcon(os.path.join(self.window.icon_path, "icon_marker.png")))
-        #self.button.clicked.connect(self.ToggleInterfaceEvent)
+        self.button.setIcon(qta.icon("fa.code"))
+        self.button.clicked.connect(self.showScriptSelector)
+        self.button.setToolTip("load/remove addon scripts")
         self.window.layoutButtons.addWidget(self.button)
 
+        self.scripts = self.config.launch_scripts
+        self.script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "addons"))
+
         #self.running_processes = [None]*len(self.config.launch_scripts)
+
+    def showScriptSelector(self):
+        self.scriptSelector = ScriptEditor(self)
+        self.scriptSelector.show()
 
     def Command(self, command, socket, client_address):
         cmd, value = str(command).split(" ", 1)
@@ -164,10 +272,9 @@ class ScriptLauncher(QObject):
                 sock.sendto(msg.encode(), ('127.0.0.1', p['broadcast_port']))
                 sock.close()
 
-
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
-        for script, key, index in zip(self.config.launch_scripts, keys, range(len(self.config.launch_scripts))):
+        for script, key, index in zip(self.scripts, keys, range(len(self.scripts))):
             # @key F12: Launch
             if event.key() == key:
                 process = self.running_processes[index]['process']
@@ -201,6 +308,10 @@ class ScriptLauncher(QObject):
                 self.running_processes[index]['command_port'] = self.PORT
                 self.running_processes[index]['broadcast_port'] = self.PORT + 1
                 print("Process",process)
+
+    def closeEvent(self, event):
+        if self.scriptSelector:
+            self.scriptSelector.close()
 
     @staticmethod
     def file():
