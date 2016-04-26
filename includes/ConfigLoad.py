@@ -23,10 +23,6 @@ srcpath = ""
 database_file = ""
 
 """ @config General """
-# @config `outputpath =` the path where to save the DB and mask files. Set to `None` defaults to the `srcpath`
-outputpath = ""
-# @config `outputpath_mask =` a sub path of output path where to save mask files. Set to "" to default to outputpath
-outputpath_mask = "mask"
 # @config `filename_data_regex = ` specify a regular expression to obtain meta-data from filenames
 filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
 # @config `filterparam =` specify additional filters for the files to use
@@ -53,16 +49,13 @@ threaded_image_display = True
 threaded_image_load = True
 
 """ @config Marker """
-# @config `logname_tag =` specifies what to append to the log file.
-logname_tag = '_pos.txt'
-
 TYPE_Normal = 0
 TYPE_Rect = 1
 TYPE_Line = 2
 TYPE_Track = 4
 
 # @config `types = {0: ["marker", [255, 0, 0], TYPE_Normal]}` specifies what categories to use. Every category is an array with three entires. Name, Color and Type. Types can be 0: normal marker, 1: rectangle markers, 2: line markers
-types = {0: ["marker", [255, 0, 0], TYPE_Track]}
+types = {0: ["marker", [255, 0, 0], TYPE_Normal]}
 
 # @config `tracking = ` specify whether to use tracking mode
 tracking = False
@@ -74,8 +67,6 @@ tracking_show_trailing = -1
 tracking_show_leading = 0
 
 """ @config Mask """
-# @config `maskname_tag =` specifies what to append to the mask file.
-maskname_tag = '_mask.png'
 # @config `auto_mask_update =` whether to update the mask display after each stroke or manually by key press
 auto_mask_update = True
 # @config `draw_types = [[0,[255,0,0]]` specifies what categories to use for mask drawing. Every category is an array with two entires. Index and Color.
@@ -98,10 +89,6 @@ timeline_hide = False
 datetimeline_show = True
 
 """ @config Annotations """
-# @config `annotation_tag =` specifies what to append to the annotation file.
-annotation_tag = '_annot.txt'
-
-
 # @config `server_annotations=` weather to use local or sql based annotation stoarage
 server_annotations=False
 # @config `sql_dbname=` database name e.g. annotations
@@ -147,8 +134,8 @@ class ExceptionPathDoesntExist(Exception): pass
 
 def LoadConfig():
     global auto_mask_update, tracking, tracking_connect_nearest
-    global srcpath, filename, outputpath, jumps, relative_outputpath, file_ids, annotation_ids
-    global logname_tag, maskname_tag
+    global srcpath, filename, jumps, file_ids, annotation_ids
+    global maskname_tag
     global types, draw_types, addons, max_image_size
     global filterparam, dont_process_filelist
     global play_start, play_end, playing, rotation, rotation_steps
@@ -228,20 +215,6 @@ def LoadConfig():
                 print("WARNING: unknown command line argument "+arg)
         else:
             print("WARNING: unknown command line argument "+arg)
-
-    """ some fallbacks """
-
-    # parameter pre processing
-    if outputpath is not "" and not os.path.exists(outputpath):
-        os.makedirs(outputpath)  # recursive path creation
-
-    if outputpath is "":
-        relative_outputpath = True
-        outputpath = basepath
-    else:
-        relative_outputpath = False
-
-    draw_types = sorted(draw_types, key=lambda x: x[0])
 
     """ convert to dict and return """
 
