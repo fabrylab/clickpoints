@@ -70,13 +70,13 @@ class MaskFile:
     def get_mask_frames(self):
         return self.table_mask.select().group_by(self.table_mask.image)
 
-    def get_mask_path(self, config_outputpath_mask):
+    def get_mask_path(self):
         if self.mask_path:
             return self.mask_path
         try:
             outputpath_mask = self.data_file.table_meta.get(key="mask_path").value
         except peewee.DoesNotExist:
-            outputpath_mask = self.data_file.database_filename+"_"+config_outputpath_mask
+            outputpath_mask = self.data_file.database_filename+"_mask.png"
             self.data_file.table_meta(key="mask_path", value=outputpath_mask).save()
         self.mask_path = os.path.join(os.path.dirname(self.data_file.database_filename), outputpath_mask)
         return self.mask_path
@@ -511,7 +511,7 @@ class MaskHandler:
 
     def DatabaseSaved(self):
         # get old and new mask path
-        old_path = self.mask_file.get_mask_path(self.config.outputpath_mask)
+        old_path = self.mask_file.get_mask_path()
         new_path = os.path.splitext(self.data_file.database_filename)[0]+"_"+self.config.outputpath_mask
         # get all the masks
         masks = self.mask_file.table_mask.select()
@@ -535,7 +535,7 @@ class MaskHandler:
         image_frame = self.data_file.image.frame
         mask_entry = self.mask_file.get_mask()
 
-        mask_path = self.mask_file.get_mask_path(self.config.outputpath_mask)
+        mask_path = self.mask_file.get_mask_path()
 
         if mask_entry:
             self.current_maskname = os.path.join(mask_path, mask_entry.filename)
@@ -548,7 +548,7 @@ class MaskHandler:
 
     def ReloadMask(self):
         mask_entry = self.mask_file.get_mask()
-        mask_path = self.mask_file.get_mask_path(self.config.outputpath_mask)
+        mask_path = self.mask_file.get_mask_path()
         if mask_entry:
             self.current_maskname = os.path.join(mask_path, mask_entry.filename)
             self.LoadMask(self.current_maskname)
