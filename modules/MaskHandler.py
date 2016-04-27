@@ -543,7 +543,7 @@ class MaskHandler:
         else:
             number = "_%03d" % image_frame
             basename, ext = os.path.splitext(image.filename)
-            self.current_maskname = os.path.join(mask_path, basename + "_" + ext[1:] + number + self.config.maskname_tag)
+            self.current_maskname = os.path.join(mask_path, basename + "_" + ext[1:] + number +"_mask")
             self.LoadMask(None)
 
     def ReloadMask(self):
