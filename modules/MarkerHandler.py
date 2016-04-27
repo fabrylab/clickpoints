@@ -85,7 +85,7 @@ class MarkerFile:
             type = peewee.ForeignKeyField(Types, related_name="markers")
             processed = peewee.IntegerField(default=0)
             partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
-            track = peewee.ForeignKeyField(Tracks, null=True)
+            track = peewee.ForeignKeyField(Tracks, null=True, related_name='markers')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
             class Meta:
@@ -1334,16 +1334,14 @@ class MarkerHandler:
             self.RemovePoint(self.tracks[0], no_notice=True)
 
     def LoadTracks(self):
-        track_list = (self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_types, self.marker_file.table_tracks)
+        track_list = (self.marker_file.table_tracks.select(self.marker_file.table_tracks, self.marker_file.table_marker, self.marker_file.table_types)
+            .join(self.marker_file.table_marker)
             .join(self.marker_file.table_types)
-            .switch(self.marker_file.table_marker)
-            .join(self.marker_file.table_tracks)
-            .where(~(self.marker_file.table_marker.track >> None))
             )
         #track_list = self.marker_file.get_track_list()
         for track in track_list:
-            data = [point for point in self.marker_file.get_track_points(track)]
-            if len(data):
+            data = track.markers
+            if data.count():
                 self.tracks.append(MyTrackItem(self, self.TrackParent, data, track, saved=True))
 
     def LoadPoints(self):
