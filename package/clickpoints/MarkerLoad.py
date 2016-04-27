@@ -107,7 +107,7 @@ class DataFile:
                 if item == "data":
                     return self.get_data()
                 if item == "data8":
-                    data = self.get_data()
+                    data = self.get_data().copy()
                     if data.dtype == np.uint16:
                         if data.max() < 2**12:
                             data >>= 4
