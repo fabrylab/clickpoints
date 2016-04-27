@@ -512,7 +512,7 @@ class MaskHandler:
     def DatabaseSaved(self):
         # get old and new mask path
         old_path = self.mask_file.get_mask_path()
-        new_path = os.path.splitext(self.data_file.database_filename)[0]+"_"+self.config.outputpath_mask
+        new_path = os.path.splitext(self.data_file.database_filename)[0]+"_mask"
         # get all the masks
         masks = self.mask_file.table_mask.select()
         # create target folder if it doesn't exist and if we have masks
