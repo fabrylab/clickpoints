@@ -54,7 +54,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.StackedWidget.addWidget(videoWidget)
         Vlayout = QtGui.QVBoxLayout(videoWidget)
 
-        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/export.avi"), "Choose Video - ClickPoints", "Videos (*.avi)")
+        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/export.avi"), "Choose Video - ClickPoints", "Videos (*.avi)")
         self.leCodec = AddQLineEdit(Vlayout, "Codec:", "libx264", strech=True)
         self.sbQuality = AddQSpinBox(Vlayout, 'Quality (0 lowest, 10 highest):', 5, float=False, strech=True)
         self.sbQuality.setRange(0, 10)
@@ -66,7 +66,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtGui.QVBoxLayout(imageWidget)
 
-        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/images%d.jpg"), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
+        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/images%d.jpg"), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
         AddQLabel(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
 
         Vlayout.addStretch()
@@ -76,7 +76,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.StackedWidget.addWidget(gifWidget)
         Vlayout = QtGui.QVBoxLayout(gifWidget)
 
-        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(self.config.outputpath, "export/export.gif"), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)")
+        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/export.gif"), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)")
 
         Vlayout.addStretch()
 
@@ -212,7 +212,7 @@ class VideoExporterDialog(QtGui.QWidget):
 
             # extract cropped image
             self.preview_slice[:] = 0
-            self.preview_slice[start_y3-start_y2:self.preview_slice.shape[0]+(end_y3-end_y2), start_x3-start_x2:self.preview_slice.shape[1]+(end_x3-end_x2), :] = image[start_y3:end_y3, start_x3:end_x3, :]
+            self.preview_slice[start_y3-start_y2:self.preview_slice.shape[0]+(end_y3-end_y2), start_x3-start_x2:self.preview_slice.shape[1]+(end_x3-end_x2), :] = image[start_y3:end_y3, start_x3:end_x3, :3]
             # apply the subpixel decimal shift
             if offset_float[0] or offset_float[1]:
                 self.preview_slice = shift(self.preview_slice, -np.hstack((offset_float, 0)))
