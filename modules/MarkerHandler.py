@@ -1301,7 +1301,9 @@ class MarkerHandler:
     def ReloadMarker(self, frame=None):
         if frame is None:
             frame = self.data_file.get_current_image()
-        image_id = self.data_file.image.id
+            image_id = self.data_file.image.id
+        else:
+            image_id = self.data_file.get_image(frame).id
         # Tracks
         marker_list = self.marker_file.get_marker_list(image_id)
         marker_list = {marker.track.id: marker for marker in marker_list if marker.track}
@@ -1334,11 +1336,7 @@ class MarkerHandler:
             self.RemovePoint(self.tracks[0], no_notice=True)
 
     def LoadTracks(self):
-        track_list = (self.marker_file.table_tracks.select(self.marker_file.table_tracks, self.marker_file.table_marker, self.marker_file.table_types)
-            .join(self.marker_file.table_marker)
-            .join(self.marker_file.table_types)
-            )
-        #track_list = self.marker_file.get_track_list()
+        track_list = self.marker_file.table_tracks.select()
         for track in track_list:
             data = track.markers
             if data.count():
