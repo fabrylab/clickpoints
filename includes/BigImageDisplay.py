@@ -159,6 +159,9 @@ class BigImageDisplay:
         self.preview_slice = None
         self.preview_rect = None
         self.conversion = None
+        self.min = 0
+        self.max = 255
+        self.gamma = 1
 
     def PreviewRect(self):
         # get currently displayed rect as int (add one pixel to account for fraction values)

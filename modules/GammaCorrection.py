@@ -12,7 +12,7 @@ except ImportError:
     from PyQt4.QtCore import QRectF, Qt
 import qtawesome as qta
 
-from Tools import MySlider, BoxGrabber
+from Tools import MySlider, BoxGrabber, TextButton
 
 class GammaCorrection(QGraphicsRectItem):
     def __init__(self, parent_hud, image_display, config, window):
@@ -24,7 +24,7 @@ class GammaCorrection(QGraphicsRectItem):
         self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
 
         self.setBrush(QBrush(QColor(0, 0, 0, 128)))
-        self.setPos(-140, -140)
+        self.setPos(-140, -140-20)
         self.setZValue(19)
 
         self.hist = QGraphicsPathItem(self)
@@ -50,7 +50,14 @@ class GammaCorrection(QGraphicsRectItem):
             slider.valueChanged = functions[i]
             self.sliders.append(slider)
 
-        self.setRect(QRectF(0, 0, 110, 110))
+        self.button_update = TextButton(self, 50, "update", font=window.mono_font)
+        self.button_update.setPos(3, 40 + 3 * 30 - 20)
+        self.button_update.clicked.connect(self.updateROI)
+        self.button_reset = TextButton(self, 50, "reset", font=window.mono_font)
+        self.button_reset.setPos(56, 40 + 3 * 30 - 20)
+        self.button_reset.clicked.connect(self.reset)
+
+        self.setRect(QRectF(0, 0, 110, 110+18))
         BoxGrabber(self)
         self.dragged = False
 
@@ -82,20 +89,29 @@ class GammaCorrection(QGraphicsRectItem):
 
     def updateGamma(self, value):
         QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        update_hist = self.image.preview_slice is None
         self.image.Change(gamma=value)
         self.updateConv()
+        if update_hist:
+            self.updateHist(self.image.hist)
         QApplication.restoreOverrideCursor()
 
     def updateBrightnes(self, value):
         QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        update_hist = self.image.preview_slice is None
         self.image.Change(max_brightness=value)
         self.updateConv()
+        if update_hist:
+            self.updateHist(self.image.hist)
         QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
         QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        update_hist = self.image.preview_slice is None
         self.image.Change(min_brightness=value)
         self.updateConv()
+        if update_hist:
+            self.updateHist(self.image.hist)
         QApplication.restoreOverrideCursor()
 
     def LoadImageEvent(self, filename="", frame_number=0):
@@ -104,23 +120,29 @@ class GammaCorrection(QGraphicsRectItem):
 
     def mousePressEvent(self, event):
         if event.button() == 2:
-            for slider in self.sliders:
-                slider.reset()
-            self.image.ResetPreview()
-            self.hist.setPath(QPainterPath())
-            self.conv.setPath(QPainterPath())
+            self.reset()
         pass
+
+    def reset(self):
+        for slider in self.sliders:
+            slider.reset()
+        self.image.ResetPreview()
+        self.hist.setPath(QPainterPath())
+        self.conv.setPath(QPainterPath())
+
+    def updateROI(self):
+        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        self.image.PreviewRect()
+        self.image.Change()
+        self.updateHist(self.image.hist)
+        QApplication.restoreOverrideCursor()
 
     def keyPressEvent(self, event):
 
         # @key ---- Gamma/Brightness Adjustment ---
         if event.key() == Qt.Key_G:
             # @key G: update rect
-            QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
-            self.image.PreviewRect()
-            self.image.Change()
-            self.updateHist(self.image.hist)
-            QApplication.restoreOverrideCursor()
+            self.updateROI()
 
     def ToggleInterfaceEvent(self):
         self.setVisible(self.hidden)
