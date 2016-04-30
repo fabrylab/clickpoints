@@ -14,7 +14,7 @@ from PIL import ImageDraw, Image, ImageFont
 from scipy.ndimage import shift
 
 from Tools import HTMLColorToRGB, BoundBy
-from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox
+from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox, AddQColorChoose
 
 
 class VideoExporterDialog(QtGui.QWidget):
@@ -88,7 +88,7 @@ class VideoExporterDialog(QtGui.QWidget):
         self.cbTime = AddQCheckBox(Vlayout, 'Display time:', True, strech=True)
         self.cbTimeZero = AddQCheckBox(Vlayout, 'Start from zero:', True, strech=True)
         self.cbTimeFontSize = AddQSpinBox(Vlayout, 'Font size:', 50, float=False, strech=True)
-        self.cbTimeColor = AddQLineEdit(Vlayout, "Color:", "#FFFFFF", strech=True)
+        self.cbTimeColor = AddQColorChoose(Vlayout, "Color:", "#FFFFFF", strech=True)
 
         Vlayout.addStretch()
 
@@ -166,7 +166,7 @@ class VideoExporterDialog(QtGui.QWidget):
             self.time_drawing.start = None
             self.time_drawing.x = 15
             self.time_drawing.y = 10
-            self.time_drawing.color = tuple(HTMLColorToRGB(self.cbTimeColor.text()))
+            self.time_drawing.color = tuple(HTMLColorToRGB(self.cbTimeColor.getColor()))
 
         # initialize progress bar
         self.progressbar.setMinimum(start)
