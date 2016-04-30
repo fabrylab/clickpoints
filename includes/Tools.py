@@ -225,6 +225,48 @@ class BoxGrabber(QGraphicsRectItem):
         self.dragged = False
 
 
+class TextButtonSignals(QtCore.QObject):
+    clicked = QtCore.pyqtSignal()
+
+class TextButton(QGraphicsRectItem):
+    def __init__(self, parent, width, text="", font=None):
+        QGraphicsRectItem.__init__(self, parent)
+
+        self.parent = parent
+        self.setAcceptHoverEvents(True)
+        #self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+
+        self.text = QGraphicsSimpleTextItem(self)
+        if font is None:
+            font = QFont("", 11)
+        else:
+            font.setPointSize(11)
+        self.text.setFont(font)
+        self.text.setText(text)
+        print((width-self.text.boundingRect().width())/2)
+        self.text.setPos((width-self.text.boundingRect().width())/2+1, 0)
+        self.text.setBrush(QBrush(QColor("white")))
+
+        self.setRect(QRectF(0, 0, width, self.text.boundingRect().height()))
+
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.signals = TextButtonSignals()
+        self.clicked = self.signals.clicked
+
+    def hoverEnterEvent(self, event):
+        self.setBrush(QBrush(QColor(128, 128, 128, 128)))
+
+    def hoverLeaveEvent(self, event):
+        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+
+    def mousePressEvent(self, event):
+        if event.button() == 1:
+            self.clicked.emit()
+
+    def mouseReleaseEvent(self, event):
+        pass
+
+
 class GraphicsItemEventFilter(QGraphicsItem):
     def __init__(self, parent, command_object):
         super(GraphicsItemEventFilter, self).__init__(parent)
