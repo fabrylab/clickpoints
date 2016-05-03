@@ -40,8 +40,9 @@ class AnnotationFile:
                 comment = peewee.TextField(default="")
                 rating = peewee.IntegerField(default=0)
                 tag_type = peewee.CharField(default="SQLTags")
-                system = peewee.IntegerField(null=True)
-                device = peewee.IntegerField(null=True)
+                frame = peewee.IntegerField()
+                #system = peewee.IntegerField(null=True)
+                #device = peewee.IntegerField(null=True)
             self.table_annotation = SqlAnnotation
         else:
             class Annotation(base_model):
@@ -71,17 +72,21 @@ class AnnotationFile:
 
     def add_annotation(self, **kwargs):
         if self.server:
-            kwargs.update(dict(timestamp=self.data_file.timestamp, reffilename=self.data_file.image.filename, reffileext=self.data_file.image.ext, fileid=self.data_file.image.external_id))
+            kwargs.update(dict(timestamp=self.data_file.timestamp, reffilename=self.data_file.image.filename, reffileext=self.data_file.image.ext, file_id=self.data_file.image.external_id, frame=self.data_file.image.frame))
         else:
             kwargs.update(dict(timestamp=self.data_file.timestamp, image=self.data_file.image))
         self.annotation = self.table_annotation(**kwargs)
         return self.annotation
 
+    def remove_annotation(self, annotation):
+        self.table_tagassociation.delete().where(self.table_tagassociation.annotation == annotation.id).execute()
+        annotation.delete_instance()
+
     def getAnnotation(self):
         try:
             if self.server:
                 if self.data_file.image.external_id is not None:
-                    self.annotation = self.table_annotation.get(self.table_annotation.fileid == self.data_file.image.external_id)
+                    self.annotation = self.table_annotation.get(file_id=self.data_file.image.external_id, frame=self.data_file.image.frame)
                 else:
                     self.annotation = self.table_annotation.get(self.table_annotation.reffilename == self.data_file.image.filename)
             else:
@@ -305,8 +310,8 @@ class AnnotationEditor(QWidget):
         BroadCastEvent(self.modules, "AnnotationAdded", self.db.annotation)
 
     def removeAnnotation(self):
+        self.annotation_handler.db.remove_annotation(self.annotation)
         BroadCastEvent(self.modules, "AnnotationRemoved", self.db.annotation)
-        self.annotation.delete_instance()
         self.close()
 
     def keyPressEvent(self, event):
@@ -375,7 +380,11 @@ class AnnotationOverview(QWidget):
             timestamp = datetime.strftime(annotation.timestamp, '%Y%m%d-%H%M%S')
         else:
             timestamp = ""
-        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(annotation.image.sort_index), str(annotation.id)]
+        if self.config.server_annotations is True:
+            image = self.window.data_file.table_images.get(external_id = annotation.file_id, frame=annotation.frame)
+        else:
+            image = annotation.image
+        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(image.sort_index), str(annotation.id)]
         for index, text in enumerate(texts):
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
@@ -423,7 +432,8 @@ class AnnotationHandler:
 
             # place tick marks for already present masks
             for item in self.db.get_annotation_frames():
-                BroadCastEvent(self.modules, "AnnotationMarkerAdd", item.image.sort_index)
+                image = self.data_file.table_images.get(external_id = item.file_id, frame=item.frame)
+                BroadCastEvent(self.modules, "AnnotationMarkerAdd", image.sort_index)
                 self.annoation_ids.append(item.id)
 
         else:

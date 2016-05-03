@@ -339,7 +339,7 @@ class DataFile:
             path.save()
         return path
 
-    def add_image(self, filename, extension, external_id, frames, path):
+    def add_image(self, filename, extension, external_id, frames, path, timestamp=None):
         # add an entry for every frame in the image container
         for i in range(frames):
             image = self.table_images()
@@ -348,7 +348,7 @@ class DataFile:
             image.frames = frames
             image.frame = i
             image.external_id = external_id
-            image.timestamp = None#file_entry.timestamp
+            image.timestamp = timestamp
             image.sort_index = self.next_sort_index
             image.path = path.id
             try:
@@ -461,6 +461,7 @@ class DataFile:
     def set_image(self, index):
         # the the current image number and retrieve its information from the database
         self.image = self.table_images.get(sort_index=index)
+        self.timestamp = self.image.timestamp
         self.current_image_index = index
 
     def get_offset(self, image=None):
