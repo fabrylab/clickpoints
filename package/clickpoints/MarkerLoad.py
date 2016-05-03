@@ -296,7 +296,7 @@ class DataFile:
             path.save()
         return path
 
-    def AddImage(self,filename,ext,path,frames=1,external_id=None,timestamp=None):
+    def AddImage(self,filename,ext,path,frames=1,external_id=None,timestamp=None,sort_index=None,width=None,height=None):
         """
         Add single image to db
 
@@ -318,8 +318,10 @@ class DataFile:
         """
         try:
             item = self.table_images.get(self.table_images.filename==filename)
+            new_image = False
         except peewee.DoesNotExist:
             item = self.table_images()
+            new_image = True
 
         item.filename=filename
         item.ext=ext
@@ -327,7 +329,19 @@ class DataFile:
         item.external_id=external_id
         item.timestamp=timestamp
         item.path = self.AddPath(path)
-
+        if width is not None:
+            item.width = width
+        if height is not None:
+            item.height = height
+        if new_image:
+            if self.next_sort_index is None:
+                query = self.table_images.select().order_by(-self.table_images.sort_index).limit(1)
+                try:
+                    self.next_sort_index = query[0].sort_index+1
+                except IndexError:
+                    self.next_sort_index = 0
+            item.sort_index = self.next_sort_index
+            self.next_sort_index += 1
 
         item.save()
         return item.get_id()
