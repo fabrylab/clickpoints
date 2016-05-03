@@ -369,6 +369,38 @@ class DataFile:
 
         query = self.table_tracks.select()
         return query
+
+    def AddTrack(self):
+        """
+        Add a new track entry
+
+        Returns
+        -------
+        entry : track object
+            a new track object
+        """
+        import uuid
+
+        item = self.table_tracks(uid=uuid.uuid4().hex)
+        item.save()
+        return item
+
+    def AddTracks(self, count):
+        """
+        Add a new tracks
+
+        Parameters
+        ----------
+        count: int
+            how many tracks to create
+
+        Returns
+        -------
+        tracks : list of track object
+            the new track objects
+        """
+
+        return [self.AddTrack() for _ in range(count)]
     
     def GetTypes(self):
         """
