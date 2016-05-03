@@ -254,6 +254,31 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
     BroadCastEvent2("ImagesAdded")
 
 
+def addList(data_file, path, list_filename):
+    with data_file.db.transaction():
+        with open(os.path.join(path, list_filename)) as fp:
+
+            paths = {}
+            for line in fp.readlines():
+                line = line.strip()
+                if not os.path.exists(line):
+                    print("ERROR: file %s does not exist" % line)
+                    continue
+
+                file_path, file_name = os.path.split(line)
+                if file_path not in paths.keys():
+                    paths[file_path] = data_file.table_paths(path=path)
+                    paths[file_path].save()
+                print("Adding", file_path, file_name, paths[file_path])
+                # extract the extension and frame number
+                extension = os.path.splitext(file_name)[1]
+                frames = getFrameNumber(line, extension)
+                # add the file to the database
+                data_file.add_image(file_name, extension, None, frames, path=paths[file_path])
+
+    BroadCastEvent2("ImagesAdded")
+
+
 def GetSubdirectories(directory):
     # return all subdirectories
     return [x[0] for x in os.walk(directory)]
