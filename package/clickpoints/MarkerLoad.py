@@ -500,6 +500,15 @@ class DataFile:
         track : int, array, optional
             the track id(s) for the markers to be inserted.
         """
+        # if the variable track is a list of track instances, we need to convert it to track ids
+        try:
+            if isinstance(track[0], self.table_tracks):
+                track = track[:]
+                for i, t in enumerate(track):
+                    if isinstance(t, self.table_tracks):
+                        track[i] = t.id
+        except IndexError:
+            pass
         data_sets = []
         table = self.table_marker
         fields = [table.id, table.image, table.x, table.y, table.processed, table.partner_id, table.type, table.text, table.track ]
