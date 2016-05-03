@@ -260,7 +260,7 @@ class DataFile:
                 if os.path.exists(image.filename):
                     path = ""
                 else:
-                    for root, dirs, files in os.walk('python/Lib/email'):
+                    for root, dirs, files in os.walk("."):
                         if image.filename in files:
                             path = root
                             break
