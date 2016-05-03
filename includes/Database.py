@@ -407,14 +407,17 @@ class DataFile:
             except IOError:
                 pass
         # get the data from the reader
+        image_data = None
         if self.reader is not None:
             try:
                 image_data = self.reader.get_data(image.frame)
             except ValueError:
-                image_data = np.zeros((640, 480))
-        else:
-            # if the image can't be opened, open a black image instead
-            image_data = np.zeros((640, 480))
+                pass
+        # if the image can't be opened, open a black image instead
+        if image_data is None:
+            width = image.width if image.width is not None else 640
+            height = image.height if image.height is not None else 480
+            image_data = np.zeros((height, width))
         # do an automatic contrast enhancement
         if self.config.auto_contrast:
             image_data = image_data-np.amin(image_data)
