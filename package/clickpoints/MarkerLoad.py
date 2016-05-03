@@ -91,6 +91,8 @@ class DataFile:
             external_id = peewee.IntegerField(null=True)
             timestamp = peewee.DateTimeField(null=True)
             sort_index = peewee.IntegerField(default=0)
+            width = peewee.IntegerField(null=True)
+            height = peewee.IntegerField(null=True)
             path = peewee.ForeignKeyField(Paths, related_name="images")
 
             image_data = None
@@ -121,8 +123,9 @@ class DataFile:
 
         self.base_model = BaseModel
         self.table_meta = Meta
+        self.table_paths = Paths
         self.table_images = Images
-        self.tables = [BaseModel, Images]
+        self.tables = [BaseModel, Paths, Images]
 
         """ Offset Table """
         class Offsets(BaseModel):
@@ -244,7 +247,7 @@ class DataFile:
         return self.mask_path
 
     def CreateTables(self):
-        table_list = [self.table_meta,self.table_images,self.table_marker,self.table_types,self.table_tracks,self.table_mask,self.table_maskTypes]
+        table_list = [self.table_meta,self.table_paths,self.table_images,self.table_marker,self.table_types,self.table_tracks,self.table_mask,self.table_maskTypes]
         for table in table_list:
             if not table.table_exists():
                 self.db.create_table(table)
@@ -277,7 +280,21 @@ class DataFile:
         query = query.order_by(self.table_images.sort_index)
         return query
 
-    def AddImage(self,filename,ext,frames=1,external_id=None,timestamp=None):
+    def AddPath(self, path):
+        if self.database_filename:
+            try:
+                path = os.path.relpath(path, os.path.dirname(self.database_filename))
+            except ValueError:
+                path = os.path.abspath(path)
+        path = os.path.normpath(path)
+        try:
+            path = self.table_paths.get(path=path)
+        except peewee.DoesNotExist:
+            path = self.table_paths(path=path)
+            path.save()
+        return path
+
+    def AddImage(self,filename,ext,path,frames=1,external_id=None,timestamp=None):
         """
         Add single image to db
 
@@ -307,6 +324,8 @@ class DataFile:
         item.frames=frames
         item.external_id=external_id
         item.timestamp=timestamp
+        item.path = self.AddPath(path)
+
 
         item.save()
         return item.get_id()
