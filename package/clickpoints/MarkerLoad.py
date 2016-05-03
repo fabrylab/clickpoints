@@ -59,17 +59,19 @@ class DataFile:
             raise TypeError("No database filename supplied. Pass it either as an argument to DataFile or as a command line parameter e.g. --database clickpoints.cdb")
         self.database_filename = database_filename
 
-        self.current_version = "3"
+        self.current_version = "6"
 
-        # TODO: check if this is intended behaviour
-        if not os.path.exists(self.database_filename) and mode=='r':
-            raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
-        elif not os.path.exists(self.database_filename):
-            print("DB %s does not exist - creating new DB" % os.path.abspath(self.database_filename))
+        # Create a new database
+        if mode == "w":
+            if os.path.exists(self.database_filename):
+                os.remove(self.database_filename)
             self.db = peewee.SqliteDatabase(database_filename)
-            # self.CreateTables()
-        else:
+            self.next_sort_index = 0
+        else:  # or read an existing one
+            if not os.path.exists(self.database_filename):
+                raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
             self.db = peewee.SqliteDatabase(database_filename)
+            self.next_sort_index = None
 
         """ Basic Tables """
         class BaseModel(peewee.Model):
