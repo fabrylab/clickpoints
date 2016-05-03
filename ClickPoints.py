@@ -57,7 +57,7 @@ from includes import HelpText, BroadCastEvent, SetBroadCastModules, rotate_list
 from includes import LoadConfig
 from includes import BigImageDisplay
 from includes import QExtendedGraphicsView
-from includes.FilelistLoader import FolderEditor, addPath, imgformats, vidformats
+from includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats
 from includes import DataFile
 
 from update import Updater
@@ -176,6 +176,8 @@ class ClickPointsWindow(QWidget):
                 # for videos just load the file
                 elif ext.lower() in vidformats:
                     addPath(self.data_file, directory, file_filter=filename)
+                elif ext.lower() == ".txt":
+                    addList(self.data_file, directory, filename)
                 # if the extension is not known, raise an exception
                 else:
                     raise Exception("unknown file extension "+ext)
