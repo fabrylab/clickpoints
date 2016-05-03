@@ -488,7 +488,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
         print("Selected %d images." % count)
-        os.system(r"python.exe ..\ClickPointsQT.py ConfigClickPoints.txt -srcpath=files.txt")
+        os.system(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
 
     def DrawData(self, device_id, offset=0, index=0, max_count=1):
         year = self.SpinBoxYearStart.value()
@@ -650,6 +650,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
         with open("files.txt", "w") as fp:
             for item in query:
                 fp.write("\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension) + " " + str(
+                    item.timestamp) + " " + str(
                     item.id) + " " + str(item.annotation_id) + "\n")
                 counter += 1
         if call:
