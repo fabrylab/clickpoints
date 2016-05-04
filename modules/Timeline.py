@@ -138,6 +138,11 @@ class TimeLineGrabberTime(TimeLineGrabber):
     #def __init__(self, *args):
     #    QGraphicsPathItem.__init__(self, None, parent.scene)
 
+    def mouseMoveEvent(self, event):
+        if self.dragged:
+            x = self.pos().x()+event.pos().x()/self.parent.scale/self.parent.slider_line.transform().m11()
+            self.setValue(self.pixel_to_value(x))
+
     def setValue(self, value):
         self.value = value
         self.updatePos()
@@ -902,9 +907,8 @@ class Timeline:
             return
         n = n[0].sort_index
         self.slider_update = True
-        self.updateLabel()
         self.updateFrame(nr=n)
-
+        
     def PressedSlider(self):
         self.slider_update = False
 
