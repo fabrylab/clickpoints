@@ -50,6 +50,8 @@ class files(Model):
 class folder(Model):
     parent_id = IntegerField()#ForeignKeyField(folder)
     name = CharField()
+    class Meta:
+        indexes = (('parent_id','name'),True)
 
 class SQLAnnotation(Model):
     timestamp = DateTimeField()
