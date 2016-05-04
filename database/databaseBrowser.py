@@ -649,8 +649,9 @@ class DatabaseByFiles(DatabaseTabTemplate):
         counter = 0
         with open("files.txt", "w") as fp:
             for item in query:
-                fp.write("\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension) + " " + str(
-                    item.timestamp) + " " + str(
+                timest = item.timestamp
+                fp.write("\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension) + " " +
+                    timest.strftime('%Y%m%d-%H%M%S') + " " + str(
                     item.id) + " " + str(item.annotation_id) + "\n")
                 counter += 1
         if call:
@@ -879,7 +880,9 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         counter = 0
         with open("files.txt", "w") as fp:
             for item in query:
-                fp.write("\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension) + " " + str(
+                timest = item.timestamp
+                fp.write("\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension) + " " +
+                         timest.strftime('%Y%m%d-%H%M%S') + " " + str(
                     item.id) + " " + str(item.annotation_id) + "\n")
                 counter += 1
         if doshow:
@@ -896,7 +899,7 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
         print("Selected %d images." % count)
-        os.system(r"python.exe ..\ClickPointsQT.py ConfigClickPoints.txt -srcpath=files.txt")
+        os.system(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
 
     def UpdateRow(self, row, annotation, sort_if_new=False):
         new = False
