@@ -303,15 +303,6 @@ if mode=='add':
                 continue
             data = match.groupdict()
 
-            # Frames
-            if not ext.lower() in imgformats:
-                try:
-                    frames = getFrameNumber(os.path.join(root, file))
-                except:
-                    frames = 1
-            else:
-                frames = 1
-
             # First timestamp
             if "timestamp" in data:
                 tstamp = datetime.strptime(data["timestamp"], time_format)
@@ -327,10 +318,23 @@ if mode=='add':
                 tstamp2 = datetime.strptime(data["timestamp2"], time_format)
                 if "micros2" in data:
                     tstamp2 = tstamp2 + timedelta(microseconds=int(data["micros2"])*1e5)
-            elif delta_t != 0:
-                tstamp2 = tstamp + timedelta(seconds=delta_t)*frames
             else:
                 tstamp2 = tstamp
+
+            # Frames
+            if tstamp2 != tstamp and fps != 0:
+                frames = np.floor((tstamp2 - tstamp).total_seconds() * fps)
+            elif not ext.lower() in imgformats:
+                try:
+                    frames = getFrameNumber(os.path.join(root, file))
+                except:
+                    frames = 1
+            else:
+                frames = 1
+
+            # adjust second timestamp if frame rate was extracted
+            if delta_t != 0 and tstamp2 == tstamp:
+                tstamp2 = tstamp + timedelta(seconds=delta_t)*frames
 
             # System id
             try:
