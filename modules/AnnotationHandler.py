@@ -432,9 +432,14 @@ class AnnotationHandler:
 
             # place tick marks for already present masks
             for item in self.db.get_annotation_frames():
-                image = self.data_file.table_images.get(external_id = item.file_id, frame=item.frame)
-                BroadCastEvent(self.modules, "AnnotationMarkerAdd", image.sort_index)
-                self.annoation_ids.append(item.id)
+                try:
+                    image = self.data_file.table_images.get(external_id = item.file_id, frame=item.frame)
+                    BroadCastEvent(self.modules, "AnnotationMarkerAdd", image.sort_index)
+                    self.annoation_ids.append(item.id)
+                except:
+                    pass
+
+
 
         else:
             self.data_file = datafile
