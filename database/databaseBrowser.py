@@ -47,7 +47,7 @@ icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
 from Config import Config
 
-config = Config('sql.cnf').sql
+config = Config('sql.cfg').sql
 
 
 def add_months(sourcedate, months):
