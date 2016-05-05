@@ -908,7 +908,7 @@ class Timeline:
         n = n[0].sort_index
         self.slider_update = True
         self.updateFrame(nr=n)
-        
+
     def PressedSlider(self):
         self.slider_update = False
 
