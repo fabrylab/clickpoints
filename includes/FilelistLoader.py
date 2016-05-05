@@ -222,7 +222,7 @@ class FolderEditor(QtGui.QWidget):
 def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=False):
     # if we should add subdirectories, add them or create a list with only one path
     if subdirectories:
-        path_list = GetSubdirectories(path)
+        path_list = sorted(GetSubdirectories(path))
     else:
         path_list = [path]
 
