@@ -169,7 +169,7 @@ class ScriptLauncher(QObject):
 
         process_dict = { 'process':None, 'command_port':None, 'broadcast_port':None}
 
-        self.running_processes = [process_dict] * len(self.config.launch_scripts)
+        self.running_processes = [process_dict] * 10
         self.memmap = None
         self.memmap_path = None
         self.memmap_size = 0
@@ -319,4 +319,4 @@ class ScriptLauncher(QObject):
 
     @staticmethod
     def can_create_module(config):
-        return len(config.launch_scripts) > 0
+        return 1
