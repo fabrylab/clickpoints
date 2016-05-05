@@ -38,10 +38,10 @@ for image in images[1:]:
     p1, st, err = cv2.calcOpticalFlowPyrLK(image_last.data8, image.data8, p0, None, **lk_params)
 
     # set the new positions
-    db.SetMarker(image=image.id, x=p1[:, 0], y=p1[:, 1], processed=0, type=types, track=tracking_ids)
+    db.SetMarker(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, type=types, track=tracking_ids)
 
     # mark the marker in the last frame as processed
-    db.SetMarker(image=image_last.id, processed=1, type=types, track=tracking_ids)
+    db.SetMarker(image=image_last, processed=1, type=types, track=tracking_ids)
 
     # update ClickPoints
     com.ReloadMarker(image.sort_index)

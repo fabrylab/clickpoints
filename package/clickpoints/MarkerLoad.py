@@ -507,7 +507,20 @@ class DataFile:
                 for i, t in enumerate(track):
                     if isinstance(t, self.table_tracks):
                         track[i] = t.id
-        except IndexError:
+        except TypeError:
+            if isinstance(track, self.table_tracks):
+                track = track.id
+            pass
+        # if the variable image is a list of image instances, we need to convert it to image ids
+        try:
+            if isinstance(image[0], self.table_images):
+                image = image[:]
+                for i, img in enumerate(image):
+                    if isinstance(img, self.table_images):
+                        image[i] = img.id
+        except TypeError:
+            if isinstance(image, self.table_images):
+                image = image.id
             pass
         data_sets = []
         table = self.table_marker
