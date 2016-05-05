@@ -7,6 +7,7 @@ from PIL import Image
 import imageio
 import sys
 
+
 def isstring(object):
     PY3 = sys.version_info[0] == 3
 
@@ -15,38 +16,69 @@ def isstring(object):
     else:
         return isinstance(object, basestring)
 
+
 def CheckValidColor(color):
-    class NoValidColor(Exception): pass
+    class NoValidColor(Exception):
+        pass
+
     if isstring(color):
         if color[0] == "#":
             color = color[1:]
         for c in color:
             if not "0" <= c.upper() <= "F":
-                raise NoValidColor(color+" is no valid color")
+                raise NoValidColor(color + " is no valid color")
         if len(color) != 6 and len(color) != 8:
-            raise NoValidColor(color+" is no valid color")
-        return "#"+color
+            raise NoValidColor(color + " is no valid color")
+        return "#" + color
     color_string = ""
     for value in color:
         if not 0 <= value <= 255:
-            raise NoValidColor(str(color)+" is no valid color")
+            raise NoValidColor(str(color) + " is no valid color")
         color_string += "%02x" % value
     if len(color_string) != 6 and len(color_string) != 8:
-        raise NoValidColor(str(color)+" is no valid color")
-    return "#"+color_string
+        raise NoValidColor(str(color) + " is no valid color")
+    return "#" + color_string
 
 
 def GetCommandLineArgs():
+    """
+    Parse the command line arguments for the information provided by ClickPoints, if the script is invoked from within
+    ClickPoints. The arguments are --start_frame --database and --port.
+
+    Returns
+    -------
+    start_frame : int
+        the frame ClickPoints was in when invoking the script. Probably the evaluation should start here
+    database : string
+        the filename of the database where the current ClickPoints project is stored. Should be used with
+        clickpoints.DataFile
+    port : int
+        the port of the socket connection to communicate with the ClickPoints instance. Should be used with
+        clickpoints.Commands
+    """
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--database", dest='database', help='specify which database file to use')
-    parser.add_argument("--start_frame", type=int, default=0, dest='start_frame', help='specify at which frame to start')
+    parser.add_argument("--start_frame", type=int, default=0, dest='start_frame',
+                        help='specify at which frame to start')
     parser.add_argument("--port", type=int, dest='port', help='from which port to communicate with ClickPoints')
     args, unknown = parser.parse_known_args()
     return args.start_frame, args.database, args.port
 
 
 class DataFile:
+    """
+    The DataFile class  provides access to the .cdb file format in which ClickPoints stores the data for a project.
+
+    Parameters
+    ----------
+    database_filename : string
+        the filename to open
+    mode : string, optional
+        can be 'r' (default) to open an existing database and append data to it or 'w' to create a new database. If the mode is 'w' and the
+        database already exists, it will be deleted and a new database will be created.
+    """
+
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
             import argparse
@@ -56,7 +88,8 @@ class DataFile:
             if args.database:
                 database_filename = args.database
         if database_filename is None:
-            raise TypeError("No database filename supplied. Pass it either as an argument to DataFile or as a command line parameter e.g. --database clickpoints.cdb")
+            raise TypeError(
+                "No database filename supplied. Pass it either as an argument to DataFile or as a command line parameter e.g. --database clickpoints.cdb")
         self.database_filename = database_filename
 
         self.current_version = "6"
@@ -74,9 +107,11 @@ class DataFile:
             self.next_sort_index = None
 
         """ Basic Tables """
+
         class BaseModel(peewee.Model):
             class Meta:
                 database = self.db
+
             database_class = self
 
         class Meta(BaseModel):
@@ -113,7 +148,7 @@ class DataFile:
                 if item == "data8":
                     data = self.get_data().copy()
                     if data.dtype == np.uint16:
-                        if data.max() < 2**12:
+                        if data.max() < 2 ** 12:
                             data >>= 4
                             return data.astype(np.uint8)
                         data >>= 8
@@ -122,7 +157,6 @@ class DataFile:
                 else:
                     return BaseModel(self, item)
 
-
         self.base_model = BaseModel
         self.table_meta = Meta
         self.table_paths = Paths
@@ -130,6 +164,7 @@ class DataFile:
         self.tables = [BaseModel, Paths, Images]
 
         """ Offset Table """
+
         class Offsets(BaseModel):
             image = peewee.ForeignKeyField(Images, unique=True)
             x = peewee.FloatField()
@@ -139,13 +174,17 @@ class DataFile:
         self.tables.extend([Offsets])
 
         """ Marker Tables """
+
         class Tracks(BaseModel):
             uid = peewee.CharField()
             style = peewee.CharField(null=True)
+
             def points(self):
                 return np.array([[point.x, point.y] for point in self.marker()])
+
             def marker(self):
                 return Marker.select().where(Marker.track == self).join(Images).order_by(Images.sort_index)
+
             def times(self):
                 return np.array([point.image.timestamp for point in self.marker()])
 
@@ -168,14 +207,14 @@ class DataFile:
 
             def correctedXY(self):
                 join_condition = ((Marker.image == Offsets.image) & \
-                                 (Marker.image_frame == Offsets.image_frame))
+                                  (Marker.image_frame == Offsets.image_frame))
 
-                querry = Marker.select( Marker.x,
-                                        Marker.y,
-                                        Offsets.x,
-                                        Offsets.y)\
-                                .join(  Offsets, peewee.JOIN_LEFT_OUTER, on=join_condition)\
-                                .where( Marker.id == self.id)
+                querry = Marker.select(Marker.x,
+                                       Marker.y,
+                                       Offsets.x,
+                                       Offsets.y) \
+                    .join(Offsets, peewee.JOIN_LEFT_OUTER, on=join_condition) \
+                    .where(Marker.id == self.id)
 
                 for q in querry:
                     if not (q.offsets.x is None) or not (q.offsets.y is None):
@@ -186,7 +225,8 @@ class DataFile:
                 return pt
 
             class Meta:
-                indexes = ((('image', 'image_frame', 'track'), True), )
+                indexes = ((('image', 'image_frame', 'track'), True),)
+
             def pos(self):
                 return np.array([self.x, self.y])
 
@@ -196,6 +236,7 @@ class DataFile:
         self.tables.extend([Marker, Tracks, Types])
 
         """ Mask Tables """
+
         class Mask(BaseModel):
             image = peewee.ForeignKeyField(Images, related_name="masks")
             filename = peewee.CharField()
@@ -204,7 +245,7 @@ class DataFile:
 
             def get_data(self):
                 if self.mask_data is None:
-                    im = np.asarray(Image.open(os.path.join(self.database_class.GetMaskPath(), self.filename)))
+                    im = np.asarray(Image.open(os.path.join(self.database_class._GetMaskPath(), self.filename)))
                     im.setflags(write=True)
                     self.mask_data = im
                 return self.mask_data
@@ -227,7 +268,7 @@ class DataFile:
 
         """ Connect """
         self.db.connect()
-        self.CreateTables()
+        self._CreateTables()
 
         """ Enumerations """
         self.TYPE_Normal = 0
@@ -235,7 +276,7 @@ class DataFile:
         self.TYPE_Line = 2
         self.TYPE_Track = 4
 
-    def GetMaskPath(self):
+    def _GetMaskPath(self):
         if self.mask_path:
             return self.mask_path
         try:
@@ -248,27 +289,34 @@ class DataFile:
             os.mkdir(self.mask_path)
         return self.mask_path
 
-    def CreateTables(self):
-        table_list = [self.table_meta,self.table_paths,self.table_images,self.table_marker,self.table_types,self.table_tracks,self.table_mask,self.table_maskTypes]
+    def _CreateTables(self):
+        table_list = [self.table_meta, self.table_paths, self.table_images, self.table_marker, self.table_types,
+                      self.table_tracks, self.table_mask, self.table_maskTypes]
         for table in table_list:
             if not table.table_exists():
                 self.db.create_table(table)
 
         try:
-            item = self.table_meta.get(self.table_meta.key=="version")
+            item = self.table_meta.get(self.table_meta.key == "version")
         except peewee.DoesNotExist:
             item = self.table_meta()
 
-            item.key="version"
-            item.value=self.current_version
+            item.key = "version"
+            item.value = self.current_version
 
             item.save()
 
         return item.get_id()
-    
+
     def GetImages(self, start_frame=None):
         """
-        Get all images sorted by filename
+        Get all images sorted by sort index.
+
+        Parameters
+        ----------
+        start_frame : int, optional
+            only return images with sort_index >= start_frame. Default is 0, which returns all images
+
     
         Returns
         -------
@@ -283,6 +331,15 @@ class DataFile:
         return query
 
     def AddPath(self, path):
+        """
+        Add a path to the database, or return the path entry if it already exists.
+
+        Returns
+        -------
+        path : path_entry
+            the created/requested path entry.
+        """
+
         if self.database_filename:
             try:
                 path = os.path.relpath(path, os.path.dirname(self.database_filename))
@@ -296,38 +353,43 @@ class DataFile:
             path.save()
         return path
 
-    def AddImage(self,filename,ext,path,frames=1,external_id=None,timestamp=None,sort_index=None,width=None,height=None):
+    def AddImage(self, filename, ext, path, frames=1, external_id=None, timestamp=None, sort_index=None, width=None,
+                 height=None):
         """
-        Add single image to db
+        Add a single image to db
 
         Parameters
-        -----------
+        ----------
         filename : string
-            description
+            the filename of the image (including the extension)
         ext : string
-            description
+            the file extension
+        path: string
+            the path to the filename
         frames : int
-            description
+            the number of frames the image has
         external_id : int
-            description
-        timestamp : DateTime Object
-            description
+            an external id for the image. Only necessary if the annotation server is used
+        timestamp : datetime object
+            the timestamp of the image
+
         Returns
-        --------
-        index : int
+        -------
+        image : image entry
+            the created or updated image entry
         """
         try:
-            item = self.table_images.get(self.table_images.filename==filename)
+            item = self.table_images.get(self.table_images.filename == filename)
             new_image = False
         except peewee.DoesNotExist:
             item = self.table_images()
             new_image = True
 
-        item.filename=filename
-        item.ext=ext
-        item.frames=frames
-        item.external_id=external_id
-        item.timestamp=timestamp
+        item.filename = filename
+        item.ext = ext
+        item.frames = frames
+        item.external_id = external_id
+        item.timestamp = timestamp
         item.path = self.AddPath(path)
         if width is not None:
             item.width = width
@@ -337,18 +399,18 @@ class DataFile:
             if self.next_sort_index is None:
                 query = self.table_images.select().order_by(-self.table_images.sort_index).limit(1)
                 try:
-                    self.next_sort_index = query[0].sort_index+1
+                    self.next_sort_index = query[0].sort_index + 1
                 except IndexError:
                     self.next_sort_index = 0
             item.sort_index = self.next_sort_index
             self.next_sort_index += 1
 
         item.save()
-        return item.get_id()
+        return item
 
-    def RemoveImage(self,filename):
+    def RemoveImage(self, filename):
         try:
-            item = self.table_images.get(self.table_images.filename==filename)
+            item = self.table_images.get(self.table_images.filename == filename)
         except peewee.DoesNotExist:
             print("Image with name: \'%s\' is not in DB", filename)
             return False
@@ -401,7 +463,7 @@ class DataFile:
         """
 
         return [self.AddTrack() for _ in range(count)]
-    
+
     def GetTypes(self):
         """
         Get all type entries
@@ -433,7 +495,7 @@ class DataFile:
             return self.table_types.get(self.table_types.name == name)
         except peewee.DoesNotExist:
             return None
-    
+
     def GetMarker(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
         """
         Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
@@ -458,13 +520,14 @@ class DataFile:
         """
         # select marker, joined with types and images
         query = (self.table_marker.select(self.table_marker, self.table_types, self.table_images)
-                                  .join(self.table_types)
-                                  .switch(self.table_marker)
-                                  .join(self.table_images)
+                 .join(self.table_types)
+                 .switch(self.table_marker)
+                 .join(self.table_images)
                  )
         parameter = [image, image_filename, processed, type, type_name, track]
         table = self.table_marker
-        fields = [table.image, self.table_images.filename, table.processed, table.type, self.table_types.name, table.track]
+        fields = [table.image, self.table_images.filename, table.processed, table.type, self.table_types.name,
+                  table.track]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
                 continue
@@ -473,8 +536,9 @@ class DataFile:
             else:
                 query = query.where(field == parameter)
         return query
-    
-    def SetMarker(self, id=None, image=None, x=None, y=None, processed=0, partner=None, type=None, track=None, marker_text=None):
+
+    def SetMarker(self, id=None, image=None, x=None, y=None, processed=0, partner=None, type=None, track=None,
+                  marker_text=None):
         """
         Insert or update markers in the database file. Every parameter can either be omitted, to use the default value,
         supplied with a single value, to use the same value for all entries, or be supplied with a list of values, to use a
@@ -499,6 +563,17 @@ class DataFile:
             the type id(s) for the markers to be inserted.
         track : int, array, optional
             the track id(s) for the markers to be inserted.
+
+        Examples
+        --------
+        >>> points = db.GetMarker(image=image)
+        >>> p0 = np.array([[point.x, point.y] for point in points if point.track_id])
+        >>> tracking_ids = [point.track_id for point in points if point.track_id]
+        >>> types = [point.type_id for point in points if point.track_id]
+        >>> db.SetMarker(image=image, x=p0[:, 0]+10, y=p0[:, 1], processed=0, type=types, track=tracking_ids)
+
+        Get all the points of an image and move them 10 pixels to the right.
+
         """
         # if the variable track is a list of track instances, we need to convert it to track ids
         try:
@@ -524,7 +599,8 @@ class DataFile:
             pass
         data_sets = []
         table = self.table_marker
-        fields = [table.id, table.image, table.x, table.y, table.processed, table.partner_id, table.type, table.text, table.track ]
+        fields = [table.id, table.image, table.x, table.y, table.processed, table.partner_id, table.type, table.text,
+                  table.track]
         names = ["id", "image_id", "x", "y", "processed", "partner_id", "type_id", "text", "track_id"]
         for data in np.broadcast(id, image, x, y, processed, partner, type, marker_text, track):
             data_set = []
@@ -532,12 +608,12 @@ class DataFile:
             # TODO: track_id param as position=[-1] is BAD
             condition_param = [data[1], data[-1]]
             condition = "WHERE "
-            for idx,cond in enumerate(condition_list):
+            for idx, cond in enumerate(condition_list):
                 if not condition_param[idx] is None:
                     condition += cond + " = " + str(condition_param[idx])
                 else:
                     condition += cond + " = NULL"
-                if not idx == len(condition_list)-1:
+                if not idx == len(condition_list) - 1:
                     condition += " AND "
 
             # print(condition)
@@ -546,10 +622,10 @@ class DataFile:
 
             for field, name, value in zip(fields, names, data):
                 if value is None:
-                    data_set.append("(SELECT "+name+" FROM marker "+condition+")")
+                    data_set.append("(SELECT " + name + " FROM marker " + condition + ")")
                 else:
                     # for CharFileds add ticks
-                    if (field.__class__.__name__)=='CharField':
+                    if (field.__class__.__name__) == 'CharField':
                         data_set.append('\'%s\'' % value)
                     else:
                         data_set.append(str(value))
@@ -593,7 +669,7 @@ class DataFile:
             # Test if mask already exists in database
             mask_entry = self.table_mask.get(self.table_mask.image == image)
             # Load it
-            im = np.asarray(Image.open(os.path.join(self.GetMaskPath(), mask_entry.filename)))
+            im = np.asarray(Image.open(os.path.join(self._GetMaskPath(), mask_entry.filename)))
             im.setflags(write=True)
             return im
         except (peewee.DoesNotExist, IOError):
@@ -602,8 +678,8 @@ class DataFile:
             pil_image = Image.open(image_entry.filename)
             im = np.zeros(pil_image.size, dtype=np.uint8)
             return im
-    
-    def SetMask(self,mask, image):
+
+    def SetMask(self, mask, image):
         """
         Add or overwrite the mask file for the image with the id `image`
     
@@ -617,35 +693,34 @@ class DataFile:
         try:
             # Test if mask already exists in database
             mask_entry = self.table_mask.get(self.table_mask.image == image)
-            filename = os.path.join(self.GetMaskPath(), mask_entry.filename)
+            filename = os.path.join(self._GetMaskPath(), mask_entry.filename)
         except peewee.DoesNotExist:
             # Create new entry
             mask_entry = self.table_mask(image=image)
             # Get mask image name
             image_entry = self.table_images.get(id=image)
             if image_entry.frames > 1:  # TODO
-                number = "_"+("%"+"%d" % np.ceil(np.log10(image_entry.frames))+"d") % image_frame
+                number = "_" + ("%" + "%d" % np.ceil(np.log10(image_entry.frames)) + "d") % image_frame
             else:
                 number = ""
             basename, ext = os.path.splitext(image_entry.filename)
             directory, basename = os.path.split(basename)
             current_maskname = basename + "_" + ext[1:] + number + "_mask.png"
-            filename = os.path.join(self.GetMaskPath(), current_maskname)
+            filename = os.path.join(self._GetMaskPath(), current_maskname)
             # Save entry
             mask_entry.filename = current_maskname
             mask_entry.save()
-    
+
         # Create image
         pil_image = Image.fromarray(mask)
         # Create color palette
         lut = np.zeros(3 * 256, np.uint8)
         for draw_type in self.table_maskTypes.select():
             index = draw_type.index
-            lut[index * 3:(index + 1) * 3] = [int("0x"+draw_type.color[i:i+2], 16) for i in [1, 3, 5]]
+            lut[index * 3:(index + 1) * 3] = [int("0x" + draw_type.color[i:i + 2], 16) for i in [1, 3, 5]]
         pil_image.putpalette(lut)
         # Save mask
         pil_image.save(filename)
-
 
     def AddMaskFile(self, image_id, filename):
         try:
