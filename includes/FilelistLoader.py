@@ -251,6 +251,7 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
             frames = getFrameNumber(os.path.join(path, filename), extension)
             # add the file to the database
             data_file.add_image(filename, extension, None, frames, path=path_entry)
+    data_file.start_adding_timestamps()
     BroadCastEvent2("ImagesAdded")
 
 
