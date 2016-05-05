@@ -3,6 +3,7 @@ syntax: glob
 *.db
 *.py.orig
 *.py~
+*/_*
 
 # Python egg metadata, regenerated from source files by setuptools.
 
