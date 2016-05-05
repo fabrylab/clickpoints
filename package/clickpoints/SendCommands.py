@@ -8,6 +8,21 @@ from MemMap import MemMap
 
 
 class Commands:
+    """
+    The Commands class provides an interface for external scripts to communicate with a currently open ClickPoints
+    instance. Communication is done using socket connection. ClickPoints provides the port number for this connection
+    when calling an external script. Us clickpoints.GetCommandLineArgs to obtain the port number.
+
+    Parameters
+    ----------
+    port: int, optional
+        the port for the socket connection to communicate with ClickPoints. If it is not provided, a dummy connection is
+        used with doesn't pass any commands. This behaviour is provided to enable external scripts to run with and
+        without a ClickPoints instance.
+    catch_terminate_signal: bool, optional
+        whether a terminate signal from ClickPoints should directly terminate the script (default) or if only the
+        terminate_signal flag should be set. This flag can later on be queried with HasTerminateSignal()
+    """
     def __init__(self, port=None, catch_terminate_signal=False):
         self.HOST = "localhost"
         if port is None:
@@ -49,7 +64,7 @@ class Commands:
         Let ClickPoints jump the given amount of frames.
 
         Parameters
-        ---------
+        ----------
         value : int
             the amount of frame which ClickPoints should jump.
         """
@@ -60,7 +75,7 @@ class Commands:
         Let ClickPoints jump to the given frame.
 
         Parameters
-        ---------
+        ----------
         value : int
             the frame to which ClickPoints should jump.
         """
@@ -71,7 +86,7 @@ class Commands:
         Let ClickPoints jump the given amount of frames and wait for it to complete.
 
         Parameters
-        ---------
+        ----------
         value : int
             the amount of frame which ClickPoints should jump.
         """
@@ -82,7 +97,7 @@ class Commands:
         Let ClickPoints jump to the given frame and wait for it to complete.
 
         Parameters
-        ---------
+        ----------
         value : int
             the frame to which ClickPoints should jump.
         """
@@ -128,7 +143,7 @@ class Commands:
         Reloads the marker from the given frame in ClickPoints.
 
         Parameters
-        ---------
+        ----------
         frame : int
             the frame which ClickPoints should reload.
         """
