@@ -492,7 +492,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
         if platform.system()=='Windows':
             subprocess.Popen(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
         elif platform.system()=='Linux':
-            subprocess.Popen(r"python ../ClickPoints.py -srcpath=files.txt")
+            subprocess.Popen(['clickpoints', 'files.txt'], shell=False)
 
     def DrawData(self, device_id, offset=0, index=0, max_count=1):
         year = self.SpinBoxYearStart.value()
@@ -664,6 +664,7 @@ class DatabaseByFiles(DatabaseTabTemplate):
                             file_path = file_path.replace(smb_target,self.parent.smb_mounts[id])
                             break;
                     else:
+                        print("No smb path translation found for", file_path)
                         pass
 
 
@@ -906,9 +907,12 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
                     for id, smb_target in enumerate(self.parent.smb_targets):
                         if file_path.startswith(smb_target):
                             file_path = file_path.replace(smb_target, self.parent.smb_mounts[id])
+
                             break;
                     else:
+                        print("No smb path translation found for", file_path)
                         pass
+
 
                 fp.write(file_path + " " +
                          timest.strftime('%Y%m%d-%H%M%S') + " " + str(
@@ -931,7 +935,7 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         if platform.system()=='Windows':
             subprocess.Popen(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
         elif platform.system()=='Linux':
-            subprocess.Popen(r"python ../ClickPoints.py -srcpath=files.txt")
+            subprocess.Popen(['clickpoints','files.txt'],shell=False)
 
     def UpdateRow(self, row, annotation, sort_if_new=False):
         new = False
