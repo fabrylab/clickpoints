@@ -36,6 +36,9 @@ DataFile
 .. autoclass:: clickpoints.DataFile
    :members:
    
+.. autoclass:: MarkerLoad.DataFile
+    :members:
+   
 Commands
 --------   
    
