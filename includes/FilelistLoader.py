@@ -304,5 +304,18 @@ def getFrameNumber(file, extension):
             print("ERROR: can't read file", file)
             return 0
         frames = reader.get_length()
+        reader.close()
     # return the number of frames
     return frames
+
+
+
+
+
+
+
+
+
+
+
+
