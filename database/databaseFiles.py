@@ -263,7 +263,7 @@ class DatabaseFiles:
             item = self.SQL_Folder.get(self.SQL_Folder.id == path_id)
             path_id = item.parent_id
             path.append(item.name)
-        return "\\".join(path[::-1])
+        return os.sep.join(path[::-1])
 
     def savePath(self, folder="", parent=""):
 
