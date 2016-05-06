@@ -1,5 +1,6 @@
 from __future__ import division, print_function
-import os, sys, ctypes
+import os, sys, ctypes, platform
+import subprocess
 import numpy as np
 import sip
 
@@ -488,7 +489,10 @@ class DatabaseByFiles(DatabaseTabTemplate):
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
         print("Selected %d images." % count)
-        os.system(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
+        if platform.system()=='Windows':
+            subprocess.Popen(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
+        elif platform.system()=='Linux':
+            subprocess.Popen(r"python ../ClickPoints.py -srcpath=files.txt")
 
     def DrawData(self, device_id, offset=0, index=0, max_count=1):
         year = self.SpinBoxYearStart.value()
@@ -649,8 +653,21 @@ class DatabaseByFiles(DatabaseTabTemplate):
         counter = 0
         with open("files.txt", "w") as fp:
             for item in query:
+                # get timestamp
                 timest = item.timestamp
-                fp.write("\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension) + " " +
+                # get path
+                file_path =  "\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension)
+                # check for OS, if linux replace smb_ip_paths with local mount_path
+                if platform.system() == 'Linux':
+                    for id,smb_target in enumerate(self.parent.smb_targets):
+                        if file_path.startswith(smb_target):
+                            file_path = file_path.replace(smb_target,self.parent.smb_mounts[id])
+                            break;
+                    else:
+                        pass
+
+
+                fp.write(file_path + " " +
                     timest.strftime('%Y%m%d-%H%M%S') + " " + str(
                     item.id) + " " + str(item.annotation_id) + "\n")
                 counter += 1
@@ -880,8 +897,20 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
         counter = 0
         with open("files.txt", "w") as fp:
             for item in query:
+                # get timestamp
                 timest = item.timestamp
-                fp.write("\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension) + " " +
+                # get path
+                file_path = "\\\\" + os.path.join(self.getPath(item.path), item.basename + item.extension)
+                # check for OS, if linux replace smb_ip_paths with local mount_path
+                if platform.system() == 'Linux':
+                    for id, smb_target in enumerate(self.parent.smb_targets):
+                        if file_path.startswith(smb_target):
+                            file_path = file_path.replace(smb_target, self.parent.smb_mounts[id])
+                            break;
+                    else:
+                        pass
+
+                fp.write(file_path + " " +
                          timest.strftime('%Y%m%d-%H%M%S') + " " + str(
                     item.id) + " " + str(item.annotation_id) + "\n")
                 counter += 1
@@ -899,7 +928,10 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
             QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
             return
         print("Selected %d images." % count)
-        os.system(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
+        if platform.system()=='Windows':
+            subprocess.Popen(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
+        elif platform.system()=='Linux':
+            subprocess.Popen(r"python ../ClickPoints.py -srcpath=files.txt")
 
     def UpdateRow(self, row, annotation, sort_if_new=False):
         new = False
@@ -923,6 +955,17 @@ class DatabaseByAnnotation(DatabaseTabTemplate):
 class DatabaseBrowser(QWidget):
     def __init__(self):
         QWidget.__init__(self)
+
+        # read local mount lookup table
+        if platform.system() == 'Linux':
+            try:
+                from linuxmountlookup import LinuxMountLookup
+                self.smb_targets = [k for k, v in LinuxMountLookup.iteritems()]
+                self.smb_mounts = [v for k, v in LinuxMountLookup.iteritems()]
+
+            except:
+                raise Exception(
+                    "Warning - Linux systems require mounted smb shares - please add translation dictionary to linuxmountlookup.py")
 
         # widget layout and elements
         self.setMinimumWidth(655)
