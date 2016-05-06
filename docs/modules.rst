@@ -1,14 +1,16 @@
 Modules
 =======
 
-The program consists of different parts which can act independently.
-These so called "modules" are all shipped with ClickPoints, but are kept
-independent for clarity. Every module has its own config parameters and
-keys. The config parameters are documented in the detailed description
-of each module.
+The modules are the different functions of the ClickPoints program. They can be accessed by the icons in the upper panel.
+
+.. figure:: images/IconPanel.png
+   :alt: Icon Panel
+
+   The icon panel where all modules can be accessed.
 
 .. toctree::
-   :maxdepth: 2
+   :caption: List of Modules
+   :maxdepth: 1
    
    timeline
    gammacorrection
