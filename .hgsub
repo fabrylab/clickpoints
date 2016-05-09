@@ -1,0 +1,5 @@
+includes/qextendedgraphicsview = qextendedgraphicsview
+
+[subpaths]
+https://bitbucket.org/fabry_biophysics/clickpoints/qextendedgraphicsview = https://bitbucket.org/fabry_biophysics/qextendedgraphicsview
+ssh://hg@bitbucket.org/fabry_biophysics/clickpoints/qextendedgraphicsview = ssh://hg@bitbucket.org/fabry_biophysics/qextendedgraphicsview
