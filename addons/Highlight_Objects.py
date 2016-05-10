@@ -20,9 +20,6 @@ import skimage.color
 import os, sys
 import scipy.ndimage.filters
 import distutils.util
-from clickpoints.SendCommands import GetImage, ReloadMask
-from clickpoints.MarkerLoad import DataFile
-
 
 #region import QT-Widget for Gui
 try:
@@ -855,15 +852,19 @@ class Param_Delivery(QWidget):
 
 if __name__ == '__main__':
     print("Starting HighlightObjects", sys.argv)
-    #region get image and marker position from clickpoints
-    start_frame = int(sys.argv[2])
-    #print("Highlight", start_frame)
-    image, image_id, image_frame = GetImage(start_frame)
-    #print(image, image_id, image_frame)
-    df = DataFile()
-    points = df.GetMarker(image=image_id, image_frame=image_frame)
+    # connect to ClickPoints database and the running program instance
+    # database filename and port for communication are supplied as command line argument when started from ClickPoints
+    import clickpoints
+    start_frame, database, port = clickpoints.GetCommandLineArgs()
+    db = clickpoints.DataFile(database)
+    com = clickpoints.Commands(port, catch_terminate_signal=True)
+
+    # get the image
+    image = db.GetImages(start_frame=start_frame)[0]
+
+    points = db.GetMarker(image=image.id)
     #print("query", points)
-    print("hightlight", points.count(), image_id, image_frame)
+    print("hightlight", points.count(), image.id)
 
     try:
         x, y = points[0].x, points[0].y
@@ -875,7 +876,7 @@ if __name__ == '__main__':
         print("ERROR: no markers present")
         sys.exit(-1)
 
-    mask = df.GetMask(image_id, image_frame)
+    mask = np.zeros(image.data.shape, "uint8")
     print('clicked coordinates are=',coords)
     #endregion
 
@@ -902,7 +903,7 @@ if __name__ == '__main__':
     else:
         #region create mask
         if Param_object.return_just_mask:
-            image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size, compactness=Param_object.compactness,
+            image_segmented=image_segmenter(image.data, coords, mean_pixel_size=Param_object.super_pixel_size, compactness=Param_object.compactness,
                                             min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, verbose=Param_object.verbose,
                                             k_mean_cluster_number=Param_object.cluster_number, highlight_whole_cluster=Param_object.highlight_whole_cluster,
                                             k_means_cluster_mode=Param_object.k_means_cluster_mode, histogram_bins=Param_object.histogram_bins, colorspace=Param_object.colorspace,
@@ -910,7 +911,7 @@ if __name__ == '__main__':
             mask=image_segmented.mask
 
         else:
-            image_segmented=image_segmenter(image, coords, mean_pixel_size=Param_object.super_pixel_size, compactness=Param_object.compactness,
+            image_segmented=image_segmenter(image.data, coords, mean_pixel_size=Param_object.super_pixel_size, compactness=Param_object.compactness,
                                             min_size=Param_object.minimum_size_superpixel, iterations=Param_object.maximum_number_iterations, verbose=Param_object.verbose,
                                             k_mean_cluster_number=Param_object.cluster_number, create_all_images=True, highlight_whole_cluster=Param_object.highlight_whole_cluster,
                                             k_means_cluster_mode=Param_object.k_means_cluster_mode, histogram_bins=Param_object.histogram_bins, colorspace=Param_object.colorspace,
@@ -961,9 +962,9 @@ if __name__ == '__main__':
 
         if Param_object.verbose:
             print('Mask created')
-        df.SetMask(mask, image_id, image_frame)
-        df.db.close()
-        ReloadMask()
+        db.SetMask(mask, image.id)
+        db.db.close()
+        com.ReloadMask()
 
         #endregion
 
