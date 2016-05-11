@@ -65,6 +65,16 @@ def GetCommandLineArgs():
     args, unknown = parser.parse_known_args()
     return args.start_frame, args.database, args.port
 
+class Rectangle:
+    def __init__(self, x1, y1, x2, y2, rect, partner):
+        self.x1 = min(x1, x2)
+        self.x2 = max(x1, x2)
+        self.y1 = min(y1, y2)
+        self.y2 = max(y1, y2)
+        self.width = self.x2-self.x1
+        self.height = self.y2-self.y1
+        self.marker1 = rect
+        self.marker2 = partner
 
 class DataFile:
     """
@@ -500,8 +510,8 @@ class DataFile:
         """
         Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
         ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
-        supplied, any entrie with a value from the list is machted.
-    
+        supplied, any entry with a value from the list is machted.
+
         Parameters
         ----------
         image : int, array, optional
@@ -512,7 +522,7 @@ class DataFile:
             the type id(s) for the markers to be selected.
         track : int, array, optional
             the track id(s) for the markers to be selected.
-    
+
         Returns
         -------
         entries : array_like
@@ -536,6 +546,58 @@ class DataFile:
             else:
                 query = query.where(field == parameter)
         return query
+
+    def GetRectangles(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
+        """
+        See GetMarkers, but it already merges all connected markers to rectangles. Single markers are omitted.
+
+        Parameters
+        ----------
+        image : int, array, optional
+            the image id(s) for the markers to be selected.
+        processed : bool, array, optional
+            the processed flag(s) for the markers to be selected.
+        type : int, array, optional
+            the type id(s) for the markers to be selected.
+        track : int, array, optional
+            the track id(s) for the markers to be selected.
+
+        Returns
+        -------
+        entries : array_like
+            a list of rectangle objects.
+        """
+        # select marker, joined with types and images
+        query = (self.table_marker.select(self.table_marker, self.table_types, self.table_images)
+                 .join(self.table_types)
+                 .switch(self.table_marker)
+                 .join(self.table_images)
+                 )
+        parameter = [image, image_filename, processed, type, type_name, track]
+        table = self.table_marker
+        fields = [table.image, self.table_images.filename, table.processed, table.type, self.table_types.name,
+                  table.track]
+        for field, parameter in zip(fields, parameter):
+            if parameter is None:
+                continue
+            if isinstance(parameter, (tuple, list)):
+                query = query.where(field << parameter)
+            else:
+                query = query.where(field == parameter)
+
+        # iterate over markers and merge rectangles
+        rects = []
+        for rect in query:
+            try:
+                # only if we have a partner and the partner has a smaller id (so that we only get one of each pair)
+                if rect.partner_id and rect.id < rect.partner.id:
+                    # create a rectangle item and append it to the lisst
+                    rects.append(Rectangle(rect.x, rect.y, rect.partner.x, rect.partner.y, rect, rect.partner))
+            # ignore markers where the partner doesn't exist
+            except peewee.DoesNotExist:
+                pass
+        # return the list
+        return rects
 
     def SetMarker(self, id=None, image=None, x=None, y=None, processed=0, partner=None, type=None, track=None,
                   marker_text=None):
