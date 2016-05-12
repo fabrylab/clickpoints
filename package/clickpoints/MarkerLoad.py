@@ -331,7 +331,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object containing all the images in the database file.
+            a query object containing all the :py:class:`Images` entries in the database file.
         """
 
         query = self.table_images.select()
@@ -347,7 +347,7 @@ class DataFile:
         Returns
         -------
         path : path_entry
-            the created/requested path entry.
+            the created/requested :py:class:`Paths` entry.
         """
 
         if self.database_filename:
@@ -386,7 +386,7 @@ class DataFile:
         Returns
         -------
         image : image entry
-            the created or updated image entry
+            the created or updated :py:class:`Images` entry
         """
         try:
             item = self.table_images.get(self.table_images.filename == filename)
@@ -436,7 +436,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which contains the requested tracks.
+            a query object which contains the requested :py:class:`Tracks`.
         """
 
         query = self.table_tracks.select()
@@ -449,7 +449,7 @@ class DataFile:
         Returns
         -------
         entry : track object
-            a new track object
+            a new :py:class:`Tracks` object
         """
         import uuid
 
@@ -468,7 +468,7 @@ class DataFile:
 
         Returns
         -------
-        tracks : list of track object
+        tracks : list of :py:class:`Tracks`
             the new track objects
         """
 
@@ -481,7 +481,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which contains all marker types.
+            a query object which contains all Marker :py:class:`Types` .
         """
         query = self.table_types.select()
         return query
@@ -526,7 +526,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which can be iterated to get the track entries which where matched by the parameters provided.
+            a query object which can be iterated to get the :py:class:`Tracks` entries which where matched by the parameters provided.
         """
         # select marker, joined with types and images
         query = (self.table_marker.select(self.table_marker, self.table_types, self.table_images)
@@ -705,7 +705,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which contains all marker types.
+            a query object which contains all :py:class:`MaskTypes`.
         """
         query = self.table_maskTypes.select()
         return query
