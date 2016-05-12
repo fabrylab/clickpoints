@@ -299,7 +299,7 @@ def getFrameNumber(file, extension):
     else:
         # for videos, we have to open them and get the length
         try:
-            reader = imageio.get_reader(file)
+            reader = imageio.get_reader(file, format='AVBin' )
         except IOError:
             print("ERROR: can't read file", file)
             return 0
