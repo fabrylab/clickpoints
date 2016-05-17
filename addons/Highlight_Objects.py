@@ -126,16 +126,24 @@ class image_segmenter():
 
 #endregion
 
+
+
         if(self.im_color_space.max())<=1:
             self.im_color_space *= 255
 
         self.ratio_sobel_image=ratio_sobel_image
         if self.ratio_sobel_image>0:
             #create sobel image
-            sobel_image_x=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=1),dtype=float)
-            sobel_image_y=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=0),dtype=float)
+            sobel_image_x=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space[:,:,0],axis=1),dtype=float)
+            sobel_image_y=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space[:,:,0],axis=0),dtype=float)
             self.sobel_im=np.abs(sobel_image_x)+np.abs(sobel_image_y)
+            self.sobel_im=self.sobel_im.reshape((self.sobel_im.shape[0],self.sobel_im.shape[1],1))
+            self.sobel_im = np.sqrt(self.sobel_im)
             #normalize sobel image
+            # self.sobel_im = self.sobel_im - self.sobel_im.min()
+            # self.sobel_im = self.sobel_im / self.sobel_im.max()
+
+
             self.sobel_im=self.sobel_im*(self.im_color_space.mean()/self.sobel_im.mean())
 
             #put image and sobeled_image in one image which is then treated as an image with twice the number of colors as the original image
@@ -173,10 +181,24 @@ class image_segmenter():
         else:
             # region superpixelization
             number_of_superpixels = int(np.shape(self.image)[0] * np.shape(self.image)[1] / mean_pixel_size)
+            # im_l_b_grad = self.im_color_space[:,:,0:3]
+            # im_l_b_grad[:,:,1] = self.im_color_space[:,:,3]
             self.superpixel_segmentation_labels = skimage.segmentation.slic(self.image, n_segments=number_of_superpixels, compactness=compactness,
                                                                             multichannel=True, max_iter=10,
                                                                             enforce_connectivity=enforced_connectivity,
                                                                             min_size_factor=min_size)  # segmentiert in regions
+            # plt.figure(19)
+            # plt.imshow(im_l_b_grad[:,:,0])
+            # plt.figure(20)
+            # plt.imshow(im_l_b_grad[:,:,1])
+            # plt.figure(21)
+            # plt.imshow(im_l_b_grad[:,:,2])
+
+
+            # self.superpixel_segmentation_labels = skimage.segmentation.slic(im_l_b_grad, n_segments=number_of_superpixels, compactness=compactness,
+            #                                                     multichannel=True, max_iter=10,
+            #                                                     enforce_connectivity=enforced_connectivity,
+            #                                                     min_size_factor=min_size,convert2lab = False)  # segmentiert in regions
             if self.verbose:
                 print('superpixelization done')
             # endregion
