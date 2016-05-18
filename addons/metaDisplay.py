@@ -7,11 +7,14 @@ import socket
 import select
 import time
 
-from clickpoints.SendCommands import  HasTerminateSignal, CatchTerminateSignal, updateHUD
+import clickpoints
+
+start_frame, database, port = clickpoints.GetCommandLineArgs()
+com = clickpoints.Commands(port, catch_terminate_signal=True)
 
 def displayMetaInfo(ans):
     # print('in function:',ans)
-    com,fname,framenr = ans[0].split(' ',2)
+    command,fname,framenr = ans[0].split(' ',2)
     # print(com,fname,framenr)
 
     t_start = time.clock()
@@ -21,9 +24,9 @@ def displayMetaInfo(ans):
     field_dict=db.getValuesForList(timestamp,field_list)
     # print(field_dict)
 
-    print('time: %.3fs',time.clock()-t_start)
-
-    updateHUD(display_format.format(**field_dict))
+    print('time: %.3fs' % (time.clock()-t_start))
+    if field_dict:
+        com.updateHUD(display_format.format(**field_dict))
 
 # config
 db_path = r'I:\atkaSPOT_Meta.db'
@@ -41,8 +44,9 @@ from accessMetaDB import *
 db=MetaDB(dbpath=db_path)
 
 # input
-start_frame = int(sys.argv[2])
-HOST, PORT = "localhost", int(sys.argv[3])
+
+HOST="localhost"
+PORT=port
 BROADCAST_PORT = PORT +1
 
 # broadcast socket to listen to
@@ -51,7 +55,7 @@ sock.setblocking(0)
 sock.bind(('127.0.0.1',BROADCAST_PORT))
 
 
-
+last_img_nr = -1
 # main loop
 while True:
         ready_to_read, ready_to_write, in_error = select.select([sock],[],[],0)
@@ -64,8 +68,13 @@ while True:
             # print(ans)
 
             # split information
-            if ans[0].startswith('PreLoadImageEvent'):
+            # print(ans[0].split()[2])
+            img_nr = np.int(ans[0].split()[2])
+
+            if ans[0].startswith('PreLoadImageEvent') and img_nr != last_img_nr:
+                # print("nr is:",img_nr)
                 displayMetaInfo(ans)
+                last_img_nr = img_nr
 
                 # annoying buffer part
                 # read out and thereby delete all remaining entries
@@ -86,9 +95,11 @@ while True:
                         else:
                             messages_pending = False
                             # make sure last message is displayed
-                            if not last_message == ans and not last_message=='':
+                            if not last_message == ans and not last_message=='' and img_nr != last_img_nr:
+                                print("reached this")
                                 displayMetaInfo(last_message)
                                 last_message=''
+                                last_img_nr = img_nr
 
 
 
