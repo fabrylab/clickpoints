@@ -354,7 +354,7 @@ class DataFile:
             try:
                 image.save()
             except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
-                pass
+                continue
             if self.image_count is not None:
                 self.image_count += 1
             self.next_sort_index += 1
