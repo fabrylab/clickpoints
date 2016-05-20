@@ -1,50 +1,75 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
-import sys
+import sys,os
 import numpy as np
 import datetime
 import socket
 import select
 import time
+import collections
 
 import clickpoints
+
+sys.path.append(os.path.join(os.path.dirname(__file__),'..','includes'))
+from Config import Config
+
+''' Config Section - copy to displayMetaInfo.cfg for personal config
+[displayMetaInfo]
+db_path = I:\atkaSPOT_Meta.db
+field_list = ["met_t2","met_ff2","met_Dd2"]
+display_format = meta info:
+                 t:    {met_t2:>7}
+                 ws:   {met_ff2:>7}
+                 dir:  {met_Dd2:>7}
+'''
+
+# config default values
+cfg_default = collections.OrderedDict()
+cfg_default['db_path'] = r'I:\atkaSPOT_Meta.db'
+cfg_default['field_list'] = ["met_t2","met_ff2","met_Dd2"]
+cfg_default['display_format'] = "t:    {met_t2:>5}\n"\
+                 "ws:   {met_ff2:>5}\n"\
+                 "dir:  {met_Dd2:>5}"
+
+cfg_file = os.path.join(os.path.dirname(__file__),'displayMetaInfo.cfg')
+if os.path.exists(cfg_file):
+    print("Using config file at %s" % cfg_file)
+
+    cfg = Config(cfg_file,defaults=cfg_default).displayMetaInfo
+
+    print("db_path:", cfg.db_path)
+
 
 start_frame, database, port = clickpoints.GetCommandLineArgs()
 com = clickpoints.Commands(port, catch_terminate_signal=True)
 
 def displayMetaInfo(ans):
     # print('in function:',ans)
-    command,fname,framenr = ans[0].split(' ',2)
+    command,fullname,framenr = ans[0].split(' ',2)
+    fpath,fname = os.path.split(fullname)
+
     # print(com,fname,framenr)
 
     t_start = time.clock()
     timestring = fname[0:14]
     timestamp = datetime.datetime.strptime(timestring, '%Y%m%d-%H%M%S')
 
-    field_dict=db.getValuesForList(timestamp,field_list)
+    field_dict=db.getValuesForList(timestamp,cfg.field_list)
     # print(field_dict)
 
-    print('time: %.3fs' % (time.clock()-t_start))
+    #print('time: %.3fs' % (time.clock()-t_start))
     if field_dict:
-        com.updateHUD(display_format.format(**field_dict))
-
-# config
-db_path = r'I:\atkaSPOT_Meta.db'
-field_list = ['met_t2','met_ff2','met_Dd2']
-display_format = 't:    {met_t2:>5}\n'\
-                 'ws:   {met_ff2:>5}\n'\
-                 'dir:  {met_Dd2:>5}'
+        com.updateHUD(cfg.display_format.format(**field_dict))
 
 
 print("Stated metaDB Display Addon ...")
 
 # Database access
-sys.path.append(r'C:\Users\fox\Dropbox\PhD\python\atkaSPOT_MetaDB')
-from accessMetaDB import *
-db=MetaDB(dbpath=db_path)
+
+from metaDB.accessMetaDB import MetaDB
+db=MetaDB(dbpath=cfg.db_path)
 
 # input
-
 HOST="localhost"
 PORT=port
 BROADCAST_PORT = PORT +1
