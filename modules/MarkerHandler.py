@@ -720,10 +720,10 @@ class MyMarkerItem(QGraphicsPathItem):
     def setActive(self, active):
         if active:
             self.setAcceptedMouseButtons(Qt.MouseButtons(3))
-            self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+            #self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
         else:
             self.setAcceptedMouseButtons(Qt.MouseButtons(0))
-            self.unsetCursor()
+            #self.unsetCursor()
         return True
 
     def UpdatePath(self):
