@@ -14,10 +14,10 @@ db = clickpoints.DataFile(database)
 com = clickpoints.Commands(port, catch_terminate_signal=True)
 
 # get the images
-images = db.GetImages(start_frame=start_frame)
+images = db.GetImageIterator(start_frame=start_frame)
 
 # retrieve first image
-image_last = images[0]
+image_last = images.next()
 
 # get points and corresponding tracks
 points = db.GetMarker(image=image_last.id, processed=0)
@@ -31,7 +31,7 @@ if len(tracking_ids) == 0:
     sys.exit(-1)
 
 # start iterating over all images
-for image in images[1:]:
+for image in images:
     print("Tracking frame number %d, %d tracks" % (image.sort_index, len(tracking_ids)))
 
     # calculate next positions
