@@ -57,11 +57,12 @@ mode (right):
 .. figure:: images/ModulesMarkerTracking.png
    :alt: Marker Sizes
 
-   The same marker in normal mode (left) and in tracking mode (right).
+   The same marker in normal mode (left) and in tracking mode (right). The track always displays all previous positions
+   connected with a line, when they are from two consecutive images.
 
 To start a track, mark the object in the first image. Then switch to the next image and the marker from the first image
 will still be displayed but only half transparent. To add a second point to the track grab the marker and move it to the
-new position of the object. Continue this process thought the images where you want to track the object. If the object
+new position of the object. Continue this process through the images where you want to track the object. If the object
 didn't move from the last frame or isn't visible, an image can be left out, which results in a gap in the track. To
 remove a point from the track, click it while holding control in the image you want to delete the point.
 
@@ -70,7 +71,7 @@ Marker Style Definitions
 
 Style definitions can provide additional features to change the appearance of marker. They are inherited from the marker
 type to the track and from the track to the marker itself. If no track is present the marker inherits its style
-directly from the type. This allows to define style, track and marker specifiy styles.
+directly from the type. This allows to define type, track and marker specific styles.
 
 Styles can be set using the Marker Editor (right click on any marker or type).
 
@@ -96,6 +97,13 @@ The styles use the JSON format for data storage. The following fields can be use
    points, can be ``circle`` (default), ``rect``, ``none``
 -  ``"track-point-scale": 1`` the scaling for the symbols used to
    display the track points
+
+Style Examples:
+
+.. code-block:: python
+
+   {"color": "jet(30)"}  # style for providing a marker type with 30 different colors
+   {"track-line-style": "dash", "track-point-shape": "none"}  # change the track style
 
 .. |the marker icon| image:: images/IconMarker.png
 
