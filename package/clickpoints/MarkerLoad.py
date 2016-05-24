@@ -340,6 +340,31 @@ class DataFile:
         query = query.order_by(self.table_images.sort_index)
         return query
 
+    def GetImageIterator(self, start_frame=0):
+        """
+        Get an iterator to iterate over all images starting from start_frame.
+
+        Parameters
+        ----------
+        start_frame : int, optional
+            start at the image with the number start_frame. Default is 0
+
+
+        Returns
+        -------
+        entries : array_like
+            a query object containing all the :py:class:`Images` entries in the database file.
+        """
+
+        frame = start_frame
+        while True:
+            try:
+                image = self.table_images.get(self.table_images.sort_index == frame)
+                yield image
+            except peewee.DoesNotExist:
+                break
+            frame += 1
+
     def AddPath(self, path):
         """
         Add a path to the database, or return the path entry if it already exists.
