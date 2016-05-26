@@ -768,7 +768,7 @@ class MyMarkerItem(QGraphicsPathItem):
 
 
 class MyTrackItem(MyMarkerItem):
-    def __init__(self, marker_handler, parent, points_data, track, saved=False):
+    def __init__(self, marker_handler, parent, points_data, track, saved=False, frame=None):
         MyMarkerItem.__init__(self, marker_handler, parent, points_data[0])
         self.points_data = SortedDict()
         for point in points_data:
@@ -776,7 +776,6 @@ class MyTrackItem(MyMarkerItem):
 
         self.track = track
         self.track_style = {}
-        self.UpdateStyle()
         self.current_frame = 0
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
@@ -788,6 +787,8 @@ class MyTrackItem(MyMarkerItem):
         self.hidden = False
         self.active = True
         self.saved = saved
+
+        self.FrameChanged(frame)
 
     def UpdateStyle(self):
         self.style = {}
@@ -1342,7 +1343,7 @@ class MarkerHandler:
         for track in track_list:
             data = track.markers
             if data.count():
-                self.tracks.append(MyTrackItem(self, self.TrackParent, data, track, saved=True))
+                self.tracks.append(MyTrackItem(self, self.TrackParent, data, track, saved=True, frame=self.frame_number))
 
     def LoadPoints(self):
         while len(self.points):
@@ -1439,7 +1440,7 @@ class MarkerHandler:
             elif self.active_type.mode & TYPE_Track:
                 track = self.marker_file.set_track()
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, track=track)
-                self.tracks.append(MyTrackItem(self, self.TrackParent, [data], track, saved=False))
+                self.tracks.append(MyTrackItem(self, self.TrackParent, [data], track, saved=False, frame=self.frame_number))
                 self.tracks[-1].setScale(1 / self.scale)
                 self.tracks[-1].save()
             else:
