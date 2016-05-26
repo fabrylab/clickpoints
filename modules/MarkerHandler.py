@@ -953,6 +953,8 @@ class MyTrackItem(MyMarkerItem):
         self.pathItem.setPath(self.path)
 
     def draw(self, image, start_x, start_y, scale=1):
+        if not self.CheckToDisplay():
+            return
         if self.partner:
             return MyMarkerItem.draw(self, image, start_x, start_y)
         color = (self.color.red(), self.color.green(), self.color.blue())
