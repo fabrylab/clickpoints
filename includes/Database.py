@@ -170,7 +170,7 @@ class DataFile:
 
         # signals to notify others when a frame is loaded
         class DataFileSignals(QtCore.QObject):
-            loaded = QtCore.pyqtSignal(int)
+            loaded = QtCore.pyqtSignal(int, int)
         self.signals = DataFileSignals()
 
     def start_adding_timestamps(self):
@@ -375,7 +375,7 @@ class DataFile:
     def load_frame(self, index, threaded):
         # check if frame is already buffered then we don't need to load it
         if self.buffer.get_frame(index) is not None:
-            self.signals.loaded.emit(index)
+            self.signals.loaded.emit(index, threaded)
             return
         # if we are still loading a frame finish first
         if self.thread:
@@ -387,12 +387,12 @@ class DataFile:
         slots, slot_index, = self.buffer.prepare_slot(index)
         # call buffer_frame in a separate thread or directly
         if threaded:
-            self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index))
+            self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, threaded))
             self.thread.start()
         else:
-            return self.buffer_frame(image, filename, slots, slot_index, index)
+            return self.buffer_frame(image, filename, slots, slot_index, index, threaded)
 
-    def buffer_frame(self, image, filename, slots, slot_index, index, signal=True):
+    def buffer_frame(self, image, filename, slots, slot_index, index, signal=True, threaded=True):
         # if we have already a reader...
         if self.reader:
             # ... check if it is the right one, if not delete it
@@ -432,7 +432,7 @@ class DataFile:
         slots[slot_index] = image_data
         # notify that the frame has been loaded
         if signal:
-            self.signals.loaded.emit(index)
+            self.signals.loaded.emit(index, threaded)
 
     def get_image_data(self, index=None):
         if index is None or index == self.current_image_index:
