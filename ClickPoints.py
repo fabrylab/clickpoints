@@ -287,7 +287,7 @@ class ClickPointsWindow(QWidget):
         else:
             self.data_file.load_frame(target_id, threaded=0)
 
-    def FrameLoaded(self, frame_number, no_threaded_load=False):
+    def FrameLoaded(self, frame_number, threaded_load=True):
         # set the index of the current frame
         self.data_file.set_image(frame_number)
 
@@ -307,7 +307,7 @@ class ClickPointsWindow(QWidget):
         offset = self.data_file.get_offset()
 
         # display the image
-        self.ImageDisplay.SetImage(self.im, offset, no_threaded_load)  # calls DisplayedImage
+        self.ImageDisplay.SetImage(self.im, offset, not threaded_load)  # calls DisplayedImage
 
     def DisplayedImage(self):
         # tell the QExtendedGraphicsView the shape of the new image
