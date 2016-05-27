@@ -2,7 +2,8 @@ from __future__ import division, print_function
 import os
 import sys
 import importlib
-from datetime import datetime
+import itertools
+from datetime import datetime, timedelta
 import peewee
 from playhouse.reflection import Introspector
 try:
@@ -108,6 +109,19 @@ def SaveDB(db_memory, filename):
 #     db_file = apsw_ext.APSWDatabase(filename)
 #     with db_file.get_conn().backup("main", db_memory.get_conn(), "main") as backup:
 #         backup.step()  # copy whole database in one go
+
+def timedelta_div(self, other):
+    if isinstance(other, (int, float)):
+        return timedelta(seconds=self.total_seconds()/other)
+    else:
+        return NotImplemented
+
+
+def date_linspace(start_date, end_date, frames):
+    delta = timedelta_div(end_date-start_date, frames)
+    for n in range(frames):
+        yield start_date
+        start_date = start_date + delta
 
 
 class DataFile:
@@ -376,13 +390,29 @@ class DataFile:
         return path
 
     def add_image(self, filename, extension, external_id, frames, path, timestamp=None):
+        # if no timestamp is supplied quickly get one from the filename
+        if timestamp is None:
+            # do we have a video? then we need two timestamps
+            if frames > 1:
+                timestamp, timestamp2 = getTimeStampsQuick(filename)
+                if timestamp is not None:
+                    timestamps = date_linspace(datetime.strptime(timestamp, '%Y%m%d-%H%M%S'), datetime.strptime(timestamp2, '%Y%m%d-%H%M%S'), frames)
+                else:
+                    timestamps = itertools.repeat(None)
+            # if not one is enough
+            else:
+                timestamp = getTimeStampQuick(filename)
+                timestamps = itertools.repeat(timestamp)
+        else:  # create an iterator from the timestamp
+            timestamps = itertools.repeat(timestamp)
         # add an entry for every frame in the image container
         # prepare a list of dictionaries for a bulk insert
         data = []
         entry = dict(filename=filename, ext=extension, external_id=external_id, timestamp=timestamp, path=path.id)
-        for i in range(frames):
+        for i, time in zip(range(frames), timestamps):
             current_entry = entry.copy()
             current_entry["frame"] = i
+            current_entry["timestamp"] = time
             current_entry["sort_index"] = self.next_sort_index+i
             data.append(current_entry)
 
@@ -574,6 +604,21 @@ filename_data_regex = re.compile(filename_data_regex)
 filename_data_regex2 = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<timestamp2>\d{8}-\d{6})'
 filename_data_regex2 = re.compile(filename_data_regex2)
 
+def getTimeStampQuick(file):
+    global filename_data_regex, filename_data_regex2
+    match = filename_data_regex.match(file)
+    if match:
+        par_dict = match.groupdict()
+        return par_dict["timestamp"]
+    return None
+
+def getTimeStampsQuick(file):
+    global filename_data_regex, filename_data_regex2
+    match = filename_data_regex2.match(file)
+    if match:
+        par_dict = match.groupdict()
+        return par_dict["timestamp"], par_dict["timestamp2"]
+    return None, None
 
 def getTimeStamp(file, extension):
     global filename_data_regex
