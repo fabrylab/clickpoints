@@ -27,6 +27,42 @@ if os.path.exists(plugin_searchpath):
             print('Adding %s' % plugin)
 
 
+def max_sql_variables():
+    """Get the maximum number of arguments allowed in a query by the current
+    sqlite3 implementation. Based on `this question
+    `_
+
+    Returns
+    -------
+    int
+        inferred SQLITE_MAX_VARIABLE_NUMBER
+    """
+    import sqlite3
+    db = sqlite3.connect(':memory:')
+    cur = db.cursor()
+    cur.execute('CREATE TABLE t (test)')
+    low, high = 0, 100000
+    while (high - 1) > low:
+        guess = (high + low) // 2
+        query = 'INSERT INTO t VALUES ' + ','.join(['(?)' for _ in
+                                                    range(guess)])
+        args = [str(i) for i in range(guess)]
+        try:
+            cur.execute(query, args)
+        except sqlite3.OperationalError as e:
+            if "too many SQL variables" in str(e):
+                high = guess
+            else:
+                raise
+        else:
+            low = guess
+    cur.close()
+    db.close()
+    return low
+
+SQLITE_MAX_VARIABLE_NUMBER = max_sql_variables()
+
+
 def SQLMemoryDBFromFile(filename, *args, **kwargs):
 
     db_file = peewee.SqliteDatabase(filename, *args, **kwargs)
@@ -341,23 +377,28 @@ class DataFile:
 
     def add_image(self, filename, extension, external_id, frames, path, timestamp=None):
         # add an entry for every frame in the image container
+        # prepare a list of dictionaries for a bulk insert
+        data = []
+        entry = dict(filename=filename, ext=extension, external_id=external_id, timestamp=timestamp, path=path.id)
         for i in range(frames):
-            image = self.table_images()
-            image.filename = filename
-            image.ext = extension
-            image.frames = frames
-            image.frame = i
-            image.external_id = external_id
-            image.timestamp = timestamp
-            image.sort_index = self.next_sort_index
-            image.path = path.id
-            try:
-                image.save()
-            except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
-                continue
-            if self.image_count is not None:
-                self.image_count += 1
-            self.next_sort_index += 1
+            current_entry = entry.copy()
+            current_entry["frame"] = i
+            current_entry["sort_index"] = self.next_sort_index+i
+            data.append(current_entry)
+
+        # try to perform the bulk insert
+        try:
+            # Insert the maximum of allowed rows at a time
+            chunk_size = (SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) -1
+            with self.db.atomic():
+                for idx in range(0, len(data), chunk_size):
+                    self.table_images.insert_many(data[idx:idx+chunk_size]).execute()
+        except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
+            return
+        # increase sort_index and image_count by the number of added frames
+        if self.image_count is not None:
+            self.image_count += frames
+        self.next_sort_index += frames
 
     def reset_buffer(self):
         self.buffer.reset()
