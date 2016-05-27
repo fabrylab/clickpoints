@@ -162,7 +162,10 @@ class VideoExporterDialog(QtGui.QWidget):
         if self.cbTime.isChecked():
             class TimeDrawing: pass
             self.time_drawing = TimeDrawing()
-            self.time_drawing.font = ImageFont.truetype("arial.ttf", self.cbTimeFontSize.value())
+            try:
+                self.time_drawing.font = ImageFont.truetype("arial.ttf", self.cbTimeFontSize.value())
+            except IOError:
+                self.time_drawing.font = ImageFont.truetype(os.path.join(self.window.icon_path, "FantasqueSansMono-Regular.ttf"), self.cbTimeFontSize.value())
             self.time_drawing.start = None
             self.time_drawing.x = 15
             self.time_drawing.y = 10
