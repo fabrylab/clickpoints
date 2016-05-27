@@ -11,6 +11,22 @@ import re
 import glob
 import numpy as np
 import time
+import imageio
+import cv2
+try:
+    from cv2.cv import CV_CAP_PROP_POS_FRAMES as CAP_PROP_POS_FRAMES
+    from cv2.cv import CV_CAP_PROP_FRAME_COUNT as CAP_PROP_FRAME_COUNT
+    from cv2.cv import CV_CAP_PROP_FRAME_WIDTH as CAP_PROP_FRAME_WIDTH
+    from cv2.cv import CV_CAP_PROP_FRAME_HEIGHT as CAP_PROP_FRAME_HEIGHT
+    from cv2.cv import CV_CAP_PROP_FPS as CAP_PROP_FPS
+    from cv2.cv import CV_RGB2BGR as COLOR_RGB2BGR
+except ImportError:
+    from cv2 import CAP_PROP_POS_FRAMES as CAP_PROP_POS_FRAMES
+    from cv2 import CAP_PROP_FRAME_COUNT as CAP_PROP_FRAME_COUNT
+    from cv2 import CAP_PROP_FRAME_WIDTH as CAP_PROP_FRAME_WIDTH
+    from cv2 import CAP_PROP_FRAME_HEIGHT as CAP_PROP_FRAME_HEIGHT
+    from cv2 import CAP_PROP_FPS as CAP_PROP_FPS
+    from cv2 import COLOR_RGB2BGR as COLOR_RGB2BGR
 
 from datetime import datetime, timedelta
 from PIL import Image
@@ -31,55 +47,77 @@ def getExifTime(path):
     }
     return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
 
+def getVideoTime(path):
+    start_time = datetime.fromtimestamp(int(os.path.getmtime(path)))
+
+    cap = cv2.VideoCapture(path)
+    frames = int(cap.get(CAP_PROP_FRAME_COUNT))
+    fps = cap.get(CAP_PROP_FPS)
+
+    end_time = start_time+timedelta(seconds=frames/fps)
+    return start_time, end_time
+
+
+#print(getExifTime(r"F:\MicrObs Go-Pro 2015\2015-03-12\100GOPRO\GOPR7642.JPG"))
+#getVideoTime(r"F:\MicrObs Go-Pro 2015\2015-06-18\100GOPRO\GO011971.MP4")
+#die
 
 ''' Parameters'''
 # name_scheme = TS1(_TS2)_SYSTEM_DEVICE_DIV.ext
-timestamp_scheme= '%Y%m%d-%H%M%S'
+timestamp_scheme = '%Y%m%d-%H%M%S'
 name_scheme = '{timestamp}_{system}_{device}{ext}'
 path_scheme = os.path.join('{basepath}','{system}','{device}','{year}','{yearmonthday}','{hour}')
 
 #input_folder =
 #output_folder=
-extensions=['.jpg', '.png', '.tif', '.tiff']
+extensions = ['.jpg', '.png', '.tif', '.tiff']
 
-basepath = '\\\\131.188.117.94\data'
-meta = DotDict({'system':'microbsDDU',
-                'device':'32n1',
-                'timestamp':None,
-                'ext':''})
+extensions_vid = ['.mp4']
+
+basepath = 'E:\\' #'\\\\131.188.117.94\data'
+meta = DotDict({'system': 'microbsGoPro',
+                'device': 'GoPro',
+                'timestamp': None,
+                'ext': ''})
 
 
-start_path=r'G:\microbs31_1'
+start_path = r'F:\MicrObs Go-Pro 2015'
 
 # get list of files
 
 
 ''' for each file'''
-filecounter=0
+filecounter = 0
 time_start = time.time()
 for root, dirs, files in os.walk(start_path, topdown=False):
     print(root)
     print(dirs)
     for file in files:
         # reset values
-        meta.timestamp=None
-        meta.ext=''
+        meta.timestamp = None
+        meta.ext = ''
 
         # get file type
         name, meta.ext = os.path.splitext(file)
 
         if meta.ext.lower() in extensions:
             try:
-                # get time stamp from exif
-                meta.timestamp = getExifTime(os.path.join(root,file))
+                if meta.ext.lower() in extensions_vid:
+                    # get time stamp from exif
+                    meta.timestamp, meta.timestamp2 = getVideoTime(os.path.join(root, file))
+                    name_timestamp = meta.timestamp.strftime(timestamp_scheme)+"_"+meta.timestamp2.strftime(timestamp_scheme)
+                else:
+                    # get time stamp from exif
+                    meta.timestamp = getExifTime(os.path.join(root, file))
+                    name_timestamp = meta.timestamp.strftime(timestamp_scheme)
 
 
 
                 #generate new file name
-                new_name = name_scheme.format(timestamp=meta.timestamp.strftime(timestamp_scheme),
+                new_name = name_scheme.format(timestamp=name_timestamp,
                                               system=meta.system,
                                               device=meta.device,
-                                              ext=meta.ext)
+                                              ext=meta.ext.lower())
                 #generate new path
                 new_path = path_scheme.format(basepath=basepath,
                                               year=meta.timestamp.strftime('%Y'),
@@ -107,26 +145,3 @@ for root, dirs, files in os.walk(start_path, topdown=False):
                 print("time elapsed: %.2f min" % ((time_stop - time_start)/60))
             except:
                 print('Couldn\'t process file: ',file)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
