@@ -776,6 +776,7 @@ class MyTrackItem(MyMarkerItem):
 
         self.track = track
         self.track_style = {}
+        self.UpdateStyle()
         self.current_frame = 0
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
