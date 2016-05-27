@@ -226,31 +226,35 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
     else:
         path_list = [path]
 
-    # iterate over all folders
-    for path in path_list:
-        # use glob if a filter is active or just get all the files
-        if file_filter != "":
-            file_list = glob.glob(os.path.join(path, file_filter))
-        else:
-            file_list = GetFilesInDirectory(path)
-        # if no files are left skip this folder
-        if len(file_list) == 0:
-            print("WARNING: folder %s doesn't contain any files ClickPoints can read." % path)
-            continue
-        # add the folder to the database
-        path_entry = data_file.add_path(path)
-        # maybe sort the files
-        if use_natsort:
-            file_list = natsorted(file_list)
-        else:
-            file_list = sorted(file_list)
-        # iterate over all files
-        for filename in file_list:
-            # extract the extension and frame number
-            extension = os.path.splitext(filename)[1]
-            frames = getFrameNumber(os.path.join(path, filename), extension)
-            # add the file to the database
-            data_file.add_image(filename, extension, None, frames, path=path_entry)
+    with data_file.db.atomic():
+        # iterate over all folders
+        for path in path_list:
+            # use glob if a filter is active or just get all the files
+            if file_filter != "":
+                file_list = glob.glob(os.path.join(path, file_filter))
+                file_list = [os.path.split(filename)[1] for filename in file_list]
+                print("file_list", file_list)
+            else:
+                file_list = GetFilesInDirectory(path)
+                print("file_list", file_list)
+            # if no files are left skip this folder
+            if len(file_list) == 0:
+                print("WARNING: folder %s doesn't contain any files ClickPoints can read." % path)
+                continue
+            # add the folder to the database
+            path_entry = data_file.add_path(path)
+            # maybe sort the files
+            if use_natsort:
+                file_list = natsorted(file_list)
+            else:
+                file_list = sorted(file_list)
+            # iterate over all files
+            for filename in file_list:
+                # extract the extension and frame number
+                extension = os.path.splitext(filename)[1]
+                frames = getFrameNumber(os.path.join(path, filename), extension)
+                # add the file to the database
+                data_file.add_image(filename, extension, None, frames, path=path_entry)
     data_file.start_adding_timestamps()
     BroadCastEvent2("ImagesAdded")
 
