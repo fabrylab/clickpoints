@@ -175,7 +175,7 @@ class ClickPointsWindow(QWidget):
                     addPath(self.data_file, directory, use_natsort=config.use_natsort)
                 # for videos just load the file
                 elif ext.lower() in vidformats:
-                    addPath(self.data_file, directory, file_filter=filename)
+                    addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
                 elif ext.lower() == ".txt":
                     addList(self.data_file, directory, filename)
                 # if the extension is not known, raise an exception
