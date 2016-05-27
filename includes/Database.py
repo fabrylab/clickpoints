@@ -364,7 +364,7 @@ class DataFile:
 
     def get_image_count(self):
         if self.image_count is None:
-            self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM images LIMIT 1;").fetchone()[0]
+            self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM images LIMIT 1;").fetchone()[0]+1
         # return the total count of images in the database
         return self.image_count
 
