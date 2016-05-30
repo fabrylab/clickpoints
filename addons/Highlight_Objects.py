@@ -20,6 +20,7 @@ import skimage.color
 import os, sys
 import scipy.ndimage.filters
 import distutils.util
+import scipy as scp
 
 #region import QT-Widget for Gui
 try:
@@ -37,9 +38,11 @@ icon_path = os.path.join(os.path.dirname(__file__), "icons")
 
 class image_segmenter():
     def __init__(self, image, coords, mean_pixel_size=200, k_mean_cluster_number=5, compactness=24, iterations=10, enforced_connectivity=True, min_size=0.4,
-                 verbose=True, k_means_cluster_mode=1, colorspace=1, ratio_sobel_image=0.0, connect_first=True,
+                 verbose=True, k_means_cluster_mode=1, colorspace=1, ratio_sobel_image=0.3, connect_first=True,
                  histogram_bins=3, create_all_images=False, just_super_pixel_segmentation_im=False,
-                 create_mean_col_regions=False, clickpoints_addon=True, already_given_regions=[], already_give_regions=False, highlight_whole_cluster=False):
+                 create_mean_col_regions=False, clickpoints_addon=True, already_given_regions=[], already_give_regions=False, highlight_whole_cluster=False,
+                 wiener_filter = False, grad_just_lum_im = False, grad_sqrt = True,
+                 wiener_filter_size = None, gradient_exponent = 0.5):
         """
         Init
 
@@ -126,6 +129,26 @@ class image_segmenter():
 
 #endregion
 
+# region Wiener Filter
+        if wiener_filter:
+            self.im_color_space_not_wiener = np.copy(self.im_color_space)
+            for i in range(self.im_color_space.shape[2]):
+                self.im_color_space[:,:,i] = scp.signal.wiener(self.im_color_space[:,:,i],mysize=wiener_filter_size)
+            # plt.figure(19)
+            # plt.imshow(self.im_color_space_not_wiener[:,:,0])
+            # plt.figure(20)
+            # plt.imshow(self.im_color_space[:,:,0])
+            # plt.show()
+            if verbose:
+                print('Applied Wiener Filer')
+# endregion
+        ax1=plt.subplot(1,2,1)
+        ax=plt.imshow(self.im_color_space_not_wiener[:,:,0],cmap= 'Greys_r')
+        plt.title('Original')
+        plt.subplot(1,2,2,sharex = ax1,sharey = ax1)
+        plt.imshow(self.im_color_space[:,:,0],cmap= 'Greys_r')
+        plt.title('Filtered')
+        plt.show()
 
 
         if(self.im_color_space.max())<=1:
@@ -134,11 +157,20 @@ class image_segmenter():
         self.ratio_sobel_image=ratio_sobel_image
         if self.ratio_sobel_image>0:
             #create sobel image
-            sobel_image_x=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space[:,:,0],axis=1),dtype=float)
-            sobel_image_y=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space[:,:,0],axis=0),dtype=float)
-            self.sobel_im=np.abs(sobel_image_x)+np.abs(sobel_image_y)
-            self.sobel_im=self.sobel_im.reshape((self.sobel_im.shape[0],self.sobel_im.shape[1],1))
-            self.sobel_im = np.sqrt(self.sobel_im)
+            if grad_just_lum_im:
+                sobel_image_x=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space[:,:,0],axis=1),dtype=float)
+                sobel_image_y=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space[:,:,0],axis=0),dtype=float)
+                self.sobel_im=np.sqrt(((sobel_image_x) ** 2) + ((sobel_image_y) ** 2) )
+                self.sobel_im=self.sobel_im.reshape((self.sobel_im.shape[0],self.sobel_im.shape[1],1))
+            else:
+                sobel_image_x=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=1),dtype=float)
+                sobel_image_y=np.asarray(scipy.ndimage.filters.sobel(self.im_color_space,axis=0),dtype=float)
+                self.sobel_im=np.sqrt(((sobel_image_x) ** 2) + ((sobel_image_y) ** 2) )
+
+
+            if grad_sqrt:
+                self.sobel_im = self.sobel_im ** gradient_exponent
+                # self.sobel_im = self.sobel_im ** 200
             #normalize sobel image
             # self.sobel_im = self.sobel_im - self.sobel_im.min()
             # self.sobel_im = self.sobel_im / self.sobel_im.max()
@@ -231,7 +263,7 @@ class image_segmenter():
                 for row in range(np.shape(self.image)[0]):
                     for column in range(np.shape(self.image)[1]):
                         self.k_mean_clustered_regions[row, column] = cluster_labels_col[self.superpixel_segmentation_labels[row, column] - 1]  # Regionen nach kmeans-Clustering
-                    if row % 50 == 0 & self.verbose:
+                    if row % 50 == 0 and self.verbose:
                         print('Creating Clustered Image row=%i Processed Percentage %i' % (row, 100 * row / np.shape(self.image)[0]))
 
                 if self.verbose:
