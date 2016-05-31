@@ -51,7 +51,7 @@ def max_sql_variables():
         try:
             cur.execute(query, args)
         except sqlite3.OperationalError as e:
-            if "too many SQL variables" in str(e):
+            if "too many SQL variables" in str(e) or "too many terms in compound SELECT" in str(e):
                 high = guess
             else:
                 raise
