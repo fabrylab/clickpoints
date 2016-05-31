@@ -92,7 +92,8 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **style** *(str)* - the style for this track.
         - **points()** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers.
         - **marker()** *(list of* :py:class:`Marker` *)*)* - a list containing all the associated markers.
-        - **times()** *(list of datatime)* - a list containing the timestamps for the images of the associated markers.
+        - **times()** *(list of datetime)* - a list containing the timestamps for the images of the associated markers.
+        - **frames()** *(list of int)* - a list containing all the frame numbers for the images of the associated markers.
 
 .. py:class:: Types()
 
