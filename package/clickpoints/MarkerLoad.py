@@ -198,6 +198,9 @@ class DataFile:
             def times(self):
                 return np.array([point.image.timestamp for point in self.marker()])
 
+            def frames(self):
+                return np.array([point.image.sort_index for point in self.marker()])
+
         class Types(BaseModel):
             name = peewee.CharField()
             color = peewee.CharField()
