@@ -396,7 +396,7 @@ class DataFile:
             if frames > 1:
                 timestamp, timestamp2 = getTimeStampsQuick(filename)
                 if timestamp is not None:
-                    timestamps = date_linspace(datetime.strptime(timestamp, '%Y%m%d-%H%M%S'), datetime.strptime(timestamp2, '%Y%m%d-%H%M%S'), frames)
+                    timestamps = date_linspace(timestamp, timestamp2, frames)
                 else:
                     timestamps = itertools.repeat(None)
             # if not one is enough
@@ -612,7 +612,7 @@ def getTimeStampQuick(file):
     match = filename_data_regex.match(file)
     if match:
         par_dict = match.groupdict()
-        return par_dict["timestamp"]
+        return datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S')
     return None
 
 def getTimeStampsQuick(file):
@@ -620,7 +620,7 @@ def getTimeStampsQuick(file):
     match = filename_data_regex2.match(file)
     if match:
         par_dict = match.groupdict()
-        return par_dict["timestamp"], par_dict["timestamp2"]
+        return datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S'), datetime.strptime(par_dict["timestamp2"], '%Y%m%d-%H%M%S')
     return None, None
 
 def getTimeStamp(file, extension):
