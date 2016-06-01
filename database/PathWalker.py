@@ -254,12 +254,14 @@ smb_start_path=os.path.normpath(asSMBPath(ipaddress,smbcfg['mount_points'],start
 if mode=='remove':
     ### 1) remove all child files and folders from DB
     # get path ids - based on the checked in smb path
+    try:
+        path_id_list=database.getIdListForPath(smb_start_path)
+        path_id = path_id_list[-1]
 
-    path_id_list=database.getIdListForPath(smb_start_path)
-    path_id = path_id_list[-1]
-
-    # delete file and path entries from DB
-    database.deleteFilesByPathID(path_id)
+        # delete file and path entries from DB
+        database.deleteFilesByPathID(path_id)
+    except:
+        print("No DB entries found, continue clearing .done files!")
 
     ### 2) remove all check in *.done files
     for root, dirs, files in os.walk(start_path, topdown=False):
@@ -270,6 +272,7 @@ if mode=='remove':
             print('removing *.done:',done_file)
 
 if mode=='add':
+    print("add")
     file_counter=0
     path_done_list = []
     file_list = []
@@ -277,7 +280,7 @@ if mode=='add':
     for root, dirs, files in os.walk(start_path, topdown=False):
         #print(root, files)
         loadConfigs(root)
-        print("Framerate:",fps)
+
         if ignore:
             print("Ignoring folder:", root)
             continue
@@ -291,15 +294,17 @@ if mode=='add':
 
         ## check if we're resuming a run
         if os.path.isfile(os.path.join(root,'.pathwalker.done')):
-            print('*.done exists - continue')
-            continue
+           print('*.done exists - continue')
+           continue
 
         ### add entrys
         for file in files:
+
             # extract Meta
             basename, ext = os.path.splitext(file)
             match = re.match(filename_data_regex, os.path.basename(file))
             if not match:
+                #print(file, "didn't match")
                 continue
             data = match.groupdict()
 
@@ -311,7 +316,8 @@ if mode=='add':
             elif time_from_exif:
                 tstamp = getExifTime(os.path.join(root, file))
             else:
-                raise NameError("No time information available. Use timestamp in regex or use time_from_exif")
+                #raise NameError("No time information available. Use timestamp in regex or use time_from_exif")
+                continue
 
             # Second timestamp
             if "timestamp2" in data:
@@ -391,4 +397,4 @@ if mode=='add':
 
         # some runtime information
         time_stop=time.time()
-        print("%.2f files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
+        print("%.2fk files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
