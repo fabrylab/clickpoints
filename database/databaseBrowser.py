@@ -60,7 +60,7 @@ def add_months(sourcedate, months):
 
 
 def ShortenNumber(value):
-    if value == 0:
+    if value == 0 or np.isnan(value):
         return ""
     if value < 1:
         return "%d" % value
@@ -421,27 +421,27 @@ class DatabaseByFiles(DatabaseTabTemplate):
         cmap_b = LinearSegmentedColormap("TransBlue", {'blue': ((0, 0, 0), (1, 176 / 255, 176 / 255)),
                                                        'red': ((0, 0, 0), (1, 76 / 255, 76 / 255)),
                                                        'green': ((0, 0, 0), (1, 114 / 255, 114 / 255)),
-                                                       'alpha': ((0, 0, 0), (1, 1, 1))})
+                                                       'alpha': ((0, 0.5, 0.5), (1, 1, 1))})
         cmap_r = LinearSegmentedColormap("TransBlue", {'blue': ((0, 0, 0), (1, 104 / 255, 104 / 255)),
                                                        'red': ((0, 0, 0), (1, 85 / 255, 85 / 255)),
                                                        'green': ((0, 0, 0), (1, 168 / 255, 168 / 255)),
-                                                       'alpha': ((0, 0, 0), (1, 1, 1))})
+                                                       'alpha': ((0, 0.5, 0.5), (1, 1, 1))})
         cmap_g = LinearSegmentedColormap("TransBlue", {'blue': ((0, 0, 0), (1, 82 / 255, 82 / 255)),
                                                        'red': ((0, 0, 0), (1, 196 / 255, 196 / 255)),
                                                        'green': ((0, 0, 0), (1, 78 / 255, 78 / 255)),
-                                                       'alpha': ((0, 0, 0), (1, 1, 1))})
+                                                       'alpha': ((0, 0.5, 0.5), (1, 1, 1))})
         cmap_r2 = LinearSegmentedColormap("TransBlue", {'blue': ((0, 0, 0), (1, 178 / 255, 178 / 255)),
                                                         'red': ((0, 0, 0), (1, 129 / 255, 129 / 255)),
                                                         'green': ((0, 0, 0), (1, 114 / 255, 114 / 255)),
-                                                        'alpha': ((0, 0, 0), (1, 1, 1))})
+                                                        'alpha': ((0, 0.5, 0.5), (1, 1, 1))})
         cmap_g2 = LinearSegmentedColormap("TransBlue", {'blue': ((0, 0, 0), (1, 116 / 255, 116 / 255)),
                                                         'red': ((0, 0, 0), (1, 204 / 255, 204 / 255)),
                                                         'green': ((0, 0, 0), (1, 185 / 255, 185 / 255)),
-                                                        'alpha': ((0, 0, 0), (1, 1, 1))})
+                                                        'alpha': ((0, 0.5, 0.5), (1, 1, 1))})
         cmap_b2 = LinearSegmentedColormap("TransBlue", {'blue': ((0, 0, 0), (1, 100 / 255, 100 / 255)),
                                                         'red': ((0, 0, 0), (1, 205 / 255, 205 / 255)),
                                                         'green': ((0, 0, 0), (1, 181 / 255, 181 / 255)),
-                                                        'alpha': ((0, 0, 0), (1, 1, 1))})
+                                                        'alpha': ((0, 0.5, 0.5), (1, 1, 1))})
         self.cmaps = [cmap_b, cmap_r, cmap_g, cmap_r2, cmap_g2, cmap_b2]
 
     def onConfirm(self):
@@ -559,11 +559,12 @@ class DatabaseByFiles(DatabaseTabTemplate):
             for item in query:
                 count[item.year - min(years), item.month - 1] = item.count
             x, y = np.meshgrid(np.arange(0, year_count), np.arange(1, 13))
+            count[count == 0] = np.nan
             self.axes1.scatter(x + offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
             p = self.axes1.scatter([-2, -2], [0, 0], c=[1, 0], cmap=cmap, lw=0)
             self.plot_list[index] = p
             for year in range(year_count):
-                self.axes1.text(year + offset, 12.2, ShortenNumber(np.sum(count[year, :])), ha="center")
+                self.axes1.text(year + offset, 12.2, ShortenNumber(np.nansum(count[year, :])), ha="center")
             self.axes1.set_xlim(-0.5, year_count - 0.5 + (1 if max_count > 2 else 0))
             self.axes1.set_ylim(0.5, 12.5)
             self.axes1.set_xticks(np.arange(0, year_count))
@@ -580,11 +581,12 @@ class DatabaseByFiles(DatabaseTabTemplate):
             for item in query:
                 count[item.month - 1, item.day - 1] = item.count
             x, y = np.meshgrid(np.arange(1, 13), np.arange(1, 32))
+            count[count == 0] = np.nan
             self.axes1.scatter(x + offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
             p = self.axes1.scatter([0, 0], [0, 0], c=[1, 0], cmap=cmap, lw=0)
             self.plot_list[index] = p
             for month in range(12):
-                self.axes1.text(month + 1, 32, ShortenNumber(np.sum(count[month, :])), ha="center")
+                self.axes1.text(month + 1, 32, ShortenNumber(np.nansum(count[month, :])), ha="center")
             self.axes1.set_xticks(np.arange(1, 13))
             self.axes1.set_xticklabels(
                 ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
@@ -599,11 +601,12 @@ class DatabaseByFiles(DatabaseTabTemplate):
             for item in query:
                 count[item.day - 1, item.hour - 1] = item.count
             x, y = np.meshgrid(np.arange(1, 32), np.arange(1, 25))
+            count[count == 0] = np.nan
             self.axes1.scatter(x + offset, y, c=count.T.flatten(), cmap=cmap, lw=0)
             p = self.axes1.scatter([0, 0], [0, 0], c=[1, 0], cmap=cmap, lw=0)
             self.plot_list[index] = p
             for day in range(31):
-                self.axes1.text(day + 1, 27, ShortenNumber(np.sum(count[day, :])), ha="center", va="top", rotation=90)
+                self.axes1.text(day + 1, 27, ShortenNumber(np.nansum(count[day, :])), ha="center", va="top", rotation=90)
             daycount = calendar.monthrange(year, month)[1]
             self.axes1.set_xlim(0.5, daycount + 0.5)
             self.axes1.set_title("%s %d" % (
@@ -1020,7 +1023,8 @@ class DatabaseBrowser(QWidget):
         for key, tabWidget in self.tab_dict.iteritems():
             tabWidget.post_init()
 
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
+        self.setFocusTab(0)
 
         self.progress_bar = QProgressBar()
         self.layout_vert.addWidget(self.progress_bar)
