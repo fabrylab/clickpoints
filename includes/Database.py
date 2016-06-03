@@ -358,6 +358,11 @@ class DataFile:
                     path.path = os.path.relpath(abs_path, new_directory)
                 except ValueError:
                     path.path = abs_path
+                else:
+                    # not more than one path up, the rest should stay with an absolute path
+                    if path.path.find("../..") != -1 or path.path.find("..\\..") != -1:
+                        print("path containes more ..", path.path)
+                        path.path = abs_path
                 path.save()
             if file:
                 self.database_filename = file
