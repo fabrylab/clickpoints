@@ -193,7 +193,7 @@ class VideoExporterDialog(QtGui.QWidget):
         for frame in range(start, end+1, skip):
             # advance progress bar and load next image
             self.progressbar.setValue(frame)
-            self.window.JumpToFrame(frame, no_threaded_load=True)
+            self.window.JumpToFrame(frame, threaded=False)
 
             # get new image and offsets
             image = self.window.ImageDisplay.image

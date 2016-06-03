@@ -466,10 +466,10 @@ class DataFile:
         slots, slot_index, = self.buffer.prepare_slot(index)
         # call buffer_frame in a separate thread or directly
         if threaded:
-            self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, threaded))
+            self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, True, threaded))
             self.thread.start()
         else:
-            return self.buffer_frame(image, filename, slots, slot_index, index, threaded)
+            return self.buffer_frame(image, filename, slots, slot_index, index, threaded=threaded)
 
     def buffer_frame(self, image, filename, slots, slot_index, index, signal=True, threaded=True):
         # if we have already a reader...
