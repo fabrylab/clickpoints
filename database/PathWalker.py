@@ -302,10 +302,21 @@ if mode=='add':
 
             # extract Meta
             basename, ext = os.path.splitext(file)
-            match = re.match(filename_data_regex, os.path.basename(file))
+
+            # add functionalty to handel single regexp string or list of regexp strings
+            # if single string
+            if type(filename_data_regex) is str:
+                match = re.match(filename_data_regex, os.path.basename(file))
+            # if list - iterate over all proposed regexps
+            elif type(filename_data_regex) is list:
+                for regexp in filename_data_regex:
+                    match = re.match(regexp, os.path.basename(file))
+                    if match: break # found a match - exit loop
+
             if not match:
-                #print(file, "didn't match")
+                print("no match for %s" % file)
                 continue
+
             data = match.groupdict()
 
             # First timestamp
