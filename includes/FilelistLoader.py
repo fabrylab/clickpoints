@@ -251,6 +251,9 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
                 # extract the extension and frame number
                 extension = os.path.splitext(filename)[1]
                 frames = getFrameNumber(os.path.join(path, filename), extension)
+                # if the file is not properly readable, skip it
+                if frames == 0:
+                    continue
                 # add the file to the database
                 data_file.add_image(filename, extension, None, frames, path=path_entry)
     #data_file.start_adding_timestamps()
