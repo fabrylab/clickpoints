@@ -274,11 +274,14 @@ if mode=='remove':
 if mode=='add':
     print("add")
     file_counter=0
+    skipped_counter=0
     path_done_list = []
+    file_skip_list = []
     file_list = []
     time_start=time.time()
     for root, dirs, files in os.walk(start_path, topdown=False):
         #print(root, files)
+        file_skip_per_path = []
         loadConfigs(root)
 
         if ignore:
@@ -315,6 +318,7 @@ if mode=='add':
 
             if not match:
                 print("no match for %s" % file)
+                file_skip_per_path.append(file)
                 continue
 
             data = match.groupdict()
@@ -372,6 +376,7 @@ if mode=='add':
 
         # append to done_list to write done files after commit to DB
         path_done_list.append(os.path.join(root,'.pathwalker.done'))
+        file_skip_list.append(file_skip_per_path)
 
         # write entries to DB in larger blocks
         if len(file_list) > max_block_commit_size:
@@ -381,16 +386,21 @@ if mode=='add':
             file_list=[]
 
             # create .done file for resume
-            for done in path_done_list:
+            for idx, done in enumerate(path_done_list):
                 fdone = open(done,'w')
-                print("write to:",done)
+                fdone.write("skipped files:\n")
+                for line in file_skip_list[idx]:
+                    fdone.write(line + "\n")
                 fdone.close()
+                skipped_counter+= len(file_skip_list[idx])
+
             path_done_list=[]
+            file_skip_list=[]
 
             # some runtime information
             time_stop=time.time()
             print("%.2fk files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
-
+            print("%d files skipped" % skipped_counter)
 
     # write entries to DB on final pass
     if len(file_list) > 0:
@@ -400,12 +410,18 @@ if mode=='add':
         file_list=[]
 
         # create .done file for resume
-        for done in path_done_list:
+        for idx,done in enumerate(path_done_list):
             fdone = open(done,'w')
+            fdone.write("skipped files:\n")
+            for line in file_skip_list[idx]:
+                fdone.write(line + "\n")
             print("write to:",done)
             fdone.close()
+            skipped_counter += len(file_skip_list[idx])
         path_done_list=[]
+        file_skip_list=[]
 
         # some runtime information
         time_stop=time.time()
         print("%.2fk files in  %.2f min" % (file_counter/1000,(time_stop - time_start)/60))
+        print("%d files skipped" % skipped_counter)
