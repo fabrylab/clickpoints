@@ -264,9 +264,6 @@ def addList(data_file, path, list_filename):
             paths = {}
             for line in fp.readlines():
                 line, timestamp, external_id, annotation_id = line.strip().split()
-                if not os.path.exists(line):
-                    print("ERROR: file %s does not exist" % line)
-                    continue
                 from datetime import datetime
                 timestamp = datetime.strptime(timestamp, '%Y%m%d-%H%M%S')
 
@@ -274,7 +271,6 @@ def addList(data_file, path, list_filename):
                 if file_path not in paths.keys():
                     paths[file_path] = data_file.table_paths(path=file_path)
                     paths[file_path].save()
-                print("Adding", file_path, file_name, paths[file_path])
                 # extract the extension and frame number
                 extension = os.path.splitext(file_name)[1]
                 frames = getFrameNumber(line, extension)
