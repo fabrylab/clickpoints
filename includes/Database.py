@@ -125,11 +125,12 @@ def date_linspace(start_date, end_date, frames):
 
 
 class DataFile:
-    def __init__(self, database_filename=None, config=None):
+    def __init__(self, database_filename=None, config=None, storage_path=None):
         self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
         self.current_version = "6"
         self.config = config
+        self.temporary_db = None
         version = None
         if self.exists:
             self.db = peewee.SqliteDatabase(database_filename)
@@ -151,7 +152,12 @@ class DataFile:
             if os.path.dirname(database_filename):
                 os.chdir(os.path.dirname(database_filename))
         else:
-            self.db = peewee.SqliteDatabase(":memory:")
+            filename = os.path.join(storage_path, "tmp%d.cdb" % os.getpid())
+            if os.path.exists(filename):
+                os.remove(filename)
+            self.db = peewee.SqliteDatabase(filename)
+            self.temporary_db = filename
+            #self.db = peewee.SqliteDatabase(":memory:")
 
         class BaseModel(peewee.Model):
             class Meta:
@@ -394,7 +400,7 @@ class DataFile:
             path.save()
         return path
 
-    def add_image(self, filename, extension, external_id, frames, path, timestamp=None):
+    def add_image(self, filename, extension, external_id, frames, path, timestamp=None, commit=True):
         # if no timestamp is supplied quickly get one from the filename
         if timestamp is None:
             # do we have a video? then we need two timestamps
@@ -421,19 +427,36 @@ class DataFile:
             current_entry["sort_index"] = self.next_sort_index+i
             data.append(current_entry)
 
+        if commit is True:
+            # try to perform the bulk insert
+            try:
+                # Insert the maximum of allowed rows at a time
+                chunk_size = (SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) -1
+                with self.db.atomic():
+                    for idx in range(0, len(data), chunk_size):
+                        self.table_images.insert_many(data[idx:idx+chunk_size]).execute()
+            except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
+                return
+            # increase sort_index and image_count by the number of added frames
+            if self.image_count is not None:
+                self.image_count += frames
+        self.next_sort_index += frames
+        if commit is False:
+            return data
+
+    def add_bulk(self, data):
         # try to perform the bulk insert
         try:
             # Insert the maximum of allowed rows at a time
-            chunk_size = (SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) -1
+            chunk_size = (SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) - 1
             with self.db.atomic():
                 for idx in range(0, len(data), chunk_size):
-                    self.table_images.insert_many(data[idx:idx+chunk_size]).execute()
+                    self.table_images.insert_many(data[idx:idx + chunk_size]).execute()
         except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
             return
-        # increase sort_index and image_count by the number of added frames
+
         if self.image_count is not None:
-            self.image_count += frames
-        self.next_sort_index += frames
+            self.image_count += len(data)
 
     def reset_buffer(self):
         self.buffer.reset()
@@ -460,7 +483,7 @@ class DataFile:
         if self.thread:
             self.thread.join()
         # query the information on the image to load
-        image = self.table_images.select().limit(1).offset(index)[0]
+        image = self.table_images.get(sort_index=index)
         filename = os.path.join(image.path.path, image.filename)
         # prepare a slot in the buffer
         slots, slot_index, = self.buffer.prepare_slot(index)
@@ -561,6 +584,11 @@ class DataFile:
         # join the thread on closing
         if self.thread:
             self.thread.join()
+        # remove temporary database if there is still one
+        if self.temporary_db:
+            self.db.close()
+            os.remove(self.temporary_db)
+            self.temporary_db = None
         pass
 
 

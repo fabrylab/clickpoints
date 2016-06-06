@@ -225,12 +225,7 @@ class ScriptLauncher(QObject):
                 shape = (shape[0], shape[1], 1)
 
             size = shape[0]*shape[1]*shape[2]
-            if sys.platform[:3] == 'win':
-                clickpoints_storage_path = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
-            else:
-                clickpoints_storage_path = os.path.expanduser("~/.clickpoints/")
-            if not os.path.exists(clickpoints_storage_path):
-                os.makedirs(clickpoints_storage_path)
+            clickpoints_storage_path = self.window.storage_path
             if self.memmap is None or size > self.memmap_size:
                 self.memmap_path = os.path.normpath(os.path.join(clickpoints_storage_path, "image.dat"))
                 self.memmap_path_xml = os.path.normpath(os.path.join(clickpoints_storage_path, "image.xml"))

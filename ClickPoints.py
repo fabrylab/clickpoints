@@ -19,6 +19,8 @@ if __name__ == "__main__":
 import sys
 import os
 import ctypes
+import threading
+import time
 
 try:
     with open(os.path.join(os.path.dirname(__file__), "version.txt")) as fp:
@@ -92,10 +94,18 @@ clickpoints_path = os.path.dirname(__file__)
 if not os.path.exists(icon_path):  # different position if installed with the installer
     icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
     clickpoints_path = os.path.join(os.path.dirname(__file__), "..")
+if sys.platform[:3] == 'win':
+    storage_path = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
+else:
+    storage_path = os.path.expanduser("~/.clickpoints/")
+if not os.path.exists(storage_path):
+    os.makedirs(storage_path)
+
 
 def GetModuleInitArgs(mod):
     import inspect
     return inspect.getargspec(mod.__init__).args
+
 
 class ClickPointsWindow(QWidget):
     folderEditor = None
@@ -129,6 +139,7 @@ class ClickPointsWindow(QWidget):
         self.mono_font = QtGui.QFont("Fantasque Sans Mono")
 
         self.icon_path = icon_path
+        self.storage_path = storage_path
         self.layoutButtons = QtGui.QHBoxLayout()
         self.button_play = QtGui.QPushButton()
         self.button_play.clicked.connect(self.SaveDatabase)
@@ -159,25 +170,36 @@ class ClickPointsWindow(QWidget):
         if os.path.splitext(config.srcpath)[1] == ".cdb":
             config.database_file = config.srcpath
             new_database = False
-        self.data_file = DataFile(config.database_file, config)
+        self.data_file = DataFile(config.database_file, config, storage_path=storage_path)
 
         # init media handler
+        self.load_thread = None
+        self.load_timer = QtCore.QTimer()
+        self.load_timer.setInterval(0.1)
+        self.load_timer.timeout.connect(self.LoadTimer)
+        self.loading_time = time.time()
         if new_database and config.srcpath != "":
             # if it is a directory add it
             if os.path.isdir(config.srcpath):
-                addPath(self.data_file, config.srcpath, subdirectories=True, use_natsort=config.use_natsort)
+                self.load_thread = threading.Thread(target=addPath, args=(self.data_file, config.srcpath),
+                                                    kwargs=dict(subdirectories=True, use_natsort=config.use_natsort))
+                #addPath(self.data_file, config.srcpath, subdirectories=True, use_natsort=config.use_natsort)
             # if not check what type of file it is
             else:
                 directory, filename = os.path.split(config.srcpath)
                 ext = os.path.splitext(filename)[1]
                 # for images load the folder
                 if ext.lower() in imgformats:
+                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
+                                                        kwargs=dict(use_natsort=config.use_natsort))
                     addPath(self.data_file, directory, use_natsort=config.use_natsort)
                 # for videos just load the file
                 elif ext.lower() in vidformats:
-                    addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
+                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory), kwargs=dict(file_filter=os.path.split(filename)[1]))
+                    #addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
                 elif ext.lower() == ".txt":
-                    addList(self.data_file, directory, filename)
+                    self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
+                    #addList(self.data_file, directory, filename)
                 # if the extension is not known, raise an exception
                 else:
                     raise Exception("unknown file extension "+ext)
@@ -225,6 +247,23 @@ class ClickPointsWindow(QWidget):
             self.view.rotate(config.rotation)
 
         self.setFocus()
+
+        if self.load_thread is not None:
+            self.load_thread.daemon = True
+            self.load_thread.start()
+            self.load_timer.start()
+
+    def LoadTimer(self):
+        if self.load_thread.is_alive():
+            if self.data_file.image is None and self.data_file.get_image_count():
+                self.JumpToFrame(0)
+                self.view.fitInView()
+            else:
+                self.GetModule("Timeline").ImagesAdded()
+        else:
+            self.load_timer.stop()
+            import time
+            print("Loading finished", time.time()-self.loading_time)
 
     def Folder(self):
         self.folderEditor = FolderEditor(self, self.data_file)

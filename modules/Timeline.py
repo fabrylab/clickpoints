@@ -867,7 +867,7 @@ class Timeline:
 
     def ImagesAdded(self):
         update_end = False
-        if self.frameSlider.endValue() == self.frameSlider.max_value:
+        if self.frameSlider.endValue() == self.frameSlider.max_value or self.frameSlider.max_value == -1:
             update_end = True
         self.frameSlider.setRange(0, self.get_frame_count() - 1)
         if update_end:
@@ -932,7 +932,7 @@ class Timeline:
                 self.window.JumpFrames(1+self.skip)
 
     def updateLabel(self):
-        if self.slider_update:
+        if self.slider_update or 1:
             self.frameSlider.setValue(self.get_current_frame())
 
             if self.timeSlider and self.data_file.image and self.data_file.image.timestamp:
