@@ -3,6 +3,8 @@ import os
 import glob
 import sys
 from distutils.version import LooseVersion
+import time
+from datetime import datetime
 
 from includes import BroadCastEvent2
 
@@ -222,11 +224,13 @@ class FolderEditor(QtGui.QWidget):
 def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=False):
     # if we should add subdirectories, add them or create a list with only one path
     if subdirectories:
-        path_list = sorted(GetSubdirectories(path))
+        path_list = iter(sorted(GetSubdirectories(path)))
     else:
-        path_list = [path]
+        path_list = iter([path])
 
-    with data_file.db.atomic():
+    #with data_file.db.atomic():
+    data = []
+    while True:
         # iterate over all folders
         for path in path_list:
             # use glob if a filter is active or just get all the files
@@ -243,31 +247,46 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
             path_entry = data_file.add_path(path)
             # maybe sort the files
             if use_natsort:
-                file_list = natsorted(file_list)
+                file_list = iter(natsorted(file_list))
             else:
-                file_list = sorted(file_list)
+                file_list = iter(sorted(file_list))
             # iterate over all files
-            for filename in file_list:
-                # extract the extension and frame number
-                extension = os.path.splitext(filename)[1]
-                frames = getFrameNumber(os.path.join(path, filename), extension)
-                # if the file is not properly readable, skip it
-                if frames == 0:
-                    continue
-                # add the file to the database
-                data_file.add_image(filename, extension, None, frames, path=path_entry)
+            while True:
+                for filename in file_list:
+                    # extract the extension and frame number
+                    extension = os.path.splitext(filename)[1]
+                    frames = getFrameNumber(os.path.join(path, filename), extension)
+                    # if the file is not properly readable, skip it
+                    if frames == 0:
+                        continue
+                    # add the file to the database
+                    data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, commit=False))
+                    if len(data) > 100:
+                        data_file.add_bulk(data)
+                        data = []
+                        break
+                else:
+                    break
+            if len(data) > 100:
+                data_file.add_bulk(data)
+                data = []
+        else:
+            print("data", len(data))
+            data_file.add_bulk(data)
+            break
     #data_file.start_adding_timestamps()
     BroadCastEvent2("ImagesAdded")
 
 
 def addList(data_file, path, list_filename):
-    with data_file.db.transaction():
-        with open(os.path.join(path, list_filename)) as fp:
-
-            paths = {}
-            for line in fp.readlines():
+    with open(os.path.join(path, list_filename)) as fp:
+        paths = {}
+        data = []
+        while True:
+            start_time = time.time()
+            for line in fp:  # continue with the iteration over the file iterator where we stopped last time
                 line, timestamp, external_id, annotation_id = line.strip().split()
-                from datetime import datetime
+
                 timestamp = datetime.strptime(timestamp, '%Y%m%d-%H%M%S')
 
                 file_path, file_name = os.path.split(line)
@@ -278,7 +297,15 @@ def addList(data_file, path, list_filename):
                 extension = os.path.splitext(file_name)[1]
                 frames = getFrameNumber(line, extension)
                 # add the file to the database
-                data_file.add_image(file_name, extension, external_id, frames, path=paths[file_path], timestamp=timestamp)
+                data_new = data_file.add_image(file_name, extension, external_id, frames, path=paths[file_path], timestamp=timestamp, commit=False)
+                data.extend(data_new)
+                if time.time()-start_time > 0.1:
+                    break
+            else:  # break if we have reached the end of the file
+                break
+            data_file.add_bulk(data)
+            data = []
+        data_file.add_bulk(data)
 
     BroadCastEvent2("ImagesAdded")
 
