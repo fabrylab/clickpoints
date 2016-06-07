@@ -67,10 +67,10 @@ def ShortenNumber(value):
         return "%d" % value
     postfix = ["", "k", "M", "G", "T", "P", "E", "Z", "Y"]
     power = int(np.log10(value) // 3)
-    power2 = int(np.log10(value * 10) // 3)
-    if power2 > power:
-        value /= 10 ** (power2 * 3)
-        return ("%.1f" % value + postfix[power2])[1:]
+    #power2 = int(np.log10(value * 10) // 3)
+    #if power2 > power:
+    #    value /= 10 ** (power2 * 3)
+    #    return ("%.1f" % value + postfix[power2])[1:]
     value /= 10 ** (power * 3)
     return "%d" % value + postfix[power]
 
@@ -92,28 +92,67 @@ class queryThread(QtCore.QThread):
 
 
 class Year:
-    def __init__(self, device, year, timestamp=None):
+    def __init__(self, device, year, timestamp=None, count=1):
         self.device = device
         self.year = year
         self.expanded = False
         self.timestamp = timestamp
+        self.count = count
 
 class Month:
-    def __init__(self, device, year, month, timestamp=None):
+    def __init__(self, device, year, month, timestamp=None, count=1):
         self.device = device
         self.year = year
         self.month = month
         self.expanded = False
         self.timestamp = timestamp
+        self.count = count
 
 class Day:
-    def __init__(self, device, year, month, day, timestamp=None):
+    def __init__(self, device, year, month, day, timestamp=None, count=1):
         self.device = device
         self.year = year
         self.month = month
         self.day = day
         self.expanded = False
         self.timestamp = timestamp
+        self.count = count
+
+class StoppableThread(threading.Thread):
+    """Thread class with a stop() method. The thread itself has to check
+    regularly for the stopped() condition."""
+
+    def __init__(self):
+        super(StoppableThread, self).__init__()
+        self._stop = threading.Event()
+
+    def stop(self):
+        self._stop.set()
+
+    def stopped(self):
+        return self._stop.isSet()
+
+    def start(self, window, entry):
+        self.window = window
+        self.entry = entry
+        super(StoppableThread, self).start()
+
+    def run(self):
+        try:
+            self.entry = self.entry[0]
+        except TypeError:
+            pass
+        filename = os.path.join(window.database.getPath(self.entry.path), self.entry.basename + self.entry.extension)
+        if self.stopped():
+            return
+        im = imageio.get_reader("\\\\" + filename).get_data(0)
+        if self.stopped():
+            return
+        window.im = im
+        window.qimage = array2qimage(im)
+        window.time_text = str(self.entry.timestamp)
+        window.update_image.emit()
+
 
 class DatabaseBrowser(QWidget):
     update_image = QtCore.pyqtSignal()
@@ -132,12 +171,16 @@ class DatabaseBrowser(QWidget):
                     "Warning - Linux systems require mounted smb shares - please add translation dictionary to linuxmountlookup.py")
 
         # widget layout and elements
-        self.setMinimumWidth(655)
+        self.setMinimumWidth(900)
         self.setMinimumHeight(500)
         self.setGeometry(100, 100, 500, 600)
         self.setWindowTitle("Database Browser")
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
-        self.layout = QVBoxLayout(self)
+        self.global_layout = QHBoxLayout(self)
+        self.layout = QVBoxLayout()
+        self.global_layout.addLayout(self.layout)
+        self.layout2 = QVBoxLayout()
+        self.global_layout.addLayout(self.layout2)
 
         # Progress bar
         self.progress_bar = QtGui.QProgressBar()
@@ -152,6 +195,8 @@ class DatabaseBrowser(QWidget):
         self.device_name = QtGui.QLineEdit()
         self.device_name.setDisabled(True)
         layout.addWidget(self.device_name)
+        layout = QHBoxLayout()
+        self.layout.addLayout(layout)
         self.date_start = QtGui.QLineEdit()
         layout.addWidget(self.date_start)
         self.date_end = QtGui.QLineEdit()
@@ -182,20 +227,36 @@ class DatabaseBrowser(QWidget):
         tree.setAnimated(True)
         tree.setModel(model)
         tree.expanded.connect(self.TreeExpand)
-        tree.clicked.connect(self.TreeSelected)
+        #tree.clicked.connect(self.TreeSelected)
+        tree.selectionModel().selectionChanged.connect(lambda x, y: self.TreeSelected(x))
         self.tree = tree
+        #self.tree.setMaximumWidth(200)
+
+        self.time_label = QtGui.QLabel()
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.time_label.setFont(font)
+        self.layout2.addWidget(self.time_label)
 
         self.view = QExtendedGraphicsView()
-        self.layout.addWidget(self.view)
+        self.view.setMinimumWidth(600)
+        self.layout2.addWidget(self.view)
         self.pixmap = QtGui.QGraphicsPixmapItem(QtGui.QPixmap(1, 1), self.view.origin)
         self.thread_display = None
         self.update_image.connect(self.UpdateImage)
 
+        self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.layout2.addWidget(self.slider)
+        self.slider.sliderReleased.connect(self.SliderChanged)
+
         #QtCore.QTimer.singleShot(1, self.connectDB)
 
     def TreeSelected(self, index):
+        if isinstance(index, QtGui.QItemSelection):
+            index = index.indexes()[0]
         item = index.model().itemFromIndex(index)
         entry = item.entry
+        self.selected_entry = entry
         if isinstance(entry, self.database.SQL_Systems):
             self.system_name.setText(entry.name)
             self.device_name.setText("")
@@ -203,6 +264,8 @@ class DatabaseBrowser(QWidget):
             self.date_end.setText("")
             entry = self.database.SQL_Files.get(system=entry.id)
             self.ImageDisplaySchedule(entry)
+            self.slider.setRange(0, 0)
+            self.slider.setDisabled(True)
 
         if isinstance(entry, self.database.SQL_Devices):
             self.system_name.setText(entry.system.name)
@@ -211,12 +274,17 @@ class DatabaseBrowser(QWidget):
             self.date_end.setText("")
             entry = self.database.SQL_Files.get(system=entry.system.id, device=entry.id)
             self.ImageDisplaySchedule(entry)
+            self.slider.setRange(0, 0)
+            self.slider.setDisabled(True)
 
         if isinstance(entry, Year):
             self.system_name.setText(entry.device.system.name)
             self.device_name.setText(entry.device.name)
             self.date_start.setText("%04d0101" % entry.year)
             self.date_end.setText("%04d0101" % (entry.year+1))
+            self.slider.setSliderPosition(0)
+            self.slider.setRange(0, entry.count)
+            self.slider.setDisabled(False)
             entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id, timestamp=entry.timestamp)
             self.ImageDisplaySchedule(entry)
 
@@ -228,6 +296,9 @@ class DatabaseBrowser(QWidget):
                 self.date_end.setText("%04d%02d01" % (entry.year + 1, 1))
             else:
                 self.date_end.setText("%04d%02d01" % (entry.year, entry.month + 1))
+            self.slider.setSliderPosition(0)
+            self.slider.setRange(0, entry.count)
+            self.slider.setDisabled(False)
             entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                                                 timestamp=entry.timestamp)
             self.ImageDisplaySchedule(entry)
@@ -242,26 +313,53 @@ class DatabaseBrowser(QWidget):
                 self.date_end.setText("%04d%02d%02d" % (entry.year, entry.month+1, 1))
             else:
                 self.date_end.setText("%04d%02d%02d" % (entry.year, entry.month, entry.day+1))
+            self.slider.setSliderPosition(0)
+            self.slider.setRange(0, entry.count)
+            self.slider.setDisabled(False)
             entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                                                 timestamp=entry.timestamp)
             self.ImageDisplaySchedule(entry)
 
-    def ImageDisplaySchedule(self, entry):
-        self.thread_display = Thread(target=self.ImageDisplay, args=(entry, ))
-        self.thread_display.start()
+    def SliderChanged(self):
+        index = self.slider.sliderPosition()
+        if isinstance(self.selected_entry, Year):
+            query = (self.database.SQL_Files.select()
+                     .where(self.database.SQL_Files.system == self.selected_entry.device.system.id)
+                     .where(self.database.SQL_Files.device == self.selected_entry.device.id)
+                     .where(fn.year(self.database.SQL_Files.timestamp) == self.selected_entry.year)
+                     .limit(1).offset(index)
+                     )
+            self.ImageDisplaySchedule(query)
+        if isinstance(self.selected_entry, Month):
+            query = (self.database.SQL_Files.select()
+                     .where(self.database.SQL_Files.system == self.selected_entry.device.system.id)
+                     .where(self.database.SQL_Files.device == self.selected_entry.device.id)
+                     .where(fn.year(self.database.SQL_Files.timestamp) == self.selected_entry.year)
+                     .where(fn.month(self.database.SQL_Files.timestamp) == self.selected_entry.month)
+                     .limit(1).offset(index)
+                     )
+            self.ImageDisplaySchedule(query)
+        if isinstance(self.selected_entry, Day):
+            query = (self.database.SQL_Files.select()
+                     .where(self.database.SQL_Files.system == self.selected_entry.device.system.id)
+                     .where(self.database.SQL_Files.device == self.selected_entry.device.id)
+                     .where(fn.year(self.database.SQL_Files.timestamp) == self.selected_entry.year)
+                     .where(fn.month(self.database.SQL_Files.timestamp) == self.selected_entry.month)
+                     .where(fn.day(self.database.SQL_Files.timestamp) == self.selected_entry.day)
+                     .limit(1).offset(index)
+                     )
+            self.ImageDisplaySchedule(query)
 
-    def ImageDisplay(self, entry):
-        filename = os.path.join(self.database.getPath(entry.path), entry.basename + entry.extension)
-        print(filename)
-        im = imageio.get_reader("\\\\" + filename).get_data(0)
-        self.im = im
-        self.update_image.emit()
-        print(entry.basename, entry.extension)
+    def ImageDisplaySchedule(self, entry):
+        if self.thread_display is not None:
+            self.thread_display.stop()
+        self.thread_display = StoppableThread()
+        self.thread_display.start(self, entry)
 
     def UpdateImage(self):
-        self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(self.im)))
+        self.pixmap.setPixmap(QtGui.QPixmap(self.qimage))
         self.view.setExtend(self.im.shape[1], self.im.shape[0])
-
+        self.time_label.setText(self.time_text)
 
     def ExpandSystem(self, index, item, entry):
         item.setIcon(qta.icon('fa.hourglass-o'))
@@ -295,7 +393,7 @@ class DatabaseBrowser(QWidget):
             child = QtGui.QStandardItem("%d (%s)" % (row.year, ShortenNumber(row.count)))
             child.setIcon(qta.icon("fa.calendar"))
             child.setEditable(False)
-            child.entry = Year(entry, row.year, row.timestamp)
+            child.entry = Year(entry, row.year, row.timestamp, row.count)
             item.appendRow(child)
 
             # add dummy child
@@ -320,7 +418,7 @@ class DatabaseBrowser(QWidget):
             child = QtGui.QStandardItem("%s (%s)" % (GetMonthName(row.month), ShortenNumber(row.count)))
             child.setIcon(qta.icon("fa.calendar-o"))
             child.setEditable(False)
-            child.entry = Month(entry.device, entry.year, row.month, row.timestamp)
+            child.entry = Month(entry.device, entry.year, row.month, row.timestamp, row.count)
             item.appendRow(child)
 
             # add dummy child
@@ -346,7 +444,7 @@ class DatabaseBrowser(QWidget):
             child = QtGui.QStandardItem("%02d. (%s)" % (row.day, ShortenNumber(row.count)))
             child.setIcon(qta.icon("fa.bookmark-o"))
             child.setEditable(False)
-            child.entry = Day(entry.device, entry.year, entry.month, row.day, row.timestamp)
+            child.entry = Day(entry.device, entry.year, entry.month, row.day, row.timestamp, row.count)
             item.appendRow(child)
 
         entry.expanded = True
@@ -383,6 +481,19 @@ class DatabaseBrowser(QWidget):
         time.sleep(1)
         print("...connected")
         self.progress_bar.setRange(0, 100)
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_F:
+            # @key F: fit image to view
+            self.view.fitInView()
+
+        # @key R: rotate the image
+        if event.key() == QtCore.Qt.Key_R:
+            self.view.rotate(90)
+
+        if event.key() == QtCore.Qt.Key_Escape:
+            # @key Escape: close window
+            self.close()
 
 if __name__ == '__main__':
     if sys.platform[:3] == 'win':
