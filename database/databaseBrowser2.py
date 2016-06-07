@@ -153,6 +153,43 @@ class StoppableThread(threading.Thread):
         window.time_text = str(self.entry.timestamp)
         window.update_image.emit()
 
+def OpenClickPoints(query, database):
+    counter = 0
+    with open("files.txt", "w") as fp:
+        print("Wrinting the file")
+        for item in query:
+            print(counter, item)
+            # get timestamp
+            timest = item.timestamp
+            # get path
+            file_path = "\\\\" + os.path.join(database.getPath(item.path), item.basename + item.extension)
+            # check for OS, if linux replace smb_ip_paths with local mount_path
+            """
+            if platform.system() == 'Linux':
+                for id, smb_target in enumerate(self.parent.smb_targets):
+                    if file_path.startswith(smb_target):
+                        file_path = file_path.replace(smb_target, self.parent.smb_mounts[id])
+                        break
+                else:
+                    print("No smb path translation found for", file_path)
+                    pass
+            """
+
+            fp.write(file_path + " " +
+                     timest.strftime('%Y%m%d-%H%M%S') + " " + str(item.id) + " " + str(item.annotation_id) + "\n")
+            counter += 1
+
+    if counter is None:
+        return
+    if counter == 0:
+        QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
+        return
+    print("Selected %d images." % counter)
+    if platform.system() == 'Windows':
+        subprocess.Popen(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
+    elif platform.system() == 'Linux':
+        subprocess.Popen(['clickpoints', 'files.txt'], shell=False)
+
 
 class DatabaseBrowser(QWidget):
     update_image = QtCore.pyqtSignal()
@@ -201,6 +238,12 @@ class DatabaseBrowser(QWidget):
         layout.addWidget(self.date_start)
         self.date_end = QtGui.QLineEdit()
         layout.addWidget(self.date_end)
+
+        layout = QHBoxLayout()
+        self.layout.addLayout(layout)
+        self.button_open = QtGui.QPushButton("Open")
+        self.button_open.clicked.connect(self.Open)
+        layout.addWidget(self.button_open)
 
         tree = QtGui.QTreeView()
         self.layout.addWidget(tree)
@@ -251,6 +294,17 @@ class DatabaseBrowser(QWidget):
 
         #QtCore.QTimer.singleShot(1, self.connectDB)
 
+    def Open(self):
+        start_time = datetime.strptime(str(self.date_start.text()), '%Y-%m-%d %H:%M:%S')
+        end_time = datetime.strptime(str(self.date_end.text()), '%Y-%m-%d %H:%M:%S')
+        query = (self.database.SQL_Files.select()
+                 .where(self.database.SQL_Files.device == self.selected_entry.device.id)
+                 .where(self.database.SQL_Files.timestamp >= start_time)
+                 .where(self.database.SQL_Files.timestamp <= end_time)
+                 .order_by(self.database.SQL_Files.timestamp)
+                 )
+        OpenClickPoints(query, self.database)
+
     def TreeSelected(self, index):
         if isinstance(index, QtGui.QItemSelection):
             index = index.indexes()[0]
@@ -280,8 +334,8 @@ class DatabaseBrowser(QWidget):
         if isinstance(entry, Year):
             self.system_name.setText(entry.device.system.name)
             self.device_name.setText(entry.device.name)
-            self.date_start.setText("%04d0101" % entry.year)
-            self.date_end.setText("%04d0101" % (entry.year+1))
+            self.date_start.setText("%04d-01-01 00:00:00" % entry.year)
+            self.date_end.setText("%04d-01-01 00:00:00" % (entry.year+1))
             self.slider.setSliderPosition(0)
             self.slider.setRange(0, entry.count)
             self.slider.setDisabled(False)
@@ -291,11 +345,11 @@ class DatabaseBrowser(QWidget):
         if isinstance(entry, Month):
             self.system_name.setText(entry.device.system.name)
             self.device_name.setText(entry.device.name)
-            self.date_start.setText("%04d%02d01" % (entry.year, entry.month))
+            self.date_start.setText("%04d-%02d-01 00:00:00" % (entry.year, entry.month))
             if entry.month == 12:
-                self.date_end.setText("%04d%02d01" % (entry.year + 1, 1))
+                self.date_end.setText("%04d-%02d-01 00:00:00" % (entry.year + 1, 1))
             else:
-                self.date_end.setText("%04d%02d01" % (entry.year, entry.month + 1))
+                self.date_end.setText("%04d-%02d-01 00:00:00" % (entry.year, entry.month + 1))
             self.slider.setSliderPosition(0)
             self.slider.setRange(0, entry.count)
             self.slider.setDisabled(False)
@@ -306,13 +360,13 @@ class DatabaseBrowser(QWidget):
         if isinstance(entry, Day):
             self.system_name.setText(entry.device.system.name)
             self.device_name.setText(entry.device.name)
-            self.date_start.setText("%04d%02d%02d" % (entry.year, entry.month, entry.day))
+            self.date_start.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month, entry.day))
             if entry.month == 12 and entry.day == 31:
-                self.date_end.setText("%04d%02d%02d" % (entry.year+1, 1, 1))
+                self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year+1, 1, 1))
             elif entry.day == calendar.monthrange(entry.year, entry.month)[1]:
-                self.date_end.setText("%04d%02d%02d" % (entry.year, entry.month+1, 1))
+                self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month+1, 1))
             else:
-                self.date_end.setText("%04d%02d%02d" % (entry.year, entry.month, entry.day+1))
+                self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month, entry.day+1))
             self.slider.setSliderPosition(0)
             self.slider.setRange(0, entry.count)
             self.slider.setDisabled(False)
