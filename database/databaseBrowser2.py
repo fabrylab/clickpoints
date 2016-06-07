@@ -207,23 +207,24 @@ class DatabaseBrowser(QWidget):
                 raise Exception(
                     "Warning - Linux systems require mounted smb shares - please add translation dictionary to linuxmountlookup.py")
 
+        # open the database
+        self.database = DatabaseFiles(config)
+
         # widget layout and elements
         self.setMinimumWidth(900)
         self.setMinimumHeight(500)
         self.setGeometry(100, 100, 500, 600)
         self.setWindowTitle("Database Browser")
         self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
+
+        # The global layout has two parts
         self.global_layout = QHBoxLayout(self)
-        self.layout = QVBoxLayout()
+        self.layout = QVBoxLayout()  # the left part for the tree view
         self.global_layout.addLayout(self.layout)
-        self.layout2 = QVBoxLayout()
+        self.layout2 = QVBoxLayout()  # and the right part for the image display
         self.global_layout.addLayout(self.layout2)
 
-        # Progress bar
-        self.progress_bar = QtGui.QProgressBar()
-        self.layout.addWidget(self.progress_bar)
-
-        # Information
+        # System, device, start and end display
         layout = QHBoxLayout()
         self.layout.addLayout(layout)
         self.system_name = QtGui.QLineEdit()
@@ -239,18 +240,19 @@ class DatabaseBrowser(QWidget):
         self.date_end = QtGui.QLineEdit()
         layout.addWidget(self.date_end)
 
+        # Open button
         layout = QHBoxLayout()
         self.layout.addLayout(layout)
         self.button_open = QtGui.QPushButton("Open")
         self.button_open.clicked.connect(self.Open)
         layout.addWidget(self.button_open)
 
+        # the tree view
         tree = QtGui.QTreeView()
         self.layout.addWidget(tree)
         model = QtGui.QStandardItemModel(0, 0)
 
-        self.database = DatabaseFiles(config)
-
+        # add the systems as children for the three
         self.systems = self.database.SQL_Systems.select()
         for row, system in enumerate(self.systems):
             item = QtGui.QStandardItem(system.name)
@@ -265,22 +267,24 @@ class DatabaseBrowser(QWidget):
             item.appendRow(child)
             model.setItem(row, 0, item)
 
+        # some settings for the tree
         tree.setUniformRowHeights(True)
         tree.setHeaderHidden(True)
         tree.setAnimated(True)
         tree.setModel(model)
         tree.expanded.connect(self.TreeExpand)
-        #tree.clicked.connect(self.TreeSelected)
         tree.selectionModel().selectionChanged.connect(lambda x, y: self.TreeSelected(x))
         self.tree = tree
-        #self.tree.setMaximumWidth(200)
 
+        # the image display part
+        # has a label
         self.time_label = QtGui.QLabel()
         font = QtGui.QFont()
         font.setPointSize(16)
         self.time_label.setFont(font)
         self.layout2.addWidget(self.time_label)
 
+        # a GraphicsView
         self.view = QExtendedGraphicsView()
         self.view.setMinimumWidth(600)
         self.layout2.addWidget(self.view)
@@ -288,13 +292,13 @@ class DatabaseBrowser(QWidget):
         self.thread_display = None
         self.update_image.connect(self.UpdateImage)
 
+        # and a slider
         self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.layout2.addWidget(self.slider)
         self.slider.sliderReleased.connect(self.SliderChanged)
 
-        #QtCore.QTimer.singleShot(1, self.connectDB)
-
     def Open(self):
+        # open all files between start and end in ClickPoints
         start_time = datetime.strptime(str(self.date_start.text()), '%Y-%m-%d %H:%M:%S')
         end_time = datetime.strptime(str(self.date_end.text()), '%Y-%m-%d %H:%M:%S')
         query = (self.database.SQL_Files.select()
@@ -306,11 +310,14 @@ class DatabaseBrowser(QWidget):
         OpenClickPoints(query, self.database)
 
     def TreeSelected(self, index):
+        # get the selected entry and store it
         if isinstance(index, QtGui.QItemSelection):
             index = index.indexes()[0]
         item = index.model().itemFromIndex(index)
         entry = item.entry
         self.selected_entry = entry
+
+        # Display system, device, start and end data, as well as an image
         if isinstance(entry, self.database.SQL_Systems):
             self.system_name.setText(entry.name)
             self.device_name.setText("")
@@ -375,7 +382,10 @@ class DatabaseBrowser(QWidget):
             self.ImageDisplaySchedule(entry)
 
     def SliderChanged(self):
+        # Get the position on the slider the user has just dropped
         index = self.slider.sliderPosition()
+
+        # Get one image from the year
         if isinstance(self.selected_entry, Year):
             query = (self.database.SQL_Files.select()
                      .where(self.database.SQL_Files.system == self.selected_entry.device.system.id)
@@ -384,6 +394,8 @@ class DatabaseBrowser(QWidget):
                      .limit(1).offset(index)
                      )
             self.ImageDisplaySchedule(query)
+
+        # Get one image from the month
         if isinstance(self.selected_entry, Month):
             query = (self.database.SQL_Files.select()
                      .where(self.database.SQL_Files.system == self.selected_entry.device.system.id)
@@ -393,6 +405,8 @@ class DatabaseBrowser(QWidget):
                      .limit(1).offset(index)
                      )
             self.ImageDisplaySchedule(query)
+
+        # Get one image from the day
         if isinstance(self.selected_entry, Day):
             query = (self.database.SQL_Files.select()
                      .where(self.database.SQL_Files.system == self.selected_entry.device.system.id)
@@ -405,19 +419,26 @@ class DatabaseBrowser(QWidget):
             self.ImageDisplaySchedule(query)
 
     def ImageDisplaySchedule(self, entry):
+        # Stop a running thread which tries to display an image
         if self.thread_display is not None:
             self.thread_display.stop()
+        # Load and read the image from a separate thread
         self.thread_display = StoppableThread()
         self.thread_display.start(self, entry)
 
     def UpdateImage(self):
+        # Update pixmap, extend and text
         self.pixmap.setPixmap(QtGui.QPixmap(self.qimage))
         self.view.setExtend(self.im.shape[1], self.im.shape[0])
         self.time_label.setText(self.time_text)
 
     def ExpandSystem(self, index, item, entry):
+        # change icon to hourglass during waiting
         item.setIcon(qta.icon('fa.hourglass-o'))
+        # remove the dummy child
         item.removeRow(0)
+
+        # add the devices as children (implies a query)
         for device in entry.devices():
             child = QtGui.QStandardItem(device.name)
             child.setIcon(qta.icon("fa.camera"))
@@ -430,102 +451,127 @@ class DatabaseBrowser(QWidget):
             child2 = QtGui.QStandardItem("")
             child2.setEditable(False)
             child.appendRow(child2)
+
+        # mark the entry as expanded and rest the icon
         entry.expanded = True
         item.setIcon(qta.icon('fa.desktop'))
 
     def ExpandDevice(self, index, item, entry):
+        # change icon to hourglass during waiting
         item.setIcon(qta.icon('fa.hourglass-o'))
+        # remove the dummy child
         item.removeRow(0)
 
+        # query for the years
         query = (self.database.SQL_Files
                  .select((fn.count(self.database.SQL_Files.id) * self.database.SQL_Files.frames).alias('count'),
+                         fn.count(self.database.SQL_Files.id).alias('count1'),
                          fn.year(self.database.SQL_Files.timestamp).alias('year'), self.database.SQL_Files.timestamp)
                  .where(self.database.SQL_Files.device == entry.id)
                  .group_by(fn.year(self.database.SQL_Files.timestamp)))
 
+        # add the years as children
         for row in query:
             child = QtGui.QStandardItem("%d (%s)" % (row.year, ShortenNumber(row.count)))
             child.setIcon(qta.icon("fa.calendar"))
             child.setEditable(False)
-            child.entry = Year(entry, row.year, row.timestamp, row.count)
+            child.entry = Year(entry, row.year, row.timestamp, row.count1)
             item.appendRow(child)
 
             # add dummy child
             child2 = QtGui.QStandardItem("")
             child2.setEditable(False)
             child.appendRow(child2)
+
+        # mark the entry as expanded and rest the icon
         entry.expanded = True
         item.setIcon(qta.icon('fa.camera'))
 
     def ExpandYear(self, index, item, entry):
+        # change icon to hourglass during waiting
         item.setIcon(qta.icon('fa.hourglass-o'))
+        # remove the dummy child
         item.removeRow(0)
 
+        # query for the months
         query = (self.database.SQL_Files
                  .select((fn.count(self.database.SQL_Files.id) * self.database.SQL_Files.frames).alias('count'),
+                         fn.count(self.database.SQL_Files.id).alias('count1'),
                          fn.month(self.database.SQL_Files.timestamp).alias('month'), self.database.SQL_Files.timestamp)
                  .where(self.database.SQL_Files.device == entry.device.id,
                         fn.year(self.database.SQL_Files.timestamp) == entry.year)
                  .group_by(fn.month(self.database.SQL_Files.timestamp)))
 
+        # add the months as children
         for row in query:
             child = QtGui.QStandardItem("%s (%s)" % (GetMonthName(row.month), ShortenNumber(row.count)))
             child.setIcon(qta.icon("fa.calendar-o"))
             child.setEditable(False)
-            child.entry = Month(entry.device, entry.year, row.month, row.timestamp, row.count)
+            child.entry = Month(entry.device, entry.year, row.month, row.timestamp, row.count1)
             item.appendRow(child)
 
             # add dummy child
             child2 = QtGui.QStandardItem("")
             child2.setEditable(False)
             child.appendRow(child2)
+
+        # mark the entry as expanded and rest the icon
         entry.expanded = True
         item.setIcon(qta.icon('fa.calendar'))
 
     def ExpandMonth(self, index, item, entry):
+        # change icon to hourglass during waiting
         item.setIcon(qta.icon('fa.hourglass-o'))
+        # remove the dummy child
         item.removeRow(0)
 
+        # query for the days
         query = (self.database.SQL_Files
                  .select((fn.count(self.database.SQL_Files.id) * self.database.SQL_Files.frames).alias('count'),
+                         fn.count(self.database.SQL_Files.id).alias('count1'),
                          fn.day(self.database.SQL_Files.timestamp).alias('day'), self.database.SQL_Files.timestamp)
                  .where(self.database.SQL_Files.device == entry.device.id,
                         fn.year(self.database.SQL_Files.timestamp) == entry.year,
                         fn.month(self.database.SQL_Files.timestamp) == entry.month)
                  .group_by(fn.dayofyear(self.database.SQL_Files.timestamp)))
 
+        # add the days as children
         for row in query:
             child = QtGui.QStandardItem("%02d. (%s)" % (row.day, ShortenNumber(row.count)))
             child.setIcon(qta.icon("fa.bookmark-o"))
             child.setEditable(False)
-            child.entry = Day(entry.device, entry.year, entry.month, row.day, row.timestamp, row.count)
+            child.entry = Day(entry.device, entry.year, entry.month, row.day, row.timestamp, row.count1)
             item.appendRow(child)
 
+        # mark the entry as expanded and rest the icon
         entry.expanded = True
         item.setIcon(qta.icon('fa.calendar-o'))
 
     def TreeExpand(self, index):
+        # Get item and entry
         item = index.model().itemFromIndex(index)
         entry = item.entry
+        thread = None
+
         # Expand system with devices
         if isinstance(entry, self.database.SQL_Systems) and entry.expanded is False:
             thread = Thread(target=self.ExpandSystem, args=(index, item, entry))
-            thread.daemon = True
-            thread.start()
 
+        # Expand device with years
         if isinstance(entry, self.database.SQL_Devices) and entry.expanded is False:
             thread = Thread(target=self.ExpandDevice, args=(index, item, entry))
-            thread.daemon = True
-            thread.start()
 
+        # Expand year with months
         if isinstance(entry, Year) and entry.expanded is False:
             thread = Thread(target=self.ExpandYear, args=(index, item, entry))
-            thread.daemon = True
-            thread.start()
 
+        # Expand month with days
         if isinstance(entry, Month) and entry.expanded is False:
             thread = Thread(target=self.ExpandMonth, args=(index, item, entry))
-            thread.daemon = True
+
+        # Start thread as daemonic
+        if thread:
+            thread.setDaemon(True)
             thread.start()
 
     def connectDB(self):
