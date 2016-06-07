@@ -46,6 +46,10 @@ class files(Model):
     extension = CharField()
     annotation_id = IntegerField()
 
+    class Meta:
+        # image and path in combination have to be unique
+        indexes = ((('basename', 'path', 'extension'), True),)
+
 
 class folder(Model):
     parent_id = IntegerField()#ForeignKeyField(folder)
