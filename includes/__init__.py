@@ -7,7 +7,7 @@ from BigImageDisplay import BigImageDisplay
 from Database import DataFile
 from MemMap import MemMap
 
-path = os.path.join(os.path.dirname(__file__), "..", "..", "qextendedgraphicsview")
+path = os.path.join(os.path.dirname(__file__), "qextendedgraphicsview")
 if os.path.exists(path):
     sys.path.append(path)
 from QExtendedGraphicsView import QExtendedGraphicsView
