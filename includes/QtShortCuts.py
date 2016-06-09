@@ -152,5 +152,5 @@ for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
     # deform the index, as the dialog fills them column wise and we want to fill them rowise
     index = index % 8*6+index//8
     # convert color from hsv to rgb, to an array, to an tuple, to a hex string then to an integer
-    color_integer = int("%02x%02x%02x" % tuple(np.array(colorsys.hsv_to_rgb(color, sat, val))*255), 16)
+    color_integer = int("%02x%02x%02x" % tuple((np.array(colorsys.hsv_to_rgb(color, sat, val))*255).astype(int)), 16)
     QtGui.QColorDialog.setStandardColor(index, color_integer)
