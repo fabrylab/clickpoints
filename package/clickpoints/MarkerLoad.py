@@ -274,20 +274,40 @@ class DataFile:
             color = peewee.CharField()
             index = peewee.IntegerField()
 
-        self.table_mask = Mask
-        self.table_maskTypes = MaskTypes
-        self.tables.extend([Mask, MaskTypes])
-        self.mask_path = None
+        """ Annotation Tables """
 
-        """ Connect """
-        self.db.connect()
-        self._CreateTables()
+        class Annotation(BaseModel):
+            timestamp = peewee.DateTimeField(null=True)
+            image = peewee.ForeignKeyField(Images)
+            comment = peewee.TextField(default="")
+            rating = peewee.IntegerField(default=0)
 
-        """ Enumerations """
-        self.TYPE_Normal = 0
-        self.TYPE_Rect = 1
-        self.TYPE_Line = 2
-        self.TYPE_Track = 4
+        class Tags(BaseModel):
+            name = peewee.CharField()
+
+        class Tagassociation(BaseModel):
+            annotation = peewee.ForeignKeyField(Annotation)
+            tag = peewee.ForeignKeyField(Tags)
+
+            self.table_mask = Mask
+            self.table_maskTypes = MaskTypes
+            self.tables.extend([Mask, MaskTypes])
+            self.mask_path = None
+
+            """ Connect """
+            self.db.connect()
+            self._CreateTables()
+
+            """ Enumerations """
+            self.TYPE_Normal = 0
+            self.TYPE_Rect = 1
+            self.TYPE_Line = 2
+            self.TYPE_Track = 4
+
+        self.table_annotation = Annotation
+        self.table_tags = Tags
+        self.table_tagassociation = Tagassociation
+        self.tables.extend([Annotation, Tags, Tagassociation])
 
     def _GetMaskPath(self):
         if self.mask_path:
