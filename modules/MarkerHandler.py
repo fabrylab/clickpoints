@@ -754,12 +754,12 @@ class MyMarkerItem(QGraphicsPathItem):
             if self.rectObj:
                 x2, y2 = self.partner.pos().x()-start_x, self.partner.pos().y()-start_y
                 if self.data.type.mode & TYPE_Rect:
-                    image.line([x , y , x2, y ], color, width=3*scale)
-                    image.line([x , y2, x2, y2], color, width=3*scale)
-                    image.line([x , y , x , y2], color, width=3*scale)
-                    image.line([x2, y , x2, y2], color, width=3*scale)
+                    image.line([x , y , x2, y ], color, width=int(3*scale))
+                    image.line([x , y2, x2, y2], color, width=int(3*scale))
+                    image.line([x , y , x , y2], color, width=int(3*scale))
+                    image.line([x2, y , x2, y2], color, width=int(3*scale))
                 if self.data.type.mode & TYPE_Line:
-                    image.line([x, y, x2, y2], color, width=3*scale)
+                    image.line([x, y, x2, y2], color, width=int(3*scale))
             return
         image.rectangle([x-w, y-r2, x+w, y-b], color)
         image.rectangle([x-w, y+b, x+w, y+r2], color)
@@ -927,7 +927,7 @@ class MyTrackItem(MyMarkerItem):
             self.pathItem.setOpacity(0.5)
 
     def CheckToDisplay(self):
-        if self.min_frame-2 <= self.current_frame <= self.max_frame+2:
+        if self.min_frame-2 <= self.current_frame <= self.max_frame+100:
             return True
         return False
 
@@ -958,7 +958,7 @@ class MyTrackItem(MyMarkerItem):
         if not self.CheckToDisplay():
             return
         if self.partner:
-            return MyMarkerItem.draw(self, image, start_x, start_y)
+            return MyMarkerItem.draw(self, image, start_x, start_y, scale)
         color = (self.color.red(), self.color.green(), self.color.blue())
         circle_width = 10*scale
         last_frame = None
@@ -973,12 +973,12 @@ class MyTrackItem(MyMarkerItem):
             point = np.array([point.x, point.y])-offset
 
             if last_frame == frame-1:
-                image.line(np.concatenate((last_point, point)).tolist(), color, width=2*scale)
+                image.line(np.concatenate((last_point, point)).tolist(), color, width=int(2*scale))
             image.arc(np.concatenate((point-.5*circle_width, point+.5*circle_width)).tolist(), 0, 360, color)
             last_point = point
             last_frame = frame
         if self.active:
-            MyMarkerItem.draw(self, image, start_x, start_y)
+            MyMarkerItem.draw(self, image, start_x, start_y, scale)
 
     def deleteMarker(self):
         self.RemoveTrackPoint()

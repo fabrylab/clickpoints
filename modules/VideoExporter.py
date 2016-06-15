@@ -90,6 +90,8 @@ class VideoExporterDialog(QtGui.QWidget):
         self.cbTimeFontSize = AddQSpinBox(Vlayout, 'Font size:', 50, float=False, strech=True)
         self.cbTimeColor = AddQColorChoose(Vlayout, "Color:", "#FFFFFF", strech=True)
 
+        self.cbMarkerScaleSize = AddQSpinBox(Vlayout, 'Marker scale:', 1.00, float=True, strech=True)
+
         Vlayout.addStretch()
 
         """ Progress bar """
@@ -229,7 +231,7 @@ class VideoExporterDialog(QtGui.QWidget):
             draw = ImageDraw.Draw(pil_image)
             # draw marker on the image
             if marker_handler:
-                marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1])
+                marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1], self.cbMarkerScaleSize.value())
             # draw timestamp
             if self.time_drawing is not None or 0:  # TODO
                 time = self.window.data_file.image.timestamp
