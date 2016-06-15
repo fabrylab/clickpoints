@@ -271,7 +271,6 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
                 data_file.add_bulk(data)
                 data = []
         else:
-            print("data", len(data))
             data_file.add_bulk(data)
             break
     #data_file.start_adding_timestamps()

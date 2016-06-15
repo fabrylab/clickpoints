@@ -243,7 +243,6 @@ class TextButton(QGraphicsRectItem):
             font.setPointSize(11)
         self.text.setFont(font)
         self.text.setText(text)
-        print((width-self.text.boundingRect().width())/2)
         self.text.setPos((width-self.text.boundingRect().width())/2+1, 0)
         self.text.setBrush(QBrush(QColor("white")))
 
