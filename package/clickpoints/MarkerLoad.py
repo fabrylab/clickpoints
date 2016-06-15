@@ -714,11 +714,14 @@ class DataFile:
                 if value is None:
                     data_set.append("(SELECT " + name + " FROM marker " + condition + ")")
                 else:
-                    # for CharFileds add ticks
-                    if (field.__class__.__name__) == 'CharField':
-                        data_set.append('\'%s\'' % value)
-                    else:
-                        data_set.append(str(value))
+                    try:
+                        data_set.append(str(value.id))
+                    except AttributeError:
+                        # for CharFileds add ticks
+                        if (field.__class__.__name__) == 'CharField':
+                            data_set.append('\'%s\'' % value)
+                        else:
+                            data_set.append(str(value))
             data_sets.append(",\n ".join(data_set))
         query = "INSERT OR REPLACE INTO marker (id, image_id, x, y, processed, partner_id, type_id, text, track_id)\n VALUES (\n"
         query += "),\n (".join(data_sets)
