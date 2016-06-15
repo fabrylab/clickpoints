@@ -26,7 +26,8 @@ from Tools import BroadCastEvent
 
 class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
-        self.server.signal.emit(self.request[0], self.request[1], self.client_address)
+        msg = self.request[0].decode()
+        self.server.signal.emit(msg, self.request[1], self.client_address)
 
 def isPortInUse(type,ip,port_nr):
     connection_list = psutil.net_connections(kind=type)
@@ -197,26 +198,26 @@ class ScriptLauncher(QObject):
             self.window.JumpToFrame(int(value))
         if cmd == "JumpFramesWait":
             self.window.JumpFrames(int(value))
-            socket.sendto(cmd, client_address)
+            socket.sendto(cmd.encode(), client_address)
         if cmd == "JumpToFrameWait":
             self.window.JumpToFrame(int(value))
-            socket.sendto(cmd, client_address)
+            socket.sendto(cmd.encode(), client_address)
         if cmd == "ReloadMask":
             BroadCastEvent(self.modules, "ReloadMask")
-            socket.sendto(cmd, client_address)
+            socket.sendto(cmd.encode(), client_address)
         if cmd == "ReloadMarker":
             frame = int(value)
             if frame == -1:
                 frame = self.data_file.get_current_image()
             BroadCastEvent(self.modules, "ReloadMarker", frame)
-            socket.sendto(cmd, client_address)
+            socket.sendto(cmd.encode(), client_address)
         if cmd == "ReloadTypes":
             BroadCastEvent(self.modules, "UpdateCounter")
-            socket.sendto(cmd, client_address)
+            socket.sendto(cmd.encode(), client_address)
         if cmd == "GetImage":
             image = self.window.data_file.get_image_data(int(value))
             if image is None:
-                socket.sendto(cmd + "", client_address)
+                socket.sendto(cmd.encode(), client_address)
                 return
             image_id = self.window.data_file.get_image(int(value)).id
 
@@ -242,7 +243,7 @@ class ScriptLauncher(QObject):
             self.memmap.shape[:] = shape
             self.memmap.type = str(image.dtype)
             self.memmap.data[:size] = image.flatten()
-            socket.sendto(cmd + " " + self.memmap_path_xml + " " + str(image_id), client_address)
+            socket.sendto((cmd + " " + self.memmap_path_xml + " " + str(image_id)).encode(), client_address)
         if cmd == "updateHUD":
             try:
                 self.window.GetModule('InfoHud').updateHUD(value)

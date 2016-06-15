@@ -35,18 +35,18 @@ class Commands:
         if self.PORT is None:
             return
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.sendto(message, (self.HOST, self.PORT))
+        sock.sendto(message.encode(), (self.HOST, self.PORT))
 
     def _send_and_receive(self, message):
         if self.PORT is None:
             return
         cmd, value = str(message).split(" ", 1)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.sendto(message, (self.HOST, self.PORT))
+        sock.sendto(message.encode(), (self.HOST, self.PORT))
         # blocking wait for answer
         answer_received = False
         while not answer_received:
-            ans = sock.recv(1024)
+            ans = sock.recv(1024).decode()
             if ans.startswith(cmd):
                 answer_received = True
 
