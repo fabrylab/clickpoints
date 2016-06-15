@@ -428,23 +428,14 @@ class DataFile:
             data.append(current_entry)
 
         if commit is True:
-            # try to perform the bulk insert
-            try:
-                # Insert the maximum of allowed rows at a time
-                chunk_size = (SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) -1
-                with self.db.atomic():
-                    for idx in range(0, len(data), chunk_size):
-                        self.table_images.insert_many(data[idx:idx+chunk_size]).execute()
-            except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
-                return
-            # increase sort_index and image_count by the number of added frames
-            if self.image_count is not None:
-                self.image_count += frames
+            self.add_bulk(data)
         self.next_sort_index += frames
         if commit is False:
             return data
 
     def add_bulk(self, data):
+        if len(data) == 0:
+            return
         # try to perform the bulk insert
         try:
             # Insert the maximum of allowed rows at a time
