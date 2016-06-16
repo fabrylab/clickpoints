@@ -92,6 +92,18 @@ class BigImageDisplay:
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image, offset, threaded):
+        # if image doesn't have a dimension for color channels, add one
+        if len(image.shape) == 2:
+            image = image.reshape((image.shape[0], image.shape[1], 1))
+        # get number of tiles
+        self.number_of_imagesX = int(np.ceil(image.shape[1] / self.config.max_image_size))
+        self.number_of_imagesY = int(np.ceil(image.shape[0] / self.config.max_image_size))
+        # update pixmaps to new number of tiles
+        self.UpdatePixmapCount()
+
+        # store the image
+        self.image = image
+
         # call PrepareImageDisplay threaded or directly
         offset = np.array(offset)
         if self.config.threaded_image_display and threaded:
@@ -105,17 +117,6 @@ class BigImageDisplay:
             self.thread.join()
 
     def PrepareImageDisplay(self, image, offset):
-        # if image doesn't have a dimension for color channels, add one
-        if len(image.shape) == 2:
-            image = image.reshape((image.shape[0], image.shape[1], 1))
-        # get number of tiles
-        self.number_of_imagesX = int(np.ceil(image.shape[1] / self.config.max_image_size))
-        self.number_of_imagesY = int(np.ceil(image.shape[0] / self.config.max_image_size))
-        # update pixmaps to new number of tiles
-        self.UpdatePixmapCount()
-
-        # store the image
-        self.image = image
 
         # revert last offset and apply new one
         self.window.view.DoTranslateOrigin(-self.last_offset)
