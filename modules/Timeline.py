@@ -755,8 +755,12 @@ class PreciseTimer(QObject):
                 self.active = 0
             time.sleep(0.01)
 
-class Timeline:
+class Timeline(QObject):
+    images_added_signal = pyqtSignal()
+
     def __init__(self, window, data_file, layout, outputpath, config, modules):
+        QObject.__init__(self)
+
         self.window = window
         self.data_file = data_file
         self.config = config
@@ -768,6 +772,8 @@ class Timeline:
         if self.config.fps != 0:
             self.fps = self.config.fps
         self.skip = 0
+
+        self.images_added_signal.connect(self.ImagesAddedMain)
 
         self.button = QtGui.QPushButton()
         self.button.setCheckable(True)
@@ -866,6 +872,9 @@ class Timeline:
         return self.data_file.get_image_count()
 
     def ImagesAdded(self):
+        self.images_added_signal.emit()
+
+    def ImagesAddedMain(self):
         update_end = False
         if self.frameSlider.endValue() == self.frameSlider.max_value or self.frameSlider.max_value == -1:
             update_end = True
