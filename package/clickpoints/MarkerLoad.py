@@ -155,6 +155,13 @@ class DataFile:
                     return self.masks[0]
                 if item == "data":
                     return self.get_data()
+
+                if item == "annotation":
+                    try:
+                        return self.annotations[0]
+                    except:
+                        return None
+
                 if item == "data8":
                     data = self.get_data().copy()
                     if data.dtype == np.uint16:
@@ -208,7 +215,7 @@ class DataFile:
             style = peewee.CharField(null=True)
 
         class Marker(BaseModel):
-            image = peewee.ForeignKeyField(Images)
+            image = peewee.ForeignKeyField(Images, related_name="marker")
             x = peewee.FloatField()
             y = peewee.FloatField()
             type = peewee.ForeignKeyField(Types)
@@ -278,7 +285,7 @@ class DataFile:
 
         class Annotation(BaseModel):
             timestamp = peewee.DateTimeField(null=True)
-            image = peewee.ForeignKeyField(Images)
+            image = peewee.ForeignKeyField(Images, related_name="annotations")
             comment = peewee.TextField(default="")
             rating = peewee.IntegerField(default=0)
 
