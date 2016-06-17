@@ -394,6 +394,7 @@ class RealTimeSlider(QGraphicsView):
         self.scene_panning = False
 
         self.tick_marker = {}
+        self.tick_blocks = []
 
         self.scale = 1
         self.pan = 0
@@ -412,6 +413,22 @@ class RealTimeSlider(QGraphicsView):
     def SliderBarMousePressEvent(self, event):
         self.setValue(self.PixelToValue(self.slider_line.mapToScene(event.pos()).x()))
         self.slider_position.signal.sliderReleased.emit()
+
+    def addTickBlock(self, pos1, pos2):
+        color = QColor(128, 128, 128)
+        height = 10
+
+        x1 = Remap(pos1, [self.min_value, self.max_value], [0, self.pixel_len])
+        x2 = Remap(pos2, [self.min_value, self.max_value], [0, self.pixel_len])
+
+        tick_block = QtGui.QGraphicsRectItem(0, -2, x2-x1, -height, self.markerGroupParents[0])
+        tick_block.setPos(x1, 0)
+
+        tick_block.setBrush(QBrush(color))
+        tick_block.setPen(QPen(color))
+        tick_block.setZValue(-10)
+
+        self.tick_blocks.append(tick_block)
 
     def addTickMarker(self, pos, type=-1, type_name="", color=QColor("red"), height=12, text=""):
         if pos in self.tick_marker and type in self.tick_marker[pos]:
@@ -434,7 +451,7 @@ class RealTimeSlider(QGraphicsView):
                 elif type_name == "year":
                     text = "%04d" % pos.year
                 tick_marker = QtGui.QGraphicsLineItem(0, 3, 0, -height, self.markerGroupParents[type])
-                tick_marker.setZValue(1)
+                tick_marker.setZValue(10)
         tick_marker.setPen(QPen(color))
         if type == -1:
             tick_marker.setPen(QPen(color, 3))
@@ -486,6 +503,12 @@ class RealTimeSlider(QGraphicsView):
         return
 
     def setTimes(self, data_file):
+        # remove old time ticks
+        for tick in self.tick_blocks:
+            if tick.scene():
+                tick.scene().removeItem(tick)
+        self.tick_blocks = []
+
         self.data_file = data_file
         timestamps = [t.timestamp for t in self.data_file.table_images.select(self.data_file.table_images.timestamp) if t.timestamp]
         if len(timestamps) == 0:
@@ -501,8 +524,25 @@ class RealTimeSlider(QGraphicsView):
         self.min_value -= timedelta_mul(range, 0.01)
         self.max_value += timedelta_mul(range, 0.01)
         self.slider_position.setValueRange(self.min_value, self.max_value)
+        last_time = None
+        last_delta = None
+        start_time = None
+        end_time = None
         for time in timestamps:
-            self.addTickMarker(time, color=QColor(128, 128, 128))
+            if last_time is None:
+                start_time = time
+                last_time = time
+                continue
+            if last_delta is None:
+                last_delta = time-last_time
+                last_time = time
+                continue
+            if time-last_time > last_delta*2:
+                self.addTickBlock(start_time, last_time)#, color=QColor(128, 128, 128))
+                start_time = time
+            last_time = time
+        self.addTickBlock(start_time, last_time)#, color=QColor(128, 128, 128))
+
         self.slider_position.setValueRange(self.min_value, self.max_value)
         self.updateTicks()
         self.repaint()
