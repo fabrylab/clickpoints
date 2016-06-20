@@ -393,7 +393,7 @@ class RealTimeSlider(QGraphicsView):
 
         self.scene_panning = False
 
-        self.tick_marker = {}
+        self.tick_marker = []
         self.tick_blocks = []
 
         self.scale = 1
@@ -431,27 +431,24 @@ class RealTimeSlider(QGraphicsView):
         self.tick_blocks.append(tick_block)
 
     def addTickMarker(self, pos, type=-1, type_name="", color=QColor("red"), height=12, text=""):
-        if pos in self.tick_marker and type in self.tick_marker[pos]:
-            tick_marker = self.tick_marker[pos][type]
+        if type == -1:
+            tick_marker = QtGui.QGraphicsLineItem(0, -3, 0, -height, self.markerParent)
+            tick_marker.setZValue(-10)
         else:
-            if type == -1:
-                tick_marker = QtGui.QGraphicsLineItem(0, -3, 0, -height, self.markerParent)
-                tick_marker.setZValue(-10)
-            else:
-                if type_name == "second":
-                    text = "%02d:%02d:%02d" % (pos.hour, pos.minute, pos.second)
-                elif type_name == "minute":
-                    text = "%02d:%02d" % (pos.hour, pos.minute)
-                elif type_name == "hour":
-                    text = "%02d:%02d" % (pos.hour, pos.minute)
-                elif type_name == "day":
-                    text = "%02d.%02d" % (pos.day, pos.month)
-                elif type_name == "month":
-                    text = "%02d.%02d" % (pos.day, pos.month)
-                elif type_name == "year":
-                    text = "%04d" % pos.year
-                tick_marker = QtGui.QGraphicsLineItem(0, 3, 0, -height, self.markerGroupParents[type])
-                tick_marker.setZValue(10)
+            if type_name == "second":
+                text = "%02d:%02d:%02d" % (pos.hour, pos.minute, pos.second)
+            elif type_name == "minute":
+                text = "%02d:%02d" % (pos.hour, pos.minute)
+            elif type_name == "hour":
+                text = "%02d:%02d" % (pos.hour, pos.minute)
+            elif type_name == "day":
+                text = "%02d.%02d" % (pos.day, pos.month)
+            elif type_name == "month":
+                text = "%02d.%02d" % (pos.day, pos.month)
+            elif type_name == "year":
+                text = "%04d" % pos.year
+            tick_marker = QtGui.QGraphicsLineItem(0, 3, 0, -height, self.markerGroupParents[type])
+            tick_marker.setZValue(10)
         tick_marker.setPen(QPen(color))
         if type == -1:
             tick_marker.setPen(QPen(color, 3))
@@ -476,9 +473,7 @@ class RealTimeSlider(QGraphicsView):
         else:
             tick_marker.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
             tick_marker.text = None
-        if pos not in self.tick_marker:
-            self.tick_marker[pos] = {}
-        self.tick_marker[pos][type] = tick_marker
+        self.tick_marker.append(tick_marker)
 
     def setRange(self, min_value, max_value):
         self.min_value = min_value
@@ -509,25 +504,34 @@ class RealTimeSlider(QGraphicsView):
                 tick.scene().removeItem(tick)
         self.tick_blocks = []
 
+        # get timestamps
         self.data_file = data_file
         timestamps = [t.timestamp for t in self.data_file.table_images.select(self.data_file.table_images.timestamp) if t.timestamp]
+
+        # handle empty timeline
         if len(timestamps) == 0:
             self.min_value = datetime.datetime.today()
             self.max_value = datetime.datetime.today()+datetime.timedelta(hours=1)
             self.slider_position.setValueRange(self.min_value, self.max_value)
             return
+        # get min/max values
         self.min_value = np.amin(timestamps)
         self.max_value = np.amax(timestamps)
         if self.max_value == self.min_value:
             self.max_value = self.min_value+datetime.timedelta(hours=1)
         range = self.max_value-self.min_value
+
+        # add some border
         self.min_value -= timedelta_mul(range, 0.01)
         self.max_value += timedelta_mul(range, 0.01)
+
+        # apply ranges
         self.slider_position.setValueRange(self.min_value, self.max_value)
+
+        # add tick blocks
         last_time = None
         last_delta = None
         start_time = None
-        end_time = None
         for time in timestamps:
             if last_time is None:
                 start_time = time
@@ -538,12 +542,12 @@ class RealTimeSlider(QGraphicsView):
                 last_time = time
                 continue
             if time-last_time > last_delta*2:
-                self.addTickBlock(start_time, last_time)#, color=QColor(128, 128, 128))
+                self.addTickBlock(start_time, last_time)
                 start_time = time
             last_time = time
-        self.addTickBlock(start_time, last_time)#, color=QColor(128, 128, 128))
+        self.addTickBlock(start_time, last_time)
 
-        self.slider_position.setValueRange(self.min_value, self.max_value)
+        # update display
         self.updateTicks()
         self.repaint()
 
@@ -560,16 +564,10 @@ class RealTimeSlider(QGraphicsView):
         except OverflowError:
             right_end = datetime.datetime(datetime.MAXYEAR, 1, 1)
 
-        for pos, ticks in self.tick_marker.items():
-            for type, tick in ticks.items():
-                if type == -1:
-                    continue
-                if tick.scene():
-                    tick.scene().removeItem(tick)
-                del self.tick_marker[pos][type]
-                #del tick
-            if self.tick_marker[pos] == {}:
-                del self.tick_marker[pos]
+        for tick in self.tick_marker:
+            if tick.scene():
+                tick.scene().removeItem(tick)
+        self.tick_marker = []
 
         # determine the smallest possible ticks
         delta_min = timedelta_mul(right_end-left_end, 60/self.pixel_len)#self.PixelToValue(60)-left_end
