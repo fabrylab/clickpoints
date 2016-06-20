@@ -3,10 +3,7 @@ import os
 import sys
 import glob
 
-try:
-    from PyQt5 import QtCore
-except ImportError:
-    from PyQt4 import QtCore
+from qtpy import QtCore
 
 #sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "mediahandler"))
 #from mediahandler import MediaHandler

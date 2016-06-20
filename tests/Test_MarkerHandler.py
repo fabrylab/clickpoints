@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from BaseTest import BaseTest
 
-from PyQt4.QtCore import Qt
+from qtpy.QtCore import Qt
 
 class Test_MarkerHandler(unittest.TestCase, BaseTest):
 

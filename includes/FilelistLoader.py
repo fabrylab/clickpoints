@@ -8,7 +8,7 @@ from datetime import datetime
 
 from includes import BroadCastEvent2
 
-from PyQt4 import QtGui, QtCore
+from qtpy import QtGui, QtCore
 import qtawesome as qta
 
 try:

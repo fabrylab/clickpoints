@@ -1,4 +1,4 @@
-from PyQt4 import QtGui
+from qtpy import QtGui
 import os
 import colorsys
 import numpy as np

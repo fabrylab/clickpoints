@@ -3,11 +3,6 @@ import sys
 import os
 import json
 
-try:
-    from PyQt5.QtWidgets import QApplication, QFileDialog
-except ImportError:
-    from PyQt4.QtGui import QApplication, QFileDialog
-    from PyQt4 import QtGui, QtCore
 
 def isstring(object):
     PY3 = sys.version_info[0] == 3

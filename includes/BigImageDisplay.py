@@ -1,9 +1,6 @@
 from __future__ import division, print_function
 
-try:
-    from PyQt5 import QtGui, QtCore
-except ImportError:
-    from PyQt4 import QtGui, QtCore
+from qtpy import QtGui, QtCore
 
 import numpy as np
 

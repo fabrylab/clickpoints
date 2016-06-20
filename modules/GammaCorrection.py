@@ -2,39 +2,33 @@ from __future__ import division, print_function
 
 import os
 
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem, QApplication, QPainterPath, QIcon
-    from PyQt5.QtCore import QRectF
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QGraphicsRectItem, QCursor, QPen, QBrush, QColor, QGraphicsPathItem, QApplication, QPainterPath, QIcon
-    from PyQt4.QtCore import QRectF, Qt
+from qtpy import QtGui, QtCore, QtWidgets
+from qtpy.QtCore import Qt
 import qtawesome as qta
 
 from Tools import MySlider, BoxGrabber, TextButton
 
-class GammaCorrection(QGraphicsRectItem):
+class GammaCorrection(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent_hud, image_display, config, window):
-        QGraphicsRectItem.__init__(self, parent_hud)
+        QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
         self.config = config
         self.window = window
 
         self.image = image_display
-        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
         self.setPos(-140, -140-20)
         self.setZValue(19)
 
-        self.hist = QGraphicsPathItem(self)
-        self.hist.setPen(QPen(QColor(0, 0, 0, 0)))
-        self.hist.setBrush(QBrush(QColor(255, 255, 255, 128)))
+        self.hist = QtWidgets.QGraphicsPathItem(self)
+        self.hist.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
+        self.hist.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
         self.hist.setPos(0, 110)
 
-        self.conv = QGraphicsPathItem(self)
-        self.conv.setPen(QPen(QColor(255, 0, 0, 128), 2))
-        self.conv.setBrush(QBrush(QColor(0, 0, 0, 0)))
+        self.conv = QtWidgets.QGraphicsPathItem(self)
+        self.conv.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0, 128), 2))
+        self.conv.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
         self.conv.setPos(0, 110)
 
         self.sliders = []
@@ -57,7 +51,7 @@ class GammaCorrection(QGraphicsRectItem):
         self.button_reset.setPos(56, 40 + 3 * 30 - 20)
         self.button_reset.clicked.connect(self.reset)
 
-        self.setRect(QRectF(0, 0, 110, 110+18))
+        self.setRect(QtCore.QRectF(0, 0, 110, 110+18))
         BoxGrabber(self)
         self.dragged = False
 
@@ -74,45 +68,45 @@ class GammaCorrection(QGraphicsRectItem):
             self.hidden = True
 
     def updateHist(self, hist):
-        histpath = QPainterPath()
+        histpath = QtWidgets.QPainterPath()
         w = 100 / 256.
         for i, h in enumerate(hist[0]):
             histpath.addRect(i * w + 5, 0, w, -h * 100 / max(hist[0]))
         self.hist.setPath(histpath)
 
     def updateConv(self):
-        convpath = QPainterPath()
+        convpath = QtWidgets.QPainterPath()
         w = 100 / 256.
         for i, h in enumerate(self.image.conversion):
             convpath.lineTo(i * w + 5, -h * 98 / 255.)
         self.conv.setPath(convpath)
 
     def updateGamma(self, value):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         update_hist = self.image.preview_slice is None
         self.image.Change(gamma=value)
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-        QApplication.restoreOverrideCursor()
+        QtGui.QApplication.restoreOverrideCursor()
 
     def updateBrightnes(self, value):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         update_hist = self.image.preview_slice is None
         self.image.Change(max_brightness=value)
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-        QApplication.restoreOverrideCursor()
+        QtGui.QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         update_hist = self.image.preview_slice is None
         self.image.Change(min_brightness=value)
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-        QApplication.restoreOverrideCursor()
+        QtGui.QApplication.restoreOverrideCursor()
 
     def LoadImageEvent(self, filename="", frame_number=0):
         if self.image.preview_rect is not None:
@@ -127,15 +121,15 @@ class GammaCorrection(QGraphicsRectItem):
         for slider in self.sliders:
             slider.reset()
         self.image.ResetPreview()
-        self.hist.setPath(QPainterPath())
-        self.conv.setPath(QPainterPath())
+        self.hist.setPath(QtWidgets.QPainterPath())
+        self.conv.setPath(QtWidgets.QPainterPath())
 
     def updateROI(self):
-        QApplication.setOverrideCursor(QCursor(QtCore.Qt.WaitCursor))
+        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.image.PreviewRect()
         self.image.Change()
         self.updateHist(self.image.hist)
-        QApplication.restoreOverrideCursor()
+        QtGui.QApplication.restoreOverrideCursor()
 
     def keyPressEvent(self, event):
 

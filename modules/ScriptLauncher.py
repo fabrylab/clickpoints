@@ -4,12 +4,7 @@ import os, sys
 import psutil
 import signal
 
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtCore import pyqtSignal, QThread, QObject
-except ImportError:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtCore import pyqtSignal, QThread, QObject
+from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
 
 import socket, threading, subprocess
@@ -137,13 +132,13 @@ class ScriptEditor(QtGui.QWidget):
             self.close()
 
 
-class ScriptLauncher(QObject):
-    signal = pyqtSignal(str, socketobject, tuple)
+class ScriptLauncher(QtCore.QObject):
+    signal = QtCore.pyqtSignal(str, socketobject, tuple)
 
     scriptSelector = None
 
     def __init__(self, window, data_file, modules, config=None):
-        QObject.__init__(self)
+        QtCore.QObject.__init__(self)
         self.window = window
         self.data_file = data_file
         self.config = config

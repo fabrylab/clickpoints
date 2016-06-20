@@ -1,13 +1,6 @@
 from __future__ import division, print_function
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QGraphicsRectItem, QCursor, QBrush, QColor, QGraphicsSimpleTextItem, QFont, QGraphicsPixmapItem, QPixmap
-    from PyQt5.QtCore import QRectF
-except ImportError:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QGraphicsRectItem, QCursor, QBrush, QColor, QGraphicsSimpleTextItem, QFont, QGraphicsPixmapItem, QPixmap
-    from PyQt4.QtCore import QRectF
+from qtpy import QtCore, QtGui, QtWidgets
 
 from Tools import BoxGrabber
 
@@ -67,30 +60,30 @@ def get_meta(file):
             return {}
         return json.loads(metadata.decode('utf-8'))
 
-class InfoHud(QGraphicsRectItem):
+class InfoHud(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent_hud, window, config):
-        QGraphicsRectItem.__init__(self, parent_hud)
+        QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
         self.config = config
 
         self.window = window
-        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
         self.setPos(20, -140)
         self.setZValue(19)
 
-        self.font = QFont()
+        self.font = QtGui.QFont()
         self.font.setPointSize(12)
         self.font.setStyleHint(QFont.Monospace)
         self.font.setFixedPitch(True)
 
-        self.text = QGraphicsSimpleTextItem(self)
+        self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         self.text.setFont(self.font)
-        self.text.setBrush(QBrush(QColor("white")))
+        self.text.setBrush(QtGui.QBrush(QtGui.QColor("white")))
         self.text.setZValue(10)
-        self.text.setPos(5,10)
+        self.text.setPos(5, 10)
 
-        self.setRect(QRectF(0, 0, 110, 110))
+        self.setRect(QtCore.QRectF(0, 0, 110, 110))
         BoxGrabber(self)
         self.dragged = False
 
