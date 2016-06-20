@@ -134,8 +134,10 @@ path_to_website = r"..\fabry_biophysics.bitbucket.org\clickpoints"
 zip_file = 'clickpoints_v%s.zip'
 version_file = os.path.join("clickpoints", "version.txt")
 
-paths = [".", "clickpoints", "mediahandler", "qextendedgraphicsview"]
-path_destinations = ["installation", ".", "includes", "includes"]
+#paths = [".", "clickpoints", "mediahandler", "qextendedgraphicsview"]
+#path_destinations = ["installation", ".", "includes", "includes"]
+paths = ["clickpoints", os.path.join("clickpoints", "includes", "qextendedgraphicsview")]
+path_destinations = [".", "includes"]
 
 """ Checks """
 # get old version name
