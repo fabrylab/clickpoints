@@ -176,7 +176,7 @@ class ClickPointsWindow(QWidget):
                 if ext.lower() in imgformats:
                     self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
                                                         kwargs=dict(use_natsort=config.use_natsort))
-                    addPath(self.data_file, directory, use_natsort=config.use_natsort)
+                    #addPath(self.data_file, directory, use_natsort=config.use_natsort)
                 # for videos just load the file
                 elif ext.lower() in vidformats:
                     self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory), kwargs=dict(file_filter=os.path.split(filename)[1]))
