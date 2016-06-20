@@ -12,8 +12,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from BaseTest import BaseTest
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtTest import QTest
+from qtpy.QtCore import Qt
+from qtpy.QtTest import QTest
 
 class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 

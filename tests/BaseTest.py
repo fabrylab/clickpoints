@@ -2,12 +2,13 @@ import os
 import shutil
 import sys
 
+import qtawesome as qta
 import ClickPoints
-from PyQt4.QtTest import QTest
-from PyQt4.QtCore import Qt
-from PyQt4 import QtGui
-from PyQt4 import QtCore
-from PyQt4.QtGui import QApplication
+from qtpy.QtTest import QTest
+from qtpy.QtCore import Qt
+from qtpy import QtGui
+from qtpy import QtCore
+from qtpy.QtGui import QApplication
 
 app = QApplication(sys.argv)
 
@@ -103,6 +104,7 @@ class BaseTest():
     def wait_for_image_load(self):
         # wait for image to be loaded
         while self.window.loading_image:
+            print("waiting", self.window.loading_image)
             QTest.qWait(1)
 
     def tearDown(self):

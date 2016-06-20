@@ -23,20 +23,14 @@ print("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.min
 import sip
 sip.setapi('QVariant', 2)
 
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox
-    from PyQt5.QtCore import Qt
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QCursor, QIcon, QMessageBox, QGraphicsSceneWheelEvent
-    from PyQt4.QtCore import Qt
+from qtpy import QtGui, QtCore, QtWidgets
+from qtpy.QtCore import Qt
 
-    from PyQt4.QtCore import QT_VERSION_STR
-    from PyQt4.Qt import PYQT_VERSION_STR
-    from sip import SIP_VERSION_STR
+from qtpy.QtCore import QT_VERSION_STR
+#from qtpy.Qt import PYQT_VERSION_STR
+from sip import SIP_VERSION_STR
 
-    print("Using PyQt4 (PyQt %s, SIP %s, Qt %s)" % (PYQT_VERSION_STR, SIP_VERSION_STR, QT_VERSION_STR))
+print("Using PyQt4 (SIP %s, Qt %s)" % (SIP_VERSION_STR, QT_VERSION_STR))
 import qtawesome as qta
 
 from includes import HelpText, BroadCastEvent, SetBroadCastModules, rotate_list
@@ -91,14 +85,14 @@ def GetModuleInitArgs(mod):
     return inspect.getargspec(mod.__init__).args
 
 
-class ClickPointsWindow(QWidget):
+class ClickPointsWindow(QtWidgets.QWidget):
     folderEditor = None
 
     def __init__(self, my_config, parent=None):
         global config
         config = my_config
-        super(QWidget, self).__init__(parent)
-        self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
+        super(QtWidgets.QWidget, self).__init__(parent)
+        self.setWindowIcon(QtGui.QIcon(QtGui.QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
 
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
@@ -423,7 +417,7 @@ class ClickPointsWindow(QWidget):
             else:
                 index = 0
             # Find next module, which can be activated
-            for cur_index in rotate_list(range(len(self.modules)), index+1):
+            for cur_index in rotate_list(list(range(len(self.modules))), index+1):
                 if "setActiveModule" in dir(self.modules[cur_index]) and self.modules[cur_index].setActiveModule(True):
                     break
 

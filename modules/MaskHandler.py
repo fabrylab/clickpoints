@@ -2,14 +2,8 @@ from __future__ import division, print_function
 import os
 import peewee
 
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QGraphicsRectItem, QColor, QGraphicsPathItem, QBrush, QPen, QPainterPath, QCursor, QFont, QGraphicsSimpleTextItem, QGraphicsPixmapItem, QImage, QPixmap
-    from PyQt5.QtCore import Qt
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QGraphicsRectItem, QColor, QGraphicsPathItem, QBrush, QPen, QPainterPath, QCursor, QFont, QGraphicsSimpleTextItem, QGraphicsPixmapItem, QImage, QPixmap
-    from PyQt4.QtCore import Qt
+from qtpy import QtGui, QtCore, QtWidgets
+from qtpy.QtCore import Qt
 import qtawesome as qta
 
 import numpy as np
@@ -96,13 +90,13 @@ class BigPaintableImageDisplay:
         self.config = config
 
         self.opacity = 0
-        self.colormap = [QColor(255, 0, 255).rgba() for i in range(256)]
+        self.colormap = [QtGui.QColor(255, 0, 255).rgba() for i in range(256)]
 
     def UpdateColormap(self, types):
-        self.colormap = [QColor(255, 0, 255, 0).rgba() for i in range(256)]
+        self.colormap = [QtGui.QColor(255, 0, 255, 0).rgba() for i in range(256)]
         for drawtype in types:
-            self.colormap[drawtype.index] = QColor(*HTMLColorToRGB(drawtype.color)).rgb()
-        self.colormap[0] = QColor(0, 0, 0, 0).rgba()
+            self.colormap[drawtype.index] = QtGui.QColor(*HTMLColorToRGB(drawtype.color)).rgb()
+        self.colormap[0] = QtGui.QColor(0, 0, 0, 0).rgba()
         self.UpdateImage()
 
     def UpdatePixmapCount(self):
@@ -112,15 +106,15 @@ class BigPaintableImageDisplay:
             self.DrawImages.append(None)
             self.qimages.append(None)
             if i == 0:
-                new_pixmap = QGraphicsPixmapItem(self.origin)
+                new_pixmap = QtWidgets.QGraphicsPixmapItem(self.origin)
             else:
-                new_pixmap = QGraphicsPixmapItem(self.origin)
+                new_pixmap = QtWidgets.QGraphicsPixmapItem(self.origin)
             self.pixMapItems.append(new_pixmap)
             new_pixmap.setOpacity(self.opacity)
         # Hide images which are not needed
         for i in range(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
             im = np.zeros((1, 1, 1))
-            self.pixMapItems[i].setPixmap(QPixmap(array2qimage(im)))
+            self.pixMapItems[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
             self.pixMapItems[i].setOffset(0, 0)
 
     def SetImage(self, image):
@@ -145,9 +139,9 @@ class BigPaintableImageDisplay:
     def UpdateImage(self):
         for i in range(self.number_of_imagesY * self.number_of_imagesX):
             self.qimages[i] = ImageQt.ImageQt(self.images[i])
-            qimage = QImage(self.qimages[i])
+            qimage = QtGui.QImage(self.qimages[i])
             qimage.setColorTable(self.colormap)
-            pixmap = QPixmap(qimage)
+            pixmap = QtGui.QPixmap(qimage)
             self.pixMapItems[i].setPixmap(pixmap)
 
     def DrawLine(self, x1, x2, y1, y2, size, line_type):
@@ -220,7 +214,7 @@ class MaskEditor(QtGui.QWidget):
         types = self.db.table_maskTypes.select()
         for row, type in enumerate(types):
             item = QtGui.QStandardItem(type.name)
-            item.setIcon(qta.icon("fa.paint-brush", color=QColor(*HTMLColorToRGB(type.color))))
+            item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
             item.setEditable(False)
             self.modelItems_mask[item] = type
 
@@ -330,15 +324,15 @@ class MaskEditor(QtGui.QWidget):
             self.saveMaskType()
 
 
-class MyCounter2(QGraphicsRectItem):
+class MyCounter2(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, mask_handler, point_type, index):
-        QGraphicsRectItem.__init__(self, parent)
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
         self.mask_handler = mask_handler
         self.type = point_type
         self.index = index
         self.count = 0
-        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
         self.setAcceptHoverEvents(True)
         self.active = False
@@ -351,17 +345,17 @@ class MyCounter2(QGraphicsRectItem):
         else:
             self.label_text = "%d: %s" % (index + 1, self.type.name)
 
-        self.text = QGraphicsSimpleTextItem(self)
+        self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         self.text.setText(self.label_text)
         self.text.setFont(self.font)
         if self.type is not None:
-            self.color = QColor(*HTMLColorToRGB(self.type.color))
+            self.color = QtGui.QColor(*HTMLColorToRGB(self.type.color))
         else:
-            self.color = QColor("white")
-        self.text.setBrush(QBrush(self.color))
+            self.color = QtGui.QColor("white")
+        self.text.setBrush(QtGui.QBrush(self.color))
         self.text.setZValue(10)
 
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
         self.setPos(-110, 10 + 25 * index)
         self.setZValue(9)
 
@@ -379,19 +373,19 @@ class MyCounter2(QGraphicsRectItem):
 
     def SetToActiveColor(self):
         self.active = True
-        self.setBrush(QBrush(QColor(255, 255, 255, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
 
     def SetToInactiveColor(self):
         self.active = False
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def hoverEnterEvent(self, event):
         if self.active is False:
-            self.setBrush(QBrush(QColor(128, 128, 128, 128)))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
 
     def hoverLeaveEvent(self, event):
         if self.active is False:
-            self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
         if event.button() == 2 or self.type is None:  # right mouse button
@@ -440,8 +434,8 @@ class MaskHandler:
         self.config = config
         self.modules = modules
         self.MaskDisplay = BigPaintableImageDisplay(parent, config=config)
-        self.drawPathItem = QGraphicsPathItem(parent)
-        self.drawPathItem.setBrush(QBrush(QColor(255, 255, 255)))
+        self.drawPathItem = QtWidgets.QGraphicsPathItem(parent)
+        self.drawPathItem.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
         self.data_file = datafile
 
         self.mask_file = MaskFile(datafile)
@@ -453,7 +447,7 @@ class MaskHandler:
         self.drawPathItem.setPath(self.drawPath)
         self.drawPathItem.setZValue(10)
 
-        self.DrawCursor = QGraphicsPathItem(parent)
+        self.DrawCursor = QtWidgets.QGraphicsPathItem(parent)
         self.DrawCursor.setPos(10, 10)
         self.DrawCursor.setZValue(10)
         self.DrawCursor.setVisible(False)
@@ -583,15 +577,15 @@ class MaskHandler:
     def UpdateDrawCursorSize(self):
         if self.active_draw_type is None:
             return
-        color = QColor(*HTMLColorToRGB(self.active_draw_type.color))
-        pen = QPen(color, self.DrawCursorSize)
+        color = QtGui.QColor(*HTMLColorToRGB(self.active_draw_type.color))
+        pen = QtGui.QPen(color, self.DrawCursorSize)
         pen.setCapStyle(32)
         self.drawPathItem.setPen(pen)
-        draw_cursor_path = QPainterPath()
+        draw_cursor_path = QtWidgets.QPainterPath()
         draw_cursor_path.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
                                     self.DrawCursorSize)
 
-        self.DrawCursor.setPen(QPen(color))
+        self.DrawCursor.setPen(QtGui.QPen(color))
         self.DrawCursor.setPath(draw_cursor_path)
 
     def save(self):
@@ -608,7 +602,7 @@ class MaskHandler:
 
     def RedrawMask(self):
         self.MaskDisplay.UpdateImage()
-        self.drawPath = QPainterPath()
+        self.drawPath = QtWidgets.QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
 

@@ -3,16 +3,9 @@ import os
 import re
 import peewee
 
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QGraphicsPixmapItem, QPixmap, QPainterPath, QGraphicsPathItem, QGraphicsRectItem, QGraphicsLineItem, QCursor, QFont, QGraphicsSimpleTextItem, QPen, QBrush, QColor
-    from PyQt5.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel
-    from PyQt5.QtCore import Qt
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QGraphicsPixmapItem, QPixmap, QPainterPath, QGraphicsPathItem, QGraphicsRectItem, QGraphicsLineItem, QCursor, QFont, QGraphicsSimpleTextItem, QPen, QBrush, QColor
-    from PyQt4.QtGui import QWidget, QGridLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel
-    from PyQt4.QtCore import Qt
+
+from qtpy import QtGui, QtCore, QtWidgets
+from qtpy.QtCore import Qt
 import qtawesome as qta
 
 import numpy as np
@@ -32,7 +25,7 @@ from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTM
 w = 1.
 b = 7
 r2 = 10
-path1 = QPainterPath()
+path1 = QtWidgets.QPainterPath()
 path1.addRect(-r2, -w, b, w * 2)
 path1.addRect(r2, -w, -b, w * 2)
 path1.addRect(-w, -r2, w * 2, b)
@@ -42,18 +35,18 @@ path1.addEllipse(-r2, -r2, r2 * 2, r2 * 2)
 w = 2
 b = 3
 o = 3
-path2 = QPainterPath()
+path2 = QtWidgets.QPainterPath()
 path2.addRect(-b - o, -w * 0.5, b, w)
 path2.addRect(+o, -w * 0.5, b, w)
 path2.addRect(-w * 0.5, -b - o, w, b)
 path2.addRect(-w * 0.5, +o, w, b)
 r3 = 5
-path3 = QPainterPath()
+path3 = QtWidgets.QPainterPath()
 path3.addEllipse(-0.5 * r3, -0.5 * r3, r3, r3)  # addRect(-0.5,-0.5, 1, 1)
 point_display_types = [path1, path2, path3]
 point_display_type = 0
 
-path_circle = QPainterPath()
+path_circle = QtWidgets.QPainterPath()
 #path_circle.arcTo(-5, -5, 10, 10, 0, 130)
 path_circle.addEllipse(-5, -5, 10, 10)
 
@@ -194,9 +187,9 @@ class DeleteType(QtGui.QDialog):
         layout2.addWidget(button3)
 
 
-class MarkerEditor(QWidget):
+class MarkerEditor(QtWidgets.QWidget):
     def __init__(self, marker_handler, data_file, marker_item=None, type_item=None):
-        QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
 
         self.data_file = data_file
 
@@ -221,15 +214,17 @@ class MarkerEditor(QWidget):
         types = self.db.table_types.select()
         for row, type in enumerate(types):
             item = QtGui.QStandardItem(type.name)
-            item.setIcon(qta.icon("fa.crosshairs", color=QColor(*HTMLColorToRGB(type.color))))
+            item.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
             item.setEditable(False)
-            self.modelItems_marker[item] = type
+            item.entry = type
+            #self.modelItems_marker[item] = type
 
             if type.mode & TYPE_Track:
                 tracks = self.db.table_tracks.select().join(self.db.table_marker).where(self.db.table_marker.type == type).group_by(self.db.table_tracks.id)
                 for track in tracks:
                     child = QtGui.QStandardItem("Track #%d" % track.id)
-                    self.modelItems_marker[child] = track
+                    child.entry = track
+                    #self.modelItems_marker[child] = track
                     child.setEditable(False)
                     item.appendRow(child)
                     markers = self.db.table_marker.select().where(self.db.table_marker.type == type, self.db.table_marker.track == track)
@@ -239,7 +234,8 @@ class MarkerEditor(QWidget):
                         child2.setEditable(False)
                         child.appendRow(child2)
                         self.marker_modelitems[marker.id] = child2
-                        self.modelItems_marker[child2] = marker
+                        child2.entry = marker
+                        #self.modelItems_marker[child2] = marker
                         count += 1
                     child.setText("Track #%d (%d)" % (track.id, count))
             else:
@@ -249,23 +245,25 @@ class MarkerEditor(QWidget):
                     child.setEditable(False)
                     item.appendRow(child)
                     self.marker_modelitems[marker.id] = child
-                    self.modelItems_marker[child] = marker
+                    child.entry = marker
+                    #self.modelItems_marker[child] = marker
 
             model.setItem(row, 0, item)
         item = QtGui.QStandardItem("add type")
         item.setIcon(qta.icon("fa.plus"))
         item.setEditable(False)
         self.new_type = self.db.table_types()
-        self.modelItems_marker[item] = self.new_type
+        item.entry = self.new_type
+        #self.modelItems_marker[item] = self.new_type
         model.setItem(row+1, 0, item)
 
-        self.modelItems_marker = {item.index(): self.modelItems_marker[item] for item in self.modelItems_marker}
+        #self.modelItems_marker = {item.index(): self.modelItems_marker[item] for item in self.modelItems_marker}
 
         tree.setUniformRowHeights(True)
         tree.setHeaderHidden(True)
         tree.setAnimated(True)
         tree.setModel(model)
-        tree.clicked.connect(lambda x: self.setMarker(self.modelItems_marker[x]))
+        tree.clicked.connect(lambda index: self.setMarker(index.model().itemFromIndex(index).entry))
         self.tree = tree
 
         self.layout = QtGui.QVBoxLayout()
@@ -309,17 +307,17 @@ class MarkerEditor(QWidget):
         layout.addStretch()
 
         """ Control Buttons """
-        horizontal_layout = QHBoxLayout()
+        horizontal_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(horizontal_layout)
-        self.pushbutton_Confirm = QPushButton('S&ave', self)
+        self.pushbutton_Confirm = QtWidgets.QPushButton('S&ave', self)
         self.pushbutton_Confirm.pressed.connect(self.saveMarker)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
-        self.pushbutton_Remove = QPushButton('R&emove', self)
+        self.pushbutton_Remove = QtWidgets.QPushButton('R&emove', self)
         self.pushbutton_Remove.pressed.connect(self.removeMarker)
         horizontal_layout.addWidget(self.pushbutton_Remove)
 
-        self.pushbutton_Cancel = QPushButton('&Cancel', self)
+        self.pushbutton_Cancel = QtWidgets.QPushButton('&Cancel', self)
         self.pushbutton_Cancel.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
@@ -494,7 +492,7 @@ class MarkerEditor(QWidget):
             self.saveMarker()
 
 
-class MyMarkerItem(QGraphicsPathItem):
+class MyMarkerItem(QtWidgets.QGraphicsPathItem):
     style = {}
     scale_value = 1
 
@@ -508,7 +506,7 @@ class MyMarkerItem(QGraphicsPathItem):
     text = None
 
     def __init__(self, marker_handler, parent, data, saved=False):
-        QGraphicsPathItem.__init__(self, parent)
+        QtWidgets.QGraphicsPathItem.__init__(self, parent)
         self.parent = parent
         self.marker_handler = marker_handler
         self.data = data
@@ -534,25 +532,25 @@ class MyMarkerItem(QGraphicsPathItem):
 
         if self.partner:
             if self.data.type.mode & TYPE_Rect:
-                self.rectObj = QGraphicsRectItem(self.parent)
+                self.rectObj = QtWidgets.QGraphicsRectItem(self.parent)
             elif self.data.type.mode & TYPE_Line:
-                self.rectObj = QGraphicsLineItem(self.parent)
-            self.rectObj.setPen(QPen(QColor(*self.style["color"])))
+                self.rectObj = QtWidgets.QGraphicsLineItem(self.parent)
+            self.rectObj.setPen(QtGui.QPen(QtGui.QColor(*self.style["color"])))
             self.UpdateRect()
 
         self.ApplyStyle()
 
     def setText(self, text):
         if self.text is None:
-            self.font = QFont()
+            self.font = QtGui.QFont()
             self.font.setPointSize(10)
-            self.text_parent = QGraphicsPathItem(self)
+            self.text_parent = QtWidgets.QGraphicsPathItem(self)
             self.text_parent.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
-            self.text = QGraphicsSimpleTextItem(self.text_parent)
+            self.text = QtWidgets.QGraphicsSimpleTextItem(self.text_parent)
             self.text.setFont(self.font)
             self.text.setPos(5, 5)
             self.text.setZValue(10)
-            self.text.setBrush(QBrush(QColor(*self.color)))
+            self.text.setBrush(QtGui.QBrush(QtGui.QColor(*self.color)))
         self.text.setText(text)
 
     def GetStyle(self):
@@ -599,15 +597,15 @@ class MyMarkerItem(QGraphicsPathItem):
             self.setText(self.data.text)
 
     def ApplyStyle(self):
-        self.color = QColor(*self.style["color"])
+        self.color = QtGui.QColor(*self.style["color"])
         if self.style.get("shape", "cross") == "cross":
-            self.setBrush(QBrush(self.color))
-            self.setPen(QPen(QColor(0, 0, 0, 0)))
+            self.setBrush(QtGui.QBrush(self.color))
+            self.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         else:
-            self.setBrush(QBrush(QColor(0, 0, 0, 0)))
-            self.setPen(QPen(self.color, self.style.get("line-width", 1)))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
+            self.setPen(QtGui.QPen(self.color, self.style.get("line-width", 1)))
         if self.text:
-            self.text.setBrush(QBrush(QColor(self.color)))
+            self.text.setBrush(QtGui.QBrush(QtGui.QColor(self.color)))
         self.UpdatePath()
         self.setScale(None)
 
@@ -683,7 +681,7 @@ class MyMarkerItem(QGraphicsPathItem):
             else:
                 self.dragged = True
                 self.drag_start_pos = event.pos()
-                self.setCursor(QCursor(QtCore.Qt.BlankCursor))
+                self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
                 if self.UseCrosshair:
                     self.marker_handler.Crosshair.Show(self)
                     self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
@@ -713,7 +711,7 @@ class MyMarkerItem(QGraphicsPathItem):
             self.marker_handler.PointsUnsaved = True
             self.SetProcessed(0)
             self.data.save()
-            self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+            self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
             self.marker_handler.Crosshair.Hide()
             pass
 
@@ -737,8 +735,8 @@ class MyMarkerItem(QGraphicsPathItem):
         if scale is not None:
             self.scale_value = scale
         if self.rectObj:
-            self.rectObj.setPen(QPen(self.color, 2 * self.scale_value))
-        super(QGraphicsPathItem, self).setScale(self.scale_value*self.style.get("scale", 1))
+            self.rectObj.setPen(QtGui.QPen(self.color, 2 * self.scale_value))
+        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value*self.style.get("scale", 1))
 
     def save(self):
         if not self.saved:
@@ -781,9 +779,9 @@ class MyTrackItem(MyMarkerItem):
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
 
-        self.pathItem = QGraphicsPathItem(self.parent)
-        self.path = QPainterPath()
-        self.pathItem.setPen(QPen(self.color))
+        self.pathItem = QtWidgets.QGraphicsPathItem(self.parent)
+        self.path = QtWidgets.QPainterPath()
+        self.pathItem.setPen(QtGui.QPen(self.color))
 
         self.hidden = False
         self.active = True
@@ -932,7 +930,7 @@ class MyTrackItem(MyMarkerItem):
         return False
 
     def UpdateLine(self):
-        self.path = QPainterPath()
+        self.path = QtWidgets.QPainterPath()
         circle_width = self.scale_value * 10 * self.track_style.get("track-point-scale", 1)
         last_frame = None
         shape = self.track_style.get("track-point-shape", "circle")
@@ -1012,7 +1010,7 @@ class MyTrackItem(MyMarkerItem):
             line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine, dashdotdot=Qt.DashDotDotLine)
             line_style = line_styles[self.track_style.get("track-line-style", "solid")]
             line_width = self.track_style.get("track-line-width", 2)
-            self.pathItem.setPen(QPen(QColor(*self.track_style["color"]), line_width * self.scale_value, line_style))
+            self.pathItem.setPen(QtGui.QPen(QtGui.QColor(*self.track_style["color"]), line_width * self.scale_value, line_style))
             self.UpdateLine()
         except AttributeError:
             pass
@@ -1023,9 +1021,9 @@ class MyTrackItem(MyMarkerItem):
             self.saved = True
 
 
-class Crosshair(QGraphicsPathItem):
+class Crosshair(QtWidgets.QGraphicsPathItem):
     def __init__(self, parent, view, image, config):
-        QGraphicsPathItem.__init__(self, parent)
+        QtWidgets.QGraphicsPathItem.__init__(self, parent)
         self.parent = parent
         self.view = view
         self.image = image
@@ -1040,34 +1038,34 @@ class Crosshair(QGraphicsPathItem):
         self.CrosshairQImage = array2qimage(self.Image)
         self.CrosshairQImageView = rgb_view(self.CrosshairQImage)
 
-        self.Crosshair = QGraphicsPixmapItem(QPixmap(self.CrosshairQImage), self)
+        self.Crosshair = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(self.CrosshairQImage), self)
         self.Crosshair.setOffset(-self.radius, -self.radius)
         self.setPos(self.radius * 3, self.radius * 3)
         self.Crosshair.setZValue(-5)
         self.setZValue(30)
         self.setVisible(False)
 
-        self.pathCrosshair = QPainterPath()
+        self.pathCrosshair = QtWidgets.QPainterPath()
         self.pathCrosshair.addEllipse(-self.radius, -self.radius, self.radius * 2, self.radius * 2)
 
         w = 0.333 * 0.5
         b = 40
         r2 = 50
-        self.pathCrosshair2 = QPainterPath()
+        self.pathCrosshair2 = QtWidgets.QPainterPath()
         self.pathCrosshair2.addRect(-r2, -w, b, w * 2)
         self.pathCrosshair2.addRect(r2, -w, -b, w * 2)
         self.pathCrosshair2.addRect(-w, -r2, w * 2, b)
         self.pathCrosshair2.addRect(-w, r2, w * 2, -b)
 
-        self.CrosshairPathItem = QGraphicsPathItem(self.pathCrosshair, self)
+        self.CrosshairPathItem = QtWidgets.QGraphicsPathItem(self.pathCrosshair, self)
         # self.setPath(self.pathCrosshair)
-        self.CrosshairPathItem2 = QGraphicsPathItem(self.pathCrosshair2, self)
+        self.CrosshairPathItem2 = QtWidgets.QGraphicsPathItem(self.pathCrosshair2, self)
 
     def setScale(self, value):
-        QGraphicsPathItem.setScale(self, value)
+        QtWidgets.QGraphicsPathItem.setScale(self, value)
         self.scale = value
         if not self.SetZoom(value):
-            QGraphicsPathItem.setScale(self, 0)
+            QtWidgets.QGraphicsPathItem.setScale(self, 0)
         return True
 
     def SetZoom(self, new_radius=None):
@@ -1084,7 +1082,7 @@ class Crosshair(QGraphicsPathItem):
         self.Image = np.concatenate((self.RGB, self.Alpha[:, :, None]), axis=2)
         self.CrosshairQImage = array2qimage(self.Image)
         self.CrosshairQImageView = rgb_view(self.CrosshairQImage)
-        self.Crosshair.setPixmap(QPixmap(self.CrosshairQImage))
+        self.Crosshair.setPixmap(QtGui.QPixmap(self.CrosshairQImage))
         self.Crosshair.setScale(1 / self.radius * 50)
         self.Crosshair.setOffset(-self.radius - 0.5, -self.radius - 0.5)
         self.MoveCrosshair(self.pos().x(), self.pos().y())
@@ -1099,7 +1097,7 @@ class Crosshair(QGraphicsPathItem):
         self.CrosshairQImageView[:, :, :] = self.SaveSlice(self.image.image,
                                                            [[y - self.radius, y + self.radius + 1],
                                                             [x - self.radius, x + self.radius + 1], [0, 3]])
-        self.Crosshair.setPixmap(QPixmap(self.CrosshairQImage))
+        self.Crosshair.setPixmap(QtGui.QPixmap(self.CrosshairQImage))
 
     @staticmethod
     def SaveSlice(source, slices):
@@ -1132,19 +1130,19 @@ class Crosshair(QGraphicsPathItem):
                 self.setScale(self.scale)
             else:
                 self.setScale(0)
-        self.CrosshairPathItem2.setPen(QPen(point.color))
-        self.CrosshairPathItem.setPen(QPen(point.color))
+        self.CrosshairPathItem2.setPen(QtGui.QPen(point.color))
+        self.CrosshairPathItem.setPen(QtGui.QPen(point.color))
 
 
-class MyCounter(QGraphicsRectItem):
+class MyCounter(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, marker_handler, type, index):
-        QGraphicsRectItem.__init__(self, parent)
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
         self.marker_handler = marker_handler
         self.type = type
         self.index = index
         self.count = 0
-        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
         self.setAcceptHoverEvents(True)
         self.active = False
@@ -1152,16 +1150,16 @@ class MyCounter(QGraphicsRectItem):
         self.font = self.marker_handler.window.mono_font
         self.font.setPointSize(14)
 
-        self.text = QGraphicsSimpleTextItem(self)
+        self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         self.text.setFont(self.font)
         if self.type is not None:
-            self.color = QColor(*HTMLColorToRGB(self.type.color))
+            self.color = QtGui.QColor(*HTMLColorToRGB(self.type.color))
         else:
-            self.color = QColor("white")
-        self.text.setBrush(QBrush(self.color))
+            self.color = QtGui.QColor("white")
+        self.text.setBrush(QtGui.QBrush(self.color))
         self.text.setZValue(10)
 
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
         self.setPos(10, 10 + 25 * self.index)
         self.setZValue(9)
 
@@ -1186,19 +1184,19 @@ class MyCounter(QGraphicsRectItem):
 
     def SetToActiveColor(self):
         self.active = True
-        self.setBrush(QBrush(QColor(255, 255, 255, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
 
     def SetToInactiveColor(self):
         self.active = False
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def hoverEnterEvent(self, event):
         if self.active is False:
-            self.setBrush(QBrush(QColor(128, 128, 128, 128)))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
 
     def hoverLeaveEvent(self, event):
         if self.active is False:
-            self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
         if event.button() == 2 or self.type is None:
@@ -1253,10 +1251,10 @@ class MarkerHandler:
         if self.config.hide_interfaces:
             self.hidden = True
 
-        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
+        self.MarkerParent = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
         self.MarkerParent.setZValue(10)
 
-        self.TrackParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
+        self.TrackParent = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
         self.TrackParent.setZValue(10)
 
         self.scene_event_filter = GraphicsItemEventFilter(parent, self)
@@ -1361,7 +1359,7 @@ class MarkerHandler:
     def ClearPoints(self):
         self.points = []
         self.view.scene.removeItem(self.MarkerParent)
-        self.MarkerParent = QGraphicsPixmapItem(QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
+        self.MarkerParent = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
         self.MarkerParent.setZValue(10)
 
     def RemovePoint(self, point, no_notice=False):
@@ -1408,7 +1406,7 @@ class MarkerHandler:
         for point in self.points:
             point.setActive(active)
         if active:
-            self.view.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+            self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             if self.active_type_index is not None:
                 self.counter[self.active_type_index].SetToActiveColor()
         else:

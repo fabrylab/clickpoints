@@ -1,12 +1,7 @@
 from __future__ import division, print_function
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QTextStream, QGridLayout
-    from PyQt5.QtCore import Qt
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QDialog, QGridLayout, QHBoxLayout, QVBoxLayout,QSizePolicy, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, QTableWidgetItem, QRadioButton
-    from PyQt4.QtCore import Qt, QTextStream, QFile
+
+from qtpy import QtGui, QtCore, QtWidgets
+from qtpy.QtCore import Qt
 import qtawesome as qta
 
 import sys
@@ -139,7 +134,7 @@ class AnnotationFile:
     def getAnnotationsByIds(self, id_list):
         return self.table_annotation.select(peewee.SQL("*"), peewee.SQL("GROUP_CONCAT(t3.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tags, join_type="LEFT JOIN").group_by(self.table_annotation.id)
 
-class pyQtTagSelector(QWidget):
+class pyQtTagSelector(QtWidgets.QWidget):
     class unCheckBox(QtGui.QCheckBox):
         def __init__(self, parent, name):
             super(QtGui.QCheckBox, self).__init__(parent)
@@ -161,13 +156,13 @@ class pyQtTagSelector(QWidget):
             self.deleteLater()
 
     def __init__(self, parent=None):
-        super(QWidget, self).__init__(parent)
+        super(QtWidgets.QWidget, self).__init__(parent)
 
         self.cbTag = QtGui.QComboBox(self)
         self.cbTag.addItems([''])
         self.cbTag.setInsertPolicy(QtGui.QComboBox.InsertAtBottom)
         self.cbTag.setEditable(True)
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         self.cbTag.setSizePolicy(sizePolicy)
         self.cbTag.activated.connect(self.hPB_add)
@@ -215,9 +210,9 @@ class pyQtTagSelector(QWidget):
             self.layout_list.addWidget(cb)
 
 
-class AnnotationEditor(QWidget):
+class AnnotationEditor(QtWidgets.QWidget):
     def __init__(self, annotation_handler, filename, filenr, db, modules, config):
-        QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
 
         # default settings and parameters
         self.annotation_handler = annotation_handler
@@ -237,48 +232,48 @@ class AnnotationEditor(QWidget):
         self.setMinimumHeight(400)
         self.setWindowTitle("Edit Annotation - ClickPoints")
         self.setWindowIcon(qta.icon("fa.file-text-o"))
-        self.layout = QGridLayout(self)
+        self.layout = QtWidgets.QGridLayout(self)
 
-        self.layout.addWidget(QLabel('Filename:'), 0, 0)
-        self.leAName = QLineEdit(filename, self)
+        self.layout.addWidget(QtWidgets.QLabel('Filename:'), 0, 0)
+        self.leAName = QtWidgets.QLineEdit(filename, self)
         self.leAName.setEnabled(False)
         self.layout.addWidget(self.leAName, 0, 1, 1, 3)
 
-        self.laTag = QLabel('Tag:', self)
+        self.laTag = QtWidgets.QLabel('Tag:', self)
         self.laTag.setContentsMargins(0, 4, 0, 0)
         self.layout.addWidget(self.laTag, 4, 0, Qt.AlignTop)
 
         self.leTag = pyQtTagSelector()
         self.layout.addWidget(self.leTag, 4, 1)
 
-        self.laRating = QLabel('Rating:', self)
+        self.laRating = QtWidgets.QLabel('Rating:', self)
         self.laRating.setContentsMargins(0, 4, 0, 0)
         self.layout.addWidget(self.laRating, 4, 2, Qt.AlignTop)
-        self.leRating = QComboBox(self)
+        self.leRating = QtWidgets.QComboBox(self)
         for index, text in enumerate(['0 - none', '1 - bad', '2', '3', '4', '5 - good']):
             self.leRating.insertItem(index, text)
-        self.leRating.setInsertPolicy(QComboBox.NoInsert)
+        self.leRating.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
         self.leRating.setContentsMargins(0, 5, 0, 0)
         self.layout.addWidget(self.leRating, 4, 3, Qt.AlignTop)
 
-        self.pbConfirm = QPushButton('S&ave', self)
+        self.pbConfirm = QtWidgets.QPushButton('S&ave', self)
         self.pbConfirm.pressed.connect(self.saveAnnotation)
         self.layout.addWidget(self.pbConfirm, 0, 4)
 
-        self.pbDiscard = QPushButton('&Cancel', self)
+        self.pbDiscard = QtWidgets.QPushButton('&Cancel', self)
         self.pbDiscard.pressed.connect(self.close)
         self.layout.addWidget(self.pbDiscard, 1, 4)
 
         if exists:
-            self.pbRemove = QPushButton('&Remove', self)
+            self.pbRemove = QtWidgets.QPushButton('&Remove', self)
             self.pbRemove.pressed.connect(self.removeAnnotation)
             self.layout.addWidget(self.pbRemove, 4, 4, Qt.AlignTop)
 
-        self.pbOverview = QPushButton('Show Overview', self)
+        self.pbOverview = QtWidgets.QPushButton('Show Overview', self)
         self.pbOverview.pressed.connect(self.annotation_handler.showAnnotationOverview)
         self.layout.addWidget(self.pbOverview, 5, 4, Qt.AlignTop)
 
-        self.pteAnnotation = QPlainTextEdit(self)
+        self.pteAnnotation = QtWidgets.QPlainTextEdit(self)
         self.pteAnnotation.setFocus()
         self.layout.addWidget(self.pteAnnotation, 5, 0, 5, 4)
 
@@ -321,28 +316,28 @@ class AnnotationEditor(QWidget):
             self.saveAnnotation()
 
 
-class AnnotationOverview(QWidget):
+class AnnotationOverview(QtWidgets.QWidget):
     def __init__(self, window, config, annoation_ids, db):
-        QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
 
         # widget layout and elements
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
         self.setWindowTitle('Annotations Overview - ClickPoints')
-        self.layout = QGridLayout(self)
+        self.layout = QtWidgets.QGridLayout(self)
         self.annoation_ids = annoation_ids
         self.window = window
         self.config = config
         self.db = db
 
-        self.table = QTableWidget(0, 7, self)
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table = QtWidgets.QTableWidget(0, 7, self)
+        self.table.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
         self.table.setHorizontalHeaderLabels(['Date', 'Tag', 'Comment', 'R', 'image', 'image_frame', 'id'])
         self.table.hideColumn(4)
         self.table.hideColumn(5)
         self.table.hideColumn(6)
-        self.table.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setResizeMode(2, QHeaderView.Stretch)
+        self.table.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.Stretch)
         self.table.verticalHeader().hide()
         self.layout.addWidget(self.table)
 
@@ -368,7 +363,7 @@ class AnnotationOverview(QWidget):
         if self.table.rowCount() <= row:
             self.table.insertRow(self.table.rowCount())
             for j in range(7):
-                self.table.setItem(row, j, QTableWidgetItem())
+                self.table.setItem(row, j, QtWidgets.QTableWidgetItem())
             new = True
         if self.config.server_annotations is True:
             filename = annotation.reffilename

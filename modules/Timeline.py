@@ -7,16 +7,8 @@ import numpy as np
 import datetime
 from threading import Thread
 
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QIcon, QGraphicsRectItem, QPen, QBrush, QColor, QLinearGradient, QGraphicsPathItem, QPainterPath, QGraphicsScene, QGraphicsView, QPalette, QCursor
-    from PyQt5.QtCore import Qt, QPointF, QObject
-    from PyQt5.QtCore import pyqtSignal
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QIcon, QGraphicsRectItem, QPen, QBrush, QColor, QLinearGradient, QGraphicsPathItem, QPainterPath, QGraphicsScene, QGraphicsView, QPalette, QCursor
-    from PyQt4.QtCore import Qt, QPointF, QObject
-    from PyQt4.QtCore import pyqtSignal
+from qtpy import QtGui, QtCore, QtWidgets
+from qtpy.QtCore import Qt
 import qtawesome as qta
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
@@ -75,25 +67,25 @@ def Remap(value, minmax1, minmax2):
         value2 = datetime.timedelta(seconds=percentage*length2.total_seconds()) + minmax2[0]
     return value2
 
-class TimeLineGrabberSignal(QObject):
-    sliderPressed = pyqtSignal()
-    sliderMoved = pyqtSignal()
-    sliderReleased = pyqtSignal()
+class TimeLineGrabberSignal(QtCore.QObject):
+    sliderPressed = QtCore.pyqtSignal()
+    sliderMoved = QtCore.pyqtSignal()
+    sliderReleased = QtCore.pyqtSignal()
 
-class TimeLineGrabber(QGraphicsPathItem):
+class TimeLineGrabber(QtWidgets.QGraphicsPathItem):
     def __init__(self, parent, value, path, gradient, parent_item=None):
         if parent_item is None:
-            QGraphicsPathItem.__init__(self, None, parent.scene)
+            QtWidgets.QGraphicsPathItem.__init__(self, None, parent.scene)
         else:
-            QGraphicsPathItem.__init__(self, parent_item)
+            QtWidgets.QGraphicsPathItem.__init__(self, parent_item)
         self.parent = parent
         self.pixel_range = [0, 100]
         self.value_range = [0, 100]
-        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
         self.dragged = False
 
         self.setPath(path)
-        self.setBrush(QBrush(gradient))
+        self.setBrush(QtGui.QBrush(gradient))
         self.setZValue(10)
         self.value = value
 
@@ -147,67 +139,67 @@ class TimeLineGrabberTime(TimeLineGrabber):
         self.value = value
         self.updatePos()
 
-class TimeLineSlider(QGraphicsView):
+class TimeLineSlider(QtWidgets.QGraphicsView):
     def __init__(self, max_value=100, min_value=0):
-        QGraphicsView.__init__(self)
+        QtWidgets.QGraphicsView.__init__(self)
 
         self.setMaximumHeight(30)
         #self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-        self.scene = QGraphicsScene(self)
+        self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
-        self.scene.setBackgroundBrush(self.palette().color(QPalette.Background))
+        self.scene.setBackgroundBrush(self.palette().color(QtGui.QPalette.Background))
         self.setStyleSheet("border: 0px")
 
         self.max_value = max_value
         self.min_value = min_value
 
-        self.slider_line = QGraphicsRectItem(None, self.scene)
-        self.slider_line.setPen(QPen(QColor("black")))
+        self.slider_line = QtWidgets.QGraphicsRectItem(None, self.scene)
+        self.slider_line.setPen(QtGui.QPen(QtGui.QColor("black")))
         self.slider_line.setPos(0, -2.5)
-        gradient = QLinearGradient(QPointF(0, 0), QPointF(0, 5))
-        gradient.setColorAt(0, QColor("black"))
-        gradient.setColorAt(1, QColor(128, 128, 128))
-        self.slider_line.setBrush(QBrush(gradient))
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(0, 0), QtCore.QPointF(0, 5))
+        gradient.setColorAt(0, QtGui.QColor("black"))
+        gradient.setColorAt(1, QtGui.QColor(128, 128, 128))
+        self.slider_line.setBrush(QtGui.QBrush(gradient))
         self.slider_line.mousePressEvent = self.SliderBarMousePressEvent
 
-        self.slider_line_active = QGraphicsRectItem(None, self.scene)
-        self.slider_line_active.setPen(QPen(QColor("black")))
+        self.slider_line_active = QtWidgets.QGraphicsRectItem(None, self.scene)
+        self.slider_line_active.setPen(QtGui.QPen(QtGui.QColor("black")))
         self.slider_line_active.setPos(0, -2.5)
-        gradient = QLinearGradient(QPointF(0, 0), QPointF(0, 5))
-        gradient.setColorAt(0, QColor(128, 128, 128))
-        gradient.setColorAt(1, QColor(200, 200, 200))
-        self.slider_line_active.setBrush(QBrush(gradient))
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(0, 0), QtCore.QPointF(0, 5))
+        gradient.setColorAt(0, QtGui.QColor(128, 128, 128))
+        gradient.setColorAt(1, QtGui.QColor(200, 200, 200))
+        self.slider_line_active.setBrush(QtGui.QBrush(gradient))
 
-        path = QPainterPath()
+        path = QtWidgets.QPainterPath()
         path.moveTo(-4, +12)
         path.lineTo( 0,  +2.5)
         path.lineTo(+4, +12)
         path.lineTo(-4, +12)
-        gradient = QLinearGradient(QPointF(0, 12), QPointF(0, 2.5))
-        gradient.setColorAt(0, QColor(255, 0, 0))
-        gradient.setColorAt(1, QColor(128, 0, 0))
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(0, 12), QtCore.QPointF(0, 2.5))
+        gradient.setColorAt(0, QtGui.QColor(255, 0, 0))
+        gradient.setColorAt(1, QtGui.QColor(128, 0, 0))
         self.slider_start = TimeLineGrabber(self, 0, path, gradient)
         self.slider_start.signal.sliderMoved.connect(self.slider_start_changed)
 
-        path = QPainterPath()
+        path = QtWidgets.QPainterPath()
         path.moveTo(-4, -12)
         path.lineTo( 0,  -2.5)
         path.lineTo(+4, -12)
         path.lineTo(-4, -12)
-        gradient = QLinearGradient(QPointF(0, -12), QPointF(0, -2.5))
-        gradient.setColorAt(0, QColor(255, 0, 0))
-        gradient.setColorAt(1, QColor(128, 0, 0))
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(0, -12), QtCore.QPointF(0, -2.5))
+        gradient.setColorAt(0, QtGui.QColor(255, 0, 0))
+        gradient.setColorAt(1, QtGui.QColor(128, 0, 0))
         self.slider_end = TimeLineGrabber(self, 100, path, gradient)
         self.slider_end.signal.sliderMoved.connect(self.slider_end_changed)
 
-        path = QPainterPath()
+        path = QtWidgets.QPainterPath()
         path.addRect(-2, -7, 5, 14)
-        gradient = QLinearGradient(QPointF(0, -7), QPointF(0, 14))
-        gradient.setColorAt(0, QColor(255, 0, 0))
-        gradient.setColorAt(1, QColor(128, 0, 0))
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(0, -7), QtCore.QPointF(0, 14))
+        gradient.setColorAt(0, QtGui.QColor(255, 0, 0))
+        gradient.setColorAt(1, QtGui.QColor(128, 0, 0))
         self.slider_position = TimeLineGrabber(self, 0, path, gradient)
 
         self.length = 1
@@ -218,9 +210,9 @@ class TimeLineSlider(QGraphicsView):
         self.setValue(self.PixelToValue(self.slider_line.mapToScene(event.pos()).x()))
         self.slider_position.signal.sliderReleased.emit()
 
-    def addTickMarker(self, pos, type=0, color=QColor("red"), height=12):
+    def addTickMarker(self, pos, type=0, color=QtGui.QColor("red"), height=12):
         if type == 1:
-            color = QColor("green")
+            color = QtGui.QColor("green")
             height = 8
         if pos in self.tick_marker and type in self.tick_marker[pos]:
             tick_marker = self.tick_marker[pos][type]
@@ -228,9 +220,9 @@ class TimeLineSlider(QGraphicsView):
             width = self.ValueToPixel(1)
             if pos == self.max_value:
                 width = 2
-            tick_marker = QGraphicsRectItem(0.0, -3.5, width, -height, None, self.scene)
-        tick_marker.setPen(QPen(color))
-        tick_marker.setBrush(QBrush(color))
+            tick_marker = QtWidgets.QGraphicsRectItem(0.0, -3.5, width, -height, None, self.scene)
+        tick_marker.setPen(QtGui.QPen(color))
+        tick_marker.setBrush(QtGui.QBrush(color))
         tick_marker.value = pos
         tick_marker.type = type
         tick_marker.height = height
@@ -354,38 +346,38 @@ class TimeLineSlider(QGraphicsView):
         event.setAccepted(False)
         return
 
-class RealTimeSlider(QGraphicsView):
+class RealTimeSlider(QtWidgets.QGraphicsView):
     def __init__(self):
-        QGraphicsView.__init__(self)
+        QtWidgets.QGraphicsView.__init__(self)
 
         self.setMaximumHeight(30)
         #self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-        self.scene = QGraphicsScene(self)
+        self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
-        self.scene.setBackgroundBrush(self.palette().color(QPalette.Background))
+        self.scene.setBackgroundBrush(self.palette().color(QtGui.QPalette.Background))
         self.setStyleSheet("border: 0px")
 
-        self.slider_line = QGraphicsRectItem(None, self.scene)
-        self.slider_line.setPen(QPen(QColor("black")))
+        self.slider_line = QtWidgets.QGraphicsRectItem(None, self.scene)
+        self.slider_line.setPen(QtGui.QPen(QtGui.QColor("black")))
         self.slider_line.setPos(0, 0)
-        gradient = QLinearGradient(QPointF(0, 0), QPointF(0, 5))
-        gradient.setColorAt(0, QColor("black"))
-        gradient.setColorAt(1, QColor(128, 128, 128))
-        self.slider_line.setBrush(QBrush(gradient))
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(0, 0), QtCore.QPointF(0, 5))
+        gradient.setColorAt(0, QtGui.QColor("black"))
+        gradient.setColorAt(1, QtGui.QColor(128, 128, 128))
+        self.slider_line.setBrush(QtGui.QBrush(gradient))
 
-        self.markerParent = QGraphicsPathItem(self.slider_line)
+        self.markerParent = QtWidgets.QGraphicsPathItem(self.slider_line)
         self.markerGroupParents = []
         for i in range(20):
-            self.markerGroupParents.append(QGraphicsPathItem(self.markerParent))
+            self.markerGroupParents.append(QtWidgets.QGraphicsPathItem(self.markerParent))
 
-        path = QPainterPath()
+        path = QtGui.QPainterPath()
         path.addRect(-2, -7, 5, 14)
-        gradient = QLinearGradient(QPointF(0, -7), QPointF(0, 14))
-        gradient.setColorAt(0, QColor(255, 0, 0))
-        gradient.setColorAt(1, QColor(128, 0, 0))
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(0, -7), QtCore.QPointF(0, 14))
+        gradient.setColorAt(0, QtGui.QColor(255, 0, 0))
+        gradient.setColorAt(1, QtGui.QColor(128, 0, 0))
         self.slider_position = TimeLineGrabberTime(self, 0, path, gradient, parent_item=self.markerGroupParents[-1])
         self.slider_position.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
 
@@ -415,7 +407,7 @@ class RealTimeSlider(QGraphicsView):
         self.slider_position.signal.sliderReleased.emit()
 
     def addTickBlock(self, pos1, pos2):
-        color = QColor(128, 128, 128)
+        color = QtGui.QColor(128, 128, 128)
         height = 10
 
         x1 = Remap(pos1, [self.min_value, self.max_value], [0, self.pixel_len])
@@ -424,13 +416,13 @@ class RealTimeSlider(QGraphicsView):
         tick_block = QtGui.QGraphicsRectItem(0, -2, x2-x1, -height, self.markerGroupParents[0])
         tick_block.setPos(x1, 0)
 
-        tick_block.setBrush(QBrush(color))
-        tick_block.setPen(QPen(color))
+        tick_block.setBrush(QtGui.QBrush(color))
+        tick_block.setPen(QtGui.QPen(color))
         tick_block.setZValue(-10)
 
         self.tick_blocks.append(tick_block)
 
-    def addTickMarker(self, pos, type=-1, type_name="", color=QColor("red"), height=12, text=""):
+    def addTickMarker(self, pos, type=-1, type_name="", color=QtGui.QColor("red"), height=12, text=""):
         if type == -1:
             tick_marker = QtGui.QGraphicsLineItem(0, -3, 0, -height, self.markerParent)
             tick_marker.setZValue(-10)
@@ -449,9 +441,9 @@ class RealTimeSlider(QGraphicsView):
                 text = "%04d" % pos.year
             tick_marker = QtGui.QGraphicsLineItem(0, 3, 0, -height, self.markerGroupParents[type])
             tick_marker.setZValue(10)
-        tick_marker.setPen(QPen(color))
+        tick_marker.setPen(QtGui.QPen(color))
         if type == -1:
-            tick_marker.setPen(QPen(color, 3))
+            tick_marker.setPen(QtGui.QPen(color, 3))
         tick_marker.value = pos
         tick_marker.type = type
         tick_marker.height = height
@@ -752,8 +744,8 @@ class RealTimeSlider(QGraphicsView):
 def PosToArray(pos):
     return np.array([pos.x(), pos.y()])
 
-class PreciseTimer(QObject):
-    timeout = pyqtSignal()
+class PreciseTimer(QtCore.QObject):
+    timeout = QtCore.pyqtSignal()
     thread = None
     timer_start = None
     delta = 1
@@ -762,7 +754,7 @@ class PreciseTimer(QObject):
     active = 1
 
     def __init__(self, ):
-        QObject.__init__(self)
+        QtCore.QObject.__init__(self)
         self.timer_start = time.time()
 
     def start(self, delta=None):
@@ -793,11 +785,11 @@ class PreciseTimer(QObject):
                 self.active = 0
             time.sleep(0.01)
 
-class Timeline(QObject):
-    images_added_signal = pyqtSignal()
+class Timeline(QtCore.QObject):
+    images_added_signal = QtCore.pyqtSignal()
 
     def __init__(self, window, data_file, layout, outputpath, config, modules):
-        QObject.__init__(self)
+        QtCore.QObject.__init__(self)
 
         self.window = window
         self.data_file = data_file
@@ -962,11 +954,11 @@ class Timeline(QObject):
     def Play(self, state):
         if state:
             self.timer.start(1000 / self.fps)
-            self.button_play.setIcon(QIcon(os.path.join(icon_path, "media-playback-pause.png")))
+            self.button_play.setIcon(QtGui.QIcon(os.path.join(icon_path, "media-playback-pause.png")))
             self.playing = True
         else:
             self.timer.stop()
-            self.button_play.setIcon(QIcon(os.path.join(icon_path, "media-playback-start.png")))
+            self.button_play.setIcon(QtGui.QIcon(os.path.join(icon_path, "media-playback-start.png")))
             self.playing = False
 
     def updateFrame(self, nr=-1):

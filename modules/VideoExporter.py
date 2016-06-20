@@ -1,10 +1,7 @@
 from __future__ import division, print_function
 import os
 
-try:
-    from PyQt5 import QtCore, QtGui
-except ImportError:
-    from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
 
 import imageio

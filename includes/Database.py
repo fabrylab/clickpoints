@@ -12,7 +12,7 @@ except ImportError:
     from io import StringIO  # python 3
 import imageio
 from threading import Thread
-from PyQt4 import QtCore
+from qtpy import QtCore
 import numpy as np
 
 
