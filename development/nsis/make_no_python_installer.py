@@ -17,7 +17,10 @@ else:
 
 from subprocess import call
 
-import ConfigParser
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
 
 from jinja2 import Environment, FileSystemLoader
 
