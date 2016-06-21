@@ -21,15 +21,14 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
     def test_loadMasks(self):
         """ Load a database with masks """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"), "clickpoints.db", "mask")
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"), "plant_root.cdb", "mask")
         self.window.JumpFrames(1)
         self.wait_for_image_load()
 
     def test_createMask(self):
         """ Test if creating a mask works """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
-        path = os.path.join(self.mask_folder, "1-0min_tif"+"_mask.png")
-        print(path)
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
+        path = os.path.join(self.mask_folder+".db_mask.png", "1-0min_tif_000_mask.png")
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -47,8 +46,8 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
     def test_missingMask(self):
         """ Test if a mask is missing """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
-        path = os.path.join(self.mask_folder, "1-0min_tif"+"_mask.png")
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
+        path = os.path.join(self.mask_folder+".db_mask.png", "1-0min_tif_000_mask.png")
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -77,7 +76,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
     def test_maskTypeSelectorKey(self):
         """ Test if the number keys can change the mask draw type """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -87,19 +86,19 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # select color 1 by pressing 1
         self.keyPress(Qt.Key_1)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 0, "Draw Type selection by pressing 1 doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 0, "Draw Type selection by pressing 1 doesn't work")
 
         # select color 2 by pressing 2
         self.keyPress(Qt.Key_2)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 1, "Draw Type selection by pressing 2 doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by pressing 2 doesn't work")
 
         # select color 3 by pressing 3
         self.keyPress(Qt.Key_3)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 2, "Draw Type selection by pressing 3 doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type selection by pressing 3 doesn't work")
 
     def test_maskTypeSelectorClick(self):
         """ Test if the buttons can change the mask draw type """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -109,23 +108,28 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # click on first button
         self.mouseClick(-50, 20, coordinates="scene")
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 0, "Draw Type selection by clicking button 1 doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 0, "Draw Type selection by clicking button 1 doesn't work")
 
         # click on second button
         self.mouseClick(-50, 40, coordinates="scene")
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 1, "Draw Type selection by pressing 2 doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by pressing 2 doesn't work")
 
         # click on third button
         self.mouseClick(-50, 60, coordinates="scene")
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 2, "Draw Type selection by pressing 3 doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type selection by pressing 3 doesn't work")
 
     def test_brushSizeMask(self):
         """ Test if increasing and decreasing the brush size works """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
-        path = os.path.join(self.mask_folder, "1-0min_tif"+"_mask.png")
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
+
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
+        path = os.path.join(self.mask_folder+".db_mask.png", "1-0min_tif_000_mask.png")
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
+        self.keyPress(Qt.Key_2)
 
         # wait for image to be loaded
         self.wait_for_image_load()
@@ -190,7 +194,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
     def test_colorPickerMask(self):
         """ Test using the color picker to select different colors """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -213,22 +217,22 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # move to first circle and pick the color, check if it is the right one
         self.mouseMove(50, 50)
         self.keyPress(Qt.Key_K)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 0, "Draw Type 0 selection by color picker doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 0, "Draw Type 0 selection by color picker doesn't work")
 
         # move to second circle and pick the color, check if it is the right one
         self.mouseMove(100, 50)
         self.keyPress(Qt.Key_K)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 1, "Draw Type 1 selection by color picker doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type 1 selection by color picker doesn't work")
 
         # move to third circle and pick the color, check if it is the right one
         self.mouseMove(150, 50)
         self.keyPress(Qt.Key_K)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type, 2, "Draw Type 2 selection by color picker doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type 2 selection by color picker doesn't work")
 
     def test_colorPaletteMask(self):
         """ Test if increasing and decreasing the brush size works """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
-        path = os.path.join(self.mask_folder, "1-0min_tif"+"_mask.png")
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
+        path = os.path.join(self.mask_folder+".db_mask.png", "1-0min_tif_000_mask.png")
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
