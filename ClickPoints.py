@@ -113,7 +113,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.storage_path = storage_path
         self.layoutButtons = QtWidgets.QHBoxLayout()
         self.button_play = QtWidgets.QPushButton()
-        self.button_play.clicked.connect(self.SaveDatabase)
+        self.button_play.clicked.connect(lambda x: self.SaveDatabase())
         self.button_play.setIcon(qta.icon("fa.save"))
         self.button_play.setToolTip("save current project")
         self.layoutButtons.addWidget(self.button_play)
