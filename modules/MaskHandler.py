@@ -561,7 +561,7 @@ class MaskHandler:
             self.MaskEmpty = True
         self.MaskUnsaved = False
         if self.active:
-            self.SetActiveDrawType(self.active_draw_type)
+            self.SetActiveDrawType(self.active_draw_type.index)
 
         if self.image_mask_full:
             self.MaskDisplay.SetImage(self.image_mask_full)
@@ -639,8 +639,9 @@ class MaskHandler:
     def PickColor(self):
         for index, draw_type in enumerate(self.mask_file.get_mask_type_list()):
             if draw_type.index == self.color_under_cursor:
-                self.SetActiveDrawType(index)
-                break
+                self.SetActiveDrawType(index+1)
+                return
+        self.SetActiveDrawType(0)
 
     def changeCursorSize(self, value):
         self.DrawCursorSize += value
