@@ -745,7 +745,6 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.setPath(paths[self.style.get("shape", "cross")])
         else:
             self.setPath(point_display_types[point_display_type])
-        self.setActive(point_display_type != len(point_display_types) - 1)
 
     def setScale(self, scale=None):
         if scale is not None:
@@ -1480,13 +1479,13 @@ class MarkerHandler:
             self.toggleMarkerShape()
             
     def ToggleInterfaceEvent(self):
-        for key in self.counter:
-            #(self.counter[key])
-            try:
-                self.counter[key].setVisible(self.hidden)
-            except:
-                pass
         self.hidden = not self.hidden
+        for key in self.counter:
+            self.counter[key].setVisible(not self.hidden)
+        for point in self.points:
+            point.setActive(not self.hidden)
+        for track in self.tracks:
+            track.setActive(not self.hidden)
 
     def loadLast(self):
         return("ERROR: not implemented at the moment")
