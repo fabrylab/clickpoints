@@ -74,7 +74,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
 
         self.font = QtGui.QFont()
         self.font.setPointSize(12)
-        self.font.setStyleHint(QFont.Monospace)
+        self.font.setStyleHint(QtGui.QFont.Monospace)
         self.font.setFixedPitch(True)
 
         self.text = QtWidgets.QGraphicsSimpleTextItem(self)
