@@ -232,13 +232,12 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.load_timer.start()
 
     def LoadTimer(self):
-        if self.load_thread.is_alive():
-            if self.data_file.image is None and self.data_file.get_image_count():
-                self.JumpToFrame(0)
-                self.view.fitInView()
-            else:
-                self.GetModule("Timeline").ImagesAdded()
+        if self.data_file.image is None and self.data_file.get_image_count():
+            self.JumpToFrame(0)
+            self.view.fitInView()
         else:
+            self.GetModule("Timeline").ImagesAdded()
+        if not self.load_thread.is_alive():
             self.load_timer.stop()
             import time
             print("Loading finished", time.time()-self.loading_time)
