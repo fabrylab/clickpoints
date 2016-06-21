@@ -139,8 +139,9 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             self.updateROI()
 
     def ToggleInterfaceEvent(self):
-        self.setVisible(self.hidden)
         self.hidden = not self.hidden
+        self.setVisible(not self.hidden)
+        self.button_brightness.setChecked(not self.hidden)
 
     @staticmethod
     def file():
