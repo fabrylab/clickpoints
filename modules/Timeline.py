@@ -413,7 +413,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         x1 = Remap(pos1, [self.min_value, self.max_value], [0, self.pixel_len])
         x2 = Remap(pos2, [self.min_value, self.max_value], [0, self.pixel_len])
 
-        tick_block = QtGui.QGraphicsRectItem(0, -2, x2-x1, -height, self.markerGroupParents[0])
+        tick_block = QtWidgets.QGraphicsRectItem(0, -2, x2-x1, -height, self.markerGroupParents[0])
         tick_block.setPos(x1, 0)
 
         tick_block.setBrush(QtGui.QBrush(color))
@@ -439,7 +439,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
                 text = "%02d.%02d" % (pos.day, pos.month)
             elif type_name == "year":
                 text = "%04d" % pos.year
-            tick_marker = QtGui.QGraphicsLineItem(0, 3, 0, -height, self.markerGroupParents[type])
+            tick_marker = QtWidgets.QGraphicsLineItem(0, 3, 0, -height, self.markerGroupParents[type])
             tick_marker.setZValue(10)
         tick_marker.setPen(QtGui.QPen(color))
         if type == -1:
@@ -451,19 +451,19 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         tick_marker.setPos(Remap(pos, [self.min_value, self.max_value], [0, self.pixel_len]), 0)
 
         if text != "":
-            self.font_parent = QtGui.QGraphicsPathItem(tick_marker)
+            self.font_parent = QtWidgets.QGraphicsPathItem(tick_marker)
 
             self.font = QtGui.QFont()
             self.font.setPointSize(8)
-            self.text = QtGui.QGraphicsSimpleTextItem(self.font_parent)
+            self.text = QtWidgets.QGraphicsSimpleTextItem(self.font_parent)
             self.text.setFont(self.font)
             self.text.setText(text)
             offsetX = self.text.boundingRect().width()
             self.text.setPos(-offsetX*0.5+1, 2)
-            self.font_parent.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
+            self.font_parent.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
             tick_marker.text = self.text
         else:
-            tick_marker.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
+            tick_marker.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
             tick_marker.text = None
         self.tick_marker.append(tick_marker)
 
@@ -665,9 +665,9 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
 
             # place the tick
             if is_major_tick:
-                self.addTickMarker(tick_time, color=QColor(0, 0, 0), height=15, type=type, type_name=tick_types[type][0])
+                self.addTickMarker(tick_time, color=QtGui.QColor(0, 0, 0), height=15, type=type, type_name=tick_types[type][0])
             else:
-                self.addTickMarker(tick_time, color=QColor(0, 0, 0), height=10, type=type, type_name="")
+                self.addTickMarker(tick_time, color=QtGui.QColor(0, 0, 0), height=10, type=type, type_name="")
 
             # apply the delta
             if years:

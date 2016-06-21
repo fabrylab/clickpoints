@@ -8,7 +8,7 @@ from qtpy.QtTest import QTest
 from qtpy.QtCore import Qt
 from qtpy import QtGui
 from qtpy import QtCore
-from qtpy.QtGui import QApplication
+from qtpy.QtWidgets import QApplication
 
 app = QApplication(sys.argv)
 
@@ -32,7 +32,7 @@ class BaseTest():
         self.mask_folder_path = os.path.join(self.test_path, mask_foldername)
 
         print("Test Path", self.test_path)
-        sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file, r"-outputpath_mask="+mask_foldername]
+        sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file]
         print(sys.argv)
         config = ClickPoints.LoadConfig()
         for addon in config.addons:
@@ -104,7 +104,6 @@ class BaseTest():
     def wait_for_image_load(self):
         # wait for image to be loaded
         while self.window.loading_image:
-            print("waiting", self.window.loading_image)
             QTest.qWait(1)
 
     def tearDown(self):
