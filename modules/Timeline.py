@@ -1033,6 +1033,7 @@ class Timeline(QtCore.QObject):
             for widget in control_widgets:
                 widget.setHidden(False)
             self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
+        self.button.setChecked(not self.hidden)
 
     def keyPressEvent(self, event):
         # @key H: hide control elements

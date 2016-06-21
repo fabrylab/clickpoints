@@ -726,9 +726,10 @@ class MaskHandler:
             self.RedrawMask()
             
     def ToggleInterfaceEvent(self):
-        for counter in self.counter:
-            self.counter[counter].setVisible(self.hidden)
         self.hidden = not self.hidden
+        for counter in self.counter:
+            self.counter[counter].setVisible(not self.hidden)
+        self.button.setChecked(not self.hidden)
             
     def loadLast(self):
         self.LoadMask(self.last_maskname)

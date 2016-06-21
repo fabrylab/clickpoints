@@ -1486,6 +1486,7 @@ class MarkerHandler:
             point.setActive(not self.hidden)
         for track in self.tracks:
             track.setActive(not self.hidden)
+        self.button.setChecked(not self.hidden)
 
     def loadLast(self):
         return("ERROR: not implemented at the moment")
