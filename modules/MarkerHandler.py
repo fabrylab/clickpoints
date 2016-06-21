@@ -188,6 +188,8 @@ class DeleteType(QtWidgets.QDialog):
 
 
 class MarkerEditor(QtWidgets.QWidget):
+    data = None
+
     def __init__(self, marker_handler, data_file, marker_item=None, type_item=None):
         QtWidgets.QWidget.__init__(self)
 
@@ -328,6 +330,8 @@ class MarkerEditor(QtWidgets.QWidget):
 
     def setMarker(self, data, marker_item=None, data_type=None):
         self.marker_item = marker_item
+        if type(data) == self.db.table_marker and self.data == data:
+            self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
         self.data = data
 
         self.pushbutton_Remove.setHidden(False)
