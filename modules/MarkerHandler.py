@@ -428,14 +428,26 @@ class MarkerEditor(QtWidgets.QWidget):
         print("Remove ...")
         # currently selected a marker
         if type(self.data) == self.db.table_marker:
-            # find point
-            if not self.marker_item:
-                for point in self.marker_handler.points:
-                    if point.data.id == self.data.id:
-                        self.marker_item = point
+            if self.data.track is None:
+                # find point
+                if not self.marker_item:
+                    for point in self.marker_handler.points:
+                        if point.data.id == self.data.id:
+                            self.marker_item = point
+                            break
+                # delete marker
+                if self.marker_item:
+                    self.marker_item.deleteMarker()
+                else:
+                    self.data.delete_instance()
+            else:
+                found_track = None
+                for track in self.marker_handler.tracks:
+                    if track.data.track == self.data.track:
+                        found_track = track
                         break
-            # delete marker
-            self.marker_item.deleteMarker()
+                if found_track is not None:
+                    found_track.RemoveTrackPoint(self.data.image.sort_index)
         # currently selected a track
         elif type(self.data) == self.db.table_tracks:
             # delete all markers from this track
