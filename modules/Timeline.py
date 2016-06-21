@@ -251,9 +251,9 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
 
     def getNextTick(self, pos, back=False):
         if back is False:
-            my_range = range(pos+1, self.max_value, +1)
+            my_range = range(pos+1, self.max_value+1, +1)
         else:
-            my_range = range(pos-1, self.min_value, -1)
+            my_range = range(pos-1, self.min_value-1, -1)
         search_marked = True
         for i in my_range:
             if (i in self.tick_marker) == search_marked:
