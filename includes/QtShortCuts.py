@@ -1,16 +1,16 @@
-from qtpy import QtGui
+from qtpy import QtGui, QtWidgets
 import os
 import colorsys
 import numpy as np
 
 def AddQSpinBox(layout, text, value=0, float=True, strech=False):
-    horizontal_layout = QtGui.QHBoxLayout()
+    horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
-    text = QtGui.QLabel(text)
+    text = QtWidgets.QLabel(text)
     if float:
-        spinBox = QtGui.QDoubleSpinBox()
+        spinBox = QtWidgets.QDoubleSpinBox()
     else:
-        spinBox = QtGui.QSpinBox()
+        spinBox = QtWidgets.QSpinBox()
     spinBox.setRange(-99999, 99999)
     spinBox.setValue(value)
     horizontal_layout.addWidget(text)
@@ -22,10 +22,10 @@ def AddQSpinBox(layout, text, value=0, float=True, strech=False):
 
 
 def AddQLineEdit(layout, text, value=None, strech=False):
-    horizontal_layout = QtGui.QHBoxLayout()
+    horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
-    text = QtGui.QLabel(text)
-    lineEdit = QtGui.QLineEdit()
+    text = QtWidgets.QLabel(text)
+    lineEdit = QtWidgets.QLineEdit()
     if value:
         lineEdit.setText(value)
     horizontal_layout.addWidget(text)
@@ -36,20 +36,20 @@ def AddQLineEdit(layout, text, value=None, strech=False):
     return lineEdit
 
 def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, strech=False):
-    horizontal_layout = QtGui.QHBoxLayout()
+    horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
-    text = QtGui.QLabel(text)
-    lineEdit = QtGui.QLineEdit()
+    text = QtWidgets.QLabel(text)
+    lineEdit = QtWidgets.QLineEdit()
     if value:
         lineEdit.setText(value)
     lineEdit.setEnabled(False)
     def OpenDialog():
-        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, dialog_title, os.getcwd(), file_type))
+        srcpath = str(QtWidgets.QFileDialog.getSaveFileName(None, dialog_title, os.getcwd(), file_type))
         if filename_checker and srcpath:
             srcpath = filename_checker(srcpath)
         if srcpath:
             lineEdit.setText(srcpath)
-    button = QtGui.QPushButton("Choose File")
+    button = QtWidgets.QPushButton("Choose File")
     button.pressed.connect(OpenDialog)
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(lineEdit)
@@ -61,15 +61,15 @@ def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", fil
 
 def AddQColorChoose(layout, text, value=None, strech=False):
     # add a layout
-    horizontal_layout = QtGui.QHBoxLayout()
+    horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
     # add a text
-    text = QtGui.QLabel(text)
-    button = QtGui.QPushButton("")
+    text = QtWidgets.QLabel(text)
+    button = QtWidgets.QPushButton("")
 
     def OpenDialog():
         # get new color from color picker
-        color = QtGui.QColorDialog.getColor()
+        color = QtWidgets.QColorDialog.getColor()
         # if a color is set, apply it
         if color:
             color = "#%02x%02x%02x" % color.getRgb()[:3]
@@ -103,10 +103,10 @@ def AddQColorChoose(layout, text, value=None, strech=False):
 
 
 def AddQComboBox(layout, text, values=None, selectedValue=None):
-    horizontal_layout = QtGui.QHBoxLayout()
+    horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
-    text = QtGui.QLabel(text)
-    comboBox = QtGui.QComboBox()
+    text = QtWidgets.QLabel(text)
+    comboBox = QtWidgets.QComboBox()
     for value in values:
         comboBox.addItem(value)
     if selectedValue:
@@ -118,10 +118,10 @@ def AddQComboBox(layout, text, values=None, selectedValue=None):
 
 
 def AddQCheckBox(layout, text, checked=False, strech=False):
-    horizontal_layout = QtGui.QHBoxLayout()
+    horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
-    text = QtGui.QLabel(text)
-    checkBox = QtGui.QCheckBox()
+    text = QtWidgets.QLabel(text)
+    checkBox = QtWidgets.QCheckBox()
     checkBox.setChecked(checked)
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(checkBox)
@@ -131,16 +131,16 @@ def AddQCheckBox(layout, text, checked=False, strech=False):
 
 
 def AddQLabel(layout, text=None):
-    text = QtGui.QLabel(text)
+    text = QtWidgets.QLabel(text)
     if text:
         layout.addWidget(text)
     return text
 
 
 def AddQHLine(layout):
-    line = QtGui.QFrame()
-    line.setFrameShape(QtGui.QFrame.HLine)
-    line.setFrameShadow(QtGui.QFrame.Sunken)
+    line = QtWidgets.QFrame()
+    line.setFrameShape(QtWidgets.QFrame.HLine)
+    line.setFrameShadow(QtWidgets.QFrame.Sunken)
     layout.addWidget(line)
     return line
 
@@ -153,4 +153,4 @@ for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
     index = index % 8*6+index//8
     # convert color from hsv to rgb, to an array, to an tuple, to a hex string then to an integer
     color_integer = int("%02x%02x%02x" % tuple((np.array(colorsys.hsv_to_rgb(color, sat, val))*255).astype(int)), 16)
-    QtGui.QColorDialog.setStandardColor(index, color_integer)
+    QtWidgets.QColorDialog.setStandardColor(index, color_integer)

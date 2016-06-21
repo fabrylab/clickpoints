@@ -8,7 +8,7 @@ from datetime import datetime
 
 from includes import BroadCastEvent2
 
-from qtpy import QtGui, QtCore
+from qtpy import QtGui, QtCore, QtWidgets
 import qtawesome as qta
 
 try:
@@ -44,9 +44,9 @@ formats = tuple(imgformats+vidformats)
 imgformats = tuple(imgformats)
 
 
-class FolderEditor(QtGui.QWidget):
+class FolderEditor(QtWidgets.QWidget):
     def __init__(self, window, data_file):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.window = window
         self.data_file = data_file
 
@@ -54,78 +54,78 @@ class FolderEditor(QtGui.QWidget):
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
         self.setWindowTitle("Folder Selector - ClickPoints")
-        self.layout = QtGui.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)
 
         self.setWindowIcon(qta.icon("fa.folder-open"))
 
         """ """
-        self.list = QtGui.QListWidget(self)
+        self.list = QtWidgets.QListWidget(self)
         self.layout.addWidget(self.list)
         self.list.itemSelectionChanged.connect(self.list_selected)
 
-        group_box = QtGui.QGroupBox("Add Folder")
+        group_box = QtWidgets.QGroupBox("Add Folder")
         self.group_box = group_box
         self.layout.addWidget(group_box)
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         group_box.setLayout(layout)
         """ """
 
-        horizontal_layout = QtGui.QHBoxLayout()
+        horizontal_layout = QtWidgets.QHBoxLayout()
         layout.addLayout(horizontal_layout)
 
-        horizontal_layout.addWidget(QtGui.QLabel("Folder:"))
+        horizontal_layout.addWidget(QtWidgets.QLabel("Folder:"))
 
-        self.text_input = QtGui.QLineEdit(self)
+        self.text_input = QtWidgets.QLineEdit(self)
         self.text_input.setDisabled(True)
         horizontal_layout.addWidget(self.text_input)
 
-        self.pushbutton_folder = QtGui.QPushButton('Select F&older', self)
+        self.pushbutton_folder = QtWidgets.QPushButton('Select F&older', self)
         self.pushbutton_folder.pressed.connect(self.select_folder)
         horizontal_layout.addWidget(self.pushbutton_folder)
 
-        self.pushbutton_file = QtGui.QPushButton('Select F&ile', self)
+        self.pushbutton_file = QtWidgets.QPushButton('Select F&ile', self)
         self.pushbutton_file.pressed.connect(self.select_file)
         horizontal_layout.addWidget(self.pushbutton_file)
 
         """ """
 
-        horizontal_layout = QtGui.QHBoxLayout()
+        horizontal_layout = QtWidgets.QHBoxLayout()
         layout.addLayout(horizontal_layout)
 
-        horizontal_layout.addWidget(QtGui.QLabel("Filter:"))
+        horizontal_layout.addWidget(QtWidgets.QLabel("Filter:"))
 
-        self.text_input_filter = QtGui.QLineEdit(self)
+        self.text_input_filter = QtWidgets.QLineEdit(self)
         self.text_input_filter.setToolTip("Use any expression with an wildcard * to filter the files in the selected folder.")
         horizontal_layout.addWidget(self.text_input_filter)
 
         """ """
 
-        horizontal_layout = QtGui.QHBoxLayout()
+        horizontal_layout = QtWidgets.QHBoxLayout()
         layout.addLayout(horizontal_layout)
 
-        self.checkbox_subfolders = QtGui.QCheckBox("subfolders")
+        self.checkbox_subfolders = QtWidgets.QCheckBox("subfolders")
         self.checkbox_subfolders.setToolTip("Add all the subfolders of the selected folder, too.")
         horizontal_layout.addWidget(self.checkbox_subfolders)
-        self.checkbox_natsort = QtGui.QCheckBox("natsort")
+        self.checkbox_natsort = QtWidgets.QCheckBox("natsort")
         self.checkbox_natsort.setToolTip("Use natural sorting of filenames. This will sort numbers correctly (e.g. not 1 10 2 3). Takes more time to load.")
         horizontal_layout.addWidget(self.checkbox_natsort)
 
-        self.pushbutton_load = QtGui.QPushButton('Load', self)
+        self.pushbutton_load = QtWidgets.QPushButton('Load', self)
         self.pushbutton_load.pressed.connect(self.add_folder)
         horizontal_layout.addWidget(self.pushbutton_load)
 
-        self.pushbutton_delete = QtGui.QPushButton('Remove', self)
+        self.pushbutton_delete = QtWidgets.QPushButton('Remove', self)
         self.pushbutton_delete.pressed.connect(self.remove_folder)
         horizontal_layout.addWidget(self.pushbutton_delete)
 
         """ """
 
-        horizontal_layout = QtGui.QHBoxLayout()
+        horizontal_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(horizontal_layout)
 
         horizontal_layout.addStretch()
 
-        self.pushbutton_Confirm = QtGui.QPushButton('O&k', self)
+        self.pushbutton_Confirm = QtWidgets.QPushButton('O&k', self)
         self.pushbutton_Confirm.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
@@ -152,13 +152,13 @@ class FolderEditor(QtGui.QWidget):
     def update_folder_list(self):
         self.list.clear()
         for path in self.data_file.table_paths.select():
-            item = QtGui.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
+            item = QtWidgets.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
             item.path_entry = path
-        QtGui.QListWidgetItem(qta.icon("fa.plus"), "add folder", self.list)
+            QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add folder", self.list)
 
     def select_folder(self):
         # ask for a directory path
-        new_path = str(QtGui.QFileDialog.getExistingDirectory(None, "Select Folder", os.getcwd()))
+        new_path = str(QtWidgets.QFileDialog.getExistingDirectory(None, "Select Folder", os.getcwd()))
         # if we get one, set it
         if new_path:
             # enable folder settings
@@ -170,7 +170,7 @@ class FolderEditor(QtGui.QWidget):
 
     def select_file(self):
         # ask for a file name
-        new_path = str(QtGui.QFileDialog.getOpenFileName(None, "Select File", os.getcwd()))
+        new_path = str(QtWidgets.QFileDialog.getOpenFileName(None, "Select File", os.getcwd()))
         # if we got one, set it
         if new_path:
             # disable folder settings
@@ -201,9 +201,9 @@ class FolderEditor(QtGui.QWidget):
         if query.count() == 0:
             path.delete_instance()
         else:
-            reply = QtGui.QMessageBox.question(None, 'Delete Folder',
-                "Do you really want to remove folder %s with %d images?" % (path.path, query.count()), QtGui.QMessageBox.Yes, QtGui.QMessageBox.Cancel)
-            if reply == QtGui.QMessageBox.Yes:
+            reply = QtWidgets.QMessageBox.question(None, 'Delete Folder',
+                "Do you really want to remove folder %s with %d images?" % (path.path, query.count()), QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Cancel)
+            if reply == QtWidgets.QMessageBox.Yes:
                 for image in query:
                     image.delete_instance()
                 path.delete_instance()

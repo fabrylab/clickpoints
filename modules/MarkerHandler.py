@@ -25,7 +25,7 @@ from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTM
 w = 1.
 b = 7
 r2 = 10
-path1 = QtWidgets.QPainterPath()
+path1 = QtGui.QPainterPath()
 path1.addRect(-r2, -w, b, w * 2)
 path1.addRect(r2, -w, -b, w * 2)
 path1.addRect(-w, -r2, w * 2, b)
@@ -35,18 +35,18 @@ path1.addEllipse(-r2, -r2, r2 * 2, r2 * 2)
 w = 2
 b = 3
 o = 3
-path2 = QtWidgets.QPainterPath()
+path2 = QtGui.QPainterPath()
 path2.addRect(-b - o, -w * 0.5, b, w)
 path2.addRect(+o, -w * 0.5, b, w)
 path2.addRect(-w * 0.5, -b - o, w, b)
 path2.addRect(-w * 0.5, +o, w, b)
 r3 = 5
-path3 = QtWidgets.QPainterPath()
+path3 = QtGui.QPainterPath()
 path3.addEllipse(-0.5 * r3, -0.5 * r3, r3, r3)  # addRect(-0.5,-0.5, 1, 1)
 point_display_types = [path1, path2, path3]
 point_display_type = 0
 
-path_circle = QtWidgets.QPainterPath()
+path_circle = QtGui.QPainterPath()
 #path_circle.arcTo(-5, -5, 10, 10, 0, 130)
 path_circle.addEllipse(-5, -5, 10, 10)
 
@@ -156,9 +156,9 @@ def GetColorFromMap(identifier, id):
     return color
 
 
-class DeleteType(QtGui.QDialog):
+class DeleteType(QtWidgets.QDialog):
     def __init__(self, type, count, types):
-        QtGui.QDialog.__init__(self)
+        QtWidgets.QDialog.__init__(self)
 
         # Widget
         self.setMinimumWidth(500)
@@ -166,9 +166,9 @@ class DeleteType(QtGui.QDialog):
         self.setWindowTitle("Delete Type")
         self.setWindowIcon(qta.icon("fa.crosshairs"))
         self.setModal(True)
-        main_layout = QtGui.QVBoxLayout(self)
+        main_layout = QtWidgets.QVBoxLayout(self)
 
-        self.label = QtGui.QLabel("The type %s has %d marker. Do you want to delete all of them or assign them to another type?" % (type.name, count))
+        self.label = QtWidgets.QLabel("The type %s has %d marker. Do you want to delete all of them or assign them to another type?" % (type.name, count))
         main_layout.addWidget(self.label)
 
         self.type_ids = {type.name: type.id for type in types}
@@ -198,13 +198,13 @@ class MarkerEditor(QtWidgets.QWidget):
         self.setMinimumHeight(200)
         self.setWindowTitle("MarkerEditor - ClickPoints")
         self.setWindowIcon(qta.icon("fa.crosshairs"))
-        main_layout = QtGui.QHBoxLayout(self)
+        main_layout = QtWidgets.QHBoxLayout(self)
 
         self.marker_handler = marker_handler
         self.db = marker_handler.marker_file
 
         """ Tree View """
-        tree = QtGui.QTreeView()
+        tree = QtWidgets.QTreeView()
         main_layout.addWidget(tree)
 
         self.marker_modelitems = {}
@@ -266,16 +266,16 @@ class MarkerEditor(QtWidgets.QWidget):
         tree.clicked.connect(lambda index: self.setMarker(index.model().itemFromIndex(index).entry))
         self.tree = tree
 
-        self.layout = QtGui.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(self.layout)
 
-        self.StackedWidget = QtGui.QStackedWidget(self)
+        self.StackedWidget = QtWidgets.QStackedWidget(self)
         self.layout.addWidget(self.StackedWidget)
 
         """ Marker Properties """
-        self.markerWidget = QtGui.QGroupBox()
+        self.markerWidget = QtWidgets.QGroupBox()
         self.StackedWidget.addWidget(self.markerWidget)
-        layout = QtGui.QVBoxLayout(self.markerWidget)
+        layout = QtWidgets.QVBoxLayout(self.markerWidget)
         self.markerWidget.type_indices = {t.id: index for index, t in enumerate(self.db.get_type_list())}
         self.markerWidget.type = AddQComboBox(layout, "Type:", [t.name for t in self.db.get_type_list()])
         self.markerWidget.x = AddQSpinBox(layout, "X:")
@@ -286,9 +286,9 @@ class MarkerEditor(QtWidgets.QWidget):
         layout.addStretch()
 
         """ Type Properties """
-        self.typeWidget = QtGui.QGroupBox()
+        self.typeWidget = QtWidgets.QGroupBox()
         self.StackedWidget.addWidget(self.typeWidget)
-        layout = QtGui.QVBoxLayout(self.typeWidget)
+        layout = QtWidgets.QVBoxLayout(self.typeWidget)
         self.typeWidget.name = AddQLineEdit(layout, "Name:")
         self.typeWidget.mode_indices = {TYPE_Normal: 0, TYPE_Line: 1, TYPE_Rect: 2,TYPE_Track: 3}
         self.typeWidget.mode_values = {0: TYPE_Normal, 1: TYPE_Line, 2: TYPE_Rect, 3: TYPE_Track}
@@ -299,9 +299,9 @@ class MarkerEditor(QtWidgets.QWidget):
         layout.addStretch()
 
         """ Track Properties """
-        self.trackWidget = QtGui.QGroupBox()
+        self.trackWidget = QtWidgets.QGroupBox()
         self.StackedWidget.addWidget(self.trackWidget)
-        layout = QtGui.QVBoxLayout(self.trackWidget)
+        layout = QtWidgets.QVBoxLayout(self.trackWidget)
         self.trackWidget.style = AddQLineEdit(layout, "Style:")
         self.trackWidget.text = AddQLineEdit(layout, "Text:")
         layout.addStretch()
@@ -780,7 +780,7 @@ class MyTrackItem(MyMarkerItem):
         self.max_frame = max(self.points_data.keys())
 
         self.pathItem = QtWidgets.QGraphicsPathItem(self.parent)
-        self.path = QtWidgets.QPainterPath()
+        self.path = QtGui.QPainterPath()
         self.pathItem.setPen(QtGui.QPen(self.color))
 
         self.hidden = False
@@ -930,7 +930,7 @@ class MyTrackItem(MyMarkerItem):
         return False
 
     def UpdateLine(self):
-        self.path = QtWidgets.QPainterPath()
+        self.path = QtGui.QPainterPath()
         circle_width = self.scale_value * 10 * self.track_style.get("track-point-scale", 1)
         last_frame = None
         shape = self.track_style.get("track-point-shape", "circle")
@@ -1045,13 +1045,13 @@ class Crosshair(QtWidgets.QGraphicsPathItem):
         self.setZValue(30)
         self.setVisible(False)
 
-        self.pathCrosshair = QtWidgets.QPainterPath()
+        self.pathCrosshair = QtGui.QPainterPath()
         self.pathCrosshair.addEllipse(-self.radius, -self.radius, self.radius * 2, self.radius * 2)
 
         w = 0.333 * 0.5
         b = 40
         r2 = 50
-        self.pathCrosshair2 = QtWidgets.QPainterPath()
+        self.pathCrosshair2 = QtGui.QPainterPath()
         self.pathCrosshair2.addRect(-r2, -w, b, w * 2)
         self.pathCrosshair2.addRect(r2, -w, -b, w * 2)
         self.pathCrosshair2.addRect(-w, -r2, w * 2, b)
@@ -1239,7 +1239,7 @@ class MarkerHandler:
         self.data_file = datafile
         self.parent = parent
 
-        self.button = QtGui.QPushButton()
+        self.button = QtWidgets.QPushButton()
         self.button.setCheckable(True)
         self.button.setIcon(qta.icon("fa.crosshairs"))
         self.button.setToolTip("add/edit marker for current frame")

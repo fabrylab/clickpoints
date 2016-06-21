@@ -55,7 +55,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         BoxGrabber(self)
         self.dragged = False
 
-        self.button_brightness = QtGui.QPushButton()
+        self.button_brightness = QtWidgets.QPushButton()
         self.button_brightness.setCheckable(True)
         self.button_brightness.setIcon(qta.icon("fa.adjust"))
         self.button_brightness.setToolTip("display brightness/gamma adjust")
@@ -68,45 +68,45 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             self.hidden = True
 
     def updateHist(self, hist):
-        histpath = QtWidgets.QPainterPath()
+        histpath = QtGui.QPainterPath()
         w = 100 / 256.
         for i, h in enumerate(hist[0]):
             histpath.addRect(i * w + 5, 0, w, -h * 100 / max(hist[0]))
         self.hist.setPath(histpath)
 
     def updateConv(self):
-        convpath = QtWidgets.QPainterPath()
+        convpath = QtGui.QPainterPath()
         w = 100 / 256.
         for i, h in enumerate(self.image.conversion):
             convpath.lineTo(i * w + 5, -h * 98 / 255.)
         self.conv.setPath(convpath)
 
     def updateGamma(self, value):
-        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         update_hist = self.image.preview_slice is None
         self.image.Change(gamma=value)
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-        QtGui.QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateBrightnes(self, value):
-        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         update_hist = self.image.preview_slice is None
         self.image.Change(max_brightness=value)
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
-        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         update_hist = self.image.preview_slice is None
         self.image.Change(min_brightness=value)
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-        QtGui.QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def LoadImageEvent(self, filename="", frame_number=0):
         if self.image.preview_rect is not None:
@@ -121,15 +121,15 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         for slider in self.sliders:
             slider.reset()
         self.image.ResetPreview()
-        self.hist.setPath(QtWidgets.QPainterPath())
-        self.conv.setPath(QtWidgets.QPainterPath())
+        self.hist.setPath(QtGui.QPainterPath())
+        self.conv.setPath(QtGui.QPainterPath())
 
     def updateROI(self):
-        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.image.PreviewRect()
         self.image.Change()
         self.updateHist(self.image.hist)
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def keyPressEvent(self, event):
 

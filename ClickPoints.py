@@ -20,17 +20,10 @@ print("ClickPoints", version)
 
 print("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro), sys.version_info.releaselevel, "64bit" if sys.maxsize > 2**32 else "32bit")
 
-import sip
-sip.setapi('QVariant', 2)
-
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
-
-from qtpy.QtCore import QT_VERSION_STR
-#from qtpy.Qt import PYQT_VERSION_STR
-from sip import SIP_VERSION_STR
-
-print("Using PyQt4 (SIP %s, Qt %s)" % (SIP_VERSION_STR, QT_VERSION_STR))
+from qtpy import API_NAME as QT_API_NAME
+print("Using %s" % QT_API_NAME)
 import qtawesome as qta
 
 from includes import HelpText, BroadCastEvent, SetBroadCastModules, rotate_list
@@ -55,9 +48,9 @@ from modules import Overview
 
 class AddVLine():
     def __init__(self, window):
-        line = QtGui.QFrame()
-        line.setFrameShape(QtGui.QFrame.VLine)
-        line.setFrameShadow(QtGui.QFrame.Sunken)
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.VLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
         window.layoutButtons.addWidget(line)
 
 class AddStrech():
@@ -99,7 +92,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.setWindowTitle("ClickPoints")
 
         # center window
-        screen_geometry = QtGui.QApplication.desktop().screenGeometry()
+        screen_geometry = QtWidgets.QApplication.desktop().screenGeometry()
         x = (screen_geometry.width()-self.width()) / 2
         y = (screen_geometry.height()-self.height()) / 2
         self.move(x, y*0.5)
@@ -108,7 +101,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.updater = Updater(self)
 
         # add layout
-        self.layout = QtGui.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
@@ -118,14 +111,14 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         self.icon_path = icon_path
         self.storage_path = storage_path
-        self.layoutButtons = QtGui.QHBoxLayout()
-        self.button_play = QtGui.QPushButton()
+        self.layoutButtons = QtWidgets.QHBoxLayout()
+        self.button_play = QtWidgets.QPushButton()
         self.button_play.clicked.connect(self.SaveDatabase)
         self.button_play.setIcon(qta.icon("fa.save"))
         self.button_play.setToolTip("save current project")
         self.layoutButtons.addWidget(self.button_play)
 
-        self.button_play = QtGui.QPushButton()
+        self.button_play = QtWidgets.QPushButton()
         self.button_play.clicked.connect(self.Folder)
         self.button_play.setIcon(qta.icon("fa.folder-open"))
         self.button_play.setToolTip("add/remove folder from the current project")
@@ -212,6 +205,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # initialize some variables
         self.new_filename = None
         self.new_frame_number = None
+        self.loading_image = -1
         self.im = None
 
         # select the first frame
@@ -239,7 +233,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.GetModule("Timeline").ImagesAdded()
         if not self.load_thread.is_alive():
             self.load_timer.stop()
-            import time
             print("Loading finished", time.time()-self.loading_time)
 
     def Folder(self):
@@ -261,7 +254,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         #self.data_file.check_to_save()
 
     def SaveDatabase(self):
-        srcpath = str(QtGui.QFileDialog.getSaveFileName(None, "Save project - ClickPoints", os.getcwd(), "ClickPoints Database *.cdb"))
+        srcpath = str(QtWidgets.QFileDialog.getSaveFileName(None, "Save project - ClickPoints", os.getcwd(), "ClickPoints Database *.cdb"))
         if srcpath:
             self.data_file.save_database(file=srcpath)
             BroadCastEvent(self.modules, "DatabaseSaved")
@@ -448,11 +441,11 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
 def main():
     # start the Qt application
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
     # Create and display the splash screen
     splash_pix = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), 'icons', 'Splash.png'))
-    splash = QtGui.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
+    splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
     splash.setMask(splash_pix.mask())
     splash.show()
     app.processEvents()

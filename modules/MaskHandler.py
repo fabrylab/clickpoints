@@ -187,9 +187,9 @@ class BigPaintableImageDisplay:
         self.full_image.save(filename)
 
 
-class MaskEditor(QtGui.QWidget):
+class MaskEditor(QtWidgets.QWidget):
     def __init__(self, mask_handler, data_file):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
 
         self.data_file = data_file
 
@@ -198,13 +198,13 @@ class MaskEditor(QtGui.QWidget):
         self.setMinimumHeight(200)
         self.setWindowTitle("MaskEditor - ClickPoints")
         self.setWindowIcon(qta.icon("fa.paint-brush"))
-        main_layout = QtGui.QHBoxLayout(self)
+        main_layout = QtWidgets.QHBoxLayout(self)
 
         self.mask_handler = mask_handler
         self.db = mask_handler.mask_file
 
         """ Tree View """
-        tree = QtGui.QTreeView()
+        tree = QtWidgets.QTreeView()
         main_layout.addWidget(tree)
 
         self.mask_modelitems = {}
@@ -235,33 +235,33 @@ class MaskEditor(QtGui.QWidget):
         tree.clicked.connect(lambda x: self.setMaskType(self.modelItems_mask[x]))
         self.tree = tree
 
-        self.layout = QtGui.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(self.layout)
 
-        self.StackedWidget = QtGui.QStackedWidget(self)
+        self.StackedWidget = QtWidgets.QStackedWidget(self)
         self.layout.addWidget(self.StackedWidget)
 
         """ Type Properties """
-        self.typeWidget = QtGui.QGroupBox()
+        self.typeWidget = QtWidgets.QGroupBox()
         self.StackedWidget.addWidget(self.typeWidget)
-        layout = QtGui.QVBoxLayout(self.typeWidget)
+        layout = QtWidgets.QVBoxLayout(self.typeWidget)
         self.typeWidget.name = AddQLineEdit(layout, "Name:")
         self.typeWidget.color = AddQColorChoose(layout, "Color:")
         #self.typeWidget.text = AddQLineEdit(layout, "Text:")
         layout.addStretch()
 
         """ Control Buttons """
-        horizontal_layout = QtGui.QHBoxLayout()
+        horizontal_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(horizontal_layout)
-        self.pushbutton_Confirm = QtGui.QPushButton('S&ave', self)
+        self.pushbutton_Confirm = QtWidgets.QPushButton('S&ave', self)
         self.pushbutton_Confirm.pressed.connect(self.saveMaskType)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
-        self.pushbutton_Remove = QtGui.QPushButton('R&emove', self)
+        self.pushbutton_Remove = QtWidgets.QPushButton('R&emove', self)
         self.pushbutton_Remove.pressed.connect(self.removeMarker)
         horizontal_layout.addWidget(self.pushbutton_Remove)
 
-        self.pushbutton_Cancel = QtGui.QPushButton('&Cancel', self)
+        self.pushbutton_Cancel = QtWidgets.QPushButton('&Cancel', self)
         self.pushbutton_Cancel.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
@@ -453,7 +453,7 @@ class MaskHandler:
         self.DrawCursor.setVisible(False)
         self.UpdateDrawCursorSize()
 
-        self.button = QtGui.QPushButton()
+        self.button = QtWidgets.QPushButton()
         self.button.setCheckable(True)
         self.button.setIcon(qta.icon("fa.paint-brush"))
         self.button.setToolTip("add/edit mask for current frame")
@@ -581,7 +581,7 @@ class MaskHandler:
         pen = QtGui.QPen(color, self.DrawCursorSize)
         pen.setCapStyle(32)
         self.drawPathItem.setPen(pen)
-        draw_cursor_path = QtWidgets.QPainterPath()
+        draw_cursor_path = QtGui.QPainterPath()
         draw_cursor_path.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
                                     self.DrawCursorSize)
 
@@ -602,7 +602,7 @@ class MaskHandler:
 
     def RedrawMask(self):
         self.MaskDisplay.UpdateImage()
-        self.drawPath = QtWidgets.QPainterPath()
+        self.drawPath = QtGui.QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
 

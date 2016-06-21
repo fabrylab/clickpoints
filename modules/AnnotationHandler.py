@@ -135,9 +135,9 @@ class AnnotationFile:
         return self.table_annotation.select(peewee.SQL("*"), peewee.SQL("GROUP_CONCAT(t3.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tags, join_type="LEFT JOIN").group_by(self.table_annotation.id)
 
 class pyQtTagSelector(QtWidgets.QWidget):
-    class unCheckBox(QtGui.QCheckBox):
+    class unCheckBox(QtWidgets.QCheckBox):
         def __init__(self, parent, name):
-            super(QtGui.QCheckBox, self).__init__(parent)
+            super(QtWidgets.QCheckBox, self).__init__(parent)
             self.name = name
             self.parent = parent
 
@@ -158,24 +158,24 @@ class pyQtTagSelector(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(QtWidgets.QWidget, self).__init__(parent)
 
-        self.cbTag = QtGui.QComboBox(self)
+        self.cbTag = QtWidgets.QComboBox(self)
         self.cbTag.addItems([''])
-        self.cbTag.setInsertPolicy(QtGui.QComboBox.InsertAtBottom)
+        self.cbTag.setInsertPolicy(QtWidgets.QComboBox.InsertAtBottom)
         self.cbTag.setEditable(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         self.cbTag.setSizePolicy(sizePolicy)
         self.cbTag.activated.connect(self.hPB_add)
 
-        self.pbAdd = QtGui.QPushButton(self)
+        self.pbAdd = QtWidgets.QPushButton(self)
         self.pbAdd.setIcon(qta.icon("fa.plus"))
         self.pbAdd.setMaximumWidth(30)
         self.pbAdd.released.connect(self.hPB_add)
 
-        self.layout_main = QtGui.QVBoxLayout()
+        self.layout_main = QtWidgets.QVBoxLayout()
         self.layout_main.setAlignment(Qt.AlignTop)
-        self.layout_tag = QtGui.QHBoxLayout()
-        self.layout_list = QtGui.QVBoxLayout()
+        self.layout_tag = QtWidgets.QHBoxLayout()
+        self.layout_list = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout_main)
         self.layout_main.addLayout(self.layout_tag)
         self.layout_main.addLayout(self.layout_list)
@@ -336,8 +336,8 @@ class AnnotationOverview(QtWidgets.QWidget):
         self.table.hideColumn(4)
         self.table.hideColumn(5)
         self.table.hideColumn(6)
-        self.table.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.Stretch)
+        self.table.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
         self.table.verticalHeader().hide()
         self.layout.addWidget(self.table)
 
@@ -445,7 +445,7 @@ class AnnotationHandler:
                 BroadCastEvent(self.modules, "AnnotationMarkerAdd", item.image.sort_index)
                 self.annoation_ids.append(item.id)
 
-        self.button_annotationEditor = QtGui.QPushButton()
+        self.button_annotationEditor = QtWidgets.QPushButton()
         self.button_annotationEditor.setIcon(qta.icon("fa.edit"))
         self.button_annotationEditor.setToolTip("add/edit annotation for current frame")
         self.button_annotationEditor.clicked.connect(self.showAnnotationEditor)
