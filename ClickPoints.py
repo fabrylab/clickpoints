@@ -253,8 +253,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
         BroadCastEvent(self.modules, "save")
         #self.data_file.check_to_save()
 
-    def SaveDatabase(self):
-        srcpath = str(QtWidgets.QFileDialog.getSaveFileName(None, "Save project - ClickPoints", os.getcwd(), "ClickPoints Database *.cdb"))
+    def SaveDatabase(self, srcpath=None):
+        if srcpath is None:
+            srcpath = str(QtWidgets.QFileDialog.getSaveFileName(None, "Save project - ClickPoints", os.getcwd(), "ClickPoints Database *.cdb"))
         if srcpath:
             self.data_file.save_database(file=srcpath)
             BroadCastEvent(self.modules, "DatabaseSaved")
@@ -291,6 +292,11 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         # load the next frame (threaded or not)
         # this will call FrameLoaded afterwards
+        if self.loading_image == -1:
+            self.loading_image = 1
+        else:
+            self.loading_image += 1
+
         if config.threaded_image_load and threaded:
             self.data_file.load_frame(target_id, threaded=1)
         else:
@@ -324,6 +330,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         # notify all modules that a new frame is loaded
         BroadCastEvent(self.modules, "LoadImageEvent", self.new_filename, self.new_frame_number)
+
+        self.loading_image -= 1
 
     """ some Qt events which should be passed around """
 

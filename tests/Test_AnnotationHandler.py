@@ -22,7 +22,7 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
     def test_loadAnnotations(self):
         """ Load existing annotations """
-        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "clickpoints.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "clickpoints.cdb")
 
         # jump to next annotation
         self.keyPress(Qt.Key_Right, Qt.ControlModifier)
@@ -117,12 +117,12 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
         # jump back to the first annotation
         self.keyPress(Qt.Key_Left, Qt.ControlModifier)
         self.wait_for_image_load()
-        self.assertEqual(self.window.media_handler.get_index(), 1, "Didn't jump to annotation in frame 1 in Ctrl+Left")
+        self.assertEqual(self.window.target_frame, 0, "Didn't jump to annotation in frame 1 in Ctrl+Left")
 
         # jump to the second annotation
         self.keyPress(Qt.Key_Right, Qt.ControlModifier)
         self.wait_for_image_load()
-        self.assertEqual(self.window.media_handler.get_index(), 10, "Didn't jump to annotation in frame 10 in Ctrl+Right")
+        self.assertEqual(self.window.target_frame, 10, "Didn't jump to annotation in frame 10 in Ctrl+Right")
 
     def test_addTagsAnnotations(self):
         """ Add and remove annotation """

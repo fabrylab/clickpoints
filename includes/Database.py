@@ -153,8 +153,10 @@ class DataFile:
                 os.chdir(os.path.dirname(database_filename))
         else:
             filename = os.path.join(storage_path, "tmp%d.cdb" % os.getpid())
-            if os.path.exists(filename):
-                os.remove(filename)
+            index2 = 0
+            while os.path.exists(filename):
+                filename = os.path.join(storage_path, "tmp%d_%d.cdb" % (os.getpid(), index2))
+                index2 += 1
             self.db = peewee.SqliteDatabase(filename)
             self.temporary_db = filename
             #self.db = peewee.SqliteDatabase(":memory:")
@@ -579,7 +581,10 @@ class DataFile:
         # remove temporary database if there is still one
         if self.temporary_db:
             self.db.close()
-            os.remove(self.temporary_db)
+            try:
+                os.remove(self.temporary_db)
+            except:
+                pass
             self.temporary_db = None
         pass
 
