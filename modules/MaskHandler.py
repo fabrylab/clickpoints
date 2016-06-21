@@ -569,6 +569,10 @@ class MaskHandler:
         else:
             self.MaskDisplay.setOpacity(0)
 
+        # reset mask display
+        self.drawPath = QtGui.QPainterPath()
+        self.drawPathItem.setPath(self.drawPath)
+
     def AddEmptyMask(self):
         self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
         self.MaskDisplay.SetImage(self.image_mask_full)
