@@ -522,7 +522,8 @@ class DataFile:
         elif 2**12 < np.amax(image_data) < 2**16:
             image_data = (image_data/256).astype(np.uint8)
         # store data in the slot
-        slots[slot_index] = image_data
+        if slots is not None:
+            slots[slot_index] = image_data
         # notify that the frame has been loaded
         if signal:
             self.signals.loaded.emit(index, threaded)

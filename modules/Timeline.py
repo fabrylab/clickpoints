@@ -173,7 +173,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         gradient.setColorAt(1, QtGui.QColor(200, 200, 200))
         self.slider_line_active.setBrush(QtGui.QBrush(gradient))
 
-        path = QtWidgets.QPainterPath()
+        path = QtGui.QPainterPath()
         path.moveTo(-4, +12)
         path.lineTo( 0,  +2.5)
         path.lineTo(+4, +12)
@@ -184,7 +184,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         self.slider_start = TimeLineGrabber(self, 0, path, gradient)
         self.slider_start.signal.sliderMoved.connect(self.slider_start_changed)
 
-        path = QtWidgets.QPainterPath()
+        path = QtGui.QPainterPath()
         path.moveTo(-4, -12)
         path.lineTo( 0,  -2.5)
         path.lineTo(+4, -12)
@@ -195,7 +195,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         self.slider_end = TimeLineGrabber(self, 100, path, gradient)
         self.slider_end.signal.sliderMoved.connect(self.slider_end_changed)
 
-        path = QtWidgets.QPainterPath()
+        path = QtGui.QPainterPath()
         path.addRect(-2, -7, 5, 14)
         gradient = QtGui.QLinearGradient(QtCore.QPointF(0, -7), QtCore.QPointF(0, 14))
         gradient.setColorAt(0, QtGui.QColor(255, 0, 0))
@@ -379,7 +379,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         gradient.setColorAt(0, QtGui.QColor(255, 0, 0))
         gradient.setColorAt(1, QtGui.QColor(128, 0, 0))
         self.slider_position = TimeLineGrabberTime(self, 0, path, gradient, parent_item=self.markerGroupParents[-1])
-        self.slider_position.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
+        self.slider_position.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
 
         self.length = 1
 
@@ -805,7 +805,7 @@ class Timeline(QtCore.QObject):
 
         self.images_added_signal.connect(self.ImagesAddedMain)
 
-        self.button = QtGui.QPushButton()
+        self.button = QtWidgets.QPushButton()
         self.button.setCheckable(True)
         self.button.setIcon(qta.icon("fa.play"))
         self.button.setToolTip("display timeline")
@@ -813,14 +813,14 @@ class Timeline(QtCore.QObject):
         self.window.layoutButtons.addWidget(self.button)
 
         # control elements
-        self.layoutCtrlParent = QtGui.QVBoxLayout()
+        self.layoutCtrlParent = QtWidgets.QVBoxLayout()
         layout.addLayout(self.layoutCtrlParent)
-        self.layoutCtrl = QtGui.QHBoxLayout()
+        self.layoutCtrl = QtWidgets.QHBoxLayout()
         self.layoutCtrlParent.addLayout(self.layoutCtrl)
 
         # second
         if self.config.datetimeline_show:
-            self.layoutCtrl2 = QtGui.QHBoxLayout()
+            self.layoutCtrl2 = QtWidgets.QHBoxLayout()
             self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 
             self.timeSlider = RealTimeSlider()
@@ -835,13 +835,13 @@ class Timeline(QtCore.QObject):
             self.timeSlider = None
 
         # frame control
-        self.button_play = QtGui.QPushButton()
+        self.button_play = QtWidgets.QPushButton()
         self.button_play.setCheckable(True)
         self.button_play.setToolTip("start/stop playback\n[space]")
         self.button_play.toggled.connect(self.Play)
         self.layoutCtrl.addWidget(self.button_play)
 
-        self.label_frame = QtGui.QLabel("")
+        self.label_frame = QtWidgets.QLabel("")
         self.label_frame.setMinimumWidth(40)
         self.label_frame.setAlignment(Qt.AlignVCenter)
         self.label_frame.setToolTip("current frame number, frame rate and timestamp")
@@ -867,7 +867,7 @@ class Timeline(QtCore.QObject):
         self.slider_update = True
         self.layoutCtrl.addWidget(self.frameSlider)
 
-        self.spinBox_FPS = QtGui.QSpinBox()
+        self.spinBox_FPS = QtWidgets.QSpinBox()
         self.spinBox_FPS.setMinimum(1)
         self.spinBox_FPS.setMaximum(1000)
         self.spinBox_FPS.setValue(self.fps)
@@ -875,7 +875,7 @@ class Timeline(QtCore.QObject):
         self.spinBox_FPS.setToolTip("play frame rate")
         self.layoutCtrl.addWidget(self.spinBox_FPS)
 
-        self.spinBox_Skip = QtGui.QSpinBox()
+        self.spinBox_Skip = QtWidgets.QSpinBox()
         self.spinBox_Skip.setMinimum(0)
         self.spinBox_Skip.setMaximum(1000)
         self.spinBox_Skip.setValue(self.skip)

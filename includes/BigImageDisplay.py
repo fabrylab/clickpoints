@@ -1,11 +1,7 @@
 from __future__ import division, print_function
-
-from qtpy import QtGui, QtCore
-
+from qtpy import QtGui, QtCore, QtWidgets
 import numpy as np
-
 from qimage2ndarray import array2qimage, rgb_view
-
 from threading import Thread
 
 def BoundBy(value, min, max):
@@ -37,7 +33,7 @@ class BigImageDisplay:
         self.hist = None
         self.conversion = None
 
-        self.preview_pixMapItem = QtGui.QGraphicsPixmapItem(self.origin)
+        self.preview_pixMapItem = QtWidgets.QGraphicsPixmapItem(self.origin)
         self.preview_pixMapItem.setZValue(10)
         self.preview_slice = None
         self.preview_qimage = None
@@ -68,9 +64,9 @@ class BigImageDisplay:
         for i in range(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
             # the first has the origin as parent, all others have the first image as parent
             if i == 0:
-                new_pixmap = QtGui.QGraphicsPixmapItem(self.origin)
+                new_pixmap = QtWidgets.QGraphicsPixmapItem(self.origin)
             else:
-                new_pixmap = QtGui.QGraphicsPixmapItem(self.pixMapItems[0])
+                new_pixmap = QtWidgets.QGraphicsPixmapItem(self.pixMapItems[0])
             # create new entries in the arrays
             self.pixMapItems.append(new_pixmap)
             self.ImageSlices.append(None)

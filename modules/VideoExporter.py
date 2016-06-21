@@ -14,9 +14,9 @@ from Tools import HTMLColorToRGB, BoundBy
 from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox, AddQColorChoose
 
 
-class VideoExporterDialog(QtGui.QWidget):
+class VideoExporterDialog(QtWidgets.QWidget):
     def __init__(self, parent, window, data_file, config, modules):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         # default settings and parameters
         self.window = window
         self.data_file = data_file
@@ -28,12 +28,12 @@ class VideoExporterDialog(QtGui.QWidget):
         self.setMinimumHeight(300)
         self.setWindowIcon(qta.icon('fa.film'))
         self.setWindowTitle('Video Export - ClickPoints')
-        self.layout = QtGui.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)
         self.parent = parent
 
         # add combo box to choose export mode
-        Hlayout = QtGui.QHBoxLayout()
-        self.cbType = QtGui.QComboBox(self)
+        Hlayout = QtWidgets.QHBoxLayout()
+        self.cbType = QtWidgets.QComboBox(self)
         self.cbType.insertItem(0, "Video")
         self.cbType.insertItem(1, "Images")
         self.cbType.insertItem(2, "Gif")
@@ -41,15 +41,15 @@ class VideoExporterDialog(QtGui.QWidget):
         self.layout.addLayout(Hlayout)
 
         # add stacked widget to store export mode parameter
-        self.StackedWidget = QtGui.QStackedWidget(self)
+        self.StackedWidget = QtWidgets.QStackedWidget(self)
         self.layout.addWidget(self.StackedWidget)
 
         self.cbType.currentIndexChanged.connect(self.StackedWidget.setCurrentIndex)
 
         """ Video """
-        videoWidget = QtGui.QGroupBox("Video Settings")
+        videoWidget = QtWidgets.QGroupBox("Video Settings")
         self.StackedWidget.addWidget(videoWidget)
-        Vlayout = QtGui.QVBoxLayout(videoWidget)
+        Vlayout = QtWidgets.QVBoxLayout(videoWidget)
 
         self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/export.avi"), "Choose Video - ClickPoints", "Videos (*.avi)")
         self.leCodec = AddQLineEdit(Vlayout, "Codec:", "libx264", strech=True)
@@ -59,9 +59,9 @@ class VideoExporterDialog(QtGui.QWidget):
         Vlayout.addStretch()
 
         """ Image """
-        imageWidget = QtGui.QGroupBox("Image Settings")
+        imageWidget = QtWidgets.QGroupBox("Image Settings")
         self.StackedWidget.addWidget(imageWidget)
-        Vlayout = QtGui.QVBoxLayout(imageWidget)
+        Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
         self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/images%d.jpg"), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
         AddQLabel(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
@@ -69,18 +69,18 @@ class VideoExporterDialog(QtGui.QWidget):
         Vlayout.addStretch()
 
         """ Gif """
-        gifWidget = QtGui.QGroupBox("Animated Gif Settings")
+        gifWidget = QtWidgets.QGroupBox("Animated Gif Settings")
         self.StackedWidget.addWidget(gifWidget)
-        Vlayout = QtGui.QVBoxLayout(gifWidget)
+        Vlayout = QtWidgets.QVBoxLayout(gifWidget)
 
         self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/export.gif"), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)")
 
         Vlayout.addStretch()
 
         """ Time """
-        timeWidget = QtGui.QGroupBox("Time")
+        timeWidget = QtWidgets.QGroupBox("Time")
         self.layout.addWidget(timeWidget)
-        Vlayout = QtGui.QVBoxLayout(timeWidget)
+        Vlayout = QtWidgets.QVBoxLayout(timeWidget)
 
         self.cbTime = AddQCheckBox(Vlayout, 'Display time:', True, strech=True)
         self.cbTimeZero = AddQCheckBox(Vlayout, 'Start from zero:', True, strech=True)
@@ -93,13 +93,13 @@ class VideoExporterDialog(QtGui.QWidget):
 
         """ Progress bar """
 
-        Hlayout = QtGui.QHBoxLayout()
-        self.progressbar = QtGui.QProgressBar()
+        Hlayout = QtWidgets.QHBoxLayout()
+        self.progressbar = QtWidgets.QProgressBar()
         Hlayout.addWidget(self.progressbar)
-        self.button_start = QtGui.QPushButton("Start")
+        self.button_start = QtWidgets.QPushButton("Start")
         self.button_start.pressed.connect(self.SaveImage)
         Hlayout.addWidget(self.button_start)
-        self.button_stop = QtGui.QPushButton("Stop")
+        self.button_stop = QtWidgets.QPushButton("Stop")
         self.button_stop.pressed.connect(self.StopSaving)
         self.button_stop.setHidden(True)
         Hlayout.addWidget(self.button_stop)
@@ -277,7 +277,7 @@ class VideoExporter:
         self.modules = modules
         self.ExporterWindow = None
 
-        self.button = QtGui.QPushButton()
+        self.button = QtWidgets.QPushButton()
         self.button.setIcon(qta.icon('fa.film'))
         self.button.setToolTip("export images as video/image series")
         self.button.clicked.connect(self.showDialog)

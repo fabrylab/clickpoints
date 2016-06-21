@@ -34,56 +34,56 @@ def isPortInUse(type,ip,port_nr):
         return False
 
 
-class ScriptEditor(QtGui.QWidget):
+class ScriptEditor(QtWidgets.QWidget):
     def __init__(self, script_launcher):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.script_launcher = script_launcher
 
         # Widget
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
         self.setWindowTitle("Script Selector - ClickPoints")
-        self.layout = QtGui.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)
 
         self.setWindowIcon(qta.icon("fa.code"))
 
         """ """
-        self.list = QtGui.QListWidget(self)
+        self.list = QtWidgets.QListWidget(self)
         self.layout.addWidget(self.list)
         self.list.itemSelectionChanged.connect(self.list_selected)
 
-        group_box = QtGui.QGroupBox("Add Folder")
+        group_box = QtWidgets.QGroupBox("Add Folder")
         self.group_box = group_box
         self.layout.addWidget(group_box)
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         group_box.setLayout(layout)
         """ """
 
-        horizontal_layout = QtGui.QHBoxLayout()
+        horizontal_layout = QtWidgets.QHBoxLayout()
         layout.addLayout(horizontal_layout)
 
-        horizontal_layout.addWidget(QtGui.QLabel("Folder:"))
+        horizontal_layout.addWidget(QtWidgets.QLabel("Folder:"))
 
-        self.text_input = QtGui.QLineEdit(self)
+        self.text_input = QtWidgets.QLineEdit(self)
         self.text_input.setDisabled(True)
         horizontal_layout.addWidget(self.text_input)
 
-        self.pushbutton_file = QtGui.QPushButton('Select F&ile', self)
+        self.pushbutton_file = QtWidgets.QPushButton('Select F&ile', self)
         self.pushbutton_file.pressed.connect(self.select_file)
         horizontal_layout.addWidget(self.pushbutton_file)
 
-        self.pushbutton_delete = QtGui.QPushButton('Remove', self)
+        self.pushbutton_delete = QtWidgets.QPushButton('Remove', self)
         self.pushbutton_delete.pressed.connect(self.remove_folder)
         horizontal_layout.addWidget(self.pushbutton_delete)
 
         """ """
 
-        horizontal_layout = QtGui.QHBoxLayout()
+        horizontal_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(horizontal_layout)
 
         horizontal_layout.addStretch()
 
-        self.pushbutton_Confirm = QtGui.QPushButton('O&k', self)
+        self.pushbutton_Confirm = QtWidgets.QPushButton('O&k', self)
         self.pushbutton_Confirm.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
@@ -106,13 +106,13 @@ class ScriptEditor(QtGui.QWidget):
     def update_folder_list(self):
         self.list.clear()
         for index, script in enumerate(self.script_launcher.scripts):
-            item = QtGui.QListWidgetItem(qta.icon("fa.code"), "%s  (F%d)" % (script, 12-index), self.list)
+            item = QtWidgets.QListWidgetItem(qta.icon("fa.code"), "%s  (F%d)" % (script, 12-index), self.list)
             item.path_entry = script
-        QtGui.QListWidgetItem(qta.icon("fa.plus"), "add script", self.list)
+        QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add script", self.list)
 
     def select_file(self):
         # ask for a file name
-        new_path = str(QtGui.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path))
+        new_path = str(QtWidgets.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path))
         # if we got one, set it
         if new_path:
             print(new_path, self.script_launcher.script_path)
@@ -170,7 +170,7 @@ class ScriptLauncher(QtCore.QObject):
         self.memmap_path = None
         self.memmap_size = 0
 
-        self.button = QtGui.QPushButton()
+        self.button = QtWidgets.QPushButton()
         self.button.setIcon(qta.icon("fa.code"))
         self.button.clicked.connect(self.showScriptSelector)
         self.button.setToolTip("load/remove addon scripts")
