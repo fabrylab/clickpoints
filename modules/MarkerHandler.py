@@ -64,6 +64,8 @@ class MarkerFile:
         self.table_types = self.data_file.table_types
         self.table_marker = self.data_file.table_marker
         self.table_tracks = self.data_file.table_tracks
+            text = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
 
     def set_track(self):
         track = self.table_tracks(uid=uuid.uuid4().hex)
@@ -335,7 +337,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.StackedWidget.setCurrentIndex(2)
             self.trackWidget.setTitle("Track #%d" % data.id)
             self.trackWidget.style.setText(data.style if data.style else "")
-            #self.le_text2.setText(data.text if data.text else "")
+            self.trackWidget.text.setText(data.text if data.text else "")
             pass
 
         elif type(data) == self.db.table_types or data_type == "type":
@@ -354,7 +356,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 pass
             self.typeWidget.style.setText(data.style if data.style else "")
             self.typeWidget.color.setColor(data.color)
-            #self.typeWidget.text.setText(data.text if data.text else "")
+            self.typeWidget.text.setText(data.text if data.text else "")
             pass
 
     def saveMarker(self):
@@ -365,7 +367,14 @@ class MarkerEditor(QtWidgets.QWidget):
             self.data.y = self.markerWidget.y.value()
             self.data.type = self.marker_handler.marker_file.get_type(self.markerWidget.type.currentText())
             self.data.style = self.markerWidget.style.text()
-            self.data.text = self.markerWidget.text.text()
+
+            # filter text
+            text = self.markerWidget.text.text()
+            # if text field is empty - add Null instead of ""
+            if text == "":
+                text = None
+
+            self.data.text = text
             self.data.save()
 
             # load updated data
@@ -378,14 +387,14 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_item.ReloadData()
         elif type(self.data) == self.db.table_tracks:
             self.data.style = self.trackWidget.style.text()
-            #self.data.text = self.trackWidget.text.text()
+            self.data.text = self.trackWidget.text.text()
             self.data.save()
         elif type(self.data) == self.db.table_types:
             self.data.name = self.typeWidget.name.text()
             self.data.mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
             self.data.style = self.typeWidget.style.text()
             self.data.color = self.typeWidget.color.getColor()
-            #self.data.text = self.typeWidget.text.text()
+            self.data.text = self.typeWidget.text.text()
             self.data.save()
             self.marker_handler.UpdateCounter()
 
@@ -507,6 +516,10 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
 
         if self.data.text is not None:
             self.setText(self.data.text)
+        else:
+            # check if marker belongs to track - show track text instead
+            if self.data.track is not None and self.data.track.text is not None:
+                self.setText(self.data.track.text)
 
         if self.data.type.mode & TYPE_Rect or self.data.type.mode & TYPE_Line:
             self.FindPartner()
@@ -526,12 +539,12 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.font = QtGui.QFont()
             self.font.setPointSize(10)
             self.text_parent = QtWidgets.QGraphicsPathItem(self)
-            self.text_parent.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
+            self.text_parent.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
             self.text = QtWidgets.QGraphicsSimpleTextItem(self.text_parent)
             self.text.setFont(self.font)
             self.text.setPos(5, 5)
             self.text.setZValue(10)
-            self.text.setBrush(QtGui.QBrush(QtGui.QColor(*self.color)))
+            self.text.setBrush(QtGui.QBrush(self.color))
         self.text.setText(text)
 
     def GetStyle(self):
@@ -568,7 +581,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.style["color"] = HTMLColorToRGB(self.style["color"])
 
         # store color
-        self.color = self.style["color"]
+        self.color = QtGui.QColor(*self.style["color"])
 
     def ReloadData(self):
         self.setPos(self.data.x, self.data.y)
@@ -576,6 +589,10 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         self.ApplyStyle()
         if self.data.text is not None:
             self.setText(self.data.text)
+        else:
+            # check if marker belongs to track and has a valid text - show track text instead
+            if self.data.track is not None and self.data.track.text is not None:
+                self.setText(self.data.track.text)
 
     def ApplyStyle(self):
         self.color = QtGui.QColor(*self.style["color"])
@@ -586,7 +603,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
             self.setPen(QtGui.QPen(self.color, self.style.get("line-width", 1)))
         if self.text:
-            self.text.setBrush(QtGui.QBrush(QtGui.QColor(self.color)))
+            self.text.setBrush(QtGui.QBrush(self.color))
         self.UpdatePath()
         self.setScale(None)
 
@@ -841,6 +858,9 @@ class MyTrackItem(MyMarkerItem):
             self.UpdateStyle()
             if self.data.text is not None:
                 self.setText(self.data.text)
+            else:
+                if self.data.track is not None and self.data.track.text is not None:
+                    self.setText(self.data.track.text)
             return
 
         if not self.hidden:
@@ -997,7 +1017,10 @@ class MyTrackItem(MyMarkerItem):
 
     def save(self):
         if not self.saved:
-            self.data.save()
+            try:
+                self.data.save()
+            except peewee.IntegrityError:
+                pass
             self.saved = True
 
 
