@@ -56,6 +56,7 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
    Attributes:
         - **path** *(str, unique)* - the path
+        - **images** *(list of* :py:class:`Image` *)* - the images with this path.
 
 .. py:class:: Image()
 
@@ -71,13 +72,15 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **width** *(int)* - None if it has not be set, otherwise the width of the image.
         - **height** *(int)* - None if it has not be set, otherwise the height of the image.
         - **path** *(* :py:class:`Path` *)* - the linked path entry containing the path to the image.
+        - **offset** *(* :py:class:`Offset` *)* - the linked offset entry containing the offsets stored for this image.
+        - **markers** *(list of* :py:class:`Marker` *)* - a list of marker entries for this image.
         - **mask** *(* :py:class:`Mask` *)* - the mask entry associated with the image.
         - **data** *(array)* - the image data as a numpy array. Data will be loaded on demand and cached.
         - **data8** *(array, uint8)* - the image data converted to unsigned 8 bit integers.
 
 .. py:class:: Offset()
 
-   Offsets asociated with an image.
+   Offsets associated with an image.
 
    Attributes:
         - **image** *(* :py:class:`Image` *)* - the associated image entry.
@@ -90,24 +93,25 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
    Attributes:
         - **style** *(str)* - the style for this track.
-        - **points()** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers.
-        - **marker()** *(list of* :py:class:`Marker` *)*)* - a list containing all the associated markers.
-        - **times()** *(list of datetime)* - a list containing the timestamps for the images of the associated markers.
-        - **frames()** *(list of int)* - a list containing all the frame numbers for the images of the associated markers.
+        - **points** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers.
+        - **marker** *(list of* :py:class:`Marker` *)* - a list containing all the associated markers.
+        - **times** *(list of datetime)* - a list containing the timestamps for the images of the associated markers.
+        - **frames** *(list of int)* - a list containing all the frame numbers for the images of the associated markers.
 
 .. py:class:: MarkerType()
 
-   A Marker type.
+   A marker type.
 
    Attributes:
         - **name** *(str, unique)* - the name of the marker type.
         - **color** *(str)* - the color of the marker in HTML format, e.g. #FF0000 (red).
         - **mode** *(int)* - the mode, hast to be either: TYPE_Normal, TYPE_Rect, TYPE_Line or TYPE_Track
         - **style** *(str)* - the style of the marker.
+        - **markers** *(list of* :py:class:`Marker` *)* - a list containing all markers that use this type.
 
 .. py:class:: Marker()
 
-   A Marker.
+   A marker.
 
    Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
@@ -140,7 +144,37 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **name** *(str)* - the name of the mask type.
         - **color** *(str)* - the color of the mask type in HTML format, e.g. #FF0000 (red).
         - **index** *(int)* - the integer value used to represent this type in the mask.
-   
+
+
+.. py:class:: Annotation()
+
+   An annotation.
+
+   Attributes:
+        - **image** *(* :py:class:`Image` *)* - the image entry associated with this annotation.
+        - **timestamp** *(datetime)* - the timestamp of the image linked to the annotation.
+        - **comment** *(str)* - the text of the comment.
+        - **rating** *(int)* - the value added to the annotation as rating.
+        - **tags** *(list of* :py:class:`Tag` *)* - the tags associated with this annotation.
+
+
+.. py:class:: Tag()
+
+   A tag for an :py:class:`Annotation`.
+
+   Attributes:
+        - **name** *(str)* - the name of the tag.
+        - **annotations** *(list of* :py:class:`Annotation` *)* - the annotations associated with this tag.
+
+
+.. py:class:: TagAssociation()
+
+   A link between a :py:class:`Tag` and an :py:class:`Annotation`
+
+   Attributes:
+        - **annotation** *(* :py:class:`Annotation` *)* - the linked annotation.
+        - **tag** *(* :py:class:`Tag` *)* - the linked tag.
+
 Commands
 --------   
    
