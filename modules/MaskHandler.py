@@ -20,23 +20,8 @@ class MaskFile:
     def __init__(self, datafile):
         self.data_file = datafile
 
-        class Mask(datafile.base_model):
-            image = peewee.ForeignKeyField(datafile.table_images, unique=True)
-            filename = peewee.CharField()
-
-        class MaskTypes(datafile.base_model):
-            name = peewee.CharField()
-            color = peewee.CharField()
-            index = peewee.IntegerField(unique=True)
-
-        self.table_mask = Mask
-        self.table_maskTypes = MaskTypes
-        self.data_file.tables.extend([Mask, MaskTypes])
-
-        if not self.table_mask.table_exists():
-            self.table_mask.create_table()
-        if not self.table_maskTypes.table_exists():
-            self.table_maskTypes.create_table()
+        self.table_maskTypes = self.data_file.table_maskTypes
+        self.table_mask = self.data_file.table_mask
 
         self.mask_path = None
 

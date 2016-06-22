@@ -2,6 +2,7 @@ from __future__ import print_function, division
 import numpy as np
 import os
 import peewee
+from playhouse.reflection import Introspector
 import time
 from PIL import Image
 import imageio
@@ -91,30 +92,27 @@ class DataFile:
 
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
-            import argparse
-            parser = argparse.ArgumentParser()
-            parser.add_argument("--database", dest='database', help='specify which database file to use')
-            args, unknown = parser.parse_known_args()
-            if args.database:
-                database_filename = args.database
-        if database_filename is None:
-            raise TypeError(
-                "No database filename supplied. Pass it either as an argument to DataFile or as a command line parameter e.g. --database clickpoints.cdb")
+            raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
         self.current_version = "6"
+        version = self.current_version
+        self.next_sort_index = 0
+        new_database = True
 
         # Create a new database
         if mode == "w":
             if os.path.exists(self.database_filename):
                 os.remove(self.database_filename)
             self.db = peewee.SqliteDatabase(database_filename)
-            self.next_sort_index = 0
         else:  # or read an existing one
-            if not os.path.exists(self.database_filename):
+            if not os.path.exists(self.database_filename) and mode != "r+":
                 raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
             self.db = peewee.SqliteDatabase(database_filename)
-            self.next_sort_index = None
+            if os.path.exists(self.database_filename):
+                version = self._CheckVersion()
+                self.next_sort_index = None
+                new_database = False
 
         """ Basic Tables """
 
@@ -125,7 +123,7 @@ class DataFile:
             database_class = self
 
         class Meta(BaseModel):
-            key = peewee.CharField()
+            key = peewee.CharField(unique=True)
             value = peewee.CharField()
 
         class Paths(BaseModel):
@@ -133,7 +131,7 @@ class DataFile:
 
         class Images(BaseModel):
             filename = peewee.CharField(unique=True)
-            ext = peewee.CharField()
+            ext = peewee.CharField(max_length=10)
             frame = peewee.IntegerField(default=0)
             external_id = peewee.IntegerField(null=True)
             timestamp = peewee.DateTimeField(null=True)
@@ -141,6 +139,10 @@ class DataFile:
             width = peewee.IntegerField(null=True)
             height = peewee.IntegerField(null=True)
             path = peewee.ForeignKeyField(Paths, related_name="images")
+
+            class Meta:
+                # image and path in combination have to be unique
+                indexes = ((('filename', 'path', 'frame'), True),)
 
             image_data = None
 
@@ -178,7 +180,7 @@ class DataFile:
         self.table_meta = Meta
         self.table_paths = Paths
         self.table_images = Images
-        self.tables = [BaseModel, Paths, Images]
+        self.tables = [BaseModel, Meta, Paths, Images]
 
         """ Offset Table """
 
@@ -209,7 +211,7 @@ class DataFile:
                 return np.array([point.image.sort_index for point in self.marker()])
 
         class Types(BaseModel):
-            name = peewee.CharField()
+            name = peewee.CharField(unique=True)
             color = peewee.CharField()
             mode = peewee.IntegerField()
             style = peewee.CharField(null=True)
@@ -218,12 +220,15 @@ class DataFile:
             image = peewee.ForeignKeyField(Images, related_name="marker")
             x = peewee.FloatField()
             y = peewee.FloatField()
-            type = peewee.ForeignKeyField(Types)
+            type = peewee.ForeignKeyField(Types, related_name="markers")
             processed = peewee.IntegerField(default=0)
             partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
+            track = peewee.ForeignKeyField(Tracks, null=True, related_name='markers')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
-            track = peewee.ForeignKeyField(Tracks, null=True)
+
+            class Meta:
+                indexes = ((('image', 'track'), True),)
 
             def correctedXY(self):
                 join_condition = ((Marker.image == Offsets.image) & \
@@ -243,9 +248,6 @@ class DataFile:
                         pt = [q.x, q.y]
 
                 return pt
-
-            class Meta:
-                indexes = ((('image', 'image_frame', 'track'), True),)
 
             def pos(self):
                 return np.array([self.x, self.y])
@@ -279,7 +281,7 @@ class DataFile:
         class MaskTypes(BaseModel):
             name = peewee.CharField()
             color = peewee.CharField()
-            index = peewee.IntegerField()
+            index = peewee.IntegerField(unique=True)
 
         """ Annotation Tables """
 
@@ -296,25 +298,136 @@ class DataFile:
             annotation = peewee.ForeignKeyField(Annotation)
             tag = peewee.ForeignKeyField(Tags)
 
-            self.table_mask = Mask
-            self.table_maskTypes = MaskTypes
-            self.tables.extend([Mask, MaskTypes])
-            self.mask_path = None
+        self.table_mask = Mask
+        self.table_maskTypes = MaskTypes
+        self.tables.extend([Mask, MaskTypes])
+        self.mask_path = None
 
-            """ Connect """
-            self.db.connect()
-            self._CreateTables()
+        """ Connect """
+        self.db.connect()
+        self._CreateTables()
 
-            """ Enumerations """
-            self.TYPE_Normal = 0
-            self.TYPE_Rect = 1
-            self.TYPE_Line = 2
-            self.TYPE_Track = 4
+        if new_database:
+            self.table_meta(key="version", value=self.current_version).save()
+
+        # second migration part which needs the peewee model
+        if version is not None and int(version) < int(self.current_version):
+            self._migrateDBFrom2(version)
+
+        """ Enumerations """
+        self.TYPE_Normal = 0
+        self.TYPE_Rect = 1
+        self.TYPE_Line = 2
+        self.TYPE_Track = 4
 
         self.table_annotation = Annotation
         self.table_tags = Tags
         self.table_tagassociation = Tagassociation
         self.tables.extend([Annotation, Tags, Tagassociation])
+
+    def _CheckVersion(self):
+        version = None
+
+        introspector = Introspector.from_database(self.db)
+        models = introspector.generate_models()
+        try:
+            version = models["meta"].get(models["meta"].key == "version").value
+        except (KeyError, peewee.DoesNotExist):
+            version = "0"
+        print("Open database with version", version)
+        if int(version) < int(self.current_version):
+            self._migrateDBFrom(version)
+        elif int(version) > int(self.current_version):
+            print("Warning Database version %d is newer than ClickPoints version %d "
+                  "- please get an updated Version!"
+                  % (int(version), int(self.current_version)))
+            print("Proceeding on own risk!")
+        # go to the folder
+        #if os.path.dirname(database_filename):
+        #    os.chdir(os.path.dirname(database_filename))
+
+    def _migrateDBFrom(self, version):
+        # migrate database from an older version
+        nr_new_version = None
+        print("Migrating DB from version %s" % version)
+        nr_version = int(version)
+
+        if nr_version < 3:
+            print("\tto 3")
+            # Add text fields for Marker
+            self.db.execute_sql("ALTER TABLE marker ADD COLUMN text varchar(255)")
+            nr_new_version = 3
+
+        if nr_version < 4:
+            print("\tto 4")
+            # Add text fields for Tracks
+            try:
+                self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
+            except peewee.OperationalError:
+                pass
+            # Add text fields for Types
+            try:
+                self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
+            except peewee.OperationalError:
+                pass
+            nr_new_version = 4
+
+        if nr_version < 5:
+            print("\tto 5")
+            # Add text fields for Tracks
+            try:
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN frame int")
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN sort_index int")
+            except peewee.OperationalError:
+                pass
+            nr_new_version = 5
+
+        if nr_version < 6:
+            print("\tto 6")
+            # Add text fields for Tracks
+            try:
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN path_id int")
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN width int NULL")
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN height int NULL")
+            except peewee.OperationalError:
+                pass
+            nr_new_version = 6
+
+        self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
+                                            (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(
+            nr_new_version))
+
+    def _migrateDBFrom2(self, nr_version):
+        nr_version = int(nr_version)
+        if nr_version < 5:
+            print("second migration step to 5")
+            images = self.table_images.select().order_by(self.table_images.filename)
+            for index, image in enumerate(images):
+                image.sort_index = index
+                image.frame = 0
+                image.save()
+        if nr_version < 6:
+            print("second migration step to 6")
+            images = self.table_images.select().order_by(self.table_images.filename)
+            for image in images:
+                path = None
+                if os.path.exists(image.filename):
+                    path = ""
+                else:
+                    for root, dirs, files in os.walk("."):
+                        if image.filename in files:
+                            path = root
+                            break
+                if path is None:
+                    print("ERROR: image not found", image.filename)
+                    continue
+                try:
+                    path_entry = self.table_paths.get(path=path)
+                except peewee.DoesNotExist:
+                    path_entry = self.table_paths(path=path)
+                    path_entry.save()
+                image.path = path_entry
+                image.save()
 
     def _GetMaskPath(self):
         if self.mask_path:
@@ -330,9 +443,7 @@ class DataFile:
         return self.mask_path
 
     def _CreateTables(self):
-        table_list = [self.table_meta, self.table_paths, self.table_images, self.table_marker, self.table_types,
-                      self.table_tracks, self.table_mask, self.table_maskTypes]
-        for table in table_list:
+        for table in self.tables:
             if not table.table_exists():
                 self.db.create_table(table)
 

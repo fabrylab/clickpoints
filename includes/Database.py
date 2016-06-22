@@ -15,6 +15,7 @@ from threading import Thread
 from qtpy import QtCore
 import numpy as np
 
+from clickpoints import DataFile as DataFileBase
 
 # add plugins to imageIO if available
 plugin_searchpath = os.path.join(os.path.split(__file__)[0],'..',r'addons/imageio_plugin')
@@ -124,92 +125,26 @@ def date_linspace(start_date, end_date, frames):
         start_date = start_date + delta
 
 
-class DataFile:
+class DataFile(DataFileBase):
     def __init__(self, database_filename=None, config=None, storage_path=None):
-        self.database_filename = database_filename
         self.exists = os.path.exists(database_filename)
-        self.current_version = "6"
         self.config = config
         self.temporary_db = None
-        version = None
+
         if self.exists:
-            self.db = peewee.SqliteDatabase(database_filename)
-            introspector = Introspector.from_database(self.db)
-            models = introspector.generate_models()
-            try:
-                version = models["meta"].get(models["meta"].key == "version").value
-            except (KeyError, peewee.DoesNotExist):
-                version = "0"
-            print("Open database with version", version)
-            if int(version) < int(self.current_version):
-                self.migrateDBFrom(version)
-            elif int(version) > int(self.current_version):
-                print("Warning Database version %d is newer than ClickPoints version %d "
-                      "- please get an updated Version!"
-                      % (int(version), int(self.current_version)))
-                print("Proceeding on own risk!")
             # go to the folder
             if os.path.dirname(database_filename):
                 os.chdir(os.path.dirname(database_filename))
         else:
-            filename = os.path.join(storage_path, "tmp%d.cdb" % os.getpid())
+            database_filename = os.path.join(storage_path, "tmp%d.cdb" % os.getpid())
             index2 = 0
-            while os.path.exists(filename):
-                filename = os.path.join(storage_path, "tmp%d_%d.cdb" % (os.getpid(), index2))
+            while os.path.exists(database_filename):
+                database_filename = os.path.join(storage_path, "tmp%d_%d.cdb" % (os.getpid(), index2))
                 index2 += 1
-            self.db = peewee.SqliteDatabase(filename)
-            self.temporary_db = filename
+            self.temporary_db = database_filename
             #self.db = peewee.SqliteDatabase(":memory:")
 
-        class BaseModel(peewee.Model):
-            class Meta:
-                database = self.db
-
-        class Meta(BaseModel):
-            key = peewee.CharField(unique=True)
-            value = peewee.CharField()
-
-        class Paths(BaseModel):
-            path = peewee.CharField(unique=True)
-
-        class Images(BaseModel):
-            filename = peewee.CharField()
-            ext = peewee.CharField(max_length=10)
-            frame = peewee.IntegerField(default=0)
-            external_id = peewee.IntegerField(null=True)
-            timestamp = peewee.DateTimeField(null=True)
-            sort_index = peewee.IntegerField(default=0)
-            width = peewee.IntegerField(null=True)
-            height = peewee.IntegerField(null=True)
-            path = peewee.ForeignKeyField(Paths, related_name="images")
-
-            class Meta:
-                # image and path in combination have to be unique
-                indexes = ((('filename', 'path', 'frame'), True), )
-
-        class Offsets(BaseModel):
-            image = peewee.ForeignKeyField(Images, unique=True)
-            x = peewee.FloatField()
-            y = peewee.FloatField()
-
-        self.tables = [BaseModel, Meta, Paths, Images, Offsets]
-
-        self.base_model = BaseModel
-        self.table_meta = Meta
-        self.table_paths = Paths
-        self.table_images = Images
-        self.table_offsets = Offsets
-
-        self.db.connect()
-        for table in [self.table_meta, self.table_paths, self.table_images, self.table_offsets]:
-            if not table.table_exists():
-                table.create_table()
-        if not self.exists:
-            self.table_meta(key="version", value=self.current_version).save()
-
-        # second migration part which needs the peewee model
-        if version is not None and int(version) < int(self.current_version):
-            self.migrateDBFrom2(version)
+        DataFileBase.__init__(self, database_filename, mode='r+')
 
         # image, file reader and current index
         self.image = None
