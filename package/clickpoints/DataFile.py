@@ -79,7 +79,7 @@ class Rectangle:
 
 class DataFile:
     """
-    The DataFile class  provides access to the .cdb file format in which ClickPoints stores the data for a project.
+    The DataFile class provides access to the .cdb file format in which ClickPoints stores the data for a project.
 
     Parameters
     ----------
