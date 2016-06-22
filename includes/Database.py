@@ -233,6 +233,20 @@ class DataFile(DataFileBase):
                 pass
             nr_new_version = 6
 
+        if nr_version < 7:
+            print("\tto 6")
+            # Add text fields for Tracks
+            try:
+                self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
+            except peewee.OperationalError:
+                pass
+            # Add text fields for Types
+            try:
+                self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
+            except peewee.OperationalError:
+                pass
+            nr_new_version =7
+
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(nr_new_version))
 
