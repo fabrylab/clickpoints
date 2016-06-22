@@ -64,8 +64,6 @@ class MarkerFile:
         self.table_types = self.data_file.table_types
         self.table_marker = self.data_file.table_marker
         self.table_tracks = self.data_file.table_tracks
-            text = peewee.CharField(null=True)
-            text = peewee.CharField(null=True)
 
     def set_track(self):
         track = self.table_tracks(uid=uuid.uuid4().hex)

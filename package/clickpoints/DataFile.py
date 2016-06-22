@@ -95,7 +95,7 @@ class DataFile:
             raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
-        self.current_version = "6"
+        self.current_version = "7"
         version = self.current_version
         self.next_sort_index = 0
         new_database = True
@@ -197,6 +197,7 @@ class DataFile:
         class Tracks(BaseModel):
             uid = peewee.CharField()
             style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
 
             def points(self):
                 return np.array([[point.x, point.y] for point in self.marker()])
@@ -215,6 +216,7 @@ class DataFile:
             color = peewee.CharField()
             mode = peewee.IntegerField()
             style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
 
         class Marker(BaseModel):
             image = peewee.ForeignKeyField(Images, related_name="marker")
@@ -392,6 +394,20 @@ class DataFile:
             except peewee.OperationalError:
                 pass
             nr_new_version = 6
+
+        if nr_version < 7:
+            print("\tto 6")
+            # Add text fields for Tracks
+            try:
+                self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
+            except peewee.OperationalError:
+                pass
+            # Add text fields for Types
+            try:
+                self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
+            except peewee.OperationalError:
+                pass
+            nr_new_version = 7
 
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(
