@@ -357,6 +357,13 @@ class MarkerEditor(QtWidgets.QWidget):
             self.typeWidget.text.setText(data.text if data.text else "")
             pass
 
+
+    def filterText(self, input):
+        # if text field is empty - add Null instead of "" to sql db
+        if not input:
+            return None
+        return input
+
     def saveMarker(self):
         print("Saving changes...")
         # set parameters
@@ -365,14 +372,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.data.y = self.markerWidget.y.value()
             self.data.type = self.marker_handler.marker_file.get_type(self.markerWidget.type.currentText())
             self.data.style = self.markerWidget.style.text()
-
-            # filter text
-            text = self.markerWidget.text.text()
-            # if text field is empty - add Null instead of ""
-            if text == "":
-                text = None
-
-            self.data.text = text
+            self.data.text = self.filterText(self.markerWidget.text.text())
             self.data.save()
 
             # load updated data
@@ -385,14 +385,14 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_item.ReloadData()
         elif type(self.data) == self.db.table_track:
             self.data.style = self.trackWidget.style.text()
-            self.data.text = self.trackWidget.text.text()
+            self.data.text = self.filterText(self.trackWidget.text.text())
             self.data.save()
         elif type(self.data) == self.db.table_markertype:
             self.data.name = self.typeWidget.name.text()
             self.data.mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
             self.data.style = self.typeWidget.style.text()
             self.data.color = self.typeWidget.color.getColor()
-            self.data.text = self.typeWidget.text.text()
+            self.data.text = self.filterText(self.typeWidget.text.text())
             self.data.save()
             self.marker_handler.UpdateCounter()
 
@@ -512,12 +512,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
 
         self.setAcceptHoverEvents(True)
 
-        if self.data.text is not None:
-            self.setText(self.data.text)
-        else:
-            # check if marker belongs to track - show track text instead
-            if self.data.track is not None and self.data.track.text is not None:
-                self.setText(self.data.track.text)
+        self.setText(self.GetText())
 
         if self.data.type.mode & TYPE_Rect or self.data.type.mode & TYPE_Line:
             self.FindPartner()
@@ -531,6 +526,24 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.UpdateRect()
 
         self.ApplyStyle()
+
+    # update text with priorities: marker, track, label
+    def GetText(self):
+        # check for marker text entry
+        if self.data.text is not None:
+            return self.data.text
+
+        # check for track text entry
+        if self.data.track is not None and self.data.track.text is not None:
+            return self.data.track.text
+
+        # check for type text entry
+        if self.data.type.text is not None:
+            return self.data.type.text
+
+        # if there are no text entries return an empty string
+        return ""
+
 
     def setText(self, text):
         if self.text is None:
@@ -585,12 +598,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         self.setPos(self.data.x, self.data.y)
         self.GetStyle()
         self.ApplyStyle()
-        if self.data.text is not None:
-            self.setText(self.data.text)
-        else:
-            # check if marker belongs to track and has a valid text - show track text instead
-            if self.data.track is not None and self.data.track.text is not None:
-                self.setText(self.data.track.text)
+        self.setText(self.GetText())
 
     def ApplyStyle(self):
         self.color = QtGui.QColor(*self.style["color"])
@@ -854,11 +862,7 @@ class MyTrackItem(MyMarkerItem):
             if self.partner and self.rectObj:
                 self.UpdateRect()
             self.UpdateStyle()
-            if self.data.text is not None:
-                self.setText(self.data.text)
-            else:
-                if self.data.track is not None and self.data.track.text is not None:
-                    self.setText(self.data.track.text)
+            self.setText(self.GetText())
             return
 
         if not self.hidden:
