@@ -61,37 +61,9 @@ class MarkerFile:
     def __init__(self, datafile):
         self.data_file = datafile
 
-        class Tracks(datafile.base_model):
-            uid = peewee.CharField()
-            style = peewee.CharField(null=True)
-
-        class Types(datafile.base_model):
-            name = peewee.CharField(unique=True)
-            color = peewee.CharField()
-            mode = peewee.IntegerField()
-            style = peewee.CharField(null=True)
-
-        class Marker(datafile.base_model):
-            image = peewee.ForeignKeyField(datafile.table_images)
-            x = peewee.FloatField()
-            y = peewee.FloatField()
-            type = peewee.ForeignKeyField(Types, related_name="markers")
-            processed = peewee.IntegerField(default=0)
-            partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
-            track = peewee.ForeignKeyField(Tracks, null=True, related_name='markers')
-            style = peewee.CharField(null=True)
-            text = peewee.CharField(null=True)
-            class Meta:
-                indexes = ((('image', 'track'), True), )
-
-        self.table_marker = Marker
-        self.table_tracks = Tracks
-        self.table_types = Types
-        self.data_file.tables.extend([Marker, Tracks, Types])
-
-        for table in [self.table_marker, self.table_tracks, self.table_types]:
-            if not table.table_exists():
-                table.create_table()
+        self.table_types = self.data_file.table_types
+        self.table_marker = self.data_file.table_marker
+        self.table_tracks = self.data_file.table_tracks
 
     def set_track(self):
         track = self.table_tracks(uid=uuid.uuid4().hex)
@@ -219,14 +191,12 @@ class MarkerEditor(QtWidgets.QWidget):
             item.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
             item.setEditable(False)
             item.entry = type
-            #self.modelItems_marker[item] = type
 
             if type.mode & TYPE_Track:
                 tracks = self.db.table_tracks.select().join(self.db.table_marker).where(self.db.table_marker.type == type).group_by(self.db.table_tracks.id)
                 for track in tracks:
                     child = QtGui.QStandardItem("Track #%d" % track.id)
                     child.entry = track
-                    #self.modelItems_marker[child] = track
                     child.setEditable(False)
                     item.appendRow(child)
                     markers = self.db.table_marker.select().where(self.db.table_marker.type == type, self.db.table_marker.track == track)
@@ -237,7 +207,6 @@ class MarkerEditor(QtWidgets.QWidget):
                         child.appendRow(child2)
                         self.marker_modelitems[marker.id] = child2
                         child2.entry = marker
-                        #self.modelItems_marker[child2] = marker
                         count += 1
                     child.setText("Track #%d (%d)" % (track.id, count))
             else:
@@ -248,7 +217,6 @@ class MarkerEditor(QtWidgets.QWidget):
                     item.appendRow(child)
                     self.marker_modelitems[marker.id] = child
                     child.entry = marker
-                    #self.modelItems_marker[child] = marker
 
             model.setItem(row, 0, item)
         item = QtGui.QStandardItem("add type")
@@ -256,10 +224,7 @@ class MarkerEditor(QtWidgets.QWidget):
         item.setEditable(False)
         self.new_type = self.db.table_types()
         item.entry = self.new_type
-        #self.modelItems_marker[item] = self.new_type
         model.setItem(row+1, 0, item)
-
-        #self.modelItems_marker = {item.index(): self.modelItems_marker[item] for item in self.modelItems_marker}
 
         tree.setUniformRowHeights(True)
         tree.setHeaderHidden(True)
@@ -1277,7 +1242,7 @@ class MarkerHandler:
 
         self.Crosshair = Crosshair(parent, view, image_display, config)
 
-        # if a new database is created will it with markers from the config
+        # if a new database is created fill it with markers from the config
         if new_database:
             for type_id, type_def in self.config.types.items():
                 self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2])
