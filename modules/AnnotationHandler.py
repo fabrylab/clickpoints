@@ -39,23 +39,20 @@ class AnnotationFile:
                 #system = peewee.IntegerField(null=True)
                 #device = peewee.IntegerField(null=True)
             self.table_annotation = SqlAnnotation
+
+            class Tags(base_model):
+                name = peewee.CharField()
+
+            class Tagassociation(base_model):
+                annotation = peewee.ForeignKeyField(self.table_annotation)
+                tag = peewee.ForeignKeyField(Tags)
+
+            self.table_tags = Tags
+            self.table_tagassociation = Tagassociation
         else:
-            class Annotation(base_model):
-                timestamp = peewee.DateTimeField(null=True)
-                image = peewee.ForeignKeyField(datafile.table_images)
-                comment = peewee.TextField(default="")
-                rating = peewee.IntegerField(default=0)
-            self.table_annotation = Annotation
-
-        class Tags(base_model):
-            name = peewee.CharField()
-
-        class Tagassociation(base_model):
-            annotation = peewee.ForeignKeyField(self.table_annotation)
-            tag = peewee.ForeignKeyField(Tags)
-
-        self.table_tags = Tags
-        self.table_tagassociation = Tagassociation
+            self.table_annotation = self.data_file.table_annotation
+            self.table_tags = self.data_file.table_tags
+            self.table_tagassociation = self.data_file.table_tagassociation
 
         if not self.server:
             self.data_file.tables.extend([self.table_annotation, self.table_tags, self.table_tagassociation])
