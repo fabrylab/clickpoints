@@ -98,7 +98,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.move(x, y*0.5)
 
         # init updater
-        self.updater = Updater(self)
+        #self.updater = Updater(self)
 
         # add layout
         self.layout = QtWidgets.QVBoxLayout()

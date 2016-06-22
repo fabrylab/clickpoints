@@ -50,14 +50,14 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **key** *(str, unique)* - the key
         - **value** *(str)* - the value for the key
 
-.. py:class:: Paths()
+.. py:class:: Path()
 
    Stores a path. Referenced by each image entry.
 
    Attributes:
         - **path** *(str, unique)* - the path
 
-.. py:class:: Images()
+.. py:class:: Image()
 
     Stores an image.
 
@@ -70,21 +70,21 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **sort_index** *(int, unique)* - the index of the image. The number shown in ClickPoints next to the time line.
         - **width** *(int)* - None if it has not be set, otherwise the width of the image.
         - **height** *(int)* - None if it has not be set, otherwise the height of the image.
-        - **path** *(* :py:class:`Paths` *)* - the linked path entry containing the path to the image.
+        - **path** *(* :py:class:`Path` *)* - the linked path entry containing the path to the image.
         - **mask** *(* :py:class:`Mask` *)* - the mask entry associated with the image.
         - **data** *(array)* - the image data as a numpy array. Data will be loaded on demand and cached.
         - **data8** *(array, uint8)* - the image data converted to unsigned 8 bit integers.
 
-.. py:class:: Offsets()
+.. py:class:: Offset()
 
    Offsets asociated with an image.
 
    Attributes:
-        - **image** *(* :py:class:`Images` *)* - the associated image entry.
+        - **image** *(* :py:class:`Image` *)* - the associated image entry.
         - **x** *(int)* - the x offset
         - **y** *(int)* - the y offset
 
-.. py:class:: Tracks()
+.. py:class:: Track()
 
    A track containing multiple markers.
 
@@ -95,7 +95,7 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **times()** *(list of datetime)* - a list containing the timestamps for the images of the associated markers.
         - **frames()** *(list of int)* - a list containing all the frame numbers for the images of the associated markers.
 
-.. py:class:: Types()
+.. py:class:: MarkerType()
 
    A Marker type.
 
@@ -110,15 +110,15 @@ The database contains some tables represented in the ClickPoints api as peewee m
    A Marker.
 
    Attributes:
-        - **image** *(* :py:class:`Images` *)* - the image entry associated with this marker.
+        - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
         - **x** *(int)* - the x coordinate of the marker.
         - **y** *(int)* - the y coordinate of the marker.
-        - **type** *(* :py:class:`Types` *)* - the marker type.
+        - **type** *(* :py:class:`MarkerType` *)* - the marker type.
         - **processed** *(bool)* - a flag that is set to 0 if the marker is manually moved in ClickPoints, it can be set from an addon if the addon has already processed this marker.
         - **partner** *(* :py:class:`Marker` *)* - a partner marker with is associated with this marker. Only for TYPE_Line or TYPE_Rect markers.
         - **style** *(str)* - the style definition of the marker.
         - **text** *(str)* - an aditional text associated with the marker. It is displayed next to the marker in ClickPoints.
-        - **track** *(* :py:class:`Tracks` *)* - the track entry the marker belongs to. Only for TYPE_Track.
+        - **track** *(* :py:class:`Track` *)* - the track entry the marker belongs to. Only for TYPE_Track.
         - **correctedXY()** *(array)* - the marker position corrected by the offset of the image.
         - **pos()** *(array)* - an array containing the coordinates of the marker: [x, y].
 
@@ -127,12 +127,12 @@ The database contains some tables represented in the ClickPoints api as peewee m
    A mask entry.
 
    Attributes:
-        - **image** *(* :py:class:`Images` *)* - the image entry associated with this marker.
+        - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
         - **filename** *(str)* - the filename where the mask is stored.
         - **data** *(array)* - the mask image as a numpy array. Mask types are stored by their index value.
 
 
-.. py:class:: MaskTypes()
+.. py:class:: MaskType()
 
    A mask type.
 

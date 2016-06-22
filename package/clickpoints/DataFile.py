@@ -95,7 +95,7 @@ class DataFile:
             raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
-        self.current_version = "7"
+        self.current_version = "8"
         version = self.current_version
         self.next_sort_index = 0
         new_database = True
@@ -126,10 +126,10 @@ class DataFile:
             key = peewee.CharField(unique=True)
             value = peewee.CharField()
 
-        class Paths(BaseModel):
+        class Path(BaseModel):
             path = peewee.CharField(unique=True)
 
-        class Images(BaseModel):
+        class Image(BaseModel):
             filename = peewee.CharField(unique=True)
             ext = peewee.CharField(max_length=10)
             frame = peewee.IntegerField(default=0)
@@ -138,7 +138,7 @@ class DataFile:
             sort_index = peewee.IntegerField(default=0)
             width = peewee.IntegerField(null=True)
             height = peewee.IntegerField(null=True)
-            path = peewee.ForeignKeyField(Paths, related_name="images")
+            path = peewee.ForeignKeyField(Path, related_name="images")
 
             class Meta:
                 # image and path in combination have to be unique
@@ -178,23 +178,23 @@ class DataFile:
 
         self.base_model = BaseModel
         self.table_meta = Meta
-        self.table_paths = Paths
-        self.table_images = Images
-        self.tables = [BaseModel, Meta, Paths, Images]
+        self.table_path = Path
+        self.table_image = Image
+        self.tables = [BaseModel, Meta, Path, Image]
 
         """ Offset Table """
 
-        class Offsets(BaseModel):
-            image = peewee.ForeignKeyField(Images, unique=True)
+        class Offset(BaseModel):
+            image = peewee.ForeignKeyField(Image, unique=True)
             x = peewee.FloatField()
             y = peewee.FloatField()
 
-        self.table_offsets = Offsets
-        self.tables.extend([Offsets])
+        self.table_offset = Offset
+        self.tables.extend([Offset])
 
         """ Marker Tables """
 
-        class Tracks(BaseModel):
+        class Track(BaseModel):
             uid = peewee.CharField()
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
@@ -211,7 +211,7 @@ class DataFile:
             def frames(self):
                 return np.array([point.image.sort_index for point in self.marker()])
 
-        class Types(BaseModel):
+        class MarkerType(BaseModel):
             name = peewee.CharField(unique=True)
             color = peewee.CharField()
             mode = peewee.IntegerField()
@@ -219,13 +219,13 @@ class DataFile:
             text = peewee.CharField(null=True)
 
         class Marker(BaseModel):
-            image = peewee.ForeignKeyField(Images, related_name="marker")
+            image = peewee.ForeignKeyField(Image, related_name="marker")
             x = peewee.FloatField()
             y = peewee.FloatField()
-            type = peewee.ForeignKeyField(Types, related_name="markers")
+            type = peewee.ForeignKeyField(MarkerType, related_name="markers")
             processed = peewee.IntegerField(default=0)
             partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
-            track = peewee.ForeignKeyField(Tracks, null=True, related_name='markers')
+            track = peewee.ForeignKeyField(Track, null=True, related_name='markers')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
 
@@ -233,14 +233,14 @@ class DataFile:
                 indexes = ((('image', 'track'), True),)
 
             def correctedXY(self):
-                join_condition = ((Marker.image == Offsets.image) & \
-                                  (Marker.image_frame == Offsets.image_frame))
+                join_condition = ((Marker.image == Offset.image) & \
+                                  (Marker.image_frame == Offset.image_frame))
 
                 querry = Marker.select(Marker.x,
                                        Marker.y,
-                                       Offsets.x,
-                                       Offsets.y) \
-                    .join(Offsets, peewee.JOIN_LEFT_OUTER, on=join_condition) \
+                                       Offset.x,
+                                       Offset.y) \
+                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=join_condition) \
                     .where(Marker.id == self.id)
 
                 for q in querry:
@@ -255,14 +255,14 @@ class DataFile:
                 return np.array([self.x, self.y])
 
         self.table_marker = Marker
-        self.table_tracks = Tracks
-        self.table_types = Types
-        self.tables.extend([Marker, Tracks, Types])
+        self.table_track = Track
+        self.table_markertype = MarkerType
+        self.tables.extend([Marker, Track, MarkerType])
 
         """ Mask Tables """
 
         class Mask(BaseModel):
-            image = peewee.ForeignKeyField(Images, related_name="masks")
+            image = peewee.ForeignKeyField(Image, related_name="masks")
             filename = peewee.CharField()
 
             mask_data = None
@@ -280,30 +280,35 @@ class DataFile:
                 else:
                     return BaseModel(self, item)
 
-        class MaskTypes(BaseModel):
+        class MaskType(BaseModel):
             name = peewee.CharField()
             color = peewee.CharField()
             index = peewee.IntegerField(unique=True)
+
+        self.table_mask = Mask
+        self.table_masktype = MaskType
+        self.tables.extend([Mask, MaskType])
+        self.mask_path = None
 
         """ Annotation Tables """
 
         class Annotation(BaseModel):
             timestamp = peewee.DateTimeField(null=True)
-            image = peewee.ForeignKeyField(Images, related_name="annotations")
+            image = peewee.ForeignKeyField(Image, related_name="annotations")
             comment = peewee.TextField(default="")
             rating = peewee.IntegerField(default=0)
 
-        class Tags(BaseModel):
+        class Tag(BaseModel):
             name = peewee.CharField()
 
-        class Tagassociation(BaseModel):
+        class TagAssociation(BaseModel):
             annotation = peewee.ForeignKeyField(Annotation)
-            tag = peewee.ForeignKeyField(Tags)
+            tag = peewee.ForeignKeyField(Tag)
 
-        self.table_mask = Mask
-        self.table_maskTypes = MaskTypes
-        self.tables.extend([Mask, MaskTypes])
-        self.mask_path = None
+        self.table_annotation = Annotation
+        self.table_tag = Tag
+        self.table_tagassociation = TagAssociation
+        self.tables.extend([Annotation, Tag, TagAssociation])
 
         """ Connect """
         self.db.connect()
@@ -322,18 +327,9 @@ class DataFile:
         self.TYPE_Line = 2
         self.TYPE_Track = 4
 
-        self.table_annotation = Annotation
-        self.table_tags = Tags
-        self.table_tagassociation = Tagassociation
-        self.tables.extend([Annotation, Tags, Tagassociation])
-
     def _CheckVersion(self):
-        version = None
-
-        introspector = Introspector.from_database(self.db)
-        models = introspector.generate_models()
         try:
-            version = models["meta"].get(models["meta"].key == "version").value
+            version = self.db.execute_sql('SELECT value FROM meta WHERE key = "version"').fetchone()[0]
         except (KeyError, peewee.DoesNotExist):
             version = "0"
         print("Open database with version", version)
@@ -344,9 +340,6 @@ class DataFile:
                   "- please get an updated Version!"
                   % (int(version), int(self.current_version)))
             print("Proceeding on own risk!")
-        # go to the folder
-        #if os.path.dirname(database_filename):
-        #    os.chdir(os.path.dirname(database_filename))
 
     def _migrateDBFrom(self, version):
         # migrate database from an older version
@@ -396,7 +389,7 @@ class DataFile:
             nr_new_version = 6
 
         if nr_version < 7:
-            print("\tto 6")
+            print("\tto 7")
             # Add text fields for Tracks
             try:
                 self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
@@ -409,6 +402,38 @@ class DataFile:
                 pass
             nr_new_version = 7
 
+        if nr_version < 8:
+            print("\tto 8")
+            try:
+                self.db.execute_sql("ALTER TABLE paths RENAME TO path")
+            except peewee.OperationalError:
+                pass
+            try:
+                self.db.execute_sql("ALTER TABLE images RENAME TO image")
+            except peewee.OperationalError:
+                pass
+            try:
+                self.db.execute_sql("ALTER TABLE offsets RENAME TO offset")
+            except peewee.OperationalError:
+                pass
+            try:
+                self.db.execute_sql("ALTER TABLE tracks RENAME TO track")
+            except peewee.OperationalError:
+                pass
+            try:
+                self.db.execute_sql("ALTER TABLE types RENAME TO markertype")
+            except peewee.OperationalError:
+                pass
+            try:
+                self.db.execute_sql("ALTER TABLE masktypes RENAME TO masktype")
+            except peewee.OperationalError:
+                pass
+            try:
+                self.db.execute_sql("ALTER TABLE tags RENAME TO tag")
+            except peewee.OperationalError:
+                pass
+            nr_new_version = 8
+
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(
             nr_new_version))
@@ -417,14 +442,14 @@ class DataFile:
         nr_version = int(nr_version)
         if nr_version < 5:
             print("second migration step to 5")
-            images = self.table_images.select().order_by(self.table_images.filename)
+            images = self.table_image.select().order_by(self.table_image.filename)
             for index, image in enumerate(images):
                 image.sort_index = index
                 image.frame = 0
                 image.save()
         if nr_version < 6:
             print("second migration step to 6")
-            images = self.table_images.select().order_by(self.table_images.filename)
+            images = self.table_image.select().order_by(self.table_image.filename)
             for image in images:
                 path = None
                 if os.path.exists(image.filename):
@@ -438,9 +463,9 @@ class DataFile:
                     print("ERROR: image not found", image.filename)
                     continue
                 try:
-                    path_entry = self.table_paths.get(path=path)
+                    path_entry = self.table_path.get(path=path)
                 except peewee.DoesNotExist:
-                    path_entry = self.table_paths(path=path)
+                    path_entry = self.table_path(path=path)
                     path_entry.save()
                 image.path = path_entry
                 image.save()
@@ -491,10 +516,10 @@ class DataFile:
             a query object containing all the :py:class:`Images` entries in the database file.
         """
 
-        query = self.table_images.select()
+        query = self.table_image.select()
         if start_frame is not None:
-            query = query.where(self.table_images.sort_index >= start_frame)
-        query = query.order_by(self.table_images.sort_index)
+            query = query.where(self.table_image.sort_index >= start_frame)
+        query = query.order_by(self.table_image.sort_index)
         return query
 
     def GetImageIterator(self, start_frame=0):
@@ -516,7 +541,7 @@ class DataFile:
         frame = start_frame
         while True:
             try:
-                image = self.table_images.get(self.table_images.sort_index == frame)
+                image = self.table_image.get(self.table_image.sort_index == frame)
                 yield image
             except peewee.DoesNotExist:
                 break
@@ -539,9 +564,9 @@ class DataFile:
                 path = os.path.abspath(path)
         path = os.path.normpath(path)
         try:
-            path = self.table_paths.get(path=path)
+            path = self.table_path.get(path=path)
         except peewee.DoesNotExist:
-            path = self.table_paths(path=path)
+            path = self.table_path(path=path)
             path.save()
         return path
 
@@ -571,10 +596,10 @@ class DataFile:
             the created or updated :py:class:`Images` entry
         """
         try:
-            item = self.table_images.get(self.table_images.filename == filename)
+            item = self.table_image.get(self.table_image.filename == filename)
             new_image = False
         except peewee.DoesNotExist:
-            item = self.table_images()
+            item = self.table_image()
             new_image = True
 
         item.filename = filename
@@ -589,7 +614,7 @@ class DataFile:
             item.height = height
         if new_image:
             if self.next_sort_index is None:
-                query = self.table_images.select().order_by(-self.table_images.sort_index).limit(1)
+                query = self.table_image.select().order_by(-self.table_image.sort_index).limit(1)
                 try:
                     self.next_sort_index = query[0].sort_index + 1
                 except IndexError:
@@ -602,7 +627,7 @@ class DataFile:
 
     def RemoveImage(self, filename):
         try:
-            item = self.table_images.get(self.table_images.filename == filename)
+            item = self.table_image.get(self.table_image.filename == filename)
         except peewee.DoesNotExist:
             print("Image with name: \'%s\' is not in DB", filename)
             return False
@@ -621,7 +646,7 @@ class DataFile:
             a query object which contains the requested :py:class:`Tracks`.
         """
 
-        query = self.table_tracks.select()
+        query = self.table_track.select()
         return query
 
     def AddTrack(self):
@@ -635,7 +660,7 @@ class DataFile:
         """
         import uuid
 
-        item = self.table_tracks(uid=uuid.uuid4().hex)
+        item = self.table_track(uid=uuid.uuid4().hex)
         item.save()
         return item
 
@@ -665,14 +690,14 @@ class DataFile:
         entries : array_like
             a query object which contains all Marker :py:class:`Types` .
         """
-        query = self.table_types.select()
+        query = self.table_markertype.select()
         return query
 
     def AddType(self, name, color, mode=0, style=None):
         try:
-            item = self.table_types.get(self.table_types.name == name)
+            item = self.table_markertype.get(self.table_markertype.name == name)
         except peewee.DoesNotExist:
-            item = self.table_types()
+            item = self.table_markertype()
 
         item.name = name
         item.color = CheckValidColor(color)
@@ -684,7 +709,7 @@ class DataFile:
 
     def GetType(self, name):
         try:
-            return self.table_types.get(self.table_types.name == name)
+            return self.table_markertype.get(self.table_markertype.name == name)
         except peewee.DoesNotExist:
             return None
 
@@ -711,14 +736,14 @@ class DataFile:
             a query object which can be iterated to get the :py:class:`Tracks` entries which where matched by the parameters provided.
         """
         # select marker, joined with types and images
-        query = (self.table_marker.select(self.table_marker, self.table_types, self.table_images)
-                 .join(self.table_types)
+        query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
+                 .join(self.table_markertype)
                  .switch(self.table_marker)
-                 .join(self.table_images)
+                 .join(self.table_image)
                  )
         parameter = [image, image_filename, processed, type, type_name, track]
         table = self.table_marker
-        fields = [table.image, self.table_images.filename, table.processed, table.type, self.table_types.name,
+        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name,
                   table.track]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
@@ -750,14 +775,14 @@ class DataFile:
             a list of rectangle objects.
         """
         # select marker, joined with types and images
-        query = (self.table_marker.select(self.table_marker, self.table_types, self.table_images)
-                 .join(self.table_types)
+        query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
+                 .join(self.table_markertype)
                  .switch(self.table_marker)
-                 .join(self.table_images)
+                 .join(self.table_image)
                  )
         parameter = [image, image_filename, processed, type, type_name, track]
         table = self.table_marker
-        fields = [table.image, self.table_images.filename, table.processed, table.type, self.table_types.name,
+        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name,
                   table.track]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
@@ -821,24 +846,24 @@ class DataFile:
         """
         # if the variable track is a list of track instances, we need to convert it to track ids
         try:
-            if isinstance(track[0], self.table_tracks):
+            if isinstance(track[0], self.table_track):
                 track = track[:]
                 for i, t in enumerate(track):
-                    if isinstance(t, self.table_tracks):
+                    if isinstance(t, self.table_track):
                         track[i] = t.id
         except TypeError:
-            if isinstance(track, self.table_tracks):
+            if isinstance(track, self.table_track):
                 track = track.id
             pass
         # if the variable image is a list of image instances, we need to convert it to image ids
         try:
-            if isinstance(image[0], self.table_images):
+            if isinstance(image[0], self.table_image):
                 image = image[:]
                 for i, img in enumerate(image):
-                    if isinstance(img, self.table_images):
+                    if isinstance(img, self.table_image):
                         image[i] = img.id
         except TypeError:
-            if isinstance(image, self.table_images):
+            if isinstance(image, self.table_image):
                 image = image.id
             pass
         data_sets = []
@@ -892,7 +917,7 @@ class DataFile:
         entries : array_like
             a query object which contains all :py:class:`MaskTypes`.
         """
-        query = self.table_maskTypes.select()
+        query = self.table_masktype.select()
         return query
 
     def GetMask(self, image):
@@ -921,7 +946,7 @@ class DataFile:
             return im
         except (peewee.DoesNotExist, IOError):
             # Create new mask according to image size
-            image_entry = self.table_images.get(self.table_images.id == image)
+            image_entry = self.table_image.get(self.table_image.id == image)
             pil_image = Image.open(image_entry.filename)
             im = np.zeros(pil_image.size, dtype=np.uint8)
             return im
@@ -945,7 +970,7 @@ class DataFile:
             # Create new entry
             mask_entry = self.table_mask(image=image)
             # Get mask image name
-            image_entry = self.table_images.get(id=image)
+            image_entry = self.table_image.get(id=image)
             if image_entry.frames > 1:  # TODO
                 number = "_" + ("%" + "%d" % np.ceil(np.log10(image_entry.frames)) + "d") % image_frame
             else:
@@ -962,7 +987,7 @@ class DataFile:
         pil_image = Image.fromarray(mask)
         # Create color palette
         lut = np.zeros(3 * 256, np.uint8)
-        for draw_type in self.table_maskTypes.select():
+        for draw_type in self.table_masktype.select():
             index = draw_type.index
             lut[index * 3:(index + 1) * 3] = [int("0x" + draw_type.color[i:i + 2], 16) for i in [1, 3, 5]]
         pil_image.putpalette(lut)

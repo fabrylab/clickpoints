@@ -47,16 +47,16 @@ class AnnotationFile:
                 annotation = peewee.ForeignKeyField(self.table_annotation)
                 tag = peewee.ForeignKeyField(Tags)
 
-            self.table_tags = Tags
+            self.table_tag = Tags
             self.table_tagassociation = Tagassociation
         else:
             self.table_annotation = self.data_file.table_annotation
-            self.table_tags = self.data_file.table_tags
+            self.table_tag = self.data_file.table_tag
             self.table_tagassociation = self.data_file.table_tagassociation
 
         if not self.server:
-            self.data_file.tables.extend([self.table_annotation, self.table_tags, self.table_tagassociation])
-            for table in [self.table_annotation, self.table_tags, self.table_tagassociation]:
+            self.data_file.tables.extend([self.table_annotation, self.table_tag, self.table_tagassociation])
+            for table in [self.table_annotation, self.table_tag, self.table_tagassociation]:
                 if not table.table_exists():
                     table.create_table()
 
@@ -88,10 +88,10 @@ class AnnotationFile:
         return self.annotation
 
     def getTagList(self):
-        return [tag.name for tag in self.table_tags.select()]
+        return [tag.name for tag in self.table_tag.select()]
 
     def getTagsFromAnnotation(self):
-        return [tag.name for tag in self.table_tags.select().join(self.table_tagassociation).join(self.table_annotation).where(self.table_annotation.id == self.annotation)]
+        return [tag.name for tag in self.table_tag.select().join(self.table_tagassociation).join(self.table_annotation).where(self.table_annotation.id == self.annotation)]
 
     def setTags(self, tags):
         if len(tags):
@@ -99,16 +99,16 @@ class AnnotationFile:
             if self.server or sqlite3.sqlite_version_info[1] < 8:  # MySQL has no WITH statements :-(
                 for tag in tags:
                     try:
-                        self.table_tags.get(self.table_tags.name == tag)
+                        self.table_tag.get(self.table_tag.name == tag)
                     except peewee.DoesNotExist:
-                        self.table_tags(name=tag).save()
+                        self.table_tag(name=tag).save()
             else:
-                query = self.table_tags.raw("WITH check_tags(name) AS ( VALUES %s ) SELECT check_tags.name, tags.id FROM check_tags LEFT JOIN tags ON check_tags.name = tags.name" % ",".join('("%s")' % x for x in tags))
+                query = self.table_tag.raw("WITH check_tags(name) AS ( VALUES %s ) SELECT check_tags.name, tags.id FROM check_tags LEFT JOIN tags ON check_tags.name = tags.name" % ",".join('("%s")' % x for x in tags))
                 new_tags = [dict(name=tag.name) for tag in query if tag.id is None]
                 if len(new_tags):
-                    self.table_tags.insert_many(new_tags).execute()
+                    self.table_tag.insert_many(new_tags).execute()
             # Get ids of tags
-            query = self.table_tags.select().where(self.table_tags.name << tags)
+            query = self.table_tag.select().where(self.table_tag.name << tags)
             ids = [tag.id for tag in query]
             # Delete unused old tag associations
             self.table_tagassociation.delete().where(~ self.table_tagassociation.id << ids, self.table_tagassociation.annotation == self.annotation).execute()
@@ -129,7 +129,7 @@ class AnnotationFile:
         return self.table_annotation.select()
 
     def getAnnotationsByIds(self, id_list):
-        return self.table_annotation.select(peewee.SQL("*"), peewee.SQL("GROUP_CONCAT(t3.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tags, join_type="LEFT JOIN").group_by(self.table_annotation.id)
+        return self.table_annotation.select(peewee.SQL("*"), peewee.SQL("GROUP_CONCAT(t3.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tag, join_type="LEFT JOIN").group_by(self.table_annotation.id)
 
 class pyQtTagSelector(QtWidgets.QWidget):
     class unCheckBox(QtWidgets.QCheckBox):
@@ -373,7 +373,7 @@ class AnnotationOverview(QtWidgets.QWidget):
         else:
             timestamp = ""
         if self.config.server_annotations is True:
-            image = self.window.data_file.table_images.get(external_id = annotation.file_id, frame=annotation.frame)
+            image = self.window.data_file.table_image.get(external_id = annotation.file_id, frame=annotation.frame)
         else:
             image = annotation.image
         texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(image.sort_index), str(annotation.id)]
@@ -425,7 +425,7 @@ class AnnotationHandler:
             # place tick marks for already present masks
             for item in self.db.get_annotation_frames():
                 try:
-                    image = self.data_file.table_images.get(external_id = item.file_id, frame=item.frame)
+                    image = self.data_file.table_image.get(external_id = item.file_id, frame=item.frame)
                     BroadCastEvent(self.modules, "AnnotationMarkerAdd", image.sort_index)
                     self.annoation_ids.append(item.id)
                 except:

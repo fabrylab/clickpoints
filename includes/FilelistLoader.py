@@ -151,7 +151,7 @@ class FolderEditor(QtWidgets.QWidget):
 
     def update_folder_list(self):
         self.list.clear()
-        for path in self.data_file.table_paths.select():
+        for path in self.data_file.table_path.select():
             item = QtWidgets.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
             item.path_entry = path
             QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add folder", self.list)
@@ -197,7 +197,7 @@ class FolderEditor(QtWidgets.QWidget):
 
     def remove_folder(self):
         path = self.list.selectedItems()[0].path_entry
-        query = self.data_file.table_images.select().where(self.data_file.table_images.path == path)
+        query = self.data_file.table_image.select().where(self.data_file.table_image.path == path)
         if query.count() == 0:
             path.delete_instance()
         else:
@@ -208,7 +208,7 @@ class FolderEditor(QtWidgets.QWidget):
                     image.delete_instance()
                 path.delete_instance()
         # update sort index
-        images = self.data_file.table_images.select().order_by(self.data_file.table_images.filename)
+        images = self.data_file.table_image.select().order_by(self.data_file.table_image.filename)
         with self.data_file.db.transaction():
             for index, image in enumerate(images):
                 image.sort_index = index
@@ -290,7 +290,7 @@ def addList(data_file, path, list_filename):
 
                 file_path, file_name = os.path.split(line)
                 if file_path not in paths.keys():
-                    paths[file_path] = data_file.table_paths(path=file_path)
+                    paths[file_path] = data_file.table_path(path=file_path)
                     paths[file_path].save()
                 # extract the extension and frame number
                 extension = os.path.splitext(file_name)[1]

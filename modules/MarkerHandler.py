@@ -61,20 +61,20 @@ class MarkerFile:
     def __init__(self, datafile):
         self.data_file = datafile
 
-        self.table_types = self.data_file.table_types
+        self.table_markertype = self.data_file.table_markertype
         self.table_marker = self.data_file.table_marker
-        self.table_tracks = self.data_file.table_tracks
+        self.table_track = self.data_file.table_track
 
     def set_track(self):
-        track = self.table_tracks(uid=uuid.uuid4().hex)
+        track = self.table_track(uid=uuid.uuid4().hex)
         track.save()
         return track
 
     def set_type(self, id, name, rgb_tuple, mode):
         try:
-            type = self.table_types.get(self.table_types.name == name)
+            type = self.table_markertype.get(self.table_markertype.name == name)
         except peewee.DoesNotExist:
-            type = self.table_types(name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), mode=mode)
+            type = self.table_markertype(name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), mode=mode)
             type.save(force_insert=True)
         return type
 
@@ -88,13 +88,13 @@ class MarkerFile:
         return self.table_marker.select().where(self.table_marker.image == image_id)
 
     def get_type_list(self):
-        return self.table_types.select()
+        return self.table_markertype.select()
 
     def get_type(self, name):
-        return self.table_types.get(name=name)
+        return self.table_markertype.get(name=name)
 
     def get_track_list(self):
-        return self.table_tracks.select()
+        return self.table_track.select()
 
     def get_track_points(self, track):
         return self.table_marker.select().where(self.table_marker.track == track)
@@ -185,7 +185,7 @@ class MarkerEditor(QtWidgets.QWidget):
         self.modelItems_marker = {}
 
         model = QtGui.QStandardItemModel(0, 0)
-        types = self.db.table_types.select()
+        types = self.db.table_markertype.select()
         for row, type in enumerate(types):
             item = QtGui.QStandardItem(type.name)
             item.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
@@ -193,7 +193,7 @@ class MarkerEditor(QtWidgets.QWidget):
             item.entry = type
 
             if type.mode & TYPE_Track:
-                tracks = self.db.table_tracks.select().join(self.db.table_marker).where(self.db.table_marker.type == type).group_by(self.db.table_tracks.id)
+                tracks = self.db.table_track.select().join(self.db.table_marker).where(self.db.table_marker.type == type).group_by(self.db.table_track.id)
                 for track in tracks:
                     child = QtGui.QStandardItem("Track #%d" % track.id)
                     child.entry = track
@@ -222,7 +222,7 @@ class MarkerEditor(QtWidgets.QWidget):
         item = QtGui.QStandardItem("add type")
         item.setIcon(qta.icon("fa.plus"))
         item.setEditable(False)
-        self.new_type = self.db.table_types()
+        self.new_type = self.db.table_markertype()
         item.entry = self.new_type
         model.setItem(row+1, 0, item)
 
@@ -331,14 +331,14 @@ class MarkerEditor(QtWidgets.QWidget):
             self.markerWidget.y.setValue(data.y)
             self.markerWidget.text.setText(data.text if data.text else "")
 
-        elif type(data) == self.db.table_tracks:
+        elif type(data) == self.db.table_track:
             self.StackedWidget.setCurrentIndex(2)
             self.trackWidget.setTitle("Track #%d" % data.id)
             self.trackWidget.style.setText(data.style if data.style else "")
             self.trackWidget.text.setText(data.text if data.text else "")
             pass
 
-        elif type(data) == self.db.table_types or data_type == "type":
+        elif type(data) == self.db.table_markertype or data_type == "type":
             if data is None:
                 data = self.new_type
                 self.data = data
@@ -383,11 +383,11 @@ class MarkerEditor(QtWidgets.QWidget):
                         break
             else:
                 self.marker_item.ReloadData()
-        elif type(self.data) == self.db.table_tracks:
+        elif type(self.data) == self.db.table_track:
             self.data.style = self.trackWidget.style.text()
             self.data.text = self.trackWidget.text.text()
             self.data.save()
-        elif type(self.data) == self.db.table_types:
+        elif type(self.data) == self.db.table_markertype:
             self.data.name = self.typeWidget.name.text()
             self.data.mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
             self.data.style = self.typeWidget.style.text()
@@ -425,7 +425,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 if found_track is not None:
                     found_track.RemoveTrackPoint(self.data.image.sort_index)
         # currently selected a track
-        elif type(self.data) == self.db.table_tracks:
+        elif type(self.data) == self.db.table_track:
             # delete all markers from this track
             q = self.data_file.table_marker.delete().where(self.data_file.table_marker.track == self.data.id)
             q.execute()
@@ -436,7 +436,7 @@ class MarkerEditor(QtWidgets.QWidget):
             # delete track
             self.marker_handler.RemoveTrack(track)
         # currently selected a type
-        elif type(self.data) == self.db.table_types:
+        elif type(self.data) == self.db.table_markertype:
             count = self.data.markers.count()
             # if this type doesn't have markers delete it without asking
             if count == 0:
@@ -1339,7 +1339,7 @@ class MarkerHandler:
             self.RemovePoint(self.tracks[0], no_notice=True)
 
     def LoadTracks(self):
-        track_list = self.marker_file.table_tracks.select()
+        track_list = self.marker_file.table_track.select()
         for track in track_list:
             data = track.markers
             if data.count():
@@ -1348,8 +1348,8 @@ class MarkerHandler:
     def LoadPoints(self):
         while len(self.points):
             self.RemovePoint(self.points[0], no_notice=True)
-        marker_list = (self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_types)
-            .join(self.marker_file.table_types)
+        marker_list = (self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_markertype)
+            .join(self.marker_file.table_markertype)
             .where(self.marker_file.table_marker.image == self.data_file.image.id)
             )
         for marker in marker_list:

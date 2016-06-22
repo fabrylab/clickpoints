@@ -498,7 +498,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
 
         # get timestamps
         self.data_file = data_file
-        timestamps = [t.timestamp for t in self.data_file.table_images.select(self.data_file.table_images.timestamp) if t.timestamp]
+        timestamps = [t.timestamp for t in self.data_file.table_image.select(self.data_file.table_image.timestamp) if t.timestamp]
 
         # handle empty timeline
         if len(timestamps) == 0:
@@ -941,7 +941,7 @@ class Timeline(QtCore.QObject):
 
     def ReleasedSlider2(self):
         timestamp = self.timeSlider.value()
-        n = self.data_file.table_images.select(self.data_file.table_images.sort_index).where(self.data_file.table_images.timestamp > timestamp).limit(1)
+        n = self.data_file.table_image.select(self.data_file.table_image.sort_index).where(self.data_file.table_image.timestamp > timestamp).limit(1)
         if n.count() == 0:
             return
         n = n[0].sort_index
