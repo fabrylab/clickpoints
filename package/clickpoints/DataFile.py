@@ -164,6 +164,12 @@ class DataFile:
                     except:
                         return None
 
+                if item == "offset":
+                    try:
+                        return self.offsets[0]
+                    except:
+                        return None
+
                 if item == "data8":
                     data = self.get_data().copy()
                     if data.dtype == np.uint16:
@@ -185,7 +191,7 @@ class DataFile:
         """ Offset Table """
 
         class Offset(BaseModel):
-            image = peewee.ForeignKeyField(Image, unique=True)
+            image = peewee.ForeignKeyField(Image, unique=True, related_name="offsets")
             x = peewee.FloatField()
             y = peewee.FloatField()
 
@@ -199,17 +205,16 @@ class DataFile:
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
 
-            def points(self):
-                return np.array([[point.x, point.y] for point in self.marker()])
-
-            def marker(self):
-                return Marker.select().where(Marker.track == self).join(Images).order_by(Images.sort_index)
-
-            def times(self):
-                return np.array([point.image.timestamp for point in self.marker()])
-
-            def frames(self):
-                return np.array([point.image.sort_index for point in self.marker()])
+            def __getattr__(self, item):
+                if item == "points":
+                    return np.array([[point.x, point.y] for point in self.markers])
+                if item == "markers":
+                    return self.track_markers.join(Image).order_by(Image.sort_index)
+                if item == "times":
+                    return np.array([point.image.timestamp for point in self.markers])
+                if item == "frames":
+                    return np.array([point.image.sort_index for point in self.markers])
+                return BaseModel(self, item)
 
         class MarkerType(BaseModel):
             name = peewee.CharField(unique=True)
@@ -219,18 +224,25 @@ class DataFile:
             text = peewee.CharField(null=True)
 
         class Marker(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="marker")
+            image = peewee.ForeignKeyField(Image, related_name="markers")
             x = peewee.FloatField()
             y = peewee.FloatField()
             type = peewee.ForeignKeyField(MarkerType, related_name="markers")
             processed = peewee.IntegerField(default=0)
             partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
-            track = peewee.ForeignKeyField(Track, null=True, related_name='markers')
+            track = peewee.ForeignKeyField(Track, null=True, related_name='track_markers')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
 
             class Meta:
                 indexes = ((('image', 'track'), True),)
+
+            def __getattr__(self, item):
+                if item == "correctedXY":
+                    return self.correctedXY()
+                if item == "pos":
+                    return self.pos()
+                return BaseModel(self, item)
 
             def correctedXY(self):
                 join_condition = ((Marker.image == Offset.image) & \
@@ -293,17 +305,29 @@ class DataFile:
         """ Annotation Tables """
 
         class Annotation(BaseModel):
-            timestamp = peewee.DateTimeField(null=True)
             image = peewee.ForeignKeyField(Image, related_name="annotations")
+            timestamp = peewee.DateTimeField(null=True)
             comment = peewee.TextField(default="")
             rating = peewee.IntegerField(default=0)
+
+            def __getattr__(self, item):
+                if item == "tags":
+                    return [tagassociations.tag for tagassociations in self.tagassociations]
+                else:
+                    return BaseModel(self, item)
 
         class Tag(BaseModel):
             name = peewee.CharField()
 
+            def __getattr__(self, item):
+                if item == "annotations":
+                    return [tagassociations.annotation for tagassociations in self.tagassociations]
+                else:
+                    return BaseModel(self, item)
+
         class TagAssociation(BaseModel):
-            annotation = peewee.ForeignKeyField(Annotation)
-            tag = peewee.ForeignKeyField(Tag)
+            annotation = peewee.ForeignKeyField(Annotation, related_name="tagassociations")
+            tag = peewee.ForeignKeyField(Tag, related_name="tagassociations")
 
         self.table_annotation = Annotation
         self.table_tag = Tag
@@ -666,7 +690,7 @@ class DataFile:
 
     def AddTracks(self, count):
         """
-        Add a new tracks
+        Add multiple new tracks
 
         Parameters
         ----------
