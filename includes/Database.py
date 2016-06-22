@@ -177,7 +177,7 @@ class DataFile(DataFileBase):
         while True:
             next_frame = self.last_added_timestamp+1
             try:
-                image = self.table_images.get(sort_index=next_frame)
+                image = self.table_image.get(sort_index=next_frame)
             except peewee.DoesNotExist:
                 break
             timestamp, _ = getTimeStamp(image.filename, image.ext)
@@ -212,7 +212,7 @@ class DataFile(DataFileBase):
             else:
                 old_directory = ""
             new_directory = os.path.dirname(file)
-            paths = self.table_paths.select()
+            paths = self.table_path.select()
             for path in paths:
                 abs_path = os.path.join(old_directory, path.path)
                 try:
@@ -249,9 +249,9 @@ class DataFile(DataFileBase):
                 path = os.path.abspath(path)
         path = os.path.normpath(path)
         try:
-            path = self.table_paths.get(path=path)
+            path = self.table_path.get(path=path)
         except peewee.DoesNotExist:
-            path = self.table_paths(path=path)
+            path = self.table_path(path=path)
             path.save()
         return path
 
@@ -297,7 +297,7 @@ class DataFile(DataFileBase):
             chunk_size = (SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) - 1
             with self.db.atomic():
                 for idx in range(0, len(data), chunk_size):
-                    self.table_images.insert_many(data[idx:idx + chunk_size]).execute()
+                    self.table_image.insert_many(data[idx:idx + chunk_size]).execute()
         except peewee.IntegrityError:  # this exception is raised when the image and path combination already exists
             return
 
@@ -310,7 +310,7 @@ class DataFile(DataFileBase):
     def get_image_count(self):
         if self.image_count is None:
             try:
-                self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM images LIMIT 1;").fetchone()[0]+1
+                self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0]+1
             except TypeError:
                 self.image_count = 0
         # return the total count of images in the database
@@ -329,7 +329,7 @@ class DataFile(DataFileBase):
         if self.thread:
             self.thread.join()
         # query the information on the image to load
-        image = self.table_images.get(sort_index=index)
+        image = self.table_image.get(sort_index=index)
         filename = os.path.join(image.path.path, image.filename)
         # prepare a slot in the buffer
         slots, slot_index, = self.buffer.prepare_slot(index)
@@ -388,7 +388,7 @@ class DataFile(DataFileBase):
             # get the pixel data from the current image
             return self.buffer.get_frame(self.current_image_index)
         try:
-            image = self.table_images.get(sort_index=index)
+            image = self.table_image.get(sort_index=index)
         except peewee.DoesNotExist:
             return None
 
@@ -405,14 +405,14 @@ class DataFile(DataFileBase):
             return self.image
 
         try:
-            image = self.table_images.get(sort_index=index)
+            image = self.table_image.get(sort_index=index)
         except peewee.DoesNotExist:
             return None
         return image
 
     def set_image(self, index):
         # the the current image number and retrieve its information from the database
-        self.image = self.table_images.get(sort_index=index)
+        self.image = self.table_image.get(sort_index=index)
         self.timestamp = self.image.timestamp
         self.current_image_index = index
 
@@ -422,7 +422,7 @@ class DataFile(DataFileBase):
             image = self.image
         # try to get offset data for the image
         try:
-            offset = self.table_offsets.get(image=image)
+            offset = self.table_offset.get(image=image)
             return [offset.x, offset.y]
         except peewee.DoesNotExist:
             return [0, 0]

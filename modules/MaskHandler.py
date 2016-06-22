@@ -20,21 +20,21 @@ class MaskFile:
     def __init__(self, datafile):
         self.data_file = datafile
 
-        self.table_maskTypes = self.data_file.table_maskTypes
+        self.table_masktype = self.data_file.table_masktype
         self.table_mask = self.data_file.table_mask
 
         self.mask_path = None
 
     def set_type(self, id, name, rgb_tuple, index):
         try:
-            type = self.table_maskTypes.get(self.table_maskTypes.id == id)
+            type = self.table_masktype.get(self.table_masktype.id == id)
         except peewee.DoesNotExist:
-            type = self.table_maskTypes(id=id, name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), index=index)
+            type = self.table_masktype(id=id, name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), index=index)
             type.save(force_insert=True)
         return type
 
     def get_mask_type_list(self):
-        return self.table_maskTypes.select()
+        return self.table_masktype.select()
 
     def add_mask(self, **kwargs):
         kwargs.update(dict(image=self.data_file.image))
@@ -196,7 +196,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.modelItems_mask = {}
 
         model = QtGui.QStandardItemModel(0, 0)
-        types = self.db.table_maskTypes.select()
+        types = self.db.table_masktype.select()
         for row, type in enumerate(types):
             item = QtGui.QStandardItem(type.name)
             item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
@@ -207,7 +207,7 @@ class MaskEditor(QtWidgets.QWidget):
         item = QtGui.QStandardItem("add type")
         item.setIcon(qta.icon("fa.plus"))
         item.setEditable(False)
-        self.new_type = self.db.table_maskTypes()
+        self.new_type = self.db.table_masktype()
         self.modelItems_mask[item] = self.new_type
         model.setItem(row+1, 0, item)
 
@@ -276,7 +276,7 @@ class MaskEditor(QtWidgets.QWidget):
             new_index = 1
             while True:
                 try:
-                    self.data_file.table_maskTypes.get(index=new_index)
+                    self.data_file.table_masktype.get(index=new_index)
                 except peewee.DoesNotExist:
                     break
                 new_index += 1
