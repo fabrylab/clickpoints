@@ -95,7 +95,7 @@ class DataFile:
             raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
-        self.current_version = "8"
+        self.current_version = "9"
         version = self.current_version
         self.next_sort_index = 0
         new_database = True
@@ -200,10 +200,18 @@ class DataFile:
 
         """ Marker Tables """
 
+        class MarkerType(BaseModel):
+            name = peewee.CharField(unique=True)
+            color = peewee.CharField()
+            mode = peewee.IntegerField()
+            style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
+
         class Track(BaseModel):
             uid = peewee.CharField()
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
+            type = peewee.ForeignKeyField(MarkerType, related_name="tracks")
 
             def __getattr__(self, item):
                 if item == "points":
@@ -216,18 +224,11 @@ class DataFile:
                     return np.array([point.image.sort_index for point in self.markers])
                 return BaseModel(self, item)
 
-        class MarkerType(BaseModel):
-            name = peewee.CharField(unique=True)
-            color = peewee.CharField()
-            mode = peewee.IntegerField()
-            style = peewee.CharField(null=True)
-            text = peewee.CharField(null=True)
-
         class Marker(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="markers")
             x = peewee.FloatField()
             y = peewee.FloatField()
-            type = peewee.ForeignKeyField(MarkerType, related_name="markers")
+            type = peewee.ForeignKeyField(MarkerType, related_name="markers", null=True)
             processed = peewee.IntegerField(default=0)
             partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
             track = peewee.ForeignKeyField(Track, null=True, related_name='track_markers')
@@ -342,6 +343,7 @@ class DataFile:
             self.table_meta(key="version", value=self.current_version).save()
 
         # second migration part which needs the peewee model
+        print(version, int(self.current_version), int(version) < int(self.current_version))
         if version is not None and int(version) < int(self.current_version):
             self._migrateDBFrom2(version)
 
@@ -364,6 +366,7 @@ class DataFile:
                   "- please get an updated Version!"
                   % (int(version), int(self.current_version)))
             print("Proceeding on own risk!")
+        return version
 
     def _migrateDBFrom(self, version):
         # migrate database from an older version
@@ -458,6 +461,15 @@ class DataFile:
                 pass
             nr_new_version = 8
 
+        if nr_version < 9:
+            print("\tto 9")
+            # Add type fields for Track
+            try:
+                self.db.execute_sql("ALTER TABLE track ADD COLUMN type_id int")
+            except peewee.OperationalError:
+                pass
+            nr_new_version = 9
+
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(
             nr_new_version))
@@ -493,6 +505,13 @@ class DataFile:
                     path_entry.save()
                 image.path = path_entry
                 image.save()
+        if nr_version < 9:
+            print("second migration step to 9")
+            tracks = self.table_track.select()
+            with self.db.atomic():
+                for track in tracks:
+                    track.type = track.markers[0].type
+                    track.save()
 
     def _GetMaskPath(self):
         if self.mask_path:
@@ -537,7 +556,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object containing all the :py:class:`Images` entries in the database file.
+            a query object containing all the :py:class:`Image` entries in the database file.
         """
 
         query = self.table_image.select()
@@ -559,7 +578,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object containing all the :py:class:`Images` entries in the database file.
+            a query object containing all the :py:class:`Image` entries in the database file.
         """
 
         frame = start_frame
@@ -578,7 +597,7 @@ class DataFile:
         Returns
         -------
         path : path_entry
-            the created/requested :py:class:`Paths` entry.
+            the created/requested :py:class:`Path` entry.
         """
 
         if self.database_filename:
@@ -617,7 +636,7 @@ class DataFile:
         Returns
         -------
         image : image entry
-            the created or updated :py:class:`Images` entry
+            the created or updated :py:class:`Image` entry
         """
         try:
             item = self.table_image.get(self.table_image.filename == filename)
@@ -667,28 +686,36 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which contains the requested :py:class:`Tracks`.
+            a query object which contains the requested :py:class:`Track`.
         """
 
         query = self.table_track.select()
         return query
 
-    def AddTrack(self):
+    def AddTrack(self, type):
         """
         Add a new track entry
 
+        Parameters
+        ----------
+        type: :py:class:`MarkerType` or str
+            the marker type or name of the marker type for the track.
+
         Returns
         -------
-        entry : track object
-            a new :py:class:`Tracks` object
+        track : track object
+            a new :py:class:`Track` object
         """
         import uuid
 
-        item = self.table_track(uid=uuid.uuid4().hex)
+        if isinstance(type, basestring):
+            type = self.GetType(type)
+
+        item = self.table_track(uid=uuid.uuid4().hex, type=type)
         item.save()
         return item
 
-    def AddTracks(self, count):
+    def AddTracks(self, count, type):
         """
         Add multiple new tracks
 
@@ -697,13 +724,19 @@ class DataFile:
         count: int
             how many tracks to create
 
+        type: :py:class:`MarkerType` or str
+            the marker type or name of the marker type for the tracks.
+
         Returns
         -------
-        tracks : list of :py:class:`Tracks`
+        tracks : list of :py:class:`Track`
             the new track objects
         """
 
-        return [self.AddTrack() for _ in range(count)]
+        if isinstance(type, basestring):
+            type = self.GetType(type)
+
+        return [self.AddTrack(type) for _ in range(count)]
 
     def GetTypes(self):
         """
@@ -712,7 +745,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which contains all Marker :py:class:`Types` .
+            a query object which contains all :py:class:`MarkerType` entries.
         """
         query = self.table_markertype.select()
         return query
@@ -732,6 +765,19 @@ class DataFile:
         return item.get_id()
 
     def GetType(self, name):
+        """
+        Get the type with the specified name.
+
+        Parameters
+        ----------
+        name: str
+            the name of the desired type
+
+        Returns
+        -------
+        entries : array_like
+            the :py:class:`MarkerType` with the desired name or None.
+        """
         try:
             return self.table_markertype.get(self.table_markertype.name == name)
         except peewee.DoesNotExist:
@@ -741,7 +787,7 @@ class DataFile:
         """
         Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
         ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
-        supplied, any entry with a value from the list is machted.
+        supplied, any entry with a value from the list is matched.
 
         Parameters
         ----------
@@ -939,7 +985,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which contains all :py:class:`MaskTypes`.
+            a query object which contains all :py:class:`MaskType` entries.
         """
         query = self.table_masktype.select()
         return query
