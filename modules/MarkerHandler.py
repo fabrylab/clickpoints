@@ -65,8 +65,8 @@ class MarkerFile:
         self.table_marker = self.data_file.table_marker
         self.table_track = self.data_file.table_track
 
-    def set_track(self):
-        track = self.table_track(uid=uuid.uuid4().hex)
+    def set_track(self, type):
+        track = self.table_track(uid=uuid.uuid4().hex, type=type)
         track.save()
         return track
 
@@ -193,13 +193,13 @@ class MarkerEditor(QtWidgets.QWidget):
             item.entry = type
 
             if type.mode & TYPE_Track:
-                tracks = self.db.table_track.select().join(self.db.table_marker).where(self.db.table_marker.type == type).group_by(self.db.table_track.id)
+                tracks = self.db.table_track.select().where(self.db.table_track.type == type)
                 for track in tracks:
                     child = QtGui.QStandardItem("Track #%d" % track.id)
                     child.entry = track
                     child.setEditable(False)
                     item.appendRow(child)
-                    markers = self.db.table_marker.select().where(self.db.table_marker.type == type, self.db.table_marker.track == track)
+                    markers = self.db.table_marker.select().where(self.db.table_marker.track == track)
                     count = 0
                     for marker in markers:
                         child2 = QtGui.QStandardItem("Marker #%d" % marker.id)
@@ -514,7 +514,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
 
         self.setText(self.GetText())
 
-        if self.data.type.mode & TYPE_Rect or self.data.type.mode & TYPE_Line:
+        if self.data.type and (self.data.type.mode & TYPE_Rect or self.data.type.mode & TYPE_Line):
             self.FindPartner()
 
         if self.partner:
@@ -538,8 +538,12 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             return self.data.track.text
 
         # check for type text entry
-        if self.data.type.text is not None:
+        if self.data.type and self.data.type.text is not None:
             return self.data.type.text
+
+        # check for type text entry
+        if self.data.track and self.data.track.type.text is not None:
+                return self.data.track.type.text
 
         # if there are no text entries return an empty string
         return ""
@@ -562,13 +566,14 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         self.style = {}
 
         # get style from marker type
-        if self.data.type.style:
-            style_text = self.data.type.style
+        type = self.data.type if self.data.type else self.data.track.type
+        if type and type.style:
+            style_text = type.style
             try:
                 type_style = json.loads(style_text)
             except ValueError:
                 type_style = {}
-                print("WARNING: type %d style could not be read: %s" % (self.data.type.id, style_text))
+                print("WARNING: type %d style could not be read: %s" % (type.id, style_text))
             self.style.update(type_style)
 
         # get style from marker
@@ -582,8 +587,10 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.style.update(marker_style)
 
         # get color from old color field
-        if "color" not in self.style:
+        if "color" not in self.style and self.data.type:
             self.style["color"] = self.data.type.color
+        else:
+            self.style["color"] = "#FFFFFF"
 
         # change color text to rgb by interpreting it as html text or a color map
         if self.style["color"][0] != "#":
@@ -796,13 +803,13 @@ class MyTrackItem(MyMarkerItem):
         self.style = {}
 
         # get style from marker type
-        if self.data.type.style:
-            style_text = self.data.type.style
+        if self.track.type.style:
+            style_text = self.track.type.style
             try:
                 type_style = json.loads(style_text)
             except ValueError:
                 type_style = {}
-                print("WARNING: type %d style could not be read: %s" % (self.data.type.id, style_text))
+                print("WARNING: type %d style could not be read: %s" % (self.track.type.id, style_text))
             self.style.update(type_style)
 
         # get style from track
@@ -817,7 +824,7 @@ class MyTrackItem(MyMarkerItem):
 
         # get color from old color field
         if "color" not in self.style:
-            self.style["color"] = self.data.type.color
+            self.style["color"] = self.track.type.color
 
         # change color text to rgb by interpreting it as html text or a color map
         if self.style["color"][0] != "#":
@@ -868,7 +875,7 @@ class MyTrackItem(MyMarkerItem):
         if not self.hidden:
             self.UpdateLine()
         self.SetTrackActive(False)
-        self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.data.type, track=self.track, text=None)
+        self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.track.type, track=self.track, text=None)
         #self.UpdateStyle()
 
     def update(self, frame, point):
@@ -1442,7 +1449,7 @@ class MarkerHandler:
                 index = np.argmin(distances)
                 tracks[index].setCurrentPoint(event.pos().x(), event.pos().y())
             elif self.active_type.mode & TYPE_Track:
-                track = self.marker_file.set_track()
+                track = self.marker_file.set_track(self.active_type)
                 data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, track=track)
                 self.tracks.append(MyTrackItem(self, self.TrackParent, [data], track, saved=False, frame=self.frame_number))
                 self.tracks[-1].setScale(1 / self.scale)
