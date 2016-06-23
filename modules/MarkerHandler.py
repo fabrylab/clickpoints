@@ -413,7 +413,7 @@ class MarkerEditor(QtWidgets.QWidget):
                             break
                 # delete marker
                 if self.marker_item:
-                    self.marker_item.deleteMarker()
+                    self.marker_item.delete()
                 else:
                     self.data.delete_instance()
             else:
@@ -649,11 +649,21 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
     def SetProcessed(self, processed):
         self.data.processed = processed
 
-    def delete(self):
-        self.data.delete_instance()
+    def delete(self, just_display=False):
+        # delete the database entry
+        if not just_display:
+            self.data.delete_instance()
 
-    def OnRemove(self):
+        # delete from marker handler list
+        self.marker_handler.RemoveFromList(self)
+
+        # delete from scene
+        self.scene().removeItem(self)
+
+        # delete from counter
         self.marker_handler.GetCounter(self.data.type).AddCount(-1)
+
+        # delete from partner
         if self.partner and self.partner.rectObj:
             self.marker_handler.view.scene.removeItem(self.partner.rectObj)
             self.partner.rectObj = None
@@ -670,10 +680,6 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         elif self.data.type.mode & TYPE_Line:
             self.rectObj.setLine(x, y, x2, y2)
 
-    def deleteMarker(self):
-        self.delete()
-        self.marker_handler.RemovePoint(self)
-
     def mousePressEvent(self, event):
         if event.button() == 2:  # right mouse button
             # open marker edit menu
@@ -685,7 +691,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         if event.button() == 1:  # left mouse button
             # left click with Ctrl -> delete
             if event.modifiers() == QtCore.Qt.ControlModifier:
-                self.deleteMarker()
+                self.delete()
             # left click -> move
             else:
                 self.dragged = True
@@ -910,7 +916,23 @@ class MyTrackItem(MyMarkerItem):
         q.execute()
 
         # delete from marker handler list
-        self.marker_handler.RemoveTrack(self)
+        self.marker_handler.RemoveFromList(self)
+
+        # delete from scene
+        self.scene().removeItem(self)
+        self.pathItem.scene().removeItem(self.pathItem)
+
+        # delete from counter
+        self.marker_handler.GetCounter(self.data.type).AddCount(-1)
+
+        # delete from partner
+        if self.partner and self.partner.rectObj:
+            self.marker_handler.view.scene.removeItem(self.partner.rectObj)
+            self.partner.rectObj = None
+            self.partner.partner = None
+        if self.rectObj:
+            self.partner.partner = None
+            self.marker_handler.view.scene.removeItem(self.rectObj)
 
     def RemoveTrackPoint(self, frame=None):
         if frame is None:
@@ -921,19 +943,13 @@ class MyTrackItem(MyMarkerItem):
         except KeyError:
             pass
         if len(self.points_data) == 0:
-            self.track.delete_instance()
-            self.marker_handler.RemovePoint(self)
+            self.delete()
             return
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
         if frame == self.current_frame:
             self.saved = True
             self.SetTrackActive(False)
-
-    def OnRemove(self):
-        MyMarkerItem.OnRemove(self)
-        if self.pathItem:
-            self.marker_handler.view.scene.removeItem(self.pathItem)
 
     def SetTrackActive(self, active):
         if active is False:
@@ -999,14 +1015,14 @@ class MyTrackItem(MyMarkerItem):
         if self.active:
             MyMarkerItem.draw(self, image, start_x, start_y, scale)
 
-    def deleteMarker(self):
-        self.RemoveTrackPoint()
-
     def mousePressEvent(self, event):
-        if event.button() == 1 and not event.modifiers() & Qt.ControlModifier:
-            if self.active is False:
-                self.AddTrackPoint()
-                self.saved = False
+        if event.button() == 1:
+            if not event.modifiers() & Qt.ControlModifier:
+                if self.active is False:
+                    self.AddTrackPoint()
+                    self.saved = False
+            else:
+                return self.RemoveTrackPoint()
         MyMarkerItem.mousePressEvent(self, event)
 
     def mouseMoveEvent(self, event):
@@ -1354,13 +1370,6 @@ class MarkerHandler:
                 track.FrameChanged(framenumber)
         self.LoadPoints()
 
-
-    def FolderChangeEvent(self):
-        while len(self.points):
-            self.RemovePoint(self.points[0], no_notice=True)
-        while len(self.tracks):
-            self.RemovePoint(self.tracks[0], no_notice=True)
-
     def LoadTracks(self):
         track_list = self.marker_file.table_track.select()
         for track in track_list:
@@ -1370,7 +1379,7 @@ class MarkerHandler:
 
     def LoadPoints(self):
         while len(self.points):
-            self.RemovePoint(self.points[0], no_notice=True)
+            self.points[0].delete(just_display=True)
         marker_list = (self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_markertype)
             .join(self.marker_file.table_markertype)
             .where(self.marker_file.table_marker.image == self.data_file.image.id)
@@ -1386,20 +1395,11 @@ class MarkerHandler:
         self.MarkerParent = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
         self.MarkerParent.setZValue(10)
 
-    def RemovePoint(self, point, no_notice=False):
-        point.OnRemove()
+    def RemoveFromList(self, point):
         try:
             self.points.remove(point)
         except ValueError:
             self.tracks.remove(point)
-        self.view.scene.removeItem(point)
-        if len(self.points) == 0 and no_notice is False:
-            BroadCastEvent(self.modules, "MarkerPointsRemoved")
-
-    def RemoveTrack(self, track):
-        track.OnRemove()
-        self.tracks.remove(track)
-        self.view.scene.removeItem(track)
 
     def save(self):
         for point in self.points:
