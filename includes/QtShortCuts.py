@@ -2,6 +2,7 @@ from qtpy import QtGui, QtWidgets
 import os
 import colorsys
 import numpy as np
+from Tools import HTMLColorToRGB
 
 def AddQSpinBox(layout, text, value=0, float=True, strech=False):
     horizontal_layout = QtWidgets.QHBoxLayout()
@@ -69,9 +70,9 @@ def AddQColorChoose(layout, text, value=None, strech=False):
 
     def OpenDialog():
         # get new color from color picker
-        color = QtWidgets.QColorDialog.getColor()
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*HTMLColorToRGB(button.getColor())))
         # if a color is set, apply it
-        if color:
+        if color.isValid():
             color = "#%02x%02x%02x" % color.getRgb()[:3]
             button.setColor(color)
 
@@ -143,6 +144,13 @@ def AddQHLine(layout):
     line.setFrameShadow(QtWidgets.QFrame.Sunken)
     layout.addWidget(line)
     return line
+
+
+def GetColorByIndex(index):
+    colors = np.linspace(0, 1, 16, endpoint=False).tolist() * 3  # 16 different hues
+    saturations = [1] * 16 + [0.5] * 16 + [1] * 16  # in two different saturations
+    value = [1] * 16 + [1] * 16 + [0.5] * 16  # and two different values
+    return "#%02x%02x%02x" % tuple((np.array(colorsys.hsv_to_rgb((np.array(colors[index])*3) % 1, saturations[index], value[index])) * 255).astype(int))
 
 # set the standard colors for the color picker dialog
 colors = np.linspace(0, 1, 16, endpoint=False).tolist()*3  # 16 different hues
