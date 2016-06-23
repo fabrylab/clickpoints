@@ -194,6 +194,7 @@ class MaskEditor(QtWidgets.QWidget):
 
         model = QtGui.QStandardItemModel(0, 0)
         types = self.db.table_masktype.select()
+        row = -1
         for row, type in enumerate(types):
             item = QtGui.QStandardItem(type.name)
             item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
@@ -205,7 +206,7 @@ class MaskEditor(QtWidgets.QWidget):
         item.setIcon(qta.icon("fa.plus"))
         item.setEditable(False)
         self.new_type = self.db.table_masktype()
-        self.new_type.color = GetColorByIndex(types.count())
+        self.new_type.color = GetColorByIndex(types.count() + 16)
         item.entry = self.new_type
         model.setItem(row+1, 0, item)
 
