@@ -13,7 +13,7 @@ import ImageQt_Stride as ImageQt
 from qimage2ndarray import array2qimage
 
 from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
-from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose
+from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex
 
 
 class MaskFile:
@@ -192,32 +192,28 @@ class MaskEditor(QtWidgets.QWidget):
         tree = QtWidgets.QTreeView()
         main_layout.addWidget(tree)
 
-        self.mask_modelitems = {}
-        self.modelItems_mask = {}
-
         model = QtGui.QStandardItemModel(0, 0)
         types = self.db.table_masktype.select()
         for row, type in enumerate(types):
             item = QtGui.QStandardItem(type.name)
             item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
             item.setEditable(False)
-            self.modelItems_mask[item] = type
+            item.entry = type
 
             model.setItem(row, 0, item)
         item = QtGui.QStandardItem("add type")
         item.setIcon(qta.icon("fa.plus"))
         item.setEditable(False)
         self.new_type = self.db.table_masktype()
-        self.modelItems_mask[item] = self.new_type
+        self.new_type.color = GetColorByIndex(types.count())
+        item.entry = self.new_type
         model.setItem(row+1, 0, item)
-
-        self.modelItems_mask = {item.index(): self.modelItems_mask[item] for item in self.modelItems_mask}
 
         tree.setUniformRowHeights(True)
         tree.setHeaderHidden(True)
         tree.setAnimated(True)
         tree.setModel(model)
-        tree.clicked.connect(lambda x: self.setMaskType(self.modelItems_mask[x]))
+        tree.clicked.connect(lambda index: self.setMaskType(index.model().itemFromIndex(index).entry))
         self.tree = tree
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -250,21 +246,20 @@ class MaskEditor(QtWidgets.QWidget):
         self.pushbutton_Cancel.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
-    def setMaskType(self, data, marker_item=None):
-        self.marker_item = marker_item
-        if data is None:
-            data = self.new_type
-            data.color = "#FFFFFF"
-        self.data = data
+    def setMaskType(self, data):
+        self.data = data if data is not None else self.new_type
 
         self.pushbutton_Remove.setHidden(False)
 
         self.StackedWidget.setCurrentIndex(1)
-        if data.name == None:
+        if data is None or data.name is None:
             self.pushbutton_Remove.setHidden(True)
-        self.typeWidget.setTitle("Type #%s" % data.name)
-        self.typeWidget.name.setText(data.name)
-        self.typeWidget.color.setColor(data.color)
+            self.typeWidget.setTitle("Add Type")
+        else:
+            self.pushbutton_Remove.setHidden(False)
+            self.typeWidget.setTitle("Type #%s" % self.data.name)
+        self.typeWidget.name.setText(self.data.name)
+        self.typeWidget.color.setColor(self.data.color)
 
     def saveMaskType(self):
         print("Saving changes...")
@@ -378,7 +373,7 @@ class MyCounter2(QtWidgets.QGraphicsRectItem):
             if not self.mask_handler.mask_edit_window or not self.mask_handler.mask_edit_window.isVisible():
                 self.mask_handler.mask_edit_window = MaskEditor(self.mask_handler, self.mask_handler.mask_file)
                 self.mask_handler.mask_edit_window.show()
-            self.mask_handler.mask_edit_window.setMaskType(self.type, self)
+            self.mask_handler.mask_edit_window.setMaskType(self.type)
         elif event.button() == QtCore.Qt.LeftButton:
             if not self.mask_handler.active:
                 BroadCastEvent([module for module in self.mask_handler.modules if module != self.mask_handler], "setActiveModule", False)
