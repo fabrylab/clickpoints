@@ -359,8 +359,10 @@ class MarkerEditor(QtWidgets.QWidget):
             if data.name is None:
                 self.pushbutton_Remove.setHidden(True)
                 self.typeWidget.setTitle("add type")
+                self.tree.setCurrentIndex(self.marker_type_modelitems[-1].index())
             else:
                 self.typeWidget.setTitle("Type #%s" % data.name)
+                self.tree.setCurrentIndex(self.marker_type_modelitems[self.data.id].index())
             self.typeWidget.name.setText(data.name)
             try:
                 self.typeWidget.mode.setCurrentIndex(self.typeWidget.mode_indices[data.mode])
