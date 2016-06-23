@@ -424,17 +424,15 @@ class MarkerEditor(QtWidgets.QWidget):
                         break
                 if found_track is not None:
                     found_track.RemoveTrackPoint(self.data.image.sort_index)
+                    
         # currently selected a track
         elif type(self.data) == self.db.table_track:
-            # delete all markers from this track
-            q = self.data_file.table_marker.delete().where(self.data_file.table_marker.track == self.data.id)
-            q.execute()
-            # find track
+            # find track. call delete, stop search
             for track in self.marker_handler.tracks:
                 if track.track.id == self.data.id:
+                    track.delete()
                     break
-            # delete track
-            self.marker_handler.RemoveTrack(track)
+
         # currently selected a type
         elif type(self.data) == self.db.table_markertype:
             count = self.data.markers.count()
@@ -899,6 +897,20 @@ class MyTrackItem(MyMarkerItem):
         if frame == self.current_frame:
             self.SetTrackActive(True)
         BroadCastEvent(self.marker_handler.modules, "MarkerPointsAdded")
+
+    def delete(self):
+        # delete all markers from this track
+        q = self.marker_handler.data_file.table_marker.delete()\
+            .where(self.marker_handler.data_file.table_marker.track == self.data.track.id)
+        q.execute()
+
+        # delete track entry
+        q = self.marker_handler.data_file.table_track.delete()\
+            .where(self.marker_handler.data_file.table_track.id == self.data.track.id)
+        q.execute()
+
+        # delete from marker handler list
+        self.marker_handler.RemoveTrack(self)
 
     def RemoveTrackPoint(self, frame=None):
         if frame is None:
