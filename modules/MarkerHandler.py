@@ -606,8 +606,6 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         # get color from old color field
         if "color" not in self.style and self.data.type:
             self.style["color"] = self.data.type.color
-        else:
-            self.style["color"] = "#FFFFFF"
 
         # change color text to rgb by interpreting it as html text or a color map
         if self.style["color"][0] != "#":
