@@ -135,7 +135,7 @@ class DeleteType(QtWidgets.QDialog):
         # Widget
         self.setMinimumWidth(500)
         self.setMinimumHeight(100)
-        self.setWindowTitle("Delete Type")
+        self.setWindowTitle("Delete Type - ClickPoints")
         self.setWindowIcon(qta.icon("fa.crosshairs"))
         self.setModal(True)
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -162,79 +162,95 @@ class DeleteType(QtWidgets.QDialog):
 class MarkerEditor(QtWidgets.QWidget):
     data = None
 
-    def __init__(self, marker_handler, data_file):
+    def __init__(self, marker_handler, marker_file):
         QtWidgets.QWidget.__init__(self)
 
-        self.data_file = data_file
+        # store parameter
+        self.marker_handler = marker_handler
+        self.data_file = marker_file
 
-        # Widget
+        # create window
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
         self.setWindowTitle("MarkerEditor - ClickPoints")
         self.setWindowIcon(qta.icon("fa.crosshairs"))
         main_layout = QtWidgets.QHBoxLayout(self)
 
-        self.marker_handler = marker_handler
-        self.db = marker_handler.marker_file
-
         """ Tree View """
-        tree = QtWidgets.QTreeView()
-        main_layout.addWidget(tree)
+        self.tree = QtWidgets.QTreeView()
+        main_layout.addWidget(self.tree)
 
+        # start a list for backwards search (from marker entry back to tree entry)
         self.marker_modelitems = {}
-        self.modelItems_marker = {}
+        self.marker_type_modelitems = {}
 
+        # model for tree view
         model = QtGui.QStandardItemModel(0, 0)
-        types = self.db.table_markertype.select()
-        for row, type in enumerate(types):
-            item = QtGui.QStandardItem(type.name)
-            item.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
-            item.setEditable(False)
-            item.entry = type
 
-            if type.mode & TYPE_Track:
-                tracks = self.db.table_track.select().where(self.db.table_track.type == type)
+        # add all marker types
+        marker_types = self.data_file.table_markertype.select()
+        row = -1
+        for row, marker_type in enumerate(marker_types):
+            # add item
+            item_type = QtGui.QStandardItem(marker_type.name)
+            item_type.entry = marker_type
+            item_type.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(marker_type.color))))
+            item_type.setEditable(False)
+            model.setItem(row, 0, item_type)
+            self.marker_type_modelitems[marker_type.id] = item_type
+
+            # if type is track type
+            if marker_type.mode & TYPE_Track:
+                # add all tracks for this type
+                tracks = self.data_file.table_track.select().where(self.data_file.table_track.type == marker_type)
                 for track in tracks:
-                    child = QtGui.QStandardItem("Track #%d" % track.id)
-                    child.entry = track
-                    child.setEditable(False)
-                    item.appendRow(child)
-                    markers = self.db.table_marker.select().where(self.db.table_marker.track == track)\
-                              .join(self.db.data_file.table_image).order_by(self.db.data_file.table_image.sort_index)
-                    count = 0
+                    # get markers for track
+                    markers = (self.data_file.table_marker.select()
+                               .where(self.data_file.table_marker.track == track)
+                               .join(self.data_file.data_file.table_image)
+                               .order_by(self.data_file.data_file.table_image.sort_index))
+
+                    # add item
+                    item_track = QtGui.QStandardItem("Track #%d (%d)" % (track.id, markers.count()))
+                    item_track.entry = track
+                    item_track.setEditable(False)
+                    item_type.appendRow(item_track)
+
+                    # add all markers for this track
                     for marker in markers:
-                        child2 = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
-                        child2.setEditable(False)
-                        child.appendRow(child2)
-                        self.marker_modelitems[marker.id] = child2
-                        child2.entry = marker
-                        count += 1
-                    child.setText("Track #%d (%d)" % (track.id, count))
+                        # add item
+                        item_marker = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
+                        item_marker.entry = marker
+                        item_marker.setEditable(False)
+                        item_track.appendRow(item_marker)
+                        self.marker_modelitems[marker.id] = item_marker
+            # type not a track type
             else:
-                markers = self.db.table_marker.select().where(self.db.table_marker.type == type)
+                # add marker for the type
+                markers = self.data_file.table_marker.select().where(self.data_file.table_marker.type == marker_type)
                 for marker in markers:
-                    child = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
-                    child.setEditable(False)
-                    item.appendRow(child)
-                    self.marker_modelitems[marker.id] = child
-                    child.entry = marker
+                    item_marker = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
+                    item_marker.entry = marker
+                    item_marker.setEditable(False)
+                    item_type.appendRow(item_marker)
+                    self.marker_modelitems[marker.id] = item_marker
+        # add entry for new type
+        self.new_type = self.data_file.table_markertype()
+        self.new_type.color = GetColorByIndex(marker_types.count())
+        item_type = QtGui.QStandardItem("add type")
+        item_type.entry = self.new_type
+        item_type.setIcon(qta.icon("fa.plus"))
+        item_type.setEditable(False)
+        model.setItem(row+1, 0, item_type)
+        self.marker_type_modelitems[-1] = item_type
 
-            model.setItem(row, 0, item)
-        item = QtGui.QStandardItem("add type")
-        item.setIcon(qta.icon("fa.plus"))
-        item.setEditable(False)
-        self.new_type = self.db.table_markertype()
-        self.new_type.color = GetColorByIndex(types.count()+16)
-        item.entry = self.new_type
-        model.setItem(row+1, 0, item)
-
-        tree.setUniformRowHeights(True)
-        tree.setHeaderHidden(True)
-        tree.setAnimated(True)
-        tree.setModel(model)
-        tree.clicked.connect(lambda index: self.setMarker(index.model().itemFromIndex(index).entry))
-        tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMarker(selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
-        self.tree = tree
+        # some settings for the tree
+        self.tree.setUniformRowHeights(True)
+        self.tree.setHeaderHidden(True)
+        self.tree.setAnimated(True)
+        self.tree.setModel(model)
+        self.tree.clicked.connect(lambda index: self.setMarker(index.model().itemFromIndex(index).entry))
+        self.tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMarker(selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
 
         self.layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(self.layout)
@@ -246,8 +262,8 @@ class MarkerEditor(QtWidgets.QWidget):
         self.markerWidget = QtWidgets.QGroupBox()
         self.StackedWidget.addWidget(self.markerWidget)
         layout = QtWidgets.QVBoxLayout(self.markerWidget)
-        self.markerWidget.type_indices = {t.id: index for index, t in enumerate(self.db.get_type_list())}
-        self.markerWidget.type = AddQComboBox(layout, "Type:", [t.name for t in self.db.get_type_list()])
+        self.markerWidget.type_indices = {t.id: index for index, t in enumerate(self.data_file.get_type_list())}
+        self.markerWidget.type = AddQComboBox(layout, "Type:", [t.name for t in self.data_file.get_type_list()])
         self.markerWidget.x = AddQSpinBox(layout, "X:")
         self.markerWidget.y = AddQSpinBox(layout, "Y:")
         self.markerWidget.style = AddQLineEdit(layout, "Style:")
@@ -260,7 +276,7 @@ class MarkerEditor(QtWidgets.QWidget):
         self.StackedWidget.addWidget(self.typeWidget)
         layout = QtWidgets.QVBoxLayout(self.typeWidget)
         self.typeWidget.name = AddQLineEdit(layout, "Name:")
-        self.typeWidget.mode_indices = {TYPE_Normal: 0, TYPE_Line: 1, TYPE_Rect: 2,TYPE_Track: 3}
+        self.typeWidget.mode_indices = {TYPE_Normal: 0, TYPE_Line: 1, TYPE_Rect: 2, TYPE_Track: 3}
         self.typeWidget.mode_values = {0: TYPE_Normal, 1: TYPE_Line, 2: TYPE_Rect, 3: TYPE_Track}
         self.typeWidget.mode = AddQComboBox(layout, "Mode:", ["TYPE_Normal", "TYPE_Line", "TYPE_Rect", "TYPE_Track"])
         self.typeWidget.style = AddQLineEdit(layout, "Style:")
@@ -292,13 +308,13 @@ class MarkerEditor(QtWidgets.QWidget):
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
     def setMarker(self, data, data_type=None):
-        if type(data) == self.db.table_marker and self.data == data:
+        if type(data) == self.data_file.table_marker and self.data == data:
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
         self.data = data
 
         self.pushbutton_Remove.setHidden(False)
 
-        if type(data) == self.db.table_marker:
+        if type(data) == self.data_file.table_marker:
             self.StackedWidget.setCurrentIndex(0)
             self.markerWidget.setTitle("Marker #%d" % data.id)
 
@@ -329,13 +345,13 @@ class MarkerEditor(QtWidgets.QWidget):
             self.markerWidget.style.setText(data.style if data.style else "")
             self.markerWidget.text.setText(data.text if data.text else "")
 
-        elif type(data) == self.db.table_track:
+        elif type(data) == self.data_file.table_track:
             self.StackedWidget.setCurrentIndex(2)
             self.trackWidget.setTitle("Track #%d" % data.id)
             self.trackWidget.style.setText(data.style if data.style else "")
             self.trackWidget.text.setText(data.text if data.text else "")
 
-        elif type(data) == self.db.table_markertype or data_type == "type":
+        elif type(data) == self.data_file.table_markertype or data_type == "type":
             if data is None:
                 data = self.new_type
                 self.data = data
@@ -363,7 +379,7 @@ class MarkerEditor(QtWidgets.QWidget):
     def saveMarker(self):
         print("Saving changes...")
         # set parameters
-        if type(self.data) == self.db.table_marker:
+        if type(self.data) == self.data_file.table_marker:
             self.data.x = self.markerWidget.x.value()
             self.data.y = self.markerWidget.y.value()
             self.data.type = self.marker_handler.marker_file.get_type(self.markerWidget.type.currentText())
@@ -379,13 +395,13 @@ class MarkerEditor(QtWidgets.QWidget):
                 marker_item = self.marker_handler.GetMarkerItem(self.data)
                 if marker_item:
                     marker_item.ReloadData()
-        elif type(self.data) == self.db.table_track:
+        elif type(self.data) == self.data_file.table_track:
             self.data.style = self.trackWidget.style.text()
             self.data.text = self.filterText(self.trackWidget.text.text())
             self.data.save()
 
             self.marker_handler.ReloadTrack(self.data)
-        elif type(self.data) == self.db.table_markertype:
+        elif type(self.data) == self.data_file.table_markertype:
             self.data.name = self.typeWidget.name.text()
             self.data.mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
             self.data.style = self.typeWidget.style.text()
@@ -405,7 +421,7 @@ class MarkerEditor(QtWidgets.QWidget):
     def removeMarker(self):
         print("Remove ...")
         # currently selected a marker -> remove the marker
-        if type(self.data) == self.db.table_marker:
+        if type(self.data) == self.data_file.table_marker:
             if self.data.track is None:
                 # find point
                 marker_item = self.marker_handler.GetMarkerItem(self.data)
@@ -420,13 +436,13 @@ class MarkerEditor(QtWidgets.QWidget):
                 track_item.RemoveTrackPoint(self.data.image.sort_index)
                     
         # currently selected a track -> remove the track
-        elif type(self.data) == self.db.table_track:
+        elif type(self.data) == self.data_file.table_track:
             # get the track and remove it
             track = self.marker_handler.GetTrackItem(self.data)
             track.delete()
 
         # currently selected a type -> remove the type
-        elif type(self.data) == self.db.table_markertype:
+        elif type(self.data) == self.data_file.table_markertype:
             count = self.data.markers.count()
             # if this type doesn't have markers delete it without asking
             if count == 0:
