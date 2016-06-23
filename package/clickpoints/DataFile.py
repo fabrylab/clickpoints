@@ -353,7 +353,6 @@ class DataFile:
             self.table_meta(key="version", value=self.current_version).save()
 
         # second migration part which needs the peewee model
-        print(version, int(self.current_version), int(version) < int(self.current_version))
         if version is not None and int(version) < int(self.current_version):
             self._migrateDBFrom2(version)
 
