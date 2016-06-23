@@ -162,7 +162,7 @@ class DeleteType(QtWidgets.QDialog):
 class MarkerEditor(QtWidgets.QWidget):
     data = None
 
-    def __init__(self, marker_handler, data_file, marker_item=None, type_item=None):
+    def __init__(self, marker_handler, data_file):
         QtWidgets.QWidget.__init__(self)
 
         self.data_file = data_file
@@ -288,16 +288,11 @@ class MarkerEditor(QtWidgets.QWidget):
         self.pushbutton_Cancel.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
-        if marker_item:
-            self.setMarker(marker_item.data, marker_item)
-        if type_item:
-            self.setMarker(type_item.type)
-
-    def setMarker(self, data, marker_item=None, data_type=None):
-        self.marker_item = marker_item
+    def setMarker(self, data, data_type=None):
         if type(data) == self.db.table_marker and self.data == data:
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
         self.data = data
+        print(data, data.id)
 
         self.pushbutton_Remove.setHidden(False)
 
@@ -329,6 +324,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.markerWidget.type.setCurrentIndex(self.markerWidget.type_indices[data.type.id])
             self.markerWidget.x.setValue(data.x)
             self.markerWidget.y.setValue(data.y)
+            self.markerWidget.style.setText(data.style if data.style else "")
             self.markerWidget.text.setText(data.text if data.text else "")
 
         elif type(data) == self.db.table_track:
@@ -336,7 +332,6 @@ class MarkerEditor(QtWidgets.QWidget):
             self.trackWidget.setTitle("Track #%d" % data.id)
             self.trackWidget.style.setText(data.style if data.style else "")
             self.trackWidget.text.setText(data.text if data.text else "")
-            pass
 
         elif type(data) == self.db.table_markertype or data_type == "type":
             if data is None:
@@ -344,7 +339,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.data = data
                 self.data.color = "#FFFFFF"
             self.StackedWidget.setCurrentIndex(1)
-            if data.name == None:
+            if data.name is None:
                 self.pushbutton_Remove.setHidden(True)
             self.typeWidget.setTitle("Type #%s" % data.name)
             self.typeWidget.name.setText(data.name)
@@ -355,8 +350,6 @@ class MarkerEditor(QtWidgets.QWidget):
             self.typeWidget.style.setText(data.style if data.style else "")
             self.typeWidget.color.setColor(data.color)
             self.typeWidget.text.setText(data.text if data.text else "")
-            pass
-
 
     def filterText(self, input):
         # if text field is empty - add Null instead of "" to sql db
@@ -376,17 +369,22 @@ class MarkerEditor(QtWidgets.QWidget):
             self.data.save()
 
             # load updated data
-            if not self.marker_item:
-                for point in self.marker_handler.points:
-                    if point.data.id == self.data.id:
-                        point.ReloadData()
-                        break
+            if self.data.track:
+                track_item = self.marker_handler.GetTrackItem(self.data.track)
+                track_item.update(self.data.image.sort_index, self.data)
+                #if self.data.image.sort_index == self.marker_handler.frame_number:
+                #    track_item = self.marker_handler.GetTrackItem(self.data.track)
+                #    track_item.ReloadData()
             else:
-                self.marker_item.ReloadData()
+                marker_item = self.marker_handler.GetMarkerItem(self.data)
+                if marker_item:
+                    marker_item.ReloadData()
         elif type(self.data) == self.db.table_track:
             self.data.style = self.trackWidget.style.text()
             self.data.text = self.filterText(self.trackWidget.text.text())
             self.data.save()
+
+            self.marker_handler.ReloadTrack(self.data)
         elif type(self.data) == self.db.table_markertype:
             self.data.name = self.typeWidget.name.text()
             self.data.mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
@@ -395,6 +393,10 @@ class MarkerEditor(QtWidgets.QWidget):
             self.data.text = self.filterText(self.typeWidget.text.text())
             self.data.save()
             self.marker_handler.UpdateCounter()
+            if self.data.mode & TYPE_Track:
+                self.marker_handler.LoadTracks()
+            else:
+                self.marker_handler.LoadPoints()
 
         # close widget
         self.marker_handler.marker_edit_window = None
@@ -402,38 +404,28 @@ class MarkerEditor(QtWidgets.QWidget):
 
     def removeMarker(self):
         print("Remove ...")
-        # currently selected a marker
+        # currently selected a marker -> remove the marker
         if type(self.data) == self.db.table_marker:
             if self.data.track is None:
                 # find point
-                if not self.marker_item:
-                    for point in self.marker_handler.points:
-                        if point.data.id == self.data.id:
-                            self.marker_item = point
-                            break
+                marker_item = self.marker_handler.GetMarkerItem(self.data)
                 # delete marker
-                if self.marker_item:
-                    self.marker_item.delete()
+                if marker_item:
+                    marker_item.delete()
                 else:
                     self.data.delete_instance()
             else:
-                found_track = None
-                for track in self.marker_handler.tracks:
-                    if track.data.track == self.data.track:
-                        found_track = track
-                        break
-                if found_track is not None:
-                    found_track.RemoveTrackPoint(self.data.image.sort_index)
+                # find corresponding track and remove the point
+                track_item = self.marker_handler.GetTrackItem(self.data.track)
+                track_item.RemoveTrackPoint(self.data.image.sort_index)
                     
-        # currently selected a track
+        # currently selected a track -> remove the track
         elif type(self.data) == self.db.table_track:
-            # find track. call delete, stop search
-            for track in self.marker_handler.tracks:
-                if track.track.id == self.data.id:
-                    track.delete()
-                    break
+            # get the track and remove it
+            track = self.marker_handler.GetTrackItem(self.data)
+            track.delete()
 
-        # currently selected a type
+        # currently selected a type -> remove the type
         elif type(self.data) == self.db.table_markertype:
             count = self.data.markers.count()
             # if this type doesn't have markers delete it without asking
@@ -714,10 +706,9 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         if event.button() == 2:  # right mouse button
             # open marker edit menu
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
-                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file, self)
+                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file)
                 self.marker_handler.marker_edit_window.show()
-            else:
-                self.marker_handler.marker_edit_window.setMarker(self.data, self)
+            self.marker_handler.marker_edit_window.setMarker(self.data)
         if event.button() == 1:  # left mouse button
             # left click with Ctrl -> delete
             if event.modifiers() == QtCore.Qt.ControlModifier:
@@ -914,12 +905,12 @@ class MyTrackItem(MyMarkerItem):
         self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.track.type, track=self.track, text=None)
         #self.UpdateStyle()
 
-    def update(self, frame, point):
+    def update(self, frame, point=None):
         if point is not None:
             self.AddTrackPoint(frame, point)
             if frame == self.current_frame:
-                self.setPos(point.x, point.y)
-                self.data = point
+                self.ReloadData()
+                self.UpdateStyle()
         else:
             self.RemoveTrackPoint(frame)
         self.UpdateLine()
@@ -936,16 +927,17 @@ class MyTrackItem(MyMarkerItem):
             self.SetTrackActive(True)
         BroadCastEvent(self.marker_handler.modules, "MarkerPointsAdded")
 
-    def delete(self):
-        # delete all markers from this track
-        q = self.marker_handler.data_file.table_marker.delete()\
-            .where(self.marker_handler.data_file.table_marker.track == self.data.track.id)
-        q.execute()
+    def delete(self, just_display=False):
+        if not just_display:
+            # delete all markers from this track
+            self.marker_handler.data_file.table_marker.delete() \
+                .where(self.marker_handler.data_file.table_marker.track == self.data.track.id) \
+                .execute()
 
-        # delete track entry
-        q = self.marker_handler.data_file.table_track.delete()\
-            .where(self.marker_handler.data_file.table_track.id == self.data.track.id)
-        q.execute()
+            # delete track entry
+            self.marker_handler.data_file.table_track.delete() \
+                .where(self.marker_handler.data_file.table_track.id == self.data.track.id) \
+                .execute()
 
         # delete from marker handler list
         self.marker_handler.RemoveFromList(self)
@@ -967,21 +959,28 @@ class MyTrackItem(MyMarkerItem):
             self.marker_handler.view.scene.removeItem(self.rectObj)
 
     def RemoveTrackPoint(self, frame=None):
+        # use the current frame if no frame is supplied
         if frame is None:
             frame = self.current_frame
+        # delete the frame from points
         try:
             data = self.points_data.pop(frame)
             data.delete_instance()
         except KeyError:
             pass
+        # if it was the last one delete the track, too
         if len(self.points_data) == 0:
             self.delete()
             return
+        # adjust the frame range
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
+        # set the track to inactive if the current marker was removed
         if frame == self.current_frame:
             self.saved = True
             self.SetTrackActive(False)
+        # redraw the track history
+        self.UpdateLine()
 
     def SetTrackActive(self, active):
         if active is False:
@@ -1273,7 +1272,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
     def mousePressEvent(self, event):
         if event.button() == 2 or self.type is None:
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
-                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file, type_item=self)
+                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file)
                 self.marker_handler.marker_edit_window.show()
             self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
         elif event.button() == 1:
@@ -1403,11 +1402,22 @@ class MarkerHandler:
         self.LoadPoints()
 
     def LoadTracks(self):
+        while len(self.tracks):
+            self.tracks[0].delete(just_display=True)
         track_list = self.marker_file.table_track.select()
         for track in track_list:
             data = track.markers
             if data.count():
                 self.tracks.append(MyTrackItem(self, self.TrackParent, data, track, saved=True, frame=self.frame_number))
+                self.tracks[-1].setScale(1 / self.scale)
+
+    def ReloadTrack(self, track):
+        track_item = self.GetTrackItem(track)
+        track_item.delete(just_display=True)
+        data = track.markers
+        if data.count():
+            self.tracks.append(MyTrackItem(self, self.TrackParent, data, track, saved=True, frame=self.frame_number))
+            self.tracks[-1].setScale(1 / self.scale)
 
     def LoadPoints(self):
         while len(self.points):
@@ -1432,6 +1442,16 @@ class MarkerHandler:
             self.points.remove(point)
         except ValueError:
             self.tracks.remove(point)
+
+    def GetMarkerItem(self, data):
+        for point in self.points:
+            if point.data.id == data.id:
+                return point
+
+    def GetTrackItem(self, data):
+        for track in self.tracks:
+            if track.track.id == data.id:
+                return track
 
     def save(self):
         for point in self.points:
