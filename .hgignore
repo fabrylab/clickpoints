@@ -8,6 +8,8 @@ syntax: glob
 # Python egg metadata, regenerated from source files by setuptools.
 
 syntax: regexp
+database/sql.cfg
+^.idea/.*
 ^package/.*\.egg-info.*
 ^package/dist.*
 ^package/build.*
