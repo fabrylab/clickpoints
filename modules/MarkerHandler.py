@@ -558,6 +558,24 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.text.setPos(5, 5)
             self.text.setZValue(10)
             self.text.setBrush(QtGui.QBrush(self.color))
+        # augment text
+
+        if '$track_id' in text:
+            if self.data.track.id:
+                text = text.replace('$track_id', '%d' % self.data.track.id)
+        if '$marker_id' in text:
+            if self.data.id:
+                text = text.replace('$marker_id', '%d' % self.data.id)
+        if '$x_pos' in text:
+            if self.data.x:
+                text = text.replace('$x_pos', '%.2f' % self.data.x)
+        if '$y_pos' in text:
+            if self.data.x:
+                text = text.replace('$y_pos', '%.2f' % self.data.x)
+        if '$nl' in text:
+            print("newline found")
+            text = text.replace('$nl', '\n')
+
         self.text.setText(text)
 
     def GetStyle(self):
