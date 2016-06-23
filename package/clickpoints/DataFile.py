@@ -2,8 +2,6 @@ from __future__ import print_function, division
 import numpy as np
 import os
 import peewee
-from playhouse.reflection import Introspector
-import time
 from PIL import Image
 import imageio
 import sys
@@ -76,6 +74,18 @@ class Rectangle:
         self.height = self.y2-self.y1
         self.marker1 = rect
         self.marker2 = partner
+
+class Line:
+    def __init__(self, x1, y1, x2, y2, marker1, marker2):
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+        self.dx = abs(self.x2-self.x1)
+        self.dy = abs(self.y2-self.y1)
+        self.length = np.sqrt(self.dx**2 + self.dy**2)
+        self.marker1 = marker1
+        self.marker2 = marker2
 
 class DataFile:
     """
@@ -828,7 +838,8 @@ class DataFile:
 
     def GetRectangles(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
         """
-        See GetMarkers, but it already merges all connected markers to rectangles. Single markers are omitted.
+        See GetMarkers, but it already merges all connected markers to rectangles and filters for markers with a
+        TYPE_Rect marker type. Single markers are omitted.
 
         Parameters
         ----------
@@ -867,16 +878,71 @@ class DataFile:
         # iterate over markers and merge rectangles
         rects = []
         for rect in query:
-            try:
-                # only if we have a partner and the partner has a smaller id (so that we only get one of each pair)
-                if rect.partner_id and rect.id < rect.partner.id:
-                    # create a rectangle item and append it to the lisst
-                    rects.append(Rectangle(rect.x, rect.y, rect.partner.x, rect.partner.y, rect, rect.partner))
-            # ignore markers where the partner doesn't exist
-            except peewee.DoesNotExist:
-                pass
+            if rect.type & self.TYPE_Rect:
+                try:
+                    # only if we have a partner and the partner has a smaller id (so that we only get one of each pair)
+                    if rect.partner_id and rect.id < rect.partner.id:
+                        # create a rectangle item and append it to the lisst
+                        rects.append(Rectangle(rect.x, rect.y, rect.partner.x, rect.partner.y, rect, rect.partner))
+                # ignore markers where the partner doesn't exist
+                except peewee.DoesNotExist:
+                    pass
         # return the list
         return rects
+
+    def GetLines(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
+        """
+        See GetMarkers, but it already merges all connected markers to lines and filters for markers with a TYPE_Line
+        marker type. Single markers are omitted.
+
+        Parameters
+        ----------
+        image : int, array, optional
+            the image id(s) for the markers to be selected.
+        processed : bool, array, optional
+            the processed flag(s) for the markers to be selected.
+        type : int, array, optional
+            the type id(s) for the markers to be selected.
+        track : int, array, optional
+            the track id(s) for the markers to be selected.
+
+        Returns
+        -------
+        entries : array_like
+            a list of rectangle objects.
+        """
+        # select marker, joined with types and images
+        query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
+                 .join(self.table_markertype)
+                 .switch(self.table_marker)
+                 .join(self.table_image)
+                 )
+        parameter = [image, image_filename, processed, type, type_name, track]
+        table = self.table_marker
+        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name,
+                  table.track]
+        for field, parameter in zip(fields, parameter):
+            if parameter is None:
+                continue
+            if isinstance(parameter, (tuple, list)):
+                query = query.where(field << parameter)
+            else:
+                query = query.where(field == parameter)
+
+        # iterate over markers and merge rectangles
+        lines = []
+        for line in query:
+            if line.type & self.TYPE_Line:
+                try:
+                    # only if we have a partner and the partner has a smaller id (so that we only get one of each pair)
+                    if line.partner_id and line.id < line.partner.id:
+                        # create a rectangle item and append it to the lisst
+                        lines.append(Line(line.x, line.y, line.partner.x, line.partner.y, line, line.partner))
+                # ignore markers where the partner doesn't exist
+                except peewee.DoesNotExist:
+                    pass
+        # return the list
+        return lines
 
     def SetMarker(self, id=None, image=None, x=None, y=None, processed=0, partner=None, type=None, track=None,
                   marker_text=None):
