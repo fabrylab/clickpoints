@@ -373,13 +373,13 @@ class MyCounter2(QtWidgets.QGraphicsRectItem):
             self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
-        if event.button() == 2 or self.type is None:  # right mouse button
+        if event.button() == QtCore.Qt.RightButton or self.type is None:  # right mouse button
             # open marker edit menu
             if not self.mask_handler.mask_edit_window or not self.mask_handler.mask_edit_window.isVisible():
                 self.mask_handler.mask_edit_window = MaskEditor(self.mask_handler, self.mask_handler.mask_file)
                 self.mask_handler.mask_edit_window.show()
             self.mask_handler.mask_edit_window.setMaskType(self.type, self)
-        elif event.button() == 1:
+        elif event.button() == QtCore.Qt.LeftButton:
             if not self.mask_handler.active:
                 BroadCastEvent([module for module in self.mask_handler.modules if module != self.mask_handler], "setActiveModule", False)
                 self.mask_handler.setActiveModule(True)
@@ -655,7 +655,7 @@ class MaskHandler:
             BroadCastEvent(self.modules, "MaskAdded")
 
     def sceneEventFilter(self, event):
-        if event.type() == 156 and event.button() == 1:  # Left Mouse ButtonPress
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton:
             # if no mask has been created, create one for painting
             if self.image_mask_full is None:
                 self.AddEmptyMask()
@@ -663,7 +663,7 @@ class MaskHandler:
             self.last_y = event.pos().y()
             self.DrawLine(self.last_x, self.last_x + 0.00001, self.last_y, self.last_y)
             return True
-        if event.type() == 155:  # Mouse Move
+        if event.type() == QtCore.QEvent.GraphicsSceneMouseRelease:
             self.DrawCursor.setPos(event.pos())
             pos_x = event.pos().x()
             pos_y = event.pos().y()
@@ -671,7 +671,7 @@ class MaskHandler:
             self.last_x = pos_x
             self.last_y = pos_y
             return True
-        if event.type() == 161:  # Mouse Hover
+        if event.type() == QtCore.QEvent.GraphicsSceneHoverMove:
             self.DrawCursor.setPos(event.pos())
             if self.image_mask_full is None:
                 self.color_under_cursor = 0
