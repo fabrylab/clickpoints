@@ -146,15 +146,15 @@ class DeleteType(QtWidgets.QDialog):
         self.type_ids = {type.name: type.id for type in types}
         self.comboBox = AddQComboBox(main_layout, "New Type:", [type.name for type in types])
 
-        layout2 = QtGui.QHBoxLayout(self)
+        layout2 = QtWidgets.QHBoxLayout()
         main_layout.addLayout(layout2)
-        button1 = QtGui.QPushButton("Delete")
+        button1 = QtWidgets.QPushButton("Delete")
         button1.clicked.connect(lambda: self.done(-1))
         layout2.addWidget(button1)
-        button2 = QtGui.QPushButton("Move")
+        button2 = QtWidgets.QPushButton("Move")
         button2.clicked.connect(lambda: self.done(self.type_ids[self.comboBox.currentText()]))
         layout2.addWidget(button2)
-        button3 = QtGui.QPushButton("Cancel")
+        button3 = QtWidgets.QPushButton("Cancel")
         button3.clicked.connect(lambda: self.done(0))
         layout2.addWidget(button3)
 
