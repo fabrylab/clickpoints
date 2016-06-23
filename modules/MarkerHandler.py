@@ -203,7 +203,7 @@ class MarkerEditor(QtWidgets.QWidget):
                               .join(self.db.data_file.table_image).order_by(self.db.data_file.table_image.sort_index)
                     count = 0
                     for marker in markers:
-                        child2 = QtGui.QStandardItem("Marker #%d" % marker.id)
+                        child2 = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
                         child2.setEditable(False)
                         child.appendRow(child2)
                         self.marker_modelitems[marker.id] = child2
@@ -213,7 +213,7 @@ class MarkerEditor(QtWidgets.QWidget):
             else:
                 markers = self.db.table_marker.select().where(self.db.table_marker.type == type)
                 for marker in markers:
-                    child = QtGui.QStandardItem("Marker #%d" % marker.id)
+                    child = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
                     child.setEditable(False)
                     item.appendRow(child)
                     self.marker_modelitems[marker.id] = child
