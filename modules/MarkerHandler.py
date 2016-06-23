@@ -572,8 +572,8 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         if '$y_pos' in text:
             if self.data.x:
                 text = text.replace('$y_pos', '%.2f' % self.data.y)
-        if '$nl' in text:
-            text = text.replace('$nl', '\n')
+        if '\\n' in text:
+            text = text.replace('\\n', '\n')
 
         self.text.setText(text)
 
