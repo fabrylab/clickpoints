@@ -316,7 +316,7 @@ def GetSubdirectories(directory):
 
 def GetFilesInDirectory(root):
     # return all file names which have and known file extension
-    return [filename for filename in os.listdir(root) if filename.lower().endswith(formats)]
+    return [filename for filename in next(os.walk(root))[2] if filename.lower().endswith(formats)]
 
 
 def getFrameNumber(file, extension):
