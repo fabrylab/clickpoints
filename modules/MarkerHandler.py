@@ -502,8 +502,6 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
 
         self.setAcceptHoverEvents(True)
 
-        self.setText(self.GetText())
-
         if self.data.type and (self.data.type.mode & TYPE_Rect or self.data.type.mode & TYPE_Line):
             self.FindPartner()
 
@@ -514,6 +512,8 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
                 self.rectObj = QtWidgets.QGraphicsLineItem(self.parent)
             self.rectObj.setPen(QtGui.QPen(QtGui.QColor(*self.style["color"])))
             self.UpdateRect()
+
+        self.setText(self.GetText())
 
         self.ApplyStyle()
 
@@ -551,7 +551,6 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.text.setZValue(10)
             self.text.setBrush(QtGui.QBrush(self.color))
 
-
         # augment text
         if '$track_id' in text:
             if self.data.track and self.data.track.id:
@@ -564,12 +563,12 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             else:
                 text = text.replace('$marker_id', '??')
         if '$x_pos' in text:
-                text = text.replace('$x_pos', '%.2f' % self.data.x)
+            text = text.replace('$x_pos', '%.2f' % self.data.x)
         if '$y_pos' in text:
-                text = text.replace('$y_pos', '%.2f' % self.data.y)
-        if '$line_lenght':
+            text = text.replace('$y_pos', '%.2f' % self.data.y)
+        if '$line_length' in text:
             if self.data.partner_id:
-                if self.data.id > self.data.partner.id:
+                if self.data.x > self.data.partner.x:
                     text = text.replace('$line_length', '%.2f' % np.linalg.norm(
                         np.array([self.data.x, self.data.y]) - np.array(
                             [self.data.partner.x, self.data.partner.y])))
@@ -741,7 +740,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             else:
                 self.partner.UpdateRect()
                 self.partner.setPos(self.partner.pos())
-                self.partner.setText(self.GetText())
+            self.partner.setText(self.partner.GetText())
 
     def mouseReleaseEvent(self, event):
         if event.button() == 1 and self.dragged:
