@@ -199,7 +199,8 @@ class MarkerEditor(QtWidgets.QWidget):
                     child.entry = track
                     child.setEditable(False)
                     item.appendRow(child)
-                    markers = self.db.table_marker.select().where(self.db.table_marker.track == track)
+                    markers = self.db.table_marker.select().where(self.db.table_marker.track == track)\
+                              .join(self.db.data_file.table_image).order_by(self.db.data_file.table_image.sort_index)
                     count = 0
                     for marker in markers:
                         child2 = QtGui.QStandardItem("Marker #%d" % marker.id)
@@ -372,9 +373,6 @@ class MarkerEditor(QtWidgets.QWidget):
             if self.data.track:
                 track_item = self.marker_handler.GetTrackItem(self.data.track)
                 track_item.update(self.data.image.sort_index, self.data)
-                #if self.data.image.sort_index == self.marker_handler.frame_number:
-                #    track_item = self.marker_handler.GetTrackItem(self.data.track)
-                #    track_item.ReloadData()
             else:
                 marker_item = self.marker_handler.GetMarkerItem(self.data)
                 if marker_item:
