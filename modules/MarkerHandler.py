@@ -224,7 +224,7 @@ class MarkerEditor(QtWidgets.QWidget):
         item.setIcon(qta.icon("fa.plus"))
         item.setEditable(False)
         self.new_type = self.db.table_markertype()
-        self.new_type.color = GetColorByIndex(types.count())
+        self.new_type.color = GetColorByIndex(types.count()+16)
         item.entry = self.new_type
         model.setItem(row+1, 0, item)
 
@@ -342,7 +342,9 @@ class MarkerEditor(QtWidgets.QWidget):
             self.StackedWidget.setCurrentIndex(1)
             if data.name is None:
                 self.pushbutton_Remove.setHidden(True)
-            self.typeWidget.setTitle("Type #%s" % data.name)
+                self.typeWidget.setTitle("add type")
+            else:
+                self.typeWidget.setTitle("Type #%s" % data.name)
             self.typeWidget.name.setText(data.name)
             try:
                 self.typeWidget.mode.setCurrentIndex(self.typeWidget.mode_indices[data.mode])
