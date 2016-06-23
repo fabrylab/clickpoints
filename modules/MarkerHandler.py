@@ -698,13 +698,13 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.rectObj.setLine(x, y, x2, y2)
 
     def mousePressEvent(self, event):
-        if event.button() == 2:  # right mouse button
+        if event.button() == QtCore.Qt.RightButton:
             # open marker edit menu
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
                 self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file)
                 self.marker_handler.marker_edit_window.show()
             self.marker_handler.marker_edit_window.setMarker(self.data)
-        if event.button() == 1:  # left mouse button
+        if event.button() == QtCore.Qt.LeftButton:
             # left click with Ctrl -> delete
             if event.modifiers() == QtCore.Qt.ControlModifier:
                 self.delete()
@@ -739,7 +739,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.partner.setText(self.partner.GetText())
 
     def mouseReleaseEvent(self, event):
-        if event.button() == 1 and self.dragged:
+        if event.button() == QtCore.Qt.LeftButton and self.dragged:
             self.dragged = False
             self.marker_handler.PointsUnsaved = True
             self.SetProcessed(0)
@@ -1042,7 +1042,7 @@ class MyTrackItem(MyMarkerItem):
             MyMarkerItem.draw(self, image, start_x, start_y, scale)
 
     def mousePressEvent(self, event):
-        if event.button() == 1:
+        if event.button() == QtCore.Qt.LeftButton:
             if not event.modifiers() & Qt.ControlModifier:
                 if self.active is False:
                     self.AddTrackPoint()
@@ -1265,12 +1265,12 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
             self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
-        if event.button() == 2 or self.type is None:
+        if event.button() == QtCore.Qt.RightButton or self.type is None:
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
                 self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file)
                 self.marker_handler.marker_edit_window.show()
             self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
-        elif event.button() == 1:
+        elif event.button() == QtCore.Qt.LeftButton:
             if not self.marker_handler.active:
                 BroadCastEvent([module for module in self.marker_handler.modules if module != self.marker_handler], "setActiveModule", False)
                 self.marker_handler.setActiveModule(True)
@@ -1498,7 +1498,7 @@ class MarkerHandler:
     def sceneEventFilter(self, event):
         if self.hidden:
             return False
-        if event.type() == 156 and event.button() == 1 and not event.modifiers() & Qt.ControlModifier:  # QtCore.QEvent.MouseButtonPress:
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and not event.modifiers() & Qt.ControlModifier:  # QtCore.QEvent.MouseButtonPress:
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
             tracks = [track for track in self.tracks if track.data.type.id == self.active_type.id]
