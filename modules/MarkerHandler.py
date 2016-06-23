@@ -561,7 +561,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         # augment text
 
         if '$track_id' in text:
-            if self.data.track.id:
+            if self.data.track and self.data.track.id:
                 text = text.replace('$track_id', '%d' % self.data.track.id)
         if '$marker_id' in text:
             if self.data.id:
