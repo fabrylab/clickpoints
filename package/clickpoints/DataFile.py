@@ -510,8 +510,10 @@ class DataFile:
             tracks = self.table_track.select()
             with self.db.atomic():
                 for track in tracks:
-                    track.type = track.markers[0].type
-                    track.save()
+                    # check if track has markers
+                    if len(track.markers) > 0:
+                        track.type = track.markers[0].type
+                        track.save()
 
     def _GetMaskPath(self):
         if self.mask_path:
