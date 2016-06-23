@@ -232,6 +232,7 @@ class MarkerEditor(QtWidgets.QWidget):
         tree.setAnimated(True)
         tree.setModel(model)
         tree.clicked.connect(lambda index: self.setMarker(index.model().itemFromIndex(index).entry))
+        tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMarker(selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
         self.tree = tree
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -293,7 +294,6 @@ class MarkerEditor(QtWidgets.QWidget):
         if type(data) == self.db.table_marker and self.data == data:
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
         self.data = data
-        print(data, data.id)
 
         self.pushbutton_Remove.setHidden(False)
 
