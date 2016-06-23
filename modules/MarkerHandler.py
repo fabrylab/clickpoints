@@ -558,20 +558,33 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             self.text.setPos(5, 5)
             self.text.setZValue(10)
             self.text.setBrush(QtGui.QBrush(self.color))
-        # augment text
 
+
+        # augment text
         if '$track_id' in text:
             if self.data.track and self.data.track.id:
                 text = text.replace('$track_id', '%d' % self.data.track.id)
+            else:
+                text = text.replace('$track_id', '??')
         if '$marker_id' in text:
             if self.data.id:
                 text = text.replace('$marker_id', '%d' % self.data.id)
+            else:
+                text = text.replace('$marker_id', '??')
         if '$x_pos' in text:
-            if self.data.x:
                 text = text.replace('$x_pos', '%.2f' % self.data.x)
         if '$y_pos' in text:
-            if self.data.x:
                 text = text.replace('$y_pos', '%.2f' % self.data.y)
+        if '$line_lenght':
+            if self.data.partner_id:
+                if self.data.id > self.data.partner.id:
+                    text = text.replace('$line_length', '%.2f' % np.linalg.norm(
+                        np.array([self.data.x, self.data.y]) - np.array(
+                            [self.data.partner.x, self.data.partner.y])))
+                else:
+                    text = text.replace('$line_length', '')
+            else:
+                text = text.replace('$line_length', '??')
         if '\\n' in text:
             text = text.replace('\\n', '\n')
 
@@ -728,6 +741,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         self.marker_handler.PointsUnsaved = True
         if self.data.type.mode & TYPE_Track:
             self.UpdateLine()
+        self.setText(self.GetText())
         if self.UseCrosshair:
             self.marker_handler.Crosshair.MoveCrosshair(pos.x(), pos.y())
         if self.partner:
@@ -736,6 +750,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             else:
                 self.partner.UpdateRect()
                 self.partner.setPos(self.partner.pos())
+                self.partner.setText(self.GetText())
 
     def mouseReleaseEvent(self, event):
         if event.button() == 1 and self.dragged:
