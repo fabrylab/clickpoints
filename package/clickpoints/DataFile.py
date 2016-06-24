@@ -1055,6 +1055,20 @@ class DataFile:
         query = self.table_masktype.select()
         return query
 
+    def GetMasks(self):
+        """
+        Get all mask entries
+
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains all :py:clss:`Mask` entries.
+        """
+
+        query = self.table_mask.select()
+        return query
+
     def GetMask(self, image):
         """
         Get the mask image data for the image with the id `image`. If the database already has an entry the corresponding
