@@ -659,7 +659,7 @@ class MaskHandler:
             self.last_y = event.pos().y()
             self.DrawLine(self.last_x, self.last_x + 0.00001, self.last_y, self.last_y)
             return True
-        if event.type() == QtCore.QEvent.GraphicsSceneMouseRelease:
+        if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
             self.DrawCursor.setPos(event.pos())
             pos_x = event.pos().x()
             pos_y = event.pos().y()
