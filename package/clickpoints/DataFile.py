@@ -148,7 +148,7 @@ class DataFile:
             sort_index = peewee.IntegerField(default=0)
             width = peewee.IntegerField(null=True)
             height = peewee.IntegerField(null=True)
-            path = peewee.ForeignKeyField(Path, related_name="images")
+            path = peewee.ForeignKeyField(Path, related_name="images", on_delete='CASCADE')
 
             class Meta:
                 # image and path in combination have to be unique
@@ -201,7 +201,7 @@ class DataFile:
         """ Offset Table """
 
         class Offset(BaseModel):
-            image = peewee.ForeignKeyField(Image, unique=True, related_name="offsets")
+            image = peewee.ForeignKeyField(Image, unique=True, related_name="offsets", on_delete='CASCADE')
             x = peewee.FloatField()
             y = peewee.FloatField()
 
@@ -221,7 +221,7 @@ class DataFile:
             uid = peewee.CharField()
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
-            type = peewee.ForeignKeyField(MarkerType, related_name="tracks")
+            type = peewee.ForeignKeyField(MarkerType, related_name="tracks", on_delete='CASCADE')
 
             def __getattr__(self, item):
                 if item == "points":
@@ -235,12 +235,12 @@ class DataFile:
                 return BaseModel(self, item)
 
         class Marker(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="markers")
+            image = peewee.ForeignKeyField(Image, related_name="markers", on_delete='CASCADE')
             x = peewee.FloatField()
             y = peewee.FloatField()
-            type = peewee.ForeignKeyField(MarkerType, related_name="markers", null=True)
+            type = peewee.ForeignKeyField(MarkerType, related_name="markers", null=True, on_delete='CASCADE')
             processed = peewee.IntegerField(default=0)
-            partner = peewee.ForeignKeyField('self', null=True, related_name='partner2')
+            partner = peewee.ForeignKeyField('self', null=True, related_name='partner2', on_delete='SET NULL')
             track = peewee.ForeignKeyField(Track, null=True, related_name='track_markers')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
@@ -285,7 +285,7 @@ class DataFile:
         """ Mask Tables """
 
         class Mask(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="masks")
+            image = peewee.ForeignKeyField(Image, related_name="masks", on_delete='CASCADE')
             filename = peewee.CharField()
 
             mask_data = None
@@ -316,7 +316,7 @@ class DataFile:
         """ Annotation Tables """
 
         class Annotation(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="annotations")
+            image = peewee.ForeignKeyField(Image, related_name="annotations", on_delete='CASCADE')
             timestamp = peewee.DateTimeField(null=True)
             comment = peewee.TextField(default="")
             rating = peewee.IntegerField(default=0)
@@ -337,8 +337,8 @@ class DataFile:
                     return BaseModel(self, item)
 
         class TagAssociation(BaseModel):
-            annotation = peewee.ForeignKeyField(Annotation, related_name="tagassociations")
-            tag = peewee.ForeignKeyField(Tag, related_name="tagassociations")
+            annotation = peewee.ForeignKeyField(Annotation, related_name="tagassociations", on_delete='CASCADE')
+            tag = peewee.ForeignKeyField(Tag, related_name="tagassociations", on_delete='CASCADE')
 
         self.table_annotation = Annotation
         self.table_tag = Tag
@@ -347,6 +347,7 @@ class DataFile:
 
         """ Connect """
         self.db.connect()
+        self.db.execute_sql("PRAGMA foreign_keys = ON")
         self._CreateTables()
 
         if new_database:
