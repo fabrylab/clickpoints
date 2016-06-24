@@ -307,6 +307,15 @@ class DataFile(DataFileBase):
     def reset_buffer(self):
         self.buffer.reset()
 
+    def resortSortIndex(self):
+        self.db.execute_sql("CREATE TEMPORARY TABLE NewIDs (sort_index INTEGER PRIMARY KEY AUTOINCREMENT, id INT UNSIGNED)")
+        self.db.execute_sql("INSERT INTO NewIDs (id) SELECT id FROM image ORDER BY filename ASC")
+        self.db.execute_sql("UPDATE image SET sort_index = (SELECT sort_index FROM NewIDs WHERE image.id = NewIDs.id)-1")
+        self.db.execute_sql("DROP TABLE NewIDs")
+
+        self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
+        self.next_sort_index = self.image_count
+
     def get_image_count(self):
         if self.image_count is None:
             try:

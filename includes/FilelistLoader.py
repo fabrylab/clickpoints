@@ -209,12 +209,7 @@ class FolderEditor(QtWidgets.QWidget):
             else:
                 return
         # update sort index
-        images = self.data_file.table_image.select().order_by(self.data_file.table_image.filename)
-        with self.data_file.db.transaction():
-            for index, image in enumerate(images):
-                image.sort_index = index
-                image.save()
-        self.data_file.image_count = None
+        self.data_file.resortSortIndex()
         self.data_file.reset_buffer()
         # update list of folders and notify all modules
         self.update_folder_list()
