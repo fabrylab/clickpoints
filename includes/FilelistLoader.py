@@ -204,9 +204,10 @@ class FolderEditor(QtWidgets.QWidget):
             reply = QtWidgets.QMessageBox.question(None, 'Delete Folder',
                 "Do you really want to remove folder %s with %d images?" % (path.path, query.count()), QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Cancel)
             if reply == QtWidgets.QMessageBox.Yes:
-                for image in query:
-                    image.delete_instance()
+                self.data_file.table_image.delete().where(self.data_file.table_image.path == path).execute()
                 path.delete_instance()
+            else:
+                return
         # update sort index
         images = self.data_file.table_image.select().order_by(self.data_file.table_image.filename)
         with self.data_file.db.transaction():
