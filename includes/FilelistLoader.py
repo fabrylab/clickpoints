@@ -154,7 +154,7 @@ class FolderEditor(QtWidgets.QWidget):
         for path in self.data_file.table_path.select():
             item = QtWidgets.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
             item.path_entry = path
-            QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add folder", self.list)
+        QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add folder", self.list)
 
     def select_folder(self):
         # ask for a directory path
