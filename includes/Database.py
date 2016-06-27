@@ -242,7 +242,7 @@ class DataFile(DataFileBase):
             os.chdir(new_directory)
 
     def add_path(self, path):
-        if self.database_filename:
+        if self.database_filename and not self.temporary_db:
             try:
                 path = os.path.relpath(path, os.path.dirname(self.database_filename))
             except ValueError:
@@ -363,6 +363,7 @@ class DataFile(DataFileBase):
         # if we don't have a reader, create a new one
         if self.reader is None:
             try:
+                print(filename, os.getcwd())
                 self.reader = imageio.get_reader(filename)
                 self.reader.filename = filename
             except IOError:
