@@ -132,7 +132,6 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
    Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
-        - **filename** *(str)* - the filename where the mask is stored.
         - **data** *(array)* - the mask image as a numpy array. Mask types are stored by their index value.
 
 
