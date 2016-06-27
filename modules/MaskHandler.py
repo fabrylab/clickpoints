@@ -484,58 +484,25 @@ class MaskHandler:
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
 
-    def DatabaseSaved(self):
-        # get old and new mask path
-        old_path = self.mask_file.get_mask_path()
-        new_path = os.path.splitext(self.data_file.database_filename)[0]+"_mask"
-        # get all the masks
-        masks = self.mask_file.table_mask.select()
-        # create target folder if it doesn't exist and if we have masks
-        if not os.path.exists(new_path) and masks.count():
-            os.mkdir(new_path)
-        # iterate over all masks and copy them to the new folder
-        for mask in masks:
-            import shutil
-            shutil.copy(os.path.join(old_path, mask.filename), os.path.join(new_path, mask.filename))
-        # change mask path in database meta entry
-        mask_path_entry = self.data_file.table_meta.get(key="mask_path")
-        mask_path_entry.value = os.path.relpath(new_path)
-        mask_path_entry.save()
-        # set the new path in the database class
-        self.mask_file.mask_path = new_path
-
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
-        image = self.data_file.image
-        image_frame = self.data_file.image.frame
         mask_entry = self.mask_file.get_mask()
 
-        mask_path = self.mask_file.get_mask_path()
-
         if mask_entry:
-            self.current_maskname = os.path.join(mask_path, mask_entry.filename)
-            self.LoadMask(os.path.join(mask_path, mask_entry.filename))
+            self.LoadMask(mask_entry)
         else:
-            number = "_%03d" % image_frame
-            basename, ext = os.path.splitext(image.filename)
-            self.current_maskname = os.path.join(mask_path, basename + "_" + ext[1:] + number +"_mask.png")
             self.LoadMask(None)
 
     def ReloadMask(self):
         mask_entry = self.mask_file.get_mask()
-        mask_path = self.mask_file.get_mask_path()
         if mask_entry:
-            self.current_maskname = os.path.join(mask_path, mask_entry.filename)
-            self.LoadMask(self.current_maskname)
+            self.LoadMask(self.mask_entry)
 
-    def LoadMask(self, maskname):
+    def LoadMask(self, mask_entry):
         mask_valid = False
-        if maskname and os.path.exists(maskname):
-            try:
-                self.image_mask_full = Image.open(maskname)
-                mask_valid = True
-            except:
-                mask_valid = False
+        if mask_entry is not None:
+            self.image_mask_full = mask_entry.data
+            mask_valid = True
         self.MaskEmpty = False
         if not mask_valid:
             self.image_mask_full = None
@@ -544,8 +511,8 @@ class MaskHandler:
         if self.active:
             self.SetActiveDrawType(self.active_draw_type.index)
 
-        if self.image_mask_full:
-            self.MaskDisplay.SetImage(self.image_mask_full)
+        if mask_entry:
+            self.MaskDisplay.SetImage(Image.fromarray(self.image_mask_full))
             self.MaskDisplay.setOpacity(self.mask_opacity)
         else:
             self.MaskDisplay.setOpacity(0)
@@ -578,11 +545,9 @@ class MaskHandler:
             mask_entry = self.mask_file.get_mask()
             if mask_entry is None:
                 mask_entry = self.mask_file.add_mask()
-            fpath,fname = os.path.split(self.current_maskname)
-            mask_entry.filename = fname
+            print(self.MaskDisplay.full_image)
+            mask_entry.data = np.asarray(self.MaskDisplay.full_image)
             mask_entry.save()
-            self.MaskDisplay.save(self.current_maskname)
-            print(self.current_maskname + " saved")
             self.MaskUnsaved = False
 
     def RedrawMask(self):

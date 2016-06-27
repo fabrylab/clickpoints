@@ -6,21 +6,27 @@ from PIL import Image
 import imageio
 import sys
 
+PY3 = sys.version_info[0] == 3
+if PY3:
+    basestring = str
 
-def isstring(object):
-    PY3 = sys.version_info[0] == 3
+class ImageField(peewee.BlobField):
 
-    if PY3:
-        return isinstance(object, str)
-    else:
-        return isinstance(object, basestring)
+    def db_value(self, value):
+        value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".png")
+        return peewee.binary_construct(value)
+
+    def python_value(self, value):
+        if not PY3:
+            value = str(value)
+        return imageio.imread(value, format=".png")
 
 
 def CheckValidColor(color):
     class NoValidColor(Exception):
         pass
 
-    if isstring(color):
+    if isinstance(object, basestring):
         if color[0] == "#":
             color = color[1:]
         for c in color:
@@ -105,7 +111,7 @@ class DataFile:
             raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
-        self.current_version = "9"
+        self.current_version = "10"
         version = self.current_version
         self.next_sort_index = 0
         new_database = True
@@ -286,22 +292,7 @@ class DataFile:
 
         class Mask(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="masks", on_delete='CASCADE')
-            filename = peewee.CharField()
-
-            mask_data = None
-
-            def get_data(self):
-                if self.mask_data is None:
-                    im = np.asarray(Image.open(os.path.join(self.database_class._GetMaskPath(), self.filename)))
-                    im.setflags(write=True)
-                    self.mask_data = im
-                return self.mask_data
-
-            def __getattr__(self, item):
-                if item == "data":
-                    return self.get_data()
-                else:
-                    return BaseModel(self, item)
+            data = ImageField()
 
         class MaskType(BaseModel):
             name = peewee.CharField()
@@ -480,6 +471,25 @@ class DataFile:
                 pass
             nr_new_version = 9
 
+        if nr_version < 10:
+            print("\tto 10")
+            # store mask_path and all masks
+            self.db.execute_sql("PRAGMA foreign_keys = OFF")
+            mask_path = self.db.execute_sql("SELECT * FROM meta WHERE key = 'mask_path'").fetchone()[2]
+            masks = self.db.execute_sql("SELECT * FROM mask").fetchall()
+            self.migrate_to_10_mask_path = mask_path
+            self.migrate_to_10_masks = masks
+            self.db.execute_sql("CREATE TABLE `mask_tmp` (`id` INTEGER NOT NULL, `image_id` INTEGER NOT NULL, `data` BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(`image_id`) REFERENCES 'image' ( 'id' ) ON DELETE CASCADE)")
+            for mask in masks:
+                im = np.asarray(Image.open(os.path.join(self.migrate_to_10_mask_path, mask[3])))
+                value = imageio.imwrite(imageio.RETURN_BYTES, im, format=".png")
+                value = peewee.binary_construct(value)
+                self.db.execute_sql("INSERT INTO mask_tmp VALUES (?, ?, ?)", [mask[0], mask[1], value])
+            self.db.execute_sql("DROP TABLE mask")
+            self.db.execute_sql("ALTER TABLE mask_tmp RENAME TO mask")
+            self.db.execute_sql("PRAGMA foreign_keys = ON")
+            nr_new_version = 10
+
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(
             nr_new_version))
@@ -524,19 +534,6 @@ class DataFile:
                     if len(track.markers) > 0:
                         track.type = track.markers[0].type
                         track.save()
-
-    def _GetMaskPath(self):
-        if self.mask_path:
-            return self.mask_path
-        try:
-            outputpath_mask = self.table_meta.get(key="mask_path").value
-        except peewee.DoesNotExist:
-            outputpath_mask = "mask"  # default value
-            self.table_meta(key="mask_path", value=outputpath_mask).save()
-        self.mask_path = os.path.join(os.path.dirname(self.database_filename), outputpath_mask)
-        if not os.path.exists(self.mask_path):
-            os.mkdir(self.mask_path)
-        return self.mask_path
 
     def _CreateTables(self):
         for table in self.tables:
@@ -1075,19 +1072,9 @@ class DataFile:
         mask : ndarray
             mask data for the image.
         """
-        try:
-            # Test if mask already exists in database
-            mask_entry = self.table_mask.get(self.table_mask.image == image)
-            # Load it
-            im = np.asarray(Image.open(os.path.join(self._GetMaskPath(), mask_entry.filename)))
-            im.setflags(write=True)
-            return im
-        except (peewee.DoesNotExist, IOError):
-            # Create new mask according to image size
-            image_entry = self.table_image.get(self.table_image.id == image)
-            pil_image = Image.open(image_entry.filename)
-            im = np.zeros(pil_image.size, dtype=np.uint8)
-            return im
+        # Test if mask already exists in database
+        mask_entry = self.table_mask.get(self.table_mask.image == image)
+        return mask_entry
 
     def SetMask(self, mask, image):
         """
@@ -1103,34 +1090,13 @@ class DataFile:
         try:
             # Test if mask already exists in database
             mask_entry = self.table_mask.get(self.table_mask.image == image)
-            filename = os.path.join(self._GetMaskPath(), mask_entry.filename)
+            mask_entry.data = image
+            mask_entry.save()
         except peewee.DoesNotExist:
             # Create new entry
             mask_entry = self.table_mask(image=image)
-            # Get mask image name
-            image_entry = self.table_image.get(id=image)
-            if image_entry.frames > 1:  # TODO
-                number = "_" + ("%" + "%d" % np.ceil(np.log10(image_entry.frames)) + "d") % image_frame
-            else:
-                number = ""
-            basename, ext = os.path.splitext(image_entry.filename)
-            directory, basename = os.path.split(basename)
-            current_maskname = basename + "_" + ext[1:] + number + "_mask.png"
-            filename = os.path.join(self._GetMaskPath(), current_maskname)
-            # Save entry
-            mask_entry.filename = current_maskname
+            mask_entry.data = image
             mask_entry.save()
-
-        # Create image
-        pil_image = Image.fromarray(mask)
-        # Create color palette
-        lut = np.zeros(3 * 256, np.uint8)
-        for draw_type in self.table_masktype.select():
-            index = draw_type.index
-            lut[index * 3:(index + 1) * 3] = [int("0x" + draw_type.color[i:i + 2], 16) for i in [1, 3, 5]]
-        pil_image.putpalette(lut)
-        # Save mask
-        pil_image.save(filename)
 
     def AddMaskFile(self, image_id, filename):
         try:
