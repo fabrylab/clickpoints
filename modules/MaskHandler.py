@@ -651,6 +651,8 @@ class MaskHandler:
             BroadCastEvent(self.modules, "MaskAdded")
 
     def sceneEventFilter(self, event):
+        if self.data_file.image is None:
+            return False
         if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton:
             # if no mask has been created, create one for painting
             if self.image_mask_full is None:

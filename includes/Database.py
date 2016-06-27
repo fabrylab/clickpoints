@@ -313,7 +313,11 @@ class DataFile(DataFileBase):
         self.db.execute_sql("UPDATE image SET sort_index = (SELECT sort_index FROM NewIDs WHERE image.id = NewIDs.id)-1")
         self.db.execute_sql("DROP TABLE NewIDs")
 
-        self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
+        try:
+            self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
+        except TypeError:
+            self.image_count = 0
+            self.image = None
         self.next_sort_index = self.image_count
 
     def get_image_count(self):
