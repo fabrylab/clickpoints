@@ -977,7 +977,10 @@ class Timeline(QtCore.QObject):
             if self.timeSlider and self.data_file.image and self.data_file.image.timestamp:
                 self.timeSlider.setValue(self.data_file.image.timestamp)
             if self.get_current_frame() is not None:
-                format_string = "{:%d,}" % np.ceil(np.log10(self.get_frame_count()))
+                if self.get_frame_count() == 0:
+                    format_string = "{:1,}"
+                else:
+                    format_string = "{:%d,}" % np.ceil(np.log10(self.get_frame_count()))
                 format_string = (format_string+'/'+format_string+"  {:.1f}fps")
                 fps = self.current_fps if self.current_fps is not None else 0
                 label_string = format_string.format(self.get_current_frame(), self.get_frame_count() - 1, fps)

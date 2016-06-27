@@ -1516,7 +1516,7 @@ class MarkerHandler:
             track.UpdatePath()
 
     def sceneEventFilter(self, event):
-        if self.hidden:
+        if self.hidden or self.data_file.image is None:
             return False
         if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and not event.modifiers() & Qt.ControlModifier:  # QtCore.QEvent.MouseButtonPress:
             if len(self.points) >= 0:
