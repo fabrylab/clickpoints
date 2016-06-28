@@ -481,7 +481,7 @@ class DataFile:
             self.migrate_to_10_masks = masks
             self.db.execute_sql("CREATE TABLE `mask_tmp` (`id` INTEGER NOT NULL, `image_id` INTEGER NOT NULL, `data` BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(`image_id`) REFERENCES 'image' ( 'id' ) ON DELETE CASCADE)")
             for mask in masks:
-                im = np.asarray(Image.open(os.path.join(self.migrate_to_10_mask_path, mask[3])))
+                im = np.asarray(PILImage.open(os.path.join(self.migrate_to_10_mask_path, mask[3])))
                 value = imageio.imwrite(imageio.RETURN_BYTES, im, format=".png")
                 value = peewee.binary_construct(value)
                 self.db.execute_sql("INSERT INTO mask_tmp VALUES (?, ?, ?)", [mask[0], mask[1], value])
