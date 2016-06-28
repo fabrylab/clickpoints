@@ -231,9 +231,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if self.data_file.image is None and self.data_file.get_image_count():
             self.JumpToFrame(0)
             self.view.fitInView()
+            self.GetModule("Timeline").ImagesAdded()
         else:
             self.GetModule("Timeline").ImagesAdded()
-        if not self.load_thread.is_alive():
+        if not self.load_thread.is_alive() and self.data_file.image is not None:
             self.load_timer.stop()
             print("Loading finished", time.time()-self.loading_time)
 

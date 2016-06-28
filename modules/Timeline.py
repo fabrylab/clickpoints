@@ -140,7 +140,7 @@ class TimeLineGrabberTime(TimeLineGrabber):
         self.updatePos()
 
 class TimeLineSlider(QtWidgets.QGraphicsView):
-    def __init__(self, max_value=100, min_value=0):
+    def __init__(self, max_value=0, min_value=0):
         QtWidgets.QGraphicsView.__init__(self)
 
         self.setMaximumHeight(30)
@@ -850,7 +850,6 @@ class Timeline(QtCore.QObject):
         self.frameSlider = TimeLineSlider()
         self.frameSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
         self.frameSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider)
-        self.frameSlider.setRange(0, self.get_frame_count() - 1)
         self.frameSlider.setToolTip("current frame, drag to change current frame\n[b], [n] to set start/end marker")
         self.frameSlider.setValue(self.get_frame_count())
         if self.config.play_start is not None:
@@ -906,9 +905,9 @@ class Timeline(QtCore.QObject):
 
     def ImagesAddedMain(self):
         update_end = False
-        if self.frameSlider.endValue() == self.frameSlider.max_value or self.frameSlider.max_value == -1:
+        if self.frameSlider.endValue() == self.frameSlider.max_value or self.frameSlider.max_value == 1:
             update_end = True
-        self.frameSlider.setRange(0, self.get_frame_count() - 1)
+        self.frameSlider.setRange(0, self.get_frame_count()-1)
         if update_end:
             self.frameSlider.setEndValue(self.get_frame_count() - 1)
         self.updateLabel()
