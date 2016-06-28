@@ -2,6 +2,15 @@ from __future__ import division, print_function
 
 import sys
 import os
+
+if not os.path.exists(os.path.join(os.path.dirname(__file__), "checked")):
+    from includes import CheckPackages
+
+    errors = CheckPackages()
+    if errors == 0:
+        with open(os.path.join(os.path.dirname(__file__), "checked"), 'w') as fp:
+            fp.write("\n")
+
 import ctypes
 import threading
 import time
@@ -33,18 +42,14 @@ from includes import QExtendedGraphicsView
 from includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats
 from includes import DataFile
 
-from update import Updater
-
 from modules import MaskHandler
 from modules import MarkerHandler
 from modules import Timeline
 from modules import AnnotationHandler
 from modules import GammaCorrection
-from modules import FolderBrowser
 from modules import ScriptLauncher
 from modules import VideoExporter
 from modules import InfoHud
-from modules import Overview
 
 class AddVLine():
     def __init__(self, window):
@@ -96,9 +101,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
         x = (screen_geometry.width()-self.width()) / 2
         y = (screen_geometry.height()-self.height()) / 2
         self.move(x, y*0.5)
-
-        # init updater
-        #self.updater = Updater(self)
 
         # add layout
         self.layout = QtWidgets.QVBoxLayout()

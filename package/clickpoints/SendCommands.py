@@ -11,7 +11,7 @@ class Commands:
     """
     The Commands class provides an interface for external scripts to communicate with a currently open ClickPoints
     instance. Communication is done using socket connection. ClickPoints provides the port number for this connection
-    when calling an external script. Us clickpoints.GetCommandLineArgs to obtain the port number.
+    when calling an external script. Use clickpoints.GetCommandLineArgs to obtain the port number.
 
     Parameters
     ----------

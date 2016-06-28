@@ -6,6 +6,8 @@ from Tools import HelpText, BroadCastEvent, BroadCastEvent2, SetBroadCastModules
 from BigImageDisplay import BigImageDisplay
 from Database import DataFile
 from MemMap import MemMap
+from DependencyChecker import CheckPackages
+
 
 path = os.path.join(os.path.dirname(__file__), "qextendedgraphicsview")
 if os.path.exists(path):

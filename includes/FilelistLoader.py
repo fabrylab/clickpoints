@@ -1,8 +1,6 @@
 from __future__ import division, print_function, unicode_literals
 import os
 import glob
-import sys
-from distutils.version import LooseVersion
 import time
 from datetime import datetime
 
@@ -17,15 +15,6 @@ except ImportError:
     natsorted = sorted
 
 import imageio
-if LooseVersion(imageio.__version__) < LooseVersion('1.3'):
-    print("Imageio version %s is too old, trying to update" % imageio.__version__)
-    result = os.system("pip install imageio --upgrade")
-    if result == 0:
-        print("Please restart clickpoints for the update to take effect.")
-        sys.exit(-1)
-    else:
-        print("Update failed, please try to update manually.")
-        raise ImportError
 print("Using ImageIO", imageio.__version__)
 
 imgformats = []
