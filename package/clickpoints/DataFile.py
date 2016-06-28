@@ -202,7 +202,7 @@ class DataFile:
         self.table_meta = Meta
         self.table_path = Path
         self.table_image = Image
-        self.tables = [BaseModel, Meta, Path, Image]
+        self.tables = [Meta, Path, Image]
 
         """ Offset Table """
 
