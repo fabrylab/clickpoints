@@ -363,7 +363,6 @@ class DataFile(DataFileBase):
         # if we don't have a reader, create a new one
         if self.reader is None:
             try:
-                print(filename, os.getcwd())
                 self.reader = imageio.get_reader(filename)
                 self.reader.filename = filename
             except IOError:

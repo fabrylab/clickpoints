@@ -545,7 +545,7 @@ class MaskHandler:
             mask_entry = self.mask_file.get_mask()
             if mask_entry is None:
                 mask_entry = self.mask_file.add_mask()
-            print(self.MaskDisplay.full_image)
+
             mask_entry.data = np.asarray(self.MaskDisplay.full_image)
             mask_entry.save()
             self.MaskUnsaved = False
