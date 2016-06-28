@@ -1,14 +1,7 @@
 from __future__ import division, print_function
 
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QGraphicsRectItem, QGraphicsPathItem, QColor, QGraphicsItem, QCursor, QBrush, QPen, QGraphicsSimpleTextItem, QFont, QPainterPath
-    from PyQt5.QtCore import QRectF, QPointF
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QGraphicsRectItem, QGraphicsPathItem, QColor, QGraphicsItem, QCursor, QBrush, QPen, QGraphicsSimpleTextItem, QFont, QPainterPath
-    from PyQt4.QtCore import QRectF, QPointF
 import qtawesome as qta
+from qtpy import QtGui, QtCore, QtWidgets
 
 import numpy as np
 import os
@@ -46,22 +39,22 @@ def BroadCastEvent2(function, *args, **kwargs):
         if function in dir(module):
             eval("module."+function+"(*args, **kwargs)")
 
-class HelpText(QGraphicsRectItem):
+class HelpText(QtWidgets.QGraphicsRectItem):
     def __init__(self, window, file, modules=[]):
-        QGraphicsRectItem.__init__(self, window.view.hud)
+        QtWidgets.QGraphicsRectItem.__init__(self, window.view.hud)
 
-        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
-        self.help_text = QGraphicsSimpleTextItem(self)
-        self.help_text.setFont(QFont("", 11))
+        self.help_text = QtWidgets.QGraphicsSimpleTextItem(self)
+        self.help_text.setFont(QtGui.QFont("", 11))
         self.help_text.setPos(0, 10)
-        self.help_text.setBrush(QBrush(QColor(255, 255, 255)))
+        self.help_text.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
 
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
         self.setPos(100, 100)
         self.setZValue(19)
 
-        self.button = QtGui.QPushButton()
+        self.button = QtWidgets.QPushButton()
         self.button.setCheckable(True)
         self.button.setIcon(qta.icon('fa.question'))
         self.button.setToolTip("display help")
@@ -119,9 +112,9 @@ class HelpText(QGraphicsRectItem):
             self.ShowHelpText()
 
 
-class MySlider(QGraphicsRectItem):
+class MySlider(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, name="", start_value=None, max_value=100, min_value=0, font=None):
-        QGraphicsRectItem.__init__(self, parent)
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
         self.name = name
@@ -129,28 +122,28 @@ class MySlider(QGraphicsRectItem):
         self.minValue = min_value
         self.format = "%.2f"
 
-        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
-        self.setPen(QPen(QColor(255, 255, 255, 0)))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
+        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 0)))
 
-        self.text = QGraphicsSimpleTextItem(self)
+        self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         if font is None:
-            font = QFont("", 11)
+            font = QtGui.QFont("", 11)
         else:
             font.setPointSize(11)
         self.text.setFont(font)
         self.text.setPos(0, -23)
-        self.text.setBrush(QBrush(QColor("white")))
+        self.text.setBrush(QtGui.QBrush(QtGui.QColor("white")))
 
-        self.sliderMiddel = QGraphicsRectItem(self)
-        self.sliderMiddel.setRect(QRectF(0, 0, 100, 1))
-        self.sliderMiddel.setPen(QPen(QColor("white")))
+        self.sliderMiddel = QtWidgets.QGraphicsRectItem(self)
+        self.sliderMiddel.setRect(QtCore.QRectF(0, 0, 100, 1))
+        self.sliderMiddel.setPen(QtGui.QPen(QtGui.QColor("white")))
 
-        path = QPainterPath()
+        path = QtGui.QPainterPath()
         path.addEllipse(-5, -5, 10, 10)
-        self.slideMarker = QGraphicsPathItem(path, self)
-        self.slideMarker.setBrush(QBrush(QColor(255, 0, 0, 255)))
+        self.slideMarker = QtWidgets.QGraphicsPathItem(path, self)
+        self.slideMarker.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 255)))
 
-        self.setRect(QRectF(-5, -5, 110, 10))
+        self.setRect(QtCore.QRectF(-5, -5, 110, 10))
         self.dragged = False
 
         self.value = (self.maxValue + self.minValue) * 0.5
@@ -187,26 +180,26 @@ class MySlider(QGraphicsRectItem):
     def mouseReleaseEvent(self, event):
         self.dragged = False
 
-class BoxGrabber(QGraphicsRectItem):
+class BoxGrabber(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent):
-        QGraphicsRectItem.__init__(self, parent)
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
-        self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
         width = parent.rect().width()
-        self.setRect(QRectF(0, 0, width, 10))
+        self.setRect(QtCore.QRectF(0, 0, width, 10))
         self.setPos(parent.rect().x(), 0)
 
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
-        path = QPainterPath()
+        path = QtGui.QPainterPath()
         path.moveTo(5, 3)
         path.lineTo(width - 5, 3)
         path.moveTo(5, 6)
         path.lineTo(width - 5, 6)
-        pathItem = QGraphicsPathItem(path, self)
-        pathItem.setPen(QPen(QColor(255, 255, 255)))
-        pathItem.setBrush(QBrush(QColor(255, 255, 255)))
+        pathItem = QtWidgets.QGraphicsPathItem(path, self)
+        pathItem.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        pathItem.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
 
         self.dragged = False
         self.drag_offset = None
@@ -228,35 +221,35 @@ class BoxGrabber(QGraphicsRectItem):
 class TextButtonSignals(QtCore.QObject):
     clicked = QtCore.pyqtSignal()
 
-class TextButton(QGraphicsRectItem):
+class TextButton(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, width, text="", font=None):
-        QGraphicsRectItem.__init__(self, parent)
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
         self.setAcceptHoverEvents(True)
         #self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
 
-        self.text = QGraphicsSimpleTextItem(self)
+        self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         if font is None:
-            font = QFont("", 11)
+            font = QtGui.QFont("", 11)
         else:
             font.setPointSize(11)
         self.text.setFont(font)
         self.text.setText(text)
         self.text.setPos((width-self.text.boundingRect().width())/2+1, 0)
-        self.text.setBrush(QBrush(QColor("white")))
+        self.text.setBrush(QtGui.QBrush(QtGui.QColor("white")))
 
-        self.setRect(QRectF(0, 0, width, self.text.boundingRect().height()))
+        self.setRect(QtCore.QRectF(0, 0, width, self.text.boundingRect().height()))
 
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
         self.signals = TextButtonSignals()
         self.clicked = self.signals.clicked
 
     def hoverEnterEvent(self, event):
-        self.setBrush(QBrush(QColor(128, 128, 128, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
 
     def hoverLeaveEvent(self, event):
-        self.setBrush(QBrush(QColor(0, 0, 0, 128)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
         if event.button() == 1:
@@ -266,7 +259,7 @@ class TextButton(QGraphicsRectItem):
         pass
 
 
-class GraphicsItemEventFilter(QGraphicsItem):
+class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):
     def __init__(self, parent, command_object):
         super(GraphicsItemEventFilter, self).__init__(parent)
         self.commandObject = command_object
@@ -276,7 +269,7 @@ class GraphicsItemEventFilter(QGraphicsItem):
         pass
 
     def boundingRect(self):
-        return QRectF(0, 0, 0, 0)
+        return QtCore.QRectF(0, 0, 0, 0)
 
     def sceneEventFilter(self, scene_object, event):
         if not self.active:
