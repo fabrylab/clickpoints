@@ -130,7 +130,7 @@ if not os.path.exists(path_to_temporary_installer):
     os.makedirs(path_to_temporary_installer)
 
 # define paths to website, zipfile and version file
-path_to_website = r"..\fabry_biophysics.bitbucket.org\clickpoints"
+path_to_website = r"fabry_biophysics.bitbucket.org\clickpoints"
 zip_file = 'clickpoints_v%s.zip'
 version_file = os.path.join("clickpoints", "version.txt")
 
