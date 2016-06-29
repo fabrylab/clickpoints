@@ -103,7 +103,7 @@ class AnnotationFile:
                     except peewee.DoesNotExist:
                         self.table_tag(name=tag).save()
             else:
-                query = self.table_tag.raw("WITH check_tags(name) AS ( VALUES %s ) SELECT check_tags.name, tags.id FROM check_tags LEFT JOIN tags ON check_tags.name = tags.name" % ",".join('("%s")' % x for x in tags))
+                query = self.table_tag.raw("WITH check_tags(name) AS ( VALUES %s ) SELECT check_tags.name, tag.id FROM check_tags LEFT JOIN tag ON check_tags.name = tag.name" % ",".join('("%s")' % x for x in tags))
                 new_tags = [dict(name=tag.name) for tag in query if tag.id is None]
                 if len(new_tags):
                     self.table_tag.insert_many(new_tags).execute()
