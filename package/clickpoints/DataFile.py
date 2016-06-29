@@ -111,7 +111,7 @@ class DataFile:
             raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
-        self.current_version = "10"
+        self.current_version = "11"
         version = self.current_version
         self.next_sort_index = 0
         new_database = True
@@ -489,6 +489,45 @@ class DataFile:
             self.db.execute_sql("ALTER TABLE mask_tmp RENAME TO mask")
             self.db.execute_sql("PRAGMA foreign_keys = ON")
             nr_new_version = 10
+
+        if nr_version < 11:
+            print("\tto 11")
+            self.db.execute_sql("PRAGMA foreign_keys = OFF")
+            self.db.execute_sql('CREATE TABLE "annotation_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "timestamp" DATETIME, "comment" TEXT NOT NULL, "rating" INTEGER NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE)')
+            self.db.execute_sql('INSERT INTO annotation_tmp SELECT id, image_id, timestamp, comment, rating FROM annotation')
+            self.db.execute_sql("DROP TABLE annotation")
+            self.db.execute_sql("ALTER TABLE annotation_tmp RENAME TO annotation")
+
+            self.db.execute_sql('CREATE TABLE "tagassociation_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id" INTEGER NOT NULL, "tag_id" INTEGER NOT NULL, FOREIGN KEY ("annotation_id") REFERENCES "annotation" ("id") ON DELETE CASCADE, FOREIGN KEY ("tag_id") REFERENCES "tag" ("id") ON DELETE CASCADE);')
+            self.db.execute_sql('INSERT INTO tagassociation_tmp SELECT id, annotation_id, tag_id FROM tagassociation')
+            self.db.execute_sql("DROP TABLE tagassociation")
+            self.db.execute_sql("ALTER TABLE tagassociation_tmp RENAME TO tagassociation")
+
+            try:
+                self.db.execute_sql("DROP TABLE basemodel")
+            except peewee.OperationalError:
+                pass
+
+            self.db.execute_sql('CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);')
+            self.db.execute_sql('INSERT INTO image_tmp SELECT id, filename, ext, frame, external_id, timestamp, sort_index, width, height, path_id FROM image')
+            self.db.execute_sql("DROP TABLE image")
+            self.db.execute_sql("ALTER TABLE image_tmp RENAME TO image")
+
+            self.db.execute_sql('CREATE TABLE "marker_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "partner_id" INTEGER, "track_id" INTEGER, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE, FOREIGN KEY ("partner_id") REFERENCES "marker" ("id") ON DELETE SET NULL, FOREIGN KEY ("track_id") REFERENCES "track" ("id"));')
+            self.db.execute_sql('INSERT INTO marker_tmp SELECT id, image_id, x, y, type_id, processed, partner_id, track_id, style, text FROM marker')
+            self.db.execute_sql("DROP TABLE marker")
+            self.db.execute_sql("ALTER TABLE marker_tmp RENAME TO marker")
+
+            self.db.execute_sql('CREATE TABLE "offset_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);')
+            self.db.execute_sql('INSERT INTO offset_tmp SELECT id, image_id, x, y FROM offset')
+            self.db.execute_sql("DROP TABLE offset")
+            self.db.execute_sql("ALTER TABLE offset_tmp RENAME TO offset")
+
+            self.db.execute_sql('CREATE TABLE "track_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "uid" VARCHAR(255) NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), "type_id" INTEGER NOT NULL, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);')
+            self.db.execute_sql('INSERT INTO track_tmp SELECT id, uid, style, text, type_id FROM track')
+            self.db.execute_sql("DROP TABLE track")
+            self.db.execute_sql("ALTER TABLE track_tmp RENAME TO track")
+            nr_new_version = 11
 
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(
