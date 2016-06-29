@@ -371,7 +371,6 @@ class DataFile:
 
     def _migrateDBFrom(self, version):
         # migrate database from an older version
-        nr_new_version = None
         print("Migrating DB from version %s" % version)
         nr_version = int(version)
 
@@ -379,7 +378,7 @@ class DataFile:
             print("\tto 3")
             # Add text fields for Marker
             self.db.execute_sql("ALTER TABLE marker ADD COLUMN text varchar(255)")
-            nr_new_version = 3
+            self._SetVersion(3)
 
         if nr_version < 4:
             print("\tto 4")
@@ -393,7 +392,7 @@ class DataFile:
                 self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
             except peewee.OperationalError:
                 pass
-            nr_new_version = 4
+            self._SetVersion(4)
 
         if nr_version < 5:
             print("\tto 5")
@@ -403,7 +402,7 @@ class DataFile:
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN sort_index int")
             except peewee.OperationalError:
                 pass
-            nr_new_version = 5
+            self._SetVersion(5)
 
         if nr_version < 6:
             print("\tto 6")
@@ -414,7 +413,7 @@ class DataFile:
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN height int NULL")
             except peewee.OperationalError:
                 pass
-            nr_new_version = 6
+            self._SetVersion(6)
 
         if nr_version < 7:
             print("\tto 7")
@@ -428,7 +427,7 @@ class DataFile:
                 self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
             except peewee.OperationalError:
                 pass
-            nr_new_version = 7
+            self._SetVersion(7)
 
         if nr_version < 8:
             print("\tto 8")
@@ -460,7 +459,7 @@ class DataFile:
                 self.db.execute_sql("ALTER TABLE tags RENAME TO tag")
             except peewee.OperationalError:
                 pass
-            nr_new_version = 8
+            self._SetVersion(8)
 
         if nr_version < 9:
             print("\tto 9")
@@ -469,7 +468,9 @@ class DataFile:
                 self.db.execute_sql("ALTER TABLE track ADD COLUMN type_id int")
             except peewee.OperationalError:
                 pass
-            nr_new_version = 9
+            self.db.execute_sql("UPDATE track SET type_id = (SELECT type_id FROM marker WHERE track_id = track.id LIMIT 1)")
+            self.db.execute_sql("DELETE FROM track WHERE type_id IS NULL")
+            self._SetVersion(9)
 
         if nr_version < 10:
             print("\tto 10")
@@ -488,7 +489,7 @@ class DataFile:
             self.db.execute_sql("DROP TABLE mask")
             self.db.execute_sql("ALTER TABLE mask_tmp RENAME TO mask")
             self.db.execute_sql("PRAGMA foreign_keys = ON")
-            nr_new_version = 10
+            self._SetVersion(10)
 
         if nr_version < 11:
             print("\tto 11")
@@ -527,8 +528,10 @@ class DataFile:
             self.db.execute_sql('INSERT INTO track_tmp SELECT id, uid, style, text, type_id FROM track')
             self.db.execute_sql("DROP TABLE track")
             self.db.execute_sql("ALTER TABLE track_tmp RENAME TO track")
-            nr_new_version = 11
 
+            self._SetVersion(11)
+
+    def _SetVersion(self, nr_new_version):
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
                                             (SELECT id FROM meta WHERE key='version'),'version',%s)" % str(
             nr_new_version))
@@ -564,15 +567,6 @@ class DataFile:
                     path_entry.save()
                 image.path = path_entry
                 image.save()
-        if nr_version < 9:
-            print("second migration step to 9")
-            tracks = self.table_track.select()
-            with self.db.atomic():
-                for track in tracks:
-                    # check if track has markers
-                    if len(track.markers) > 0:
-                        track.type = track.markers[0].type
-                        track.save()
 
     def _CreateTables(self):
         for table in self.tables:
