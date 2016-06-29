@@ -3,12 +3,25 @@ from __future__ import division, print_function
 import sys
 import os
 
-if not os.path.exists(os.path.join(os.path.dirname(__file__), "checked")):
+icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
+clickpoints_path = os.path.dirname(__file__)
+if not os.path.exists(icon_path):  # different position if installed with the installer
+    icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
+    clickpoints_path = os.path.join(os.path.dirname(__file__), "..")
+if sys.platform[:3] == 'win':
+    storage_path = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
+else:
+    storage_path = os.path.expanduser("~/.clickpoints/")
+if not os.path.exists(storage_path):
+    os.makedirs(storage_path)
+
+print(os.path.join(storage_path, "checked"))
+if not os.path.exists(os.path.join(storage_path, "checked")):
     from includes import CheckPackages
 
     errors = CheckPackages()
     if errors == 0:
-        with open(os.path.join(os.path.dirname(__file__), "checked"), 'w') as fp:
+        with open(os.path.join(storage_path, "checked"), 'w') as fp:
             fp.write("\n")
 
 import ctypes
@@ -64,18 +77,6 @@ class AddStrech():
 
 used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText]
 used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", ""]
-
-icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
-clickpoints_path = os.path.dirname(__file__)
-if not os.path.exists(icon_path):  # different position if installed with the installer
-    icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
-    clickpoints_path = os.path.join(os.path.dirname(__file__), "..")
-if sys.platform[:3] == 'win':
-    storage_path = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
-else:
-    storage_path = os.path.expanduser("~/.clickpoints/")
-if not os.path.exists(storage_path):
-    os.makedirs(storage_path)
 
 
 def GetModuleInitArgs(mod):
