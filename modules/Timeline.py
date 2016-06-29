@@ -848,6 +848,8 @@ class Timeline(QtCore.QObject):
         self.layoutCtrl.addWidget(self.label_frame)
 
         self.frameSlider = TimeLineSlider()
+        if self.get_frame_count():
+            self.frameSlider.setRange(0, self.get_frame_count() - 1)
         self.frameSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
         self.frameSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider)
         self.frameSlider.setToolTip("current frame, drag to change current frame\n[b], [n] to set start/end marker")
