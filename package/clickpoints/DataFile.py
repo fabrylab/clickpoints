@@ -825,7 +825,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def GetMarker(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
+    def GetMarker(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None, order_by='sort_index'):
         """
         Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
         ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
@@ -841,6 +841,8 @@ class DataFile:
             the type id(s) for the markers to be selected.
         track : int, array, optional
             the track id(s) for the markers to be selected.
+        order_by: string ['sort_index','timestamp']
+            sort results by sort_index or timestamp (def: sort_index)
 
         Returns
         -------
@@ -864,6 +866,15 @@ class DataFile:
                 query = query.where(field << parameter)
             else:
                 query = query.where(field == parameter)
+
+        # order query results by
+        if order_by=='sort_index':
+            query = query.order_by(self.table_image.sort_index)
+        elif order_by=='timestamp':
+            query = query.order_by(self.table_image.timestamp)
+        else:
+            print("Unknown order_by paramter %s - results not sorted!" % order_by)
+
         return query
 
     def GetRectangles(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
@@ -1088,10 +1099,14 @@ class DataFile:
         query = self.table_masktype.select()
         return query
 
-    def GetMasks(self):
+    def GetMasks(self, order_by="sort_index"):
         """
         Get all mask entries
 
+        Parameters
+        ----------
+        order_by: string ['sort_index','timestamp']
+            sort results by sort_index or timestamp (def: sort_index)
 
         Returns
         -------
@@ -1100,6 +1115,14 @@ class DataFile:
         """
 
         query = self.table_mask.select()
+        # order query results by
+        if order_by=='sort_index':
+            query = query.join(self.table_image).order_by(self.table_image.sort_index)
+        elif order_by=='timestamp':
+            query = query.join(self.table_image).order_by(self.table_image.timestamp)
+        else:
+            print("Unknown order_by paramter %s - results not sorted!" % order_by)
+
         return query
 
     def GetMask(self, image):
