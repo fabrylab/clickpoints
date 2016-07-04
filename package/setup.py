@@ -18,4 +18,5 @@ setup(name='clickpoints',
       author_email='richard.gerum@fau.de',
       license='MIT',
       packages=['clickpoints'],
+      install_requires=[],
       zip_safe=False)
