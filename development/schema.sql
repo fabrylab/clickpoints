@@ -1,29 +1,29 @@
-CREATE TABLE "annotation" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "timestamp" DATETIME, "comment" TEXT NOT NULL, "rating" INTEGER NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE)
-CREATE INDEX "annotation_image_id" ON "annotation" ("image_id")
-CREATE TABLE "image" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE)
-CREATE INDEX "image_path_id" ON "image" ("path_id")
-CREATE UNIQUE INDEX "image_filename_path_id_frame" ON "image" ("filename", "path_id", "frame")
-CREATE TABLE "marker" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "partner_id" INTEGER, "track_id" INTEGER, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE, FOREIGN KEY ("partner_id") REFERENCES "marker" ("id") ON DELETE SET NULL, FOREIGN KEY ("track_id") REFERENCES "track" ("id"))
-CREATE INDEX "marker_track_id" ON "marker" ("track_id")
-CREATE INDEX "marker_image_id" ON "marker" ("image_id")
-CREATE INDEX "marker_partner_id" ON "marker" ("partner_id")
-CREATE INDEX "marker_type_id" ON "marker" ("type_id")
-CREATE UNIQUE INDEX "marker_image_id_track_id" ON "marker" ("image_id", "track_id")
-CREATE TABLE "markertype" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL, "color" VARCHAR(255) NOT NULL, "mode" INTEGER NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255))
-CREATE UNIQUE INDEX "markertype_name" ON "markertype" ("name")
-CREATE TABLE "mask" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "data" BLOB NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE)
-CREATE INDEX "mask_image_id" ON "mask" ("image_id")
-CREATE TABLE "masktype" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL, "color" VARCHAR(255) NOT NULL, "index" INTEGER NOT NULL)
-CREATE UNIQUE INDEX "masktype_index" ON "masktype" ("index")
-CREATE TABLE "meta" ("id" INTEGER NOT NULL PRIMARY KEY, "key" VARCHAR(255) NOT NULL, "value" VARCHAR(255) NOT NULL)
-CREATE UNIQUE INDEX "meta_key" ON "meta" ("key")
-CREATE TABLE "offset" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE)
-CREATE UNIQUE INDEX "offset_image_id" ON "offset" ("image_id")
-CREATE TABLE "path" ("id" INTEGER NOT NULL PRIMARY KEY, "path" VARCHAR(255) NOT NULL)
-CREATE UNIQUE INDEX "path_path" ON "path" ("path")
-CREATE TABLE "tag" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL)
-CREATE TABLE "tagassociation" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id" INTEGER NOT NULL, "tag_id" INTEGER NOT NULL, FOREIGN KEY ("annotation_id") REFERENCES "annotation" ("id") ON DELETE CASCADE, FOREIGN KEY ("tag_id") REFERENCES "tag" ("id") ON DELETE CASCADE)
-CREATE INDEX "tagassociation_tag_id" ON "tagassociation" ("tag_id")
-CREATE INDEX "tagassociation_annotation_id" ON "tagassociation" ("annotation_id")
-CREATE TABLE "track" ("id" INTEGER NOT NULL PRIMARY KEY, "uid" VARCHAR(255) NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), "type_id" INTEGER NOT NULL, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE)
-CREATE INDEX "track_type_id" ON "track" ("type_id")
+CREATE TABLE "annotation" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "timestamp" DATETIME, "comment" TEXT NOT NULL, "rating" INTEGER NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);
+CREATE TABLE "image" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);
+CREATE TABLE "marker" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "partner_id" INTEGER, "track_id" INTEGER, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE, FOREIGN KEY ("partner_id") REFERENCES "marker" ("id") ON DELETE SET NULL, FOREIGN KEY ("track_id") REFERENCES "track" ("id"));
+CREATE TABLE "markertype" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL, "color" VARCHAR(255) NOT NULL, "mode" INTEGER NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255));
+CREATE TABLE "mask" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "data" BLOB NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);
+CREATE TABLE "masktype" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL, "color" VARCHAR(255) NOT NULL, "index" INTEGER NOT NULL);
+CREATE TABLE "meta" ("id" INTEGER NOT NULL PRIMARY KEY, "key" VARCHAR(255) NOT NULL, "value" VARCHAR(255) NOT NULL);
+CREATE TABLE "offset" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);
+CREATE TABLE "path" ("id" INTEGER NOT NULL PRIMARY KEY, "path" VARCHAR(255) NOT NULL);
+CREATE TABLE "tag" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL);
+CREATE TABLE "tagassociation" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id" INTEGER NOT NULL, "tag_id" INTEGER NOT NULL, FOREIGN KEY ("annotation_id") REFERENCES "annotation" ("id") ON DELETE CASCADE, FOREIGN KEY ("tag_id") REFERENCES "tag" ("id") ON DELETE CASCADE);
+CREATE TABLE "track" ("id" INTEGER NOT NULL PRIMARY KEY, "uid" VARCHAR(255) NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), "type_id" INTEGER NOT NULL, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);
+CREATE INDEX "annotation_image_id" ON "annotation" ("image_id");
+CREATE UNIQUE INDEX "image_filename_path_id_frame" ON "image" ("filename", "path_id", "frame");
+CREATE INDEX "image_path_id" ON "image" ("path_id");
+CREATE INDEX "marker_image_id" ON "marker" ("image_id");
+CREATE UNIQUE INDEX "marker_image_id_track_id" ON "marker" ("image_id", "track_id");
+CREATE INDEX "marker_partner_id" ON "marker" ("partner_id");
+CREATE INDEX "marker_track_id" ON "marker" ("track_id");
+CREATE INDEX "marker_type_id" ON "marker" ("type_id");
+CREATE UNIQUE INDEX "markertype_name" ON "markertype" ("name");
+CREATE INDEX "mask_image_id" ON "mask" ("image_id");
+CREATE UNIQUE INDEX "masktype_index" ON "masktype" ("index");
+CREATE UNIQUE INDEX "meta_key" ON "meta" ("key");
+CREATE UNIQUE INDEX "offset_image_id" ON "offset" ("image_id");
+CREATE UNIQUE INDEX "path_path" ON "path" ("path");
+CREATE INDEX "tagassociation_annotation_id" ON "tagassociation" ("annotation_id");
+CREATE INDEX "tagassociation_tag_id" ON "tagassociation" ("tag_id");
+CREATE INDEX "track_type_id" ON "track" ("type_id");
