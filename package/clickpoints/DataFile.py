@@ -80,6 +80,8 @@ class Rectangle:
         self.height = self.y2-self.y1
         self.marker1 = rect
         self.marker2 = partner
+        self.slice_x = slice(int(self.x1), int(self.x2))
+        self.slice_y = slice(int(self.y1), int(self.y2))
 
 class Line:
     def __init__(self, x1, y1, x2, y2, marker1, marker2):
