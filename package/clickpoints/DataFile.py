@@ -71,6 +71,32 @@ def GetCommandLineArgs():
     return args.start_frame, args.database, args.port
 
 class Rectangle:
+    """
+    A helper class representing a rectangle formed by two markers. Get be retrieved by the :py:meth:`~.DataFile.GetRectangles`.
+
+    Attributes
+    ----------
+    x1 : float
+        the left border of the rectangle
+    x2 : float
+        the right border of the rectangle
+    y1 : float
+        the top border of the rectangle
+    y2 : float
+        the bottom border of the rectangle
+    width : float
+        the width of the rectangle: x2-x1
+    height : float
+        the height of the rectangle: y2-y1
+    marker1 : :py:class:`Marker`
+        the first marker of the rectangle (the one with the lower id)
+    marker2 : :py:class:`Marker`
+        the second marker of the rectangle (the one with the higher id)
+    slice_x : slice
+        a slice object to use the rectangle to cut out a region of an image
+    slice_y : slice
+        a slice object to use the rectangle to cut out a region of an image
+    """
     def __init__(self, x1, y1, x2, y2, rect, partner):
         self.x1 = min(x1, x2)
         self.x2 = max(x1, x2)
@@ -84,6 +110,30 @@ class Rectangle:
         self.slice_y = slice(int(self.y1), int(self.y2))
 
 class Line:
+    """
+    A helper class representing a line formed by two markers. Get be retrieved by the :py:meth:`~.DataFile.GetLines`.
+
+    Attributes
+    ----------
+    x1 : float
+        the x coordinate of the first marker
+    x2 : float
+        the x coordinate of the second marker
+    y1 : float
+        the y coordinate of the first marker
+    y2 : float
+        the y coordinate of the second marker
+    dx : float
+        the difference of the x coordinates
+    dy : float
+        the difference of the y coordinates
+    length : float
+        the length of the line
+    marker1 : :py:class:`Marker`
+        the first marker of the rectangle (the one with the lower id)
+    marker2 : :py:class:`Marker`
+        the second marker of the rectangle (the one with the higher id)
+    """
     def __init__(self, x1, y1, x2, y2, marker1, marker2):
         self.x1 = x1
         self.x2 = x2
@@ -878,7 +928,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a list of rectangle objects.
+            a list of :py:class:`~.Rectangle` objects.
         """
         # select marker, joined with types and images
         query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
@@ -932,7 +982,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a list of rectangle objects.
+            a list of :py:class:`~.Line` objects.
         """
         # select marker, joined with types and images
         query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
