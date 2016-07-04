@@ -907,7 +907,7 @@ class Timeline(QtCore.QObject):
 
     def ImagesAddedMain(self):
         update_end = False
-        if self.frameSlider.endValue() == self.frameSlider.max_value or self.frameSlider.max_value == 1:
+        if self.frameSlider.endValue() == self.frameSlider.max_value or self.frameSlider.endValue() == 0:
             update_end = True
         self.frameSlider.setRange(0, self.get_frame_count()-1)
         if update_end:
