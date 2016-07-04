@@ -146,7 +146,7 @@ class DataFile:
             path = peewee.CharField(unique=True)
 
         class Image(BaseModel):
-            filename = peewee.CharField(unique=True)
+            filename = peewee.CharField()
             ext = peewee.CharField(max_length=10)
             frame = peewee.IntegerField(default=0)
             external_id = peewee.IntegerField(null=True)
@@ -499,26 +499,26 @@ class DataFile:
             self._SetVersion(11)
 
         if nr_version < 12:
+            print("\tto 12")
             with self.db.transaction():
                 self.db.execute_sql("DELETE FROM meta WHERE key = 'version'")
-                indexes = ['CREATE UNIQUE INDEX "image_filename_path_id_frame" ON "image" ("filename", "path_id", "frame");',
-                            'CREATE UNIQUE INDEX "marker_image_id_track_id" ON "marker" ("image_id", "track_id");',
-                            'CREATE INDEX "track_type_id" ON "track" ("type_id");',
-                            'CREATE INDEX "marker_track_id" ON "marker" ("track_id");',
-                            'CREATE INDEX "marker_type_id" ON "marker" ("type_id");',
-                            'CREATE UNIQUE INDEX "markertype_name" ON "markertype" ("name");',
-                            'CREATE UNIQUE INDEX "path_path" ON "path" ("path");',
-                            'CREATE INDEX "image_path_id" ON "image" ("path_id");',
-                            'CREATE INDEX "marker_image_id" ON "marker" ("image_id");',
-                            'CREATE INDEX "tagassociation_tag_id" ON "tagassociation" ("tag_id");',
-                            'CREATE UNIQUE INDEX "meta_key" ON "meta" ("key");',
-                            'CREATE UNIQUE INDEX "image_filename" ON "image" ("filename");',
-                            'CREATE INDEX "marker_partner_id" ON "marker" ("partner_id");',
-                            'CREATE INDEX "mask_image_id" ON "mask" ("image_id");',
-                            'CREATE INDEX "tagassociation_annotation_id" ON "tagassociation" ("annotation_id");',
-                            'CREATE UNIQUE INDEX "masktype_index" ON "masktype" ("index");',
-                            'CREATE UNIQUE INDEX "offset_image_id" ON "offset" ("image_id");',
-                            'CREATE INDEX "annotation_image_id" ON "annotation" ("image_id");']
+                indexes = ['CREATE UNIQUE INDEX IF NOT EXISTS "image_filename_path_id_frame" ON "image" ("filename", "path_id", "frame");',
+                            'CREATE UNIQUE INDEX IF NOT EXISTS "marker_image_id_track_id" ON "marker" ("image_id", "track_id");',
+                            'CREATE INDEX IF NOT EXISTS "track_type_id" ON "track" ("type_id");',
+                            'CREATE INDEX IF NOT EXISTS "marker_track_id" ON "marker" ("track_id");',
+                            'CREATE INDEX IF NOT EXISTS "marker_type_id" ON "marker" ("type_id");',
+                            'CREATE UNIQUE INDEX IF NOT EXISTS "markertype_name" ON "markertype" ("name");',
+                            'CREATE UNIQUE INDEX IF NOT EXISTS "path_path" ON "path" ("path");',
+                            'CREATE INDEX IF NOT EXISTS "image_path_id" ON "image" ("path_id");',
+                            'CREATE INDEX IF NOT EXISTS "marker_image_id" ON "marker" ("image_id");',
+                            'CREATE INDEX IF NOT EXISTS "tagassociation_tag_id" ON "tagassociation" ("tag_id");',
+                            'CREATE UNIQUE INDEX IF NOT EXISTS "meta_key" ON "meta" ("key");',
+                            'CREATE INDEX IF NOT EXISTS "marker_partner_id" ON "marker" ("partner_id");',
+                            'CREATE INDEX IF NOT EXISTS "mask_image_id" ON "mask" ("image_id");',
+                            'CREATE INDEX IF NOT EXISTS "tagassociation_annotation_id" ON "tagassociation" ("annotation_id");',
+                            'CREATE UNIQUE INDEX IF NOT EXISTS "masktype_index" ON "masktype" ("index");',
+                            'CREATE UNIQUE INDEX IF NOT EXISTS "offset_image_id" ON "offset" ("image_id");',
+                            'CREATE INDEX IF NOT EXISTS "annotation_image_id" ON "annotation" ("image_id");']
                 for index in indexes:
                     self.db.execute_sql(index)
             self._SetVersion(12)
