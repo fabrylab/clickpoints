@@ -174,6 +174,17 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **annotation** *(* :py:class:`Annotation` *)* - the linked annotation.
         - **tag** *(* :py:class:`Tag` *)* - the linked tag.
 
+Helper Classes
+--------------
+
+These two classes are return values of the :py:meth:`~.DataFile.GetRectangles` and the :py:meth:`~.DataFile.GetLines` functions.
+
+.. autoclass:: clickpoints.Rectangle
+   :members:
+
+.. autoclass:: clickpoints.Line
+   :members:
+
 Commands
 --------   
    
