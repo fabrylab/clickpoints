@@ -899,7 +899,7 @@ class DataFile:
         # iterate over markers and merge rectangles
         rects = []
         for rect in query:
-            if rect.type & self.TYPE_Rect:
+            if rect.type.mode & self.TYPE_Rect:
                 try:
                     # only if we have a partner and the partner has a smaller id (so that we only get one of each pair)
                     if rect.partner_id and rect.id < rect.partner.id:
@@ -953,7 +953,7 @@ class DataFile:
         # iterate over markers and merge rectangles
         lines = []
         for line in query:
-            if line.type & self.TYPE_Line:
+            if line.type.mode & self.TYPE_Line:
                 try:
                     # only if we have a partner and the partner has a smaller id (so that we only get one of each pair)
                     if line.partner_id and line.id < line.partner.id:
