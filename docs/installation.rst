@@ -44,10 +44,10 @@ To register clickpoints as an importable package, go to your clickpoints folder 
 Cutting Edge Version (Mercurial)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you prefere to have the latest version with the latest features and bugs, you can grab the tip version from our
+If you prefer to have the latest version with the latest features and bugs, you can grab the tip version from our
 mercurial repository.
 
-    ``hg clone https://bitbucket.org/fabry_biophysics/clickpointsproject``
+    ``hg clone https://bitbucket.org/fabry_biophysics/clickpoints``
 
 Linux
 -----
