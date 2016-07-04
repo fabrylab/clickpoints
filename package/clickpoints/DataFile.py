@@ -377,160 +377,124 @@ class DataFile:
 
         if nr_version < 3:
             print("\tto 3")
-            # Add text fields for Marker
-            self.db.execute_sql("ALTER TABLE marker ADD COLUMN text varchar(255)")
+            with self.db.transaction():
+                # Add text fields for Marker
+                self.db.execute_sql("ALTER TABLE marker ADD COLUMN text varchar(255)")
             self._SetVersion(3)
 
         if nr_version < 4:
             print("\tto 4")
-            # Add text fields for Tracks
-            try:
+            with self.db.transaction():
+                # Add text fields for Tracks
                 self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
-            except peewee.OperationalError:
-                pass
-            # Add text fields for Types
-            try:
+                # Add text fields for Types
                 self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
-            except peewee.OperationalError:
-                pass
             self._SetVersion(4)
 
         if nr_version < 5:
             print("\tto 5")
-            # Add text fields for Tracks
-            try:
+            with self.db.transaction():
+                # Add text fields for Tracks
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN frame int")
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN sort_index int")
-            except peewee.OperationalError:
-                pass
             self._SetVersion(5)
 
         if nr_version < 6:
             print("\tto 6")
-            # Add text fields for Tracks
-            try:
+            with self.db.transaction():
+                # Add text fields for Tracks
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN path_id int")
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN width int NULL")
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN height int NULL")
-            except peewee.OperationalError:
-                pass
             self._SetVersion(6)
 
         if nr_version < 7:
             print("\tto 7")
-            # Add text fields for Tracks
-            try:
+            with self.db.transaction():
+                # Add text fields for Tracks
                 self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
-            except peewee.OperationalError:
-                pass
-            # Add text fields for Types
-            try:
+                # Add text fields for Types
                 self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
-            except peewee.OperationalError:
-                pass
             self._SetVersion(7)
 
         if nr_version < 8:
             print("\tto 8")
-            try:
+            with self.db.transaction():
                 self.db.execute_sql("ALTER TABLE paths RENAME TO path")
-            except peewee.OperationalError:
-                pass
-            try:
                 self.db.execute_sql("ALTER TABLE images RENAME TO image")
-            except peewee.OperationalError:
-                pass
-            try:
                 self.db.execute_sql("ALTER TABLE offsets RENAME TO offset")
-            except peewee.OperationalError:
-                pass
-            try:
                 self.db.execute_sql("ALTER TABLE tracks RENAME TO track")
-            except peewee.OperationalError:
-                pass
-            try:
                 self.db.execute_sql("ALTER TABLE types RENAME TO markertype")
-            except peewee.OperationalError:
-                pass
-            try:
                 self.db.execute_sql("ALTER TABLE masktypes RENAME TO masktype")
-            except peewee.OperationalError:
-                pass
-            try:
                 self.db.execute_sql("ALTER TABLE tags RENAME TO tag")
-            except peewee.OperationalError:
-                pass
             self._SetVersion(8)
 
         if nr_version < 9:
             print("\tto 9")
-            # Add type fields for Track
-            try:
+            with self.db.transaction():
+                # Add type fields for Track
                 self.db.execute_sql("ALTER TABLE track ADD COLUMN type_id int")
-            except peewee.OperationalError:
-                pass
-            self.db.execute_sql("UPDATE track SET type_id = (SELECT type_id FROM marker WHERE track_id = track.id LIMIT 1)")
-            self.db.execute_sql("DELETE FROM track WHERE type_id IS NULL")
+                self.db.execute_sql("UPDATE track SET type_id = (SELECT type_id FROM marker WHERE track_id = track.id LIMIT 1)")
+                self.db.execute_sql("DELETE FROM track WHERE type_id IS NULL")
             self._SetVersion(9)
 
         if nr_version < 10:
             print("\tto 10")
-            # store mask_path and all masks
-            self.db.execute_sql("PRAGMA foreign_keys = OFF")
-            mask_path = self.db.execute_sql("SELECT * FROM meta WHERE key = 'mask_path'").fetchone()[2]
-            masks = self.db.execute_sql("SELECT id, image_id, filename FROM mask").fetchall()
-            self.migrate_to_10_mask_path = mask_path
-            self.migrate_to_10_masks = masks
-            self.db.execute_sql("CREATE TABLE `mask_tmp` (`id` INTEGER NOT NULL, `image_id` INTEGER NOT NULL, `data` BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(`image_id`) REFERENCES 'image' ( 'id' ) ON DELETE CASCADE)")
-            for mask in masks:
-                tmp_maskpath = os.path.join(self.migrate_to_10_mask_path, mask[2])
-                if os.path.exists(tmp_maskpath):
-                    im = np.asarray(PILImage.open(tmp_maskpath))
-                    value = imageio.imwrite(imageio.RETURN_BYTES, im, format=".png")
-                    value = peewee.binary_construct(value)
-                    self.db.execute_sql("INSERT INTO mask_tmp VALUES (?, ?, ?)", [mask[0], mask[1], value])
-            self.db.execute_sql("DROP TABLE mask")
-            self.db.execute_sql("ALTER TABLE mask_tmp RENAME TO mask")
-            self.db.execute_sql("PRAGMA foreign_keys = ON")
+            with self.db.transaction():
+                # store mask_path and all masks
+                self.db.execute_sql("PRAGMA foreign_keys = OFF")
+                mask_path = self.db.execute_sql("SELECT * FROM meta WHERE key = 'mask_path'").fetchone()[2]
+                masks = self.db.execute_sql("SELECT id, image_id, filename FROM mask").fetchall()
+                self.migrate_to_10_mask_path = mask_path
+                self.migrate_to_10_masks = masks
+                self.db.execute_sql("CREATE TABLE `mask_tmp` (`id` INTEGER NOT NULL, `image_id` INTEGER NOT NULL, `data` BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(`image_id`) REFERENCES 'image' ( 'id' ) ON DELETE CASCADE)")
+                for mask in masks:
+                    tmp_maskpath = os.path.join(self.migrate_to_10_mask_path, mask[2])
+                    if os.path.exists(tmp_maskpath):
+                        im = np.asarray(PILImage.open(tmp_maskpath))
+                        value = imageio.imwrite(imageio.RETURN_BYTES, im, format=".png")
+                        value = peewee.binary_construct(value)
+                        self.db.execute_sql("INSERT INTO mask_tmp VALUES (?, ?, ?)", [mask[0], mask[1], value])
+                self.db.execute_sql("DROP TABLE mask")
+                self.db.execute_sql("ALTER TABLE mask_tmp RENAME TO mask")
+                self.db.execute_sql("PRAGMA foreign_keys = ON")
             self._SetVersion(10)
 
         if nr_version < 11:
             print("\tto 11")
-            self.db.execute_sql("PRAGMA foreign_keys = OFF")
-            self.db.execute_sql('CREATE TABLE "annotation_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "timestamp" DATETIME, "comment" TEXT NOT NULL, "rating" INTEGER NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE)')
-            self.db.execute_sql('INSERT INTO annotation_tmp SELECT id, image_id, timestamp, comment, rating FROM annotation')
-            self.db.execute_sql("DROP TABLE annotation")
-            self.db.execute_sql("ALTER TABLE annotation_tmp RENAME TO annotation")
+            with self.db.transaction():
+                self.db.execute_sql("PRAGMA foreign_keys = OFF")
+                self.db.execute_sql('CREATE TABLE "annotation_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "timestamp" DATETIME, "comment" TEXT NOT NULL, "rating" INTEGER NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE)')
+                self.db.execute_sql('INSERT INTO annotation_tmp SELECT id, image_id, timestamp, comment, rating FROM annotation')
+                self.db.execute_sql("DROP TABLE annotation")
+                self.db.execute_sql("ALTER TABLE annotation_tmp RENAME TO annotation")
 
-            self.db.execute_sql('CREATE TABLE "tagassociation_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id" INTEGER NOT NULL, "tag_id" INTEGER NOT NULL, FOREIGN KEY ("annotation_id") REFERENCES "annotation" ("id") ON DELETE CASCADE, FOREIGN KEY ("tag_id") REFERENCES "tag" ("id") ON DELETE CASCADE);')
-            self.db.execute_sql('INSERT INTO tagassociation_tmp SELECT id, annotation_id, tag_id FROM tagassociation')
-            self.db.execute_sql("DROP TABLE tagassociation")
-            self.db.execute_sql("ALTER TABLE tagassociation_tmp RENAME TO tagassociation")
+                self.db.execute_sql('CREATE TABLE "tagassociation_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id" INTEGER NOT NULL, "tag_id" INTEGER NOT NULL, FOREIGN KEY ("annotation_id") REFERENCES "annotation" ("id") ON DELETE CASCADE, FOREIGN KEY ("tag_id") REFERENCES "tag" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('INSERT INTO tagassociation_tmp SELECT id, annotation_id, tag_id FROM tagassociation')
+                self.db.execute_sql("DROP TABLE tagassociation")
+                self.db.execute_sql("ALTER TABLE tagassociation_tmp RENAME TO tagassociation")
 
-            try:
-                self.db.execute_sql("DROP TABLE basemodel")
-            except peewee.OperationalError:
-                pass
+                self.db.execute_sql("DROP TABLE IF EXISTS basemodel")
 
-            self.db.execute_sql('CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);')
-            self.db.execute_sql('INSERT INTO image_tmp SELECT id, filename, ext, frame, external_id, timestamp, sort_index, width, height, path_id FROM image')
-            self.db.execute_sql("DROP TABLE image")
-            self.db.execute_sql("ALTER TABLE image_tmp RENAME TO image")
+                self.db.execute_sql('CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('INSERT INTO image_tmp SELECT id, filename, ext, frame, external_id, timestamp, sort_index, width, height, path_id FROM image')
+                self.db.execute_sql("DROP TABLE image")
+                self.db.execute_sql("ALTER TABLE image_tmp RENAME TO image")
 
-            self.db.execute_sql('CREATE TABLE "marker_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "partner_id" INTEGER, "track_id" INTEGER, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE, FOREIGN KEY ("partner_id") REFERENCES "marker" ("id") ON DELETE SET NULL, FOREIGN KEY ("track_id") REFERENCES "track" ("id"));')
-            self.db.execute_sql('INSERT INTO marker_tmp SELECT id, image_id, x, y, type_id, processed, partner_id, track_id, style, text FROM marker')
-            self.db.execute_sql("DROP TABLE marker")
-            self.db.execute_sql("ALTER TABLE marker_tmp RENAME TO marker")
+                self.db.execute_sql('CREATE TABLE "marker_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "partner_id" INTEGER, "track_id" INTEGER, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE, FOREIGN KEY ("partner_id") REFERENCES "marker" ("id") ON DELETE SET NULL, FOREIGN KEY ("track_id") REFERENCES "track" ("id"));')
+                self.db.execute_sql('INSERT INTO marker_tmp SELECT id, image_id, x, y, type_id, processed, partner_id, track_id, style, text FROM marker')
+                self.db.execute_sql("DROP TABLE marker")
+                self.db.execute_sql("ALTER TABLE marker_tmp RENAME TO marker")
 
-            self.db.execute_sql('CREATE TABLE "offset_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);')
-            self.db.execute_sql('INSERT INTO offset_tmp SELECT id, image_id, x, y FROM offset')
-            self.db.execute_sql("DROP TABLE offset")
-            self.db.execute_sql("ALTER TABLE offset_tmp RENAME TO offset")
+                self.db.execute_sql('CREATE TABLE "offset_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('INSERT INTO offset_tmp SELECT id, image_id, x, y FROM offset')
+                self.db.execute_sql("DROP TABLE offset")
+                self.db.execute_sql("ALTER TABLE offset_tmp RENAME TO offset")
 
-            self.db.execute_sql('CREATE TABLE "track_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "uid" VARCHAR(255) NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), "type_id" INTEGER NOT NULL, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);')
-            self.db.execute_sql('INSERT INTO track_tmp SELECT id, uid, style, text, type_id FROM track')
-            self.db.execute_sql("DROP TABLE track")
-            self.db.execute_sql("ALTER TABLE track_tmp RENAME TO track")
+                self.db.execute_sql('CREATE TABLE "track_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "uid" VARCHAR(255) NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), "type_id" INTEGER NOT NULL, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('INSERT INTO track_tmp SELECT id, uid, style, text, type_id FROM track')
+                self.db.execute_sql("DROP TABLE track")
+                self.db.execute_sql("ALTER TABLE track_tmp RENAME TO track")
 
             self._SetVersion(11)
 
