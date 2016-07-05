@@ -24,5 +24,6 @@ file as ``launch_scripts =``.
     addon_track
     addon_driftcorrection
     addon_celldetector
+    addon_grabplotdata
 
 .. |the script icon| image:: images/IconCode.png
