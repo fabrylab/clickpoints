@@ -161,6 +161,7 @@ class DeleteType(QtWidgets.QDialog):
 
 class MarkerEditor(QtWidgets.QWidget):
     data = None
+    prevent_recursion = False
 
     def __init__(self, marker_handler, marker_file):
         QtWidgets.QWidget.__init__(self)
@@ -249,7 +250,6 @@ class MarkerEditor(QtWidgets.QWidget):
         self.tree.setHeaderHidden(True)
         self.tree.setAnimated(True)
         self.tree.setModel(model)
-        self.tree.clicked.connect(lambda index: self.setMarker(index.model().itemFromIndex(index).entry))
         self.tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMarker(selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -308,6 +308,8 @@ class MarkerEditor(QtWidgets.QWidget):
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
     def setMarker(self, data, data_type=None):
+        if self.prevent_recursion:
+            return
         if type(data) == self.data_file.table_marker and self.data == data:
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
         self.data = data
@@ -318,7 +320,9 @@ class MarkerEditor(QtWidgets.QWidget):
             self.StackedWidget.setCurrentIndex(0)
             self.markerWidget.setTitle("Marker #%d" % data.id)
 
+            self.prevent_recursion = True
             self.tree.setCurrentIndex(self.marker_modelitems[data.id].index())
+            self.prevent_recursion = False
 
             data2 = data.partner if data.partner_id is not None else None
 
@@ -359,13 +363,20 @@ class MarkerEditor(QtWidgets.QWidget):
             if data.name is None:
                 self.pushbutton_Remove.setHidden(True)
                 self.typeWidget.setTitle("add type")
+                self.prevent_recursion = True
                 self.tree.setCurrentIndex(self.marker_type_modelitems[-1].index())
+                self.prevent_recursion = False
             else:
                 self.typeWidget.setTitle("Type #%s" % data.name)
+                self.prevent_recursion = True
                 self.tree.setCurrentIndex(self.marker_type_modelitems[self.data.id].index())
+                self.prevent_recursion = False
             self.typeWidget.name.setText(data.name)
             try:
-                self.typeWidget.mode.setCurrentIndex(self.typeWidget.mode_indices[data.mode])
+                index = self.typeWidget.mode_indices[data.mode]
+                self.prevent_recursion = True
+                self.typeWidget.mode.setCurrentIndex(index)
+                self.prevent_recursion = False
             except KeyError:
                 pass
             self.typeWidget.style.setText(data.style if data.style else "")
