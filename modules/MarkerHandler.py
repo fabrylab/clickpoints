@@ -648,6 +648,10 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         self.color = QtGui.QColor(*self.style["color"])
 
     def ReloadData(self):
+        # reload data from database
+        self.data = self.data.get(id=self.data.id)
+        self.saved = True
+        # update marker display
         self.setPos(self.data.x, self.data.y)
         self.GetStyle()
         self.ApplyStyle()
