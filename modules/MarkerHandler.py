@@ -689,10 +689,12 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
     def ConnectToPartner(self, point, back=True):
         if not self.data.id:
             self.data.save()
+        if self.data.partner_id != point.data.id:
+            self.saved = False
+        if point.data.partner_id != self.data.id:
+            point.saved = False
         point.data.partner = self.data
         self.data.partner = point.data
-        self.saved = False
-        point.saved = False
         self.partner = point
         self.UseCrosshair = False
         if back:
@@ -808,6 +810,7 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
     def save(self):
         if not self.saved:
             self.data.save()
+            self.saved = True
 
     def draw(self, image, start_x, start_y, scale=1):
         w = 1.*scale
