@@ -21,8 +21,8 @@ file as ``launch_scripts =``.
     :caption: List of Addons
     :maxdepth: 2
    
-    track
-    driftcorrection
-    celldetector
+    addon_track
+    addon_driftcorrection
+    addon_celldetector
 
 .. |the script icon| image:: images/IconCode.png
