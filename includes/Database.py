@@ -308,6 +308,7 @@ class DataFile(DataFileBase):
         self.buffer.reset()
 
     def resortSortIndex(self):
+        self.db.execute_sql("DELETE FROM path WHERE (SELECT COUNT(image.id) FROM image WHERE image.path_id = path.id) = 0")
         self.db.execute_sql("CREATE TEMPORARY TABLE NewIDs (sort_index INTEGER PRIMARY KEY AUTOINCREMENT, id INT UNSIGNED)")
         self.db.execute_sql("INSERT INTO NewIDs (id) SELECT id FROM image ORDER BY filename ASC")
         self.db.execute_sql("UPDATE image SET sort_index = (SELECT sort_index FROM NewIDs WHERE image.id = NewIDs.id)-1")
