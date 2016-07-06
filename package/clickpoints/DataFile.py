@@ -163,7 +163,7 @@ class DataFile:
             raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
-        self.current_version = "12"
+        self.current_version = "13"
         version = self.current_version
         self.next_sort_index = 0
         new_database = True
@@ -299,7 +299,7 @@ class DataFile:
             type = peewee.ForeignKeyField(MarkerType, related_name="markers", null=True, on_delete='CASCADE')
             processed = peewee.IntegerField(default=0)
             partner = peewee.ForeignKeyField('self', null=True, related_name='partner2', on_delete='SET NULL')
-            track = peewee.ForeignKeyField(Track, null=True, related_name='track_markers')
+            track = peewee.ForeignKeyField(Track, null=True, related_name='track_markers', on_delete='CASCADE')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
 
@@ -393,6 +393,12 @@ class DataFile:
         self._CreateTables()
         self.db.execute_sql("PRAGMA foreign_keys = ON")
         self.db.execute_sql("PRAGMA journal_mode = WAL")
+        if new_database:
+            self.db.execute_sql("CREATE TRIGGER no_empty_tracks\
+                                AFTER DELETE ON marker\
+                                BEGIN\
+                                  DELETE FROM track WHERE id = OLD.track_id AND (SELECT COUNT(marker.id) FROM marker WHERE marker.track_id = track.id) = 0;\
+                                END;")
 
         if new_database:
             self.table_meta(key="version", value=self.current_version).save()
@@ -574,6 +580,26 @@ class DataFile:
                 for index in indexes:
                     self.db.execute_sql(index)
             self._SetVersion(12)
+
+        if nr_version < 13:
+            print("\tto 13")
+            with self.db.transaction():
+                self.db.execute_sql('CREATE TABLE "marker_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "partner_id" INTEGER, "track_id" INTEGER, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE, FOREIGN KEY ("partner_id") REFERENCES "marker" ("id") ON DELETE SET NULL, FOREIGN KEY ("track_id") REFERENCES "track" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('INSERT INTO marker_tmp SELECT id, image_id, x, y, type_id, processed, partner_id, track_id, style, text FROM marker')
+                self.db.execute_sql("DROP TABLE marker")
+                self.db.execute_sql("ALTER TABLE marker_tmp RENAME TO marker")
+
+                self.db.execute_sql('CREATE INDEX "marker_image_id" ON "marker" ("image_id")')
+                self.db.execute_sql('CREATE UNIQUE INDEX "marker_image_id_track_id" ON "marker" ("image_id", "track_id")')
+                self.db.execute_sql('CREATE INDEX "marker_partner_id" ON "marker" ("partner_id")')
+                self.db.execute_sql('CREATE INDEX "marker_track_id" ON "marker" ("track_id")')
+                self.db.execute_sql('CREATE INDEX "marker_type_id" ON "marker" ("type_id")')
+                self.db.execute_sql('CREATE TRIGGER no_empty_tracks\
+                                    AFTER DELETE ON marker\
+                                    BEGIN\
+                                        DELETE FROM track WHERE id = OLD.track_id AND (SELECT COUNT(marker.id) FROM marker WHERE marker.track_id = track.id) = 0;\
+                                    END;')
+            self._SetVersion(13)
 
 
     def _SetVersion(self, nr_new_version):
