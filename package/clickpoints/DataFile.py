@@ -157,16 +157,24 @@ class DataFile:
         can be 'r' (default) to open an existing database and append data to it or 'w' to create a new database. If the mode is 'w' and the
         database already exists, it will be deleted and a new database will be created.
     """
+    db = None
     reader = None
+    current_version = "13"
+    database_filename = None
+    next_sort_index = 0
+
+    """ Enumerations """
+    TYPE_Normal = 0
+    TYPE_Rect = 1
+    TYPE_Line = 2
+    TYPE_Track = 4
 
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
             raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
-        self.current_version = "13"
         version = self.current_version
-        self.next_sort_index = 0
         new_database = True
 
         # Create a new database
@@ -409,12 +417,6 @@ class DataFile:
         # second migration part which needs the peewee model
         if version is not None and int(version) < int(self.current_version):
             self._migrateDBFrom2(version)
-
-        """ Enumerations """
-        self.TYPE_Normal = 0
-        self.TYPE_Rect = 1
-        self.TYPE_Line = 2
-        self.TYPE_Track = 4
 
     def _CheckVersion(self):
         try:
