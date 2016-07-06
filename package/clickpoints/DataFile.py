@@ -157,6 +157,7 @@ class DataFile:
         can be 'r' (default) to open an existing database and append data to it or 'w' to create a new database. If the mode is 'w' and the
         database already exists, it will be deleted and a new database will be created.
     """
+    reader = None
 
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
@@ -216,8 +217,10 @@ class DataFile:
 
             def get_data(self):
                 if self.image_data is None:
-                    reader = imageio.get_reader(os.path.join(self.path.path, self.filename))
-                    self.image_data = reader.get_data(self.frame)
+                    if self.database_class.reader is None or self.database_class.reader.filename != self.filename:
+                        self.database_class.reader = imageio.get_reader(os.path.join(self.path.path, self.filename))
+                        self.database_class.reader.filename = self.filename
+                    self.image_data = self.database_class.reader.get_data(self.frame)
                 return self.image_data
 
             def __getattr__(self, item):
