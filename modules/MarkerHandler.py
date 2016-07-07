@@ -1582,12 +1582,6 @@ class MarkerHandler:
             track.setActive(not self.hidden)
         self.button.setChecked(not self.hidden)
 
-    def loadLast(self):
-        return("ERROR: not implemented at the moment")
-
-    def canLoadLast(self):
-        return self.last_logname is not None
-
     def closeEvent(self, event):
         if self.marker_edit_window:
             self.marker_edit_window.close()

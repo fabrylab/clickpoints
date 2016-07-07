@@ -678,18 +678,10 @@ class MaskHandler:
         for counter in self.counter:
             self.counter[counter].setVisible(not self.hidden)
         self.button.setChecked(not self.hidden)
-            
-    def loadLast(self):
-        self.LoadMask(self.last_maskname)
-        self.MaskUnsaved = True
-        self.RedrawMask()
 
     def closeEvent(self, event):
         if self.mask_edit_window:
             self.mask_edit_window.close()
-
-    def canLoadLast(self):
-        return self.last_maskname is not None
 
     @staticmethod
     def file():
