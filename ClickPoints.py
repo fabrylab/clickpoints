@@ -398,21 +398,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
             # @key Escape: close window
             self.close()
 
-        if event.key() == QtCore.Qt.Key_L:
-            # @key L: load marker and mask from last image
-            last_available = False
-            for module in self.modules:
-                if "canLoadLast" in dir(module) and module.canLoadLast():
-                    last_available = True
-                    break
-            if last_available:
-                # saveguard/confirmation with MessageBox
-                reply = QMessageBox.question(None, 'Warning', 'Load data of last Image?', QMessageBox.Yes,
-                                             QMessageBox.No)
-                if reply == QMessageBox.Yes:
-                    print('Loading data of last image ...')
-                    BroadCastEvent(self.modules, "loadLast")
-
         # @key ---- Modules ----
         if event.key() == QtCore.Qt.Key_P:
             # @key P: change active module
