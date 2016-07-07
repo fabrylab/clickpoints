@@ -340,6 +340,12 @@ class ClickPointsWindow(QtWidgets.QWidget):
     """ some Qt events which should be passed around """
 
     def closeEvent(self, QCloseEvent):
+        if not self.data_file.exists:
+            reply = QtWidgets.QMessageBox.question(None, 'Warning', 'This ClickPoints project has not been saved. All data will be lost.\nDo you want to save it?', QtWidgets.QMessageBox.Yes,
+                                                   QtWidgets.QMessageBox.No)
+
+            if reply == QtWidgets.QMessageBox.Yes:
+                self.SaveDatabase()
         # close the folder editor
         if self.folderEditor is not None:
             self.folderEditor.close()
