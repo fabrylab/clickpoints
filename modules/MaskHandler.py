@@ -177,68 +177,74 @@ class BigPaintableImageDisplay:
 
 
 class MaskEditor(QtWidgets.QWidget):
+    data = None
+    prevent_recursion = False
+
     def __init__(self, mask_handler, data_file):
         QtWidgets.QWidget.__init__(self)
 
+        # store handle to database
+        self.mask_handler = mask_handler
+        self.mask_file = mask_handler.mask_file
         self.data_file = data_file
 
-        # Widget
+        # initialize window
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
         self.setWindowTitle("MaskEditor - ClickPoints")
         self.setWindowIcon(qta.icon("fa.paint-brush"))
         main_layout = QtWidgets.QHBoxLayout(self)
 
-        self.mask_handler = mask_handler
-        self.db = mask_handler.mask_file
+        # initialize tree view
+        self.tree = QtWidgets.QTreeView()
+        main_layout.addWidget(self.tree)
 
-        """ Tree View """
-        tree = QtWidgets.QTreeView()
-        main_layout.addWidget(tree)
-
+        # populate model with mask types
         model = QtGui.QStandardItemModel(0, 0)
-        types = self.db.table_masktype.select()
+        mask_types = self.mask_file.table_masktype.select()
+        self.mask_type_modelitems = {}
         row = -1
-        for row, type in enumerate(types):
-            item = QtGui.QStandardItem(type.name)
-            item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(type.color))))
+        for row, mask_type in enumerate(mask_types):
+            item = QtGui.QStandardItem(mask_type.name)
+            item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(mask_type.color))))
             item.setEditable(False)
-            item.entry = type
-
+            item.entry = mask_type
+            self.mask_type_modelitems[mask_type.id] = item
             model.setItem(row, 0, item)
+
+        # add an "add type" row
         item = QtGui.QStandardItem("add type")
         item.setIcon(qta.icon("fa.plus"))
         item.setEditable(False)
-        self.new_type = self.db.table_masktype()
-        self.new_type.color = GetColorByIndex(types.count() + 16)
+        self.new_type = self.mask_file.table_masktype()
+        self.new_type.color = GetColorByIndex(mask_types.count() + 16)
         item.entry = self.new_type
+        self.mask_type_modelitems[-1] = item
         model.setItem(row+1, 0, item)
 
-        tree.setUniformRowHeights(True)
-        tree.setHeaderHidden(True)
-        tree.setAnimated(True)
-        tree.setModel(model)
-        tree.clicked.connect(lambda index: self.setMaskType(index.model().itemFromIndex(index).entry))
-        self.tree = tree
+        # some settings for the tree view
+        self.tree.setUniformRowHeights(True)
+        self.tree.setHeaderHidden(True)
+        self.tree.setAnimated(True)
+        self.tree.setModel(model)
+        self.tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMaskType(
+            selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
 
-        self.layout = QtWidgets.QVBoxLayout()
-        main_layout.addLayout(self.layout)
+        # create editor layout
+        edit_layout = QtWidgets.QVBoxLayout()
+        main_layout.addLayout(edit_layout)
 
-        self.StackedWidget = QtWidgets.QStackedWidget(self)
-        self.layout.addWidget(self.StackedWidget)
-
-        """ Type Properties """
+        # edit fields for the mask type properties
         self.typeWidget = QtWidgets.QGroupBox()
-        self.StackedWidget.addWidget(self.typeWidget)
+        edit_layout.addWidget(self.typeWidget)
         layout = QtWidgets.QVBoxLayout(self.typeWidget)
         self.typeWidget.name = AddQLineEdit(layout, "Name:")
         self.typeWidget.color = AddQColorChoose(layout, "Color:")
-        #self.typeWidget.text = AddQLineEdit(layout, "Text:")
         layout.addStretch()
 
-        """ Control Buttons """
+        # control buttons
         horizontal_layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(horizontal_layout)
+        edit_layout.addLayout(horizontal_layout)
         self.pushbutton_Confirm = QtWidgets.QPushButton('S&ave', self)
         self.pushbutton_Confirm.pressed.connect(self.saveMaskType)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
@@ -252,27 +258,39 @@ class MaskEditor(QtWidgets.QWidget):
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
     def setMaskType(self, data):
+        # check flag to prevent recursion
+        if self.prevent_recursion:
+            return
+        # store the data
         self.data = data if data is not None else self.new_type
 
-        self.pushbutton_Remove.setHidden(False)
-
-        self.StackedWidget.setCurrentIndex(1)
-        if data is None or data.name is None:
+        if data is None or data.name is None or data.id is None:
+            # select type in tree
+            self.prevent_recursion = True
+            self.tree.setCurrentIndex(self.mask_type_modelitems[-1].index())
+            self.prevent_recursion = False
+            # hide remove button and set title
             self.pushbutton_Remove.setHidden(True)
             self.typeWidget.setTitle("Add Type")
         else:
+            # select "add type" in tree
+            self.prevent_recursion = True
+            self.tree.setCurrentIndex(self.mask_type_modelitems[data.id].index())
+            self.prevent_recursion = False
+            # add remove button and set title
             self.pushbutton_Remove.setHidden(False)
             self.typeWidget.setTitle("Type #%s" % self.data.name)
+        # set text and color
         self.typeWidget.name.setText(self.data.name)
         self.typeWidget.color.setColor(self.data.color)
 
     def saveMaskType(self):
-        print("Saving changes...")
-        # set parameters
-
-        self.data.name = self.typeWidget.name.text()
-        self.data.color = self.typeWidget.color.getColor()
-        if self.data.index is None:
+        # if a new type should be added create it
+        new_type = self.data.index is None
+        if new_type:
+            self.new_type.color = GetColorByIndex(len(self.mask_type_modelitems) + 16)
+            self.data = self.mask_file.table_masktype()
+            # find a new index
             new_index = 1
             while True:
                 try:
@@ -281,23 +299,44 @@ class MaskEditor(QtWidgets.QWidget):
                     break
                 new_index += 1
             self.data.index = new_index
+        # get data from fields
+        self.data.name = self.typeWidget.name.text()
+        self.data.color = self.typeWidget.color.getColor()
+        # save and update
         self.data.save()
         self.mask_handler.UpdateButtons()
 
-        # close widget
-        self.mask_handler.marker_edit_window = None
-        self.close()
+        # get the item from tree or insert a new one
+        if new_type:
+            item = QtGui.QStandardItem()
+            item.setEditable(False)
+            item.entry = self.data
+            self.mask_type_modelitems[self.data.id] = item
+            new_row = self.mask_type_modelitems[-1].row()
+            self.tree.model().insertRow(new_row)
+            self.tree.model().setItem(new_row, 0, item)
+        else:
+            item = self.mask_type_modelitems[self.data.id]
+
+        # update item
+        item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(self.data.color))))
+        item.setText(self.data.name)
+        # if a new type was created switch selection to create a new type
+        if new_type:
+            self.setMaskType(None)
 
     def removeMarker(self):
+        # get the tree view item (don't delete it right away because this changes the selection)
+        item = self.mask_type_modelitems[self.data.id]
+
         # delete the database entry
         self.data.delete_instance()
 
+        # and then delete the tree view item
+        self.tree.model().removeRow(item.row())
+
         # update display
         self.mask_handler.UpdateButtons()
-
-        # close widget
-        self.mask_handler.marker_edit_window = None
-        self.close()
 
     def keyPressEvent(self, event):
         # close the window with esc
@@ -376,12 +415,12 @@ class MaskTypeButton(QtWidgets.QGraphicsRectItem):
     def mousePressEvent(self, event):
         # right mouse button opens the mask menu
         if event.button() == QtCore.Qt.RightButton or self.type is None:
-            # open the menu if it is not open alread
+            # open the menu if it is not open already
             if not self.mask_handler.mask_edit_window or not self.mask_handler.mask_edit_window.isVisible():
                 self.mask_handler.mask_edit_window = MaskEditor(self.mask_handler, self.mask_handler.mask_file)
                 self.mask_handler.mask_edit_window.show()
             # select this mask type in the menu
-            self.mask_handler.mask_edit_window.setMaskType(self.type)
+            self.mask_handler.mask_edit_window.setMaskType(self.type if self.index != 0 else None)
         # a left click selects this type
         elif event.button() == QtCore.Qt.LeftButton:
             # when mask editing is not active, activate it
