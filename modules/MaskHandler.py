@@ -158,6 +158,10 @@ class BigPaintableImageDisplay:
         for pixmap in self.pixMapItems:
             pixmap.setOpacity(opacity)
 
+    def setVisible(self, visible):
+        for pixmap in self.pixMapItems:
+            pixmap.setVisible(visible)
+
     def save(self, filename):
         lut = np.zeros(3 * 256, np.uint8)
         for draw_type in self.config.draw_types:
@@ -278,7 +282,7 @@ class MaskEditor(QtWidgets.QWidget):
                 new_index += 1
             self.data.index = new_index
         self.data.save()
-        self.mask_handler.UpdateCounter()
+        self.mask_handler.UpdateButtons()
 
         # close widget
         self.mask_handler.marker_edit_window = None
@@ -289,7 +293,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.data.delete_instance()
 
         # update display
-        self.mask_handler.UpdateCounter()
+        self.mask_handler.UpdateButtons()
 
         # close widget
         self.mask_handler.marker_edit_window = None
@@ -305,47 +309,44 @@ class MaskEditor(QtWidgets.QWidget):
             self.saveMaskType()
 
 
-class MyCounter2(QtWidgets.QGraphicsRectItem):
+class MaskTypeButton(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, mask_handler, point_type, index):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
-        self.parent = parent
+
+        # store mask handler, type and index
         self.mask_handler = mask_handler
         self.type = point_type
         self.index = index
-        self.count = 0
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
+        # get hover events and set to inactive
         self.setAcceptHoverEvents(True)
         self.active = False
 
+        # define the font
         self.font = self.mask_handler.window.mono_font
         self.font.setPointSize(14)
 
-        if self.type is None:
-            self.label_text = "+ add type"
-        else:
-            self.label_text = "%d: %s" % (index + 1, self.type.name)
-
+        # initialize the tex
         self.text = QtWidgets.QGraphicsSimpleTextItem(self)
-        self.text.setText(self.label_text)
         self.text.setFont(self.font)
-        if self.type is not None:
-            self.color = QtGui.QColor(*HTMLColorToRGB(self.type.color))
-        else:
-            self.color = QtGui.QColor("white")
-        self.text.setBrush(QtGui.QBrush(self.color))
         self.text.setZValue(10)
+        self.updateText()
 
+        # set the brush for the background color
         self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-        self.setPos(-110, 10 + 25 * index)
         self.setZValue(9)
 
-        count = 0
-        self.AddCount(count)
-
-    def AddCount(self, new_count):
-        self.count += new_count
-        self.text.setText(self.label_text)
+    def updateText(self):
+        # get text and color from type
+        if self.type is None:
+            self.text.setText("+ add type")
+            color = QtGui.QColor("white")
+        else:
+            self.text.setText("%d: %s" % (self.index + 1, self.type.name))
+            color = QtGui.QColor(*HTMLColorToRGB(self.type.color))
+        # apply color
+        self.text.setBrush(QtGui.QBrush(color))
+        # update rect to fit text
         rect = self.text.boundingRect()
         rect.setX(-5)
         rect.setWidth(rect.width() + 5)
@@ -353,33 +354,46 @@ class MyCounter2(QtWidgets.QGraphicsRectItem):
         self.setPos(-rect.width() - 5, 10 + 25 * self.index)
 
     def SetToActiveColor(self):
+        # change background color
         self.active = True
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
 
     def SetToInactiveColor(self):
+        # change background color
         self.active = False
         self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def hoverEnterEvent(self, event):
+        # if not active highlight on mouse over
         if self.active is False:
             self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
 
     def hoverLeaveEvent(self, event):
+        # ... or switch back to standard color
         if self.active is False:
             self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
     def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.RightButton or self.type is None:  # right mouse button
-            # open marker edit menu
+        # right mouse button opens the mask menu
+        if event.button() == QtCore.Qt.RightButton or self.type is None:
+            # open the menu if it is not open alread
             if not self.mask_handler.mask_edit_window or not self.mask_handler.mask_edit_window.isVisible():
                 self.mask_handler.mask_edit_window = MaskEditor(self.mask_handler, self.mask_handler.mask_file)
                 self.mask_handler.mask_edit_window.show()
+            # select this mask type in the menu
             self.mask_handler.mask_edit_window.setMaskType(self.type)
+        # a left click selects this type
         elif event.button() == QtCore.Qt.LeftButton:
+            # when mask editing is not active, activate it
             if not self.mask_handler.active:
                 BroadCastEvent([module for module in self.mask_handler.modules if module != self.mask_handler], "setActiveModule", False)
                 self.mask_handler.setActiveModule(True)
+            # select this mask type
             self.mask_handler.SetActiveDrawType(self.index)
+
+    def delete(self):
+        # delete from scene
+        self.scene().removeItem(self)
 
 
 class MaskHandler:
@@ -388,59 +402,63 @@ class MaskHandler:
     DrawCursorSize = 10
 
     mask_opacity = 0
-    current_maskname = None
-    last_maskname = None
     color_under_cursor = None
-    image_mask_full = None
     last_x = None
     last_y = None
 
-    DrawMode = False
-    MaskChanged = False
-    MaskUnsaved = False
-    MaskEmpty = False
+    MaskChanged = False  # if the mask has been changed and display has not been updated yet
+    MaskUnsaved = False  # if the mask was changed and has to be saved
+    MaskEmpty = False  # if no mask has been loaded/created
     active = False
     hidden = False
 
-    counter = []
+    buttons = []
 
     active_draw_type_index = None
     active_draw_type = None
 
-    def __init__(self, window, parent, parent_hud, view, image_display, config, modules, datafile, new_database):
+    def __init__(self, window, parent, parent_hud, image_display, config, modules, datafile, new_database):
+        # store some references
         self.window = window
-        self.view = view
         self.parent_hud = parent_hud
         self.ImageDisplay = image_display
         self.config = config
         self.modules = modules
+
+        # create mask display
         self.MaskDisplay = BigPaintableImageDisplay(parent, config=config)
         self.drawPathItem = QtWidgets.QGraphicsPathItem(parent)
         self.drawPathItem.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
-        self.data_file = datafile
 
+        # database access
+        self.data_file = datafile
         self.mask_file = MaskFile(datafile)
 
+        # event filter to grab mouse click and move events
         self.scene_event_filter = GraphicsItemEventFilter(parent, self)
         image_display.AddEventFilter(self.scene_event_filter)
 
+        # draw path to display last drawn stroke (only used in auto_update=False mode)
         self.drawPath = self.drawPathItem.path()
         self.drawPathItem.setPath(self.drawPath)
         self.drawPathItem.setZValue(10)
 
+        # a cursor to display the currently used brush color and size
         self.DrawCursor = QtWidgets.QGraphicsPathItem(parent)
         self.DrawCursor.setPos(10, 10)
         self.DrawCursor.setZValue(10)
         self.DrawCursor.setVisible(False)
-        self.UpdateDrawCursorSize()
+        self.UpdateDrawCursorDisplay()
 
-        self.button = QtWidgets.QPushButton()
-        self.button.setCheckable(True)
-        self.button.setIcon(qta.icon("fa.paint-brush"))
-        self.button.setToolTip("add/edit mask for current frame")
-        self.button.clicked.connect(self.ToggleInterfaceEvent)
-        self.window.layoutButtons.addWidget(self.button)
+        # a button to display/hide the mask interface
+        self.buttonMask = QtWidgets.QPushButton()
+        self.buttonMask.setCheckable(True)
+        self.buttonMask.setIcon(qta.icon("fa.paint-brush"))
+        self.buttonMask.setToolTip("add/edit mask for current frame")
+        self.buttonMask.clicked.connect(self.ToggleInterfaceEvent)
+        self.window.layoutButtons.addWidget(self.buttonMask)
 
+        # take hidden flag from config
         if self.config.hide_interfaces:
             self.hidden = True
 
@@ -453,195 +471,235 @@ class MaskHandler:
                     name = "Color"
                 self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
 
-        self.UpdateCounter()
+        # update mask interface buttons
+        self.UpdateButtons()
 
         # place tick marks for already present masks
         for item in self.mask_file.get_mask_frames():
             BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
 
+        # set the mask opacity to 0.5
         self.changeOpacity(0.5)
 
-    def UpdateCounter(self):
+    def UpdateButtons(self):
         # remove all counter
-        for counter in self.counter:
-            self.view.scene.removeItem(self.counter[counter])
+        for button in self.buttons:
+            self.buttons[button].delete()
 
         # create new ones
         type_list = self.mask_file.get_mask_type_list()
-        self.counter = {index+1: MyCounter2(self.parent_hud, self, type, index+1) for index, type in enumerate(type_list)}
-        self.counter[-1] = MyCounter2(self.parent_hud, self, None, len(self.counter)+1)
-        self.counter[0] = MyCounter2(self.parent_hud, self, self.mask_file.table_mask(name="delete", color="#000000", index=0), 0)
+        # create buttons for types
+        self.buttons = {index + 1: MaskTypeButton(self.parent_hud, self, type, index + 1) for index, type in enumerate(type_list)}
+        # create button for "add_type"
+        self.buttons[-1] = MaskTypeButton(self.parent_hud, self, None, len(self.buttons) + 1)
+        # create button for background "delete"
+        self.buttons[0] = MaskTypeButton(self.parent_hud, self, self.mask_file.table_mask(name="delete", color="#000000", index=0), 0)
 
-        if len(list(self.counter.keys())):
-            self.active_draw_type = self.counter[list(self.counter.keys())[0]].type
-            self.active_draw_type_index = 0
-        else:
-            self.active_draw_type = None
-            self.active_draw_type_index = None
+        # set "delete" the active draw type
+        self.active_draw_type = self.buttons[0].type
+        self.active_draw_type_index = 0
 
+        # update the colormap of the displayed mask
         self.MaskDisplay.UpdateColormap(type_list)
 
-        for key in self.counter:
-            self.counter[key].setVisible(not self.hidden)
+        # buttons are visible according to self.hidden flag
+        for key in self.buttons:
+            self.buttons[key].setVisible(not self.hidden)
 
     def LoadImageEvent(self, filename, framenumber):
-        self.frame_number = framenumber
-        mask_entry = self.mask_file.get_mask()
+        # Broadcast from ClickPoints Main
 
-        if mask_entry:
-            self.LoadMask(mask_entry)
-        else:
-            self.LoadMask(None)
+        # load mask from mask database entry
+        self.LoadMask(self.mask_file.get_mask())
 
     def ReloadMask(self):
-        mask_entry = self.mask_file.get_mask()
-        if mask_entry:
-            self.LoadMask(self.mask_entry)
+        # load mask from mask database entry
+        self.LoadMask(self.mask_file.get_mask())
 
     def LoadMask(self, mask_entry):
-        mask_valid = False
+        # Load mask data or set to None if no
         if mask_entry is not None:
-            self.image_mask_full = mask_entry.data
-            mask_valid = True
-        self.MaskEmpty = False
-        if not mask_valid:
-            self.image_mask_full = None
-            self.MaskEmpty = True
-        self.MaskUnsaved = False
-        if self.active:
-            self.SetActiveDrawType(self.active_draw_type.index)
-
-        if mask_entry:
-            self.MaskDisplay.SetImage(Image.fromarray(self.image_mask_full))
-            self.MaskDisplay.setOpacity(self.mask_opacity)
+            self.MaskDisplay.SetImage(Image.fromarray(mask_entry.data))
+            self.MaskDisplay.setVisible(True)
+            self.MaskEmpty = False
         else:
-            self.MaskDisplay.setOpacity(0)
-
+            self.MaskDisplay.setVisible(False)
+            self.MaskEmpty = True
+        # Reset mask saved status
+        self.MaskUnsaved = False
         # reset mask display
-        self.drawPath = QtGui.QPainterPath()
-        self.drawPathItem.setPath(self.drawPath)
-
-    def AddEmptyMask(self):
-        self.image_mask_full = Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0]))
-        self.MaskDisplay.SetImage(self.image_mask_full)
-        self.MaskDisplay.setOpacity(self.mask_opacity)
-
-    def UpdateDrawCursorSize(self):
-        if self.active_draw_type is None:
-            return
-        color = QtGui.QColor(*HTMLColorToRGB(self.active_draw_type.color))
-        pen = QtGui.QPen(color, self.DrawCursorSize)
-        pen.setCapStyle(32)
-        self.drawPathItem.setPen(pen)
-        draw_cursor_path = QtGui.QPainterPath()
-        draw_cursor_path.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
-                                    self.DrawCursorSize)
-
-        self.DrawCursor.setPen(QtGui.QPen(color))
-        self.DrawCursor.setPath(draw_cursor_path)
-
-    def save(self):
-        if self.MaskUnsaved:
-            mask_entry = self.mask_file.get_mask()
-            if mask_entry is None:
-                mask_entry = self.mask_file.add_mask()
-
-            mask_entry.data = np.asarray(self.MaskDisplay.full_image)
-            mask_entry.save()
-            self.MaskUnsaved = False
-
-    def RedrawMask(self):
-        self.MaskDisplay.UpdateImage()
         self.drawPath = QtGui.QPainterPath()
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
 
+    def AddEmptyMask(self):
+        # create a new empty mask display
+        self.MaskDisplay.SetImage(Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0])))
+        self.MaskDisplay.setVisible(True)
+
+    def save(self):
+        # only save if the mask has been changed
+        if self.MaskUnsaved:
+            # get the current mask entry
+            mask_entry = self.mask_file.get_mask()
+            # if non exit yet, create a new one
+            if mask_entry is None:
+                mask_entry = self.mask_file.add_mask()
+            # assign the current mask data and save it
+            mask_entry.data = np.asarray(self.MaskDisplay.full_image)
+            mask_entry.save()
+            # reset the saved flag
+            self.MaskUnsaved = False
+
+    def RedrawMask(self):
+        # redraw the mask image
+        self.MaskDisplay.UpdateImage()
+        # delete the stroke display
+        self.drawPath = QtGui.QPainterPath()
+        self.drawPathItem.setPath(self.drawPath)
+        # reset the mask changed flag
+        self.MaskChanged = False
+
     def setActiveModule(self, active, first_time=False):
+        # activate the scene event filter (to receive mouse events)
         self.scene_event_filter.active = active
         self.active = active
+        # display the brush cursor
         self.DrawCursor.setVisible(active)
+        # set the current active button to active or inactive color
         if active:
-            self.counter[self.active_draw_type_index].SetToActiveColor()
+            self.buttons[self.active_draw_type_index].SetToActiveColor()
         else:
-            self.counter[self.active_draw_type_index].SetToInactiveColor()
+            self.buttons[self.active_draw_type_index].SetToInactiveColor()
         return True
 
     def changeOpacity(self, value):
+        # alter the opacity by value
         self.mask_opacity += value
+        # the opacity has to be maximally 1
         if self.mask_opacity >= 1:
             self.mask_opacity = 1
+        # and minimally 0
         if self.mask_opacity < 0:
             self.mask_opacity = 0
+        # set the opacity
         self.MaskDisplay.setOpacity(self.mask_opacity)
 
     def SetActiveDrawType(self, new_index):
-        if new_index >= len(self.counter)-1:
+        # only allow valid types
+        if new_index >= len(self.buttons)-1:
             return
+        # set the old button to inactive
         if self.active_draw_type_index is not None:
-            self.counter[self.active_draw_type_index].SetToInactiveColor()
-        self.active_draw_type = self.counter[new_index].type
+            self.buttons[self.active_draw_type_index].SetToInactiveColor()
+        # store the new type
+        self.active_draw_type = self.buttons[new_index].type
         self.active_draw_type_index = new_index
-        self.counter[self.active_draw_type_index].SetToActiveColor()
-
+        # set the new button to active
+        self.buttons[self.active_draw_type_index].SetToActiveColor()
+        # update mask and draw cursor
         self.RedrawMask()
-        self.UpdateDrawCursorSize()
+        self.UpdateDrawCursorDisplay()
 
     def PickColor(self):
+        # find the type which corresponds to the color_under_cursor
         for index, draw_type in enumerate(self.mask_file.get_mask_type_list()):
             if draw_type.index == self.color_under_cursor:
                 self.SetActiveDrawType(index+1)
                 return
+        # if no color has been found, take background color
         self.SetActiveDrawType(0)
 
     def changeCursorSize(self, value):
+        # increase/decrease the brush size by value
         self.DrawCursorSize += value
+        # size has to be at least 1
         if self.DrawCursorSize < 1:
             self.DrawCursorSize = 1
-        self.UpdateDrawCursorSize()
+        # update displayed brush cursor size
+        self.UpdateDrawCursorDisplay()
         if self.MaskChanged:
             self.RedrawMask()
 
-    def DrawLine(self, start_x, end_x, start_y, end_y):
-        self.drawPath.moveTo(start_x, start_y)
-        self.drawPath.lineTo(end_x, end_y)
-        self.drawPathItem.setPath(self.drawPath)
+    def UpdateDrawCursorDisplay(self):
+        # if no type is selected do nothing
+        if self.active_draw_type is None:
+            return
 
+        # get the color from the current type
+        color = QtGui.QColor(*HTMLColorToRGB(self.active_draw_type.color))
+
+        # create a pen with this color and apply it ti the drawPathItem
+        pen = QtGui.QPen(color, self.DrawCursorSize)
+        pen.setCapStyle(Qt.RoundCap)
+        self.drawPathItem.setPen(pen)
+
+        # update color and size of brush cursor
+        draw_cursor_path = QtGui.QPainterPath()
+        draw_cursor_path.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
+                                    self.DrawCursorSize)
+        self.DrawCursor.setPen(QtGui.QPen(color))
+        self.DrawCursor.setPath(draw_cursor_path)
+
+    def DrawLine(self, start_x, end_x, start_y, end_y):
+        # draw the line on the mask
         self.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.DrawCursorSize, self.active_draw_type)
         self.MaskChanged = True
         self.MaskUnsaved = True
+
+        # directly update the mask or display last stroke as drawPath
         if self.config.auto_mask_update:
             self.RedrawMask()
+        else:
+            self.drawPath.moveTo(start_x, start_y)
+            self.drawPath.lineTo(end_x, end_y)
+            self.drawPathItem.setPath(self.drawPath)
+
+        # if the mask was empty notifiy moduels that a new mask was created
         if self.MaskEmpty:
             self.MaskEmpty = False
             BroadCastEvent(self.modules, "MaskAdded")
 
     def sceneEventFilter(self, event):
+        # only draw if an image is currently displayed
         if self.data_file.image is None:
             return False
+        # Mouse press starts drawing
         if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton:
             # if no mask has been created, create one for painting
-            if self.image_mask_full is None:
+            if self.MaskEmpty is True:
                 self.AddEmptyMask()
+            # store the coordinates
             self.last_x = event.pos().x()
             self.last_y = event.pos().y()
+            # add a first circle (so that even if the mouse isn't moved something is drawn)
             self.DrawLine(self.last_x, self.last_x + 0.00001, self.last_y, self.last_y)
+            # accept the event
             return True
+        # Mouse move event to draw the stroke
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
+            # get the new position
             self.DrawCursor.setPos(event.pos())
             pos_x = event.pos().x()
             pos_y = event.pos().y()
+            # draw a line and store the position
             self.DrawLine(pos_x, self.last_x, pos_y, self.last_y)
             self.last_x = pos_x
             self.last_y = pos_y
+            # accept the event
             return True
+        # Mouse hover updates the color_under_cursor and displays the brush cursor
         if event.type() == QtCore.QEvent.GraphicsSceneHoverMove:
+            # move brush cursor
             self.DrawCursor.setPos(event.pos())
-            if self.image_mask_full is None:
+            # get color at this position
+            if self.MaskEmpty is True:
                 self.color_under_cursor = 0
             else:
                 color = self.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
                 if color is not None:
                     self.color_under_cursor = color
+        # don't accept the event, so that others can accept it
         return False
 
     def keyPressEvent(self, event):
@@ -674,19 +732,20 @@ class MaskHandler:
             self.RedrawMask()
             
     def ToggleInterfaceEvent(self):
+        # invert hidden status
         self.hidden = not self.hidden
-        for counter in self.counter:
-            self.counter[counter].setVisible(not self.hidden)
-        self.button.setChecked(not self.hidden)
+        # update visibility status of the buttons
+        for button in self.buttons:
+            self.buttons[button].setVisible(not self.hidden)
+        # set the mask button to checked/unchecked
+        self.buttonMask.setChecked(not self.hidden)
 
     def closeEvent(self, event):
+        # close the mask editor window when ClickPoints is closed
         if self.mask_edit_window:
             self.mask_edit_window.close()
 
     @staticmethod
     def file():
+        # return the file (needed for the key help display)
         return __file__
-
-    @staticmethod
-    def can_create_module(config):
-        return len(config.draw_types) > 0
