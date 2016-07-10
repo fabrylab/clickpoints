@@ -797,6 +797,20 @@ class DataFile:
         query = self.table_track.select()
         return query
 
+    def GetTrack(self, track_id=None):
+        """
+        Get a specific track entry by its database ID
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains the requested :py:class:`Track`.
+        """
+        try:
+            return self.table_track.select().where(self.table_track.id == track_id)
+        except peewee.DoesNotExist:
+            return None
+
     def AddTrack(self, type):
         """
         Add a new track entry
