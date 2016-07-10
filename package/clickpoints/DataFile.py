@@ -902,7 +902,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def GetMarker(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None, order_by='sort_index'):
+    def GetMarker(self, image=None, image_filename=None, timestamp=None, processed=None, type=None, type_name=None, track=None, order_by='sort_index'):
         """
         Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
         ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
@@ -932,9 +932,9 @@ class DataFile:
                  .switch(self.table_marker)
                  .join(self.table_image)
                  )
-        parameter = [image, image_filename, processed, type, type_name, track]
+        parameter = [image, image_filename, timestamp, processed, type, type_name, track]
         table = self.table_marker
-        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name,
+        fields = [table.image, self.table_image.filename, self.table_image.timestamp, table.processed, table.type, self.table_markertype.name,
                   table.track]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
