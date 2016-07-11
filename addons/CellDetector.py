@@ -5,6 +5,7 @@ import numpy as np
 from numpy.linalg import eig, inv
 from skimage.measure import regionprops, label
 
+__icon__ = "fa.bullseye"
 
 def moveInDirection(startx, starty, dir, im, factor, maximum):
     cut = np.zeros(maximum)

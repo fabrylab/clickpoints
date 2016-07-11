@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import sys
 import numpy as np
+__icon__ = "fa.road"
 
 # define tracking parameter
 import cv2

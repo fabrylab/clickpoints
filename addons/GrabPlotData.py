@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import os
 import clickpoints
+__icon__ = "fa.th"
 
 def Remap(value, minmax1, minmax2):
     """ Map from range minmax1 to range minmax2 """
