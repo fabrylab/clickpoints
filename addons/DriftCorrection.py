@@ -5,6 +5,8 @@ from scipy.ndimage.measurements import center_of_mass
 import peewee
 import sys
 
+__icon__ = "fa.object-ungroup"
+
 import clickpoints
 
 # Connect to database

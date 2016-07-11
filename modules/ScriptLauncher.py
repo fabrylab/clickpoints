@@ -18,6 +18,8 @@ except ImportError:
 import imageio
 from includes import MemMap
 from Tools import BroadCastEvent
+import re
+import time
 
 class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -109,6 +111,7 @@ class ScriptEditor(QtWidgets.QWidget):
             item = QtWidgets.QListWidgetItem(qta.icon("fa.code"), "%s  (F%d)" % (script, 12-index), self.list)
             item.path_entry = script
         QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add script", self.list)
+        self.script_launcher.updateScripts()
 
     def select_file(self):
         # ask for a file name
@@ -171,15 +174,62 @@ class ScriptLauncher(QtCore.QObject):
         self.memmap_size = 0
 
         self.button = QtWidgets.QPushButton()
-        self.button.setIcon(qta.icon("fa.code"))
+        self.button.setIcon(qta.icon("fa.external-link"))
         self.button.clicked.connect(self.showScriptSelector)
         self.button.setToolTip("load/remove addon scripts")
         self.window.layoutButtons.addWidget(self.button)
+
+        self.button_group_layout = QtWidgets.QHBoxLayout()
+        self.button_group_layout.setMargin(0)  # setStyleSheet("margin: 0px; padding: 0px;")
+        self.script_buttons = []
+        self.window.layoutButtons.addLayout(self.button_group_layout)
 
         self.scripts = self.config.launch_scripts
         self.script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "addons"))
 
         #self.running_processes = [None]*len(self.config.launch_scripts)
+        self.updateScripts()
+
+    def updateScripts(self):
+        for button in self.script_buttons:
+            self.button_group_layout.removeWidget(button)
+        self.script_buttons = []
+        for index, script in enumerate(self.scripts):
+            button = QtWidgets.QPushButton()
+            button.setCheckable(True)
+            button.icon_name = "fa.bar-chart"
+            if os.path.exists(os.path.join(self.config.path_config, script)):
+                script_path = os.path.join(self.config.path_config, script)
+            # or relative to the clickpoints path
+            elif os.path.exists(os.path.join(self.config.path_clickpoints, "addons", script)):
+                script_path = os.path.join(self.config.path_clickpoints, "addons", script)
+            with open(script_path) as fp:
+                for line in fp:
+                    line = line.strip()
+                    if line.startswith("__icon__"):
+                        match = re.match(r"__[^_]*__\s*=\s*\"(.*)\"\s*$", line)
+                        if match:
+                            print(match.groups())
+                            button.icon_name = match.groups()[0]
+                        break
+            button.setIcon(qta.icon(button.icon_name))
+            button.setToolTip(script)
+            button.clicked.connect(lambda x, i=index: self.launch(i))
+            self.button_group_layout.addWidget(button)
+            self.script_buttons.append(button)
+
+    def CheckProcessRunning(self, timer, process, button):
+        if process.pid in psutil.pids() and process.poll() is None:
+            spin_icon = qta.icon(button.icon_name, 'fa.hourglass-%d' % (int(timer.duration()*2) % 3 +1), options=[{},
+                                                                            {'scale_factor': 0.9, 'offset': (0.3, 0.2),
+                                                                             'color': QtGui.QColor(128, 0, 0)}])
+            button.setIcon(spin_icon)
+            button.setChecked(True)
+            return
+        spin_icon = qta.icon(button.icon_name)
+        button.setIcon(spin_icon)
+        button.setChecked(False)
+        timer.stop()
 
     def showScriptSelector(self):
         self.scriptSelector = ScriptEditor(self)
@@ -263,42 +313,52 @@ class ScriptLauncher(QtCore.QObject):
                 sock.sendto(msg.encode(), ('127.0.0.1', p['broadcast_port']))
                 sock.close()
 
+    def launch(self, index):
+        script = self.scripts[index]
+        process = self.running_processes[index]['process']
+        if process is not None and process.pid in psutil.pids() and process.poll() is None:
+            if hasattr(os.sys, 'winver'):
+                os.kill(process.pid, signal.CTRL_BREAK_EVENT)
+            else:
+                process.send_signal(signal.SIGTERM)
+            return
+        self.window.Save()
+        script_path = None
+        # search script relative to the config file
+        print(os.path.join(self.config.path_config, script))
+        print(os.path.join(self.config.path_clickpoints, "addons", script))
+        if os.path.exists(os.path.join(self.config.path_config, script)):
+            script_path = os.path.join(self.config.path_config, script)
+        # or relative to the clickpoints path
+        elif os.path.exists(os.path.join(self.config.path_clickpoints, "addons", script)):
+            script_path = os.path.join(self.config.path_clickpoints, "addons", script)
+        # print an error message if no file was found
+        if script_path is None:
+            print("ERROR: script %s not found." % script)
+            return
+        args = [sys.executable, os.path.abspath(script_path), "--start_frame", str(self.data_file.get_current_image()),
+                "--port", str(self.PORT), "--database", str(self.data_file.database_filename)]
+        print('arags:', args)
+        if hasattr(os.sys, 'winver'):
+            process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+        else:
+            process = subprocess.Popen(args)
+        self.running_processes[index]['process'] = process
+        self.running_processes[index]['command_port'] = self.PORT
+        self.running_processes[index]['broadcast_port'] = self.PORT + 1
+        print("Process", process)
+        timer = QtCore.QTimer()
+        timer.timeout.connect(lambda: self.CheckProcessRunning(timer, process, self.script_buttons[index]))
+        timer.start_time = time.time()
+        timer.duration = lambda: time.time()-timer.start_time
+        timer.start(10)
+
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
-        for script, key, index in zip(self.scripts, keys, range(len(self.scripts))):
+        for index, key in enumerate(keys):
             # @key F12: Launch
             if event.key() == key:
-                process = self.running_processes[index]['process']
-                if process is not None and process.pid in psutil.pids() and process.poll() is None:
-                    if hasattr(os.sys, 'winver'):
-                        os.kill(process.pid, signal.CTRL_BREAK_EVENT)
-                    else:
-                        process.send_signal(signal.SIGTERM)
-                    continue
-                self.window.Save()
-                script_path = None
-                # search script relative to the config file
-                print(os.path.join(self.config.path_config, script))
-                print(os.path.join(self.config.path_clickpoints, "addons", script))
-                if os.path.exists(os.path.join(self.config.path_config, script)):
-                    script_path = os.path.join(self.config.path_config, script)
-                # or relative to the clickpoints path
-                elif os.path.exists(os.path.join(self.config.path_clickpoints, "addons", script)):
-                    script_path = os.path.join(self.config.path_clickpoints, "addons", script)
-                # print an error message if no file was found
-                if script_path is None:
-                    print("ERROR: script %s not found." % script)
-                    continue
-                args = [sys.executable, os.path.abspath(script_path), "--start_frame", str(self.data_file.get_current_image()), "--port", str(self.PORT), "--database", str(self.data_file.database_filename)]
-                print('arags:', args)
-                if hasattr(os.sys, 'winver'):
-                    process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
-                else:
-                    process = subprocess.Popen(args)
-                self.running_processes[index]['process'] = process
-                self.running_processes[index]['command_port'] = self.PORT
-                self.running_processes[index]['broadcast_port'] = self.PORT + 1
-                print("Process",process)
+                self.launch(index)
 
     def closeEvent(self, event):
         if self.scriptSelector:
