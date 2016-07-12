@@ -226,8 +226,7 @@ class ScriptLauncher(QtCore.QObject):
             button.setIcon(spin_icon)
             button.setChecked(True)
             return
-        spin_icon = qta.icon(button.icon_name)
-        button.setIcon(spin_icon)
+        button.setIcon(qta.icon(button.icon_name))
         button.setChecked(False)
         timer.stop()
 
@@ -352,6 +351,7 @@ class ScriptLauncher(QtCore.QObject):
         timer.start_time = time.time()
         timer.duration = lambda: time.time()-timer.start_time
         timer.start(10)
+        self.script_buttons[index].timer = timer
 
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
