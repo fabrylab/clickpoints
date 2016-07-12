@@ -28,3 +28,4 @@ CREATE TABLE "tagassociation" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id
 CREATE INDEX "tagassociation_tag_id" ON "tagassociation" ("tag_id");
 CREATE INDEX "tagassociation_annotation_id" ON "tagassociation" ("annotation_id");
 CREATE TRIGGER no_empty_tracks                                AFTER DELETE ON marker                                BEGIN                                  DELETE FROM track WHERE id = OLD.track_id AND (SELECT COUNT(marker.id) FROM marker WHERE marker.track_id = track.id) = 0;                                END;
+INSERT OR REPLACE INTO meta (id,key,value) VALUES            ((SELECT id FROM meta WHERE key='version'),'version',13);
