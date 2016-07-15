@@ -321,7 +321,6 @@ class DataFile:
             y = peewee.FloatField()
             type = peewee.ForeignKeyField(MarkerType, related_name="markers", null=True, on_delete='CASCADE')
             processed = peewee.IntegerField(default=0)
-            partner = peewee.ForeignKeyField('self', null=True, related_name='partner2', on_delete='SET NULL')
             track = peewee.ForeignKeyField(Track, null=True, related_name='track_markers', on_delete='CASCADE')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
@@ -391,6 +390,8 @@ class DataFile:
                     return self.correctedXY()
                 if item == "pos":
                     return self.pos()
+                if item == "length":
+                    return self.length()
                 return BaseModel(self, item)
 
             def correctedXY(self):
@@ -414,6 +415,9 @@ class DataFile:
 
             def pos(self):
                 return np.array([self.x, self.y])
+
+            def length(self):
+                return np.sqrt((self.x1-self.x2)**2 + (self.y1-self.y2)**2)
 
         class Rectangle(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="rectangles", on_delete='CASCADE')
@@ -454,6 +458,12 @@ class DataFile:
                     return self.correctedXY()
                 if item == "pos":
                     return self.pos()
+                if item == "slice_x":
+                    return self.slice_x()
+                if item == "slice_y":
+                    return self.slice_y()
+                if item == "area":
+                    return self.area()
                 return BaseModel(self, item)
 
             def correctedXY(self):
@@ -477,6 +487,19 @@ class DataFile:
 
             def pos(self):
                 return np.array([self.x, self.y])
+
+            def slice_x(self):
+                if self.width < 0:
+                    return slice(int(self.x+self.width), int(self.x))
+                return slice(int(self.x), int(self.x+self.width))
+
+            def slice_y(self):
+                if self.height < 0:
+                    return slice(int(self.y+self.height), int(self.y))
+                return slice(int(self.y), int(self.y + self.height))
+
+            def area(self):
+                return self.width * self.height
 
         self.table_marker = Marker
         self.table_line = Line
@@ -805,18 +828,32 @@ class DataFile:
 
     def GetImages(self, start_frame=None):
         """
-        Get all images sorted by sort index.
+        Get all images sorted by sort index. For large databases :py:meth:`~.DataFile.GetImageIterator`, should be used
+        as it doesn't load all frames at once.
 
         Parameters
         ----------
         start_frame : int, optional
             only return images with sort_index >= start_frame. Default is 0, which returns all images
 
-    
         Returns
         -------
         entries : array_like
             a query object containing all the :py:class:`Image` entries in the database file.
+
+        Examples
+        --------
+        .. code-block:: python
+            :linenos:
+
+            import clickpoints
+
+            # open the database "data.cdb"
+            db = clickpoints.DataFile("data.cdb")
+
+            # iterate over all images and print the filename
+            for image in db.GetImages():
+                print(image.filename)
         """
 
         query = self.table_image.select()
@@ -834,11 +871,24 @@ class DataFile:
         start_frame : int, optional
             start at the image with the number start_frame. Default is 0
 
-
         Returns
         -------
         entries : array_like
             a query object containing all the :py:class:`Image` entries in the database file.
+
+        Examples
+        --------
+        .. code-block:: python
+            :linenos:
+
+            import clickpoints
+
+            # open the database "data.cdb"
+            db = clickpoints.DataFile("data.cdb")
+
+            # iterate over all images and print the filename
+            for image in db.GetImageIterator():
+                print(image.filename)
         """
 
         frame = start_frame
@@ -1063,6 +1113,8 @@ class DataFile:
         ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
         supplied, any entry with a value from the list is matched.
 
+        See also: :py:meth:`~.DataFile.GetRectangles`, :py:meth:`~.DataFile.GetLines`, :py:meth:`~.DataFile.GetTracks`
+
         Parameters
         ----------
         image : int, array, optional
@@ -1071,6 +1123,8 @@ class DataFile:
             the processed flag(s) for the markers to be selected.
         type : int, array, optional
             the type id(s) for the markers to be selected.
+        type_name : string, array, optional
+            the type name(s) for the markers to be selected.
         track : int, array, optional
             the track id(s) for the markers to be selected.
         order_by: string ['sort_index','timestamp']
@@ -1079,7 +1133,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which can be iterated to get the :py:class:`Tracks` entries which where matched by the parameters provided.
+            a query object which can be iterated to get the :py:class:`Marker` entries which where matched by the parameters provided.
         """
         # select marker, joined with types and images
         query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
@@ -1100,46 +1154,46 @@ class DataFile:
                 query = query.where(field == parameter)
 
         # order query results by
-        if order_by=='sort_index':
+        if order_by == 'sort_index':
             query = query.order_by(self.table_image.sort_index)
-        elif order_by=='timestamp':
+        elif order_by == 'timestamp':
             query = query.order_by(self.table_image.timestamp)
         else:
-            print("Unknown order_by paramter %s - results not sorted!" % order_by)
+            print("Unknown order_by parameter %s - results not sorted!" % order_by)
 
         return query
 
-    def GetRectangles(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
+    def GetRectangles(self, image=None, image_filename=None, processed=None, type=None, type_name=None):
         """
-        See GetMarkers, but it already merges all connected markers to rectangles and filters for markers with a
-        TYPE_Rect marker type. Single markers are omitted.
+        Works like :py:meth:`~.DataFile.GetMarker`, but for Rectangles.
+
+        See also: :py:meth:`~.DataFile.GetMarker`, :py:meth:`~.DataFile.GetLines`, :py:meth:`~.DataFile.GetTracks`
 
         Parameters
         ----------
         image : int, array, optional
-            the image id(s) for the markers to be selected.
+            the image id(s) for the rectangles to be selected.
         processed : bool, array, optional
-            the processed flag(s) for the markers to be selected.
+            the processed flag(s) for the rectangles to be selected.
         type : int, array, optional
-            the type id(s) for the markers to be selected.
-        track : int, array, optional
-            the track id(s) for the markers to be selected.
+            the type id(s) for the rectangles to be selected.
+        type_name : string, array, optional
+            the type name(s) for the markers to be selected.
 
         Returns
         -------
         entries : array_like
-            a list of :py:class:`~.Rectangle` objects.
+            a list of :py:class:`Rectangle` objects.
         """
         # select marker, joined with types and images
-        query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
+        query = (self.table_rectangle.select(self.table_marker, self.table_markertype, self.table_image)
                  .join(self.table_markertype)
-                 .switch(self.table_marker)
+                 .switch(self.table_rectangle)
                  .join(self.table_image)
                  )
-        parameter = [image, image_filename, processed, type, type_name, track]
+        parameter = [image, image_filename, processed, type, type_name]
         table = self.table_marker
-        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name,
-                  table.track]
+        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
                 continue
@@ -1148,52 +1202,40 @@ class DataFile:
             else:
                 query = query.where(field == parameter)
 
-        # iterate over markers and merge rectangles
-        rects = []
-        for rect in query:
-            if rect.type.mode & self.TYPE_Rect:
-                try:
-                    # only if we have a partner and the partner has a smaller id (so that we only get one of each pair)
-                    if rect.partner_id and rect.id < rect.partner.id:
-                        # create a rectangle item and append it to the lisst
-                        rects.append(Rectangle(rect.x, rect.y, rect.partner.x, rect.partner.y, rect, rect.partner))
-                # ignore markers where the partner doesn't exist
-                except peewee.DoesNotExist:
-                    pass
-        # return the list
-        return rects
+        # return the query
+        return query
 
-    def GetLines(self, image=None, image_filename=None, processed=None, type=None, type_name=None, track=None):
+    def GetLines(self, image=None, image_filename=None, processed=None, type=None, type_name=None):
         """
-        See GetMarkers, but it already merges all connected markers to lines and filters for markers with a TYPE_Line
-        marker type. Single markers are omitted.
+        Works like :py:meth:`~.DataFile.GetMarker`, but for lines.
+
+        See also: :py:meth:`~.DataFile.GetMarker`, :py:meth:`~.DataFile.GetRectangles`, :py:meth:`~.DataFile.GetTracks`
 
         Parameters
         ----------
         image : int, array, optional
-            the image id(s) for the markers to be selected.
+            the image id(s) for the lines to be selected.
         processed : bool, array, optional
-            the processed flag(s) for the markers to be selected.
+            the processed flag(s) for the lines to be selected.
         type : int, array, optional
-            the type id(s) for the markers to be selected.
-        track : int, array, optional
-            the track id(s) for the markers to be selected.
+            the type id(s) for the lines to be selected.
+        type_name : string, array, optional
+            the type name(s) for the markers to be selected.
 
         Returns
         -------
         entries : array_like
-            a list of :py:class:`~.Line` objects.
+            a list of :py:class:`Line` objects.
         """
         # select marker, joined with types and images
-        query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
+        query = (self.table_line.select(self.table_line, self.table_markertype, self.table_image)
                  .join(self.table_markertype)
-                 .switch(self.table_marker)
+                 .switch(self.table_line)
                  .join(self.table_image)
                  )
-        parameter = [image, image_filename, processed, type, type_name, track]
+        parameter = [image, image_filename, processed, type, type_name]
         table = self.table_marker
-        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name,
-                  table.track]
+        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
                 continue
@@ -1202,22 +1244,10 @@ class DataFile:
             else:
                 query = query.where(field == parameter)
 
-        # iterate over markers and merge rectangles
-        lines = []
-        for line in query:
-            if line.type.mode & self.TYPE_Line:
-                try:
-                    # only if we have a partner and the partner has a smaller id (so that we only get one of each pair)
-                    if line.partner_id and line.id < line.partner.id:
-                        # create a rectangle item and append it to the lisst
-                        lines.append(Line(line.x, line.y, line.partner.x, line.partner.y, line, line.partner))
-                # ignore markers where the partner doesn't exist
-                except peewee.DoesNotExist:
-                    pass
-        # return the list
-        return lines
+        # return the query
+        return query
 
-    def SetMarker(self, id=None, image=None, x=None, y=None, processed=0, partner=None, type=None, track=None,
+    def SetMarker(self, id=None, image=None, x=None, y=None, processed=0, type=None, track=None,
                   marker_text=None):
         """
         Insert or update markers in the database file. Every parameter can either be omitted, to use the default value,
@@ -1237,8 +1267,6 @@ class DataFile:
             the y coordinate(s) for the markers to be inserted.
         processed : bool, array, optional
             the processed flag(s) for the markers to be inserted.
-        partner : int, array, optional
-            the partner id(s) for the markers to be inserted.
         type : int, array, optional
             the type id(s) for the markers to be inserted.
         track : int, array, optional
@@ -1246,11 +1274,14 @@ class DataFile:
 
         Examples
         --------
-        >>> points = db.GetMarker(image=image)
-        >>> p0 = np.array([[point.x, point.y] for point in points if point.track_id])
-        >>> tracking_ids = [point.track_id for point in points if point.track_id]
-        >>> types = [point.type_id for point in points if point.track_id]
-        >>> db.SetMarker(image=image, x=p0[:, 0]+10, y=p0[:, 1], processed=0, type=types, track=tracking_ids)
+        .. code-block:: python
+            :linenos:
+
+            points = db.GetMarker(image=image)
+            p0 = np.array([[point.x, point.y] for point in points if point.track_id])
+            tracking_ids = [point.track_id for point in points if point.track_id]
+            types = [point.type_id for point in points if point.track_id]
+            db.SetMarker(image=image, x=p0[:, 0]+10, y=p0[:, 1], processed=0, type=types, track=tracking_ids)
 
         Get all the points of an image and move them 10 pixels to the right.
 
@@ -1279,10 +1310,10 @@ class DataFile:
             pass
         data_sets = []
         table = self.table_marker
-        fields = [table.id, table.image, table.x, table.y, table.processed, table.partner_id, table.type, table.text,
+        fields = [table.id, table.image, table.x, table.y, table.processed, table.type, table.text,
                   table.track]
         names = ["id", "image_id", "x", "y", "processed", "partner_id", "type_id", "text", "track_id"]
-        for data in np.broadcast(id, image, x, y, processed, partner, type, marker_text, track):
+        for data in np.broadcast(id, image, x, y, processed, type, marker_text, track):
             data_set = []
             condition_list = ["image_id", "track_id"]
             # TODO: track_id param as position=[-1] is BAD
@@ -1313,7 +1344,7 @@ class DataFile:
                         else:
                             data_set.append(str(value))
             data_sets.append(",\n ".join(data_set))
-        query = "INSERT OR REPLACE INTO marker (id, image_id, x, y, processed, partner_id, type_id, text, track_id)\n VALUES (\n"
+        query = "INSERT OR REPLACE INTO marker (id, image_id, x, y, processed, type_id, text, track_id)\n VALUES (\n"
         query += "),\n (".join(data_sets)
         query += ");"
 

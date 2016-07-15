@@ -74,6 +74,8 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **path** *(* :py:class:`Path` *)* - the linked path entry containing the path to the image.
         - **offset** *(* :py:class:`Offset` *)* - the linked offset entry containing the offsets stored for this image.
         - **markers** *(list of* :py:class:`Marker` *)* - a list of marker entries for this image.
+        - **lines** *(list of* :py:class:`Line` *)* - a list of line entries for this image.
+        - **rectangles** *(list of* :py:class:`Rectangle` *)* - a list of rectangle entries for this image.
         - **mask** *(* :py:class:`Mask` *)* - the mask entry associated with the image.
         - **data** *(array)* - the image data as a numpy array. Data will be loaded on demand and cached.
         - **data8** *(array, uint8)* - the image data converted to unsigned 8 bit integers.
@@ -107,24 +109,62 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **color** *(str)* - the color of the marker in HTML format, e.g. #FF0000 (red).
         - **mode** *(int)* - the mode, hast to be either: TYPE_Normal, TYPE_Rect, TYPE_Line or TYPE_Track
         - **style** *(str)* - the style of the marker.
-        - **markers** *(list of* :py:class:`Marker` *)* - a list containing all markers that use this type.
+        - **markers** *(list of* :py:class:`Marker` *)* - a list containing all markers of this type. Only for TYPE_Normal and TYPE_Track.
+        - **lines** *(list of* :py:class:`Line` *)* - a list containing all lines of this type. Only for TYPE_Line.
+        - **markers** *(list of* :py:class:`Rectangle` *)* - a list containing all rectangles of this type. Only for TYPE_Rect.
 
 .. py:class:: Marker()
 
-   A marker.
+   A marker. Can be queries by :py:meth:`~.DataFile.GetMarker` and set by :py:meth:`~.DataFile.SetMarker`.
 
    Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
         - **x** *(int)* - the x coordinate of the marker.
         - **y** *(int)* - the y coordinate of the marker.
         - **type** *(* :py:class:`MarkerType` *)* - the marker type.
-        - **processed** *(bool)* - a flag that is set to 0 if the marker is manually moved in ClickPoints, it can be set from an addon if the addon has already processed this marker.
-        - **partner** *(* :py:class:`Marker` *)* - a partner marker with is associated with this marker. Only for TYPE_Line or TYPE_Rect markers.
+        - **processed** *(bool)* - a flag that is set to 0 if the marker is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this marker.
         - **style** *(str)* - the style definition of the marker.
-        - **text** *(str)* - an aditional text associated with the marker. It is displayed next to the marker in ClickPoints.
+        - **text** *(str)* - an additional text associated with the marker. It is displayed next to the marker in ClickPoints.
         - **track** *(* :py:class:`Track` *)* - the track entry the marker belongs to. Only for TYPE_Track.
         - **correctedXY()** *(array)* - the marker position corrected by the offset of the image.
         - **pos()** *(array)* - an array containing the coordinates of the marker: [x, y].
+
+.. py:class:: Line()
+
+   A line. Can be queries by :py:meth:`~.DataFile.GetLines`.
+
+   Attributes:
+        - **image** *(* :py:class:`Image` *)* - the image entry associated with this line.
+        - **x1** *(int)* - the first x coordinate of the line.
+        - **y1** *(int)* - the first y coordinate of the line.
+        - **x2** *(int)* - the second x coordinate of the line.
+        - **y2** *(int)* - the second y coordinate of the line.
+        - **type** *(* :py:class:`MarkerType` *)* - the marker type.
+        - **processed** *(bool)* - a flag that is set to 0 if the line is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this line.
+        - **style** *(str)* - the style definition of the line.
+        - **text** *(str)* - an additional text associated with the line. It is displayed next to the line in ClickPoints.
+        - **correctedXY()** *(array)* - the line positions corrected by the offset of the image.
+        - **pos()** *(array)* - an array containing the coordinates of the line: [x, y].
+        - **length** *(float)* - the length of the line in pixel.
+
+.. py:class:: Rectangle()
+
+   A rectangle. Can be queried by :py:meth:`~.DataFile.GetRectangles`.
+
+   Attributes:
+        - **image** *(* :py:class:`Image` *)* - the image entry associated with this rectangle.
+        - **x** *(int)* - the x coordinate of the rectangle.
+        - **y** *(int)* - the y coordinate of the rectangle.
+        - **width** *(int)* - the width of the rectangle.
+        - **height** *(int)* - the height of the rectangle.
+        - **type** *(* :py:class:`MarkerType` *)* - the marker type.
+        - **processed** *(bool)* - a flag that is set to 0 if the rectangle is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this line.
+        - **style** *(str)* - the style definition of the rectangle.
+        - **text** *(str)* - an additional text associated with the rectangle. It is displayed next to the rectangle in ClickPoints.
+        - **correctedXY()** *(array)* - the rectangle positions corrected by the offset of the image.
+        - **pos()** *(array)* - an array containing the coordinates of the rectangle: [x, y].
+        - **slice_x** *(slice*) - a slice object to use the rectangle to cut out a region of an image
+        - **slice_y** *(slice)* - a slice object to use the rectangle to cut out a region of an image
 
 .. py:class:: Mask()
 
@@ -173,17 +213,6 @@ The database contains some tables represented in the ClickPoints api as peewee m
    Attributes:
         - **annotation** *(* :py:class:`Annotation` *)* - the linked annotation.
         - **tag** *(* :py:class:`Tag` *)* - the linked tag.
-
-Helper Classes
---------------
-
-These two classes are return values of the :py:meth:`~.DataFile.GetRectangles` and the :py:meth:`~.DataFile.GetLines` functions.
-
-.. autoclass:: clickpoints.Rectangle
-   :members:
-
-.. autoclass:: clickpoints.Line
-   :members:
 
 Commands
 --------   
