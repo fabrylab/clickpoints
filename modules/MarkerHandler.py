@@ -414,7 +414,7 @@ class MarkerEditor(QtWidgets.QWidget):
             item_marker.entry = marker
             item_marker.setEditable(False)
             item_track.appendRow(item_marker)
-            self.marker_modelitems[marker.id] = item_marker
+            self.marker_modelitems["M%d" % marker.id] = item_marker
 
         # mark the entry as expanded and rest the icon
         entry.expanded = True
@@ -589,6 +589,11 @@ class MarkerEditor(QtWidgets.QWidget):
         print("Remove ...")
         # currently selected a marker -> remove the marker
         if type(self.data) == self.data_file.table_marker or type(self.data) == self.data_file.table_line or type(self.data) == self.data_file.table_rectangle:
+            data_string = {self.data_file.table_marker: "M%d", self.data_file.table_line: "L%d", self.data_file.table_rectangle: "R%d"}
+            # get the tree view item (don't delete it right away because this changes the selection)
+            index = data_string[type(self.data)] % self.data.id
+            item = self.marker_modelitems[index]
+
             if not (self.data.type.mode & TYPE_Track):
                 # find point
                 marker_item = self.marker_handler.GetMarkerItem(self.data)
@@ -601,6 +606,13 @@ class MarkerEditor(QtWidgets.QWidget):
                 # find corresponding track and remove the point
                 track_item = self.marker_handler.GetMarkerItem(self.data.track)
                 track_item.RemoveTrackPoint(self.data.image.sort_index)
+
+            # if it is the last item from a track deletet the track item
+            if (self.data.type.mode & TYPE_Track) and item.parent().rowCount() == 1:
+                item = item.parent()
+            # and then delete the tree view item
+            item.parent().removeRow(item.row())
+            del self.marker_modelitems[index]
 
         # currently selected a track -> remove the track
         elif type(self.data) == self.data_file.table_track:
@@ -644,8 +656,8 @@ class MarkerEditor(QtWidgets.QWidget):
             self.marker_handler.UpdateCounter()
 
         # close widget
-        self.marker_handler.marker_edit_window = None
-        self.close()
+        #self.marker_handler.marker_edit_window = None
+        #self.close()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Escape:
