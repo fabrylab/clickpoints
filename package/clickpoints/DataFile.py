@@ -36,7 +36,7 @@ def CheckValidColor(color):
     class NoValidColor(Exception):
         pass
 
-    if isinstance(object, basestring):
+    if isinstance(color, basestring):
         if color[0] == "#":
             color = color[1:]
         for c in color:
@@ -1312,7 +1312,7 @@ class DataFile:
         table = self.table_marker
         fields = [table.id, table.image, table.x, table.y, table.processed, table.type, table.text,
                   table.track]
-        names = ["id", "image_id", "x", "y", "processed", "partner_id", "type_id", "text", "track_id"]
+        names = ["id", "image_id", "x", "y", "processed", "type_id", "text", "track_id"]
         for data in np.broadcast(id, image, x, y, processed, type, marker_text, track):
             data_set = []
             condition_list = ["image_id", "track_id"]
@@ -1374,7 +1374,7 @@ class DataFile:
         Returns
         -------
         entries : array_like
-            a query object which contains all :py:clss:`Mask` entries.
+            a query object which contains all :py:class:`Mask` entries.
         """
 
         query = self.table_mask.select()
