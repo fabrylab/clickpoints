@@ -1,6 +1,11 @@
 Supervised Tracking of Fiducial Markers in Magnetic Tweezer Measurements
 ========================================================================
 
+.. figure:: images/example_beadtracking.png
+   :alt: Example bead tracking
+
+   Left: the image of beads on cells loaded in ClickPoints. Right: displacement of beads.
+
 In the example, we show how the ClickPoints addon ``Track.py`` can be used to track objects in an image and how the
 resulting tracks can later on be used to calculate displacements.
 

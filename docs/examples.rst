@@ -11,7 +11,7 @@ To kept the download size of ClickPoints down, the examples are kept in a separa
     :caption: List of Examples
     :maxdepth: 2
 
-    Bead Tracking <example_tweezer>
-    Simulation Visualisation <example_simulation>
     example_countpenguins
     example_plantroot
+    Bead Tracking <example_tweezer>
+    Simulation Visualisation <example_simulation>
