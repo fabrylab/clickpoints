@@ -87,6 +87,14 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.cbTimeFontSize = AddQSpinBox(Vlayout, 'Font size:', 50, float=False, strech=True)
         self.cbTimeColor = AddQColorChoose(Vlayout, "Color:", "#FFFFFF", strech=True)
 
+        Vlayout.addStretch()
+
+        """ Scale """
+        scaleWidget = QtWidgets.QGroupBox("Scale")
+        self.layout.addWidget(scaleWidget)
+        Vlayout = QtWidgets.QVBoxLayout(scaleWidget)
+
+        self.cbImageScaleSize = AddQSpinBox(Vlayout, 'Image scale:', 1.00, float=True, strech=True)
         self.cbMarkerScaleSize = AddQSpinBox(Vlayout, 'Marker scale:', 1.00, float=True, strech=True)
 
         Vlayout.addStretch()
@@ -225,10 +233,13 @@ class VideoExporterDialog(QtWidgets.QWidget):
 
             # convert image to PIL draw object
             pil_image = Image.fromarray(self.preview_slice)
+            if self.cbImageScaleSize.value() != 1:
+                shape = np.array([self.preview_slice.shape[1], self.preview_slice.shape[0]])*self.cbImageScaleSize.value()
+                pil_image = pil_image.resize(shape.astype(int), Image.ANTIALIAS)
             draw = ImageDraw.Draw(pil_image)
             # draw marker on the image
             if marker_handler:
-                marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1], self.cbMarkerScaleSize.value())
+                marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1], self.cbMarkerScaleSize.value(), self.cbImageScaleSize.value())
             # draw timestamp
             if self.time_drawing is not None or 0:  # TODO
                 time = self.window.data_file.image.timestamp
