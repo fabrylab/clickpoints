@@ -10,6 +10,16 @@ PY3 = sys.version_info[0] == 3
 if PY3:
     basestring = str
 
+
+# to get query results as dictionaries
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+        d[idx] = row[idx]
+    return d
+
+
 class ImageField(peewee.BlobField):
 
     def db_value(self, value):
@@ -159,7 +169,7 @@ class DataFile:
     """
     db = None
     reader = None
-    current_version = "13"
+    current_version = "14"
     database_filename = None
     next_sort_index = 0
 
@@ -182,10 +192,12 @@ class DataFile:
             if os.path.exists(self.database_filename):
                 os.remove(self.database_filename)
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
+            self.db.get_conn().row_factory = dict_factory
         else:  # or read an existing one
             if not os.path.exists(self.database_filename) and mode != "r+":
                 raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
+            self.db.get_conn().row_factory = dict_factory
             if os.path.exists(self.database_filename):
                 version = self._CheckVersion()
                 self.next_sort_index = None
@@ -346,10 +358,132 @@ class DataFile:
             def pos(self):
                 return np.array([self.x, self.y])
 
+        class Line(BaseModel):
+            image = peewee.ForeignKeyField(Image, related_name="lines", on_delete='CASCADE')
+            x1 = peewee.FloatField()
+            y1 = peewee.FloatField()
+            x2 = peewee.FloatField()
+            y2 = peewee.FloatField()
+            type = peewee.ForeignKeyField(MarkerType, related_name="lines", null=True, on_delete='CASCADE')
+            processed = peewee.IntegerField(default=0)
+            style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
+
+            def setPos1(self, x, y):
+                self.x1 = x
+                self.y1 = y
+
+            def setPos2(self, x, y):
+                self.x2 = x
+                self.y2 = y
+
+            def getPos(self):
+                return [self.x1, self.y1, self.x2, self.y2]
+
+            def getPos1(self):
+                return [self.x1, self.y1]
+
+            def getPos2(self):
+                return [self.x2, self.y2]
+
+            def __getattr__(self, item):
+                if item == "correctedXY":
+                    return self.correctedXY()
+                if item == "pos":
+                    return self.pos()
+                return BaseModel(self, item)
+
+            def correctedXY(self):
+                join_condition = ((Marker.image == Offset.image) & \
+                                  (Marker.image_frame == Offset.image_frame))
+
+                querry = Marker.select(Marker.x,
+                                       Marker.y,
+                                       Offset.x,
+                                       Offset.y) \
+                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=join_condition) \
+                    .where(Marker.id == self.id)
+
+                for q in querry:
+                    if not (q.offsets.x is None) or not (q.offsets.y is None):
+                        pt = [q.x + q.offsets.x, q.y + q.offsets.y]
+                    else:
+                        pt = [q.x, q.y]
+
+                return pt
+
+            def pos(self):
+                return np.array([self.x, self.y])
+
+        class Rectangle(BaseModel):
+            image = peewee.ForeignKeyField(Image, related_name="rectangles", on_delete='CASCADE')
+            x = peewee.FloatField()
+            y = peewee.FloatField()
+            width = peewee.FloatField()
+            height = peewee.FloatField()
+            type = peewee.ForeignKeyField(MarkerType, related_name="rectangles", null=True, on_delete='CASCADE')
+            processed = peewee.IntegerField(default=0)
+            style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
+
+            def setPos1(self, x, y):
+                self.x = x
+                self.y = y
+
+            #def setPos2(self, x, y):
+            #    self.x = x
+            #    self.y = y
+
+            def getRect(self):
+                return [self.x, self.y, self.width, self.height]
+
+            def getPos1(self):
+                return [self.x, self.y]
+
+            def getPos2(self):
+                return [self.x+self.width, self.y]
+
+            def getPos3(self):
+                return [self.x+self.width, self.y+self.height]
+
+            def getPos4(self):
+                return [self.x, self.y+self.height]
+
+            def __getattr__(self, item):
+                if item == "correctedXY":
+                    return self.correctedXY()
+                if item == "pos":
+                    return self.pos()
+                return BaseModel(self, item)
+
+            def correctedXY(self):
+                join_condition = ((Marker.image == Offset.image) & \
+                                  (Marker.image_frame == Offset.image_frame))
+
+                querry = Marker.select(Marker.x,
+                                       Marker.y,
+                                       Offset.x,
+                                       Offset.y) \
+                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=join_condition) \
+                    .where(Marker.id == self.id)
+
+                for q in querry:
+                    if not (q.offsets.x is None) or not (q.offsets.y is None):
+                        pt = [q.x + q.offsets.x, q.y + q.offsets.y]
+                    else:
+                        pt = [q.x, q.y]
+
+                return pt
+
+            def pos(self):
+                return np.array([self.x, self.y])
+
         self.table_marker = Marker
+        self.table_line = Line
+        self.table_rectangle = Rectangle
         self.table_track = Track
         self.table_markertype = MarkerType
-        self.tables.extend([Marker, Track, MarkerType])
+        self.tables.extend([Marker, Line, Rectangle, Track, MarkerType])
 
         """ Mask Tables """
 
@@ -483,7 +617,7 @@ class DataFile:
         if nr_version < 8:
             print("\tto 8")
             with self.db.transaction():
-                self.db.execute_sql("ALTER TABLE paths RENAME TO path")
+                #self.db.execute_sql("ALTER TABLE paths RENAME TO path")
                 self.db.execute_sql("ALTER TABLE images RENAME TO image")
                 self.db.execute_sql("ALTER TABLE offsets RENAME TO offset")
                 self.db.execute_sql("ALTER TABLE tracks RENAME TO track")
@@ -539,7 +673,7 @@ class DataFile:
 
                 self.db.execute_sql("DROP TABLE IF EXISTS basemodel")
 
-                self.db.execute_sql('CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER, "width" INTEGER, "height" INTEGER, "path_id" INTEGER, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);')
                 self.db.execute_sql('INSERT INTO image_tmp SELECT id, filename, ext, frame, external_id, timestamp, sort_index, width, height, path_id FROM image')
                 self.db.execute_sql("DROP TABLE image")
                 self.db.execute_sql("ALTER TABLE image_tmp RENAME TO image")
@@ -593,7 +727,6 @@ class DataFile:
                 self.db.execute_sql('INSERT INTO marker_tmp SELECT id, image_id, x, y, type_id, processed, partner_id, track_id, style, text FROM marker')
                 self.db.execute_sql("DROP TABLE marker")
                 self.db.execute_sql("ALTER TABLE marker_tmp RENAME TO marker")
-
                 self.db.execute_sql('CREATE INDEX "marker_image_id" ON "marker" ("image_id")')
                 self.db.execute_sql('CREATE UNIQUE INDEX "marker_image_id_track_id" ON "marker" ("image_id", "track_id")')
                 self.db.execute_sql('CREATE INDEX "marker_partner_id" ON "marker" ("partner_id")')
@@ -605,6 +738,28 @@ class DataFile:
                                         DELETE FROM track WHERE id = OLD.track_id AND (SELECT COUNT(marker.id) FROM marker WHERE marker.track_id = track.id) = 0;\
                                     END;')
             self._SetVersion(13)
+
+        if nr_version < 14:
+            print("\tto 14")
+            with self.db.transaction():
+                # create new table line
+                self.db.execute_sql('CREATE TABLE "line" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x1" REAL NOT NULL, "y1" REAL NOT NULL, "x2" REAL NOT NULL, "y2" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('CREATE INDEX "line_image_id" ON "line" ("image_id");')
+                self.db.execute_sql('CREATE INDEX "line_type_id" ON "line" ("type_id");')
+
+                # migrate line marker to line
+                self.db.execute_sql('INSERT INTO line SELECT m1.id, m1.image_id, m1.x AS x1, m1.y AS y1, m2.x AS x2, m2.y AS y2, m1.type_id, m1.processed, m1.style, m1.text FROM marker AS m1 JOIN markertype ON m1.type_id = markertype.id JOIN marker AS m2 ON m1.partner_id = m2.id WHERE m1.partner_id > m1.id AND mode == 2')
+                self.db.execute_sql('DELETE FROM marker WHERE marker.id IN (SELECT marker.id FROM marker JOIN markertype ON marker.type_id = markertype.id WHERE mode == 2)')
+
+                # create table rectangle
+                self.db.execute_sql('CREATE TABLE "rectangle" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "width" REAL NOT NULL, "height" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('CREATE INDEX "rectangle_image_id" ON "rectangle" ("image_id");')
+                self.db.execute_sql('CREATE INDEX "rectangle_type_id" ON "rectangle" ("type_id");')
+
+                # migrate rectangle marker to rectangle
+                self.db.execute_sql('INSERT INTO rectangle SELECT m1.id, m1.image_id, m1.x, m1.y, (m2.x-m1.x) AS width, (m2.y-m1.y) AS height, m1.type_id, m1.processed, m1.style, m1.text FROM marker AS m1 JOIN markertype ON m1.type_id = markertype.id JOIN marker AS m2 ON m1.partner_id = m2.id WHERE m1.partner_id > m1.id AND mode == 1')
+                self.db.execute_sql('DELETE FROM marker WHERE marker.id IN (SELECT marker.id FROM marker JOIN markertype ON marker.type_id = markertype.id WHERE mode == 1)')
+            self._SetVersion(14)
 
 
     def _SetVersion(self, nr_new_version):

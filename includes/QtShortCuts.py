@@ -14,6 +14,11 @@ def AddQSpinBox(layout, text, value=0, float=True, strech=False):
         spinBox = QtWidgets.QSpinBox()
     spinBox.setRange(-99999, 99999)
     spinBox.setValue(value)
+    spinBox.setHidden_ = spinBox.setHidden
+    def setHidden(hidden):
+        spinBox.setHidden_(hidden)
+        text.setHidden(hidden)
+    spinBox.setHidden = setHidden
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(spinBox)
     spinBox.managingLayout = horizontal_layout
