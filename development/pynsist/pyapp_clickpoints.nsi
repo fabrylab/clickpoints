@@ -120,7 +120,7 @@ Section "!${PRODUCT_NAME}" sec_app
   nsExec::ExecToLog '[[ python ]] -m compileall -q "$INSTDIR\pkgs"'
   ; Install clickpoints package
   DetailPrint "Installing ClickPoints module..."
-  nsExec::ExecToLog 'py "$INSTDIR\package\setup.py" develop'
+  nsExec::ExecToLog 'py "$INSTDIR\package\setup_nodependencies.py" develop'
   WriteUninstaller $INSTDIR\uninstall.exe
   ; Add ourselves to Add/remove programs
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
