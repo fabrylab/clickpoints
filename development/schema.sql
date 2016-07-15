@@ -13,6 +13,12 @@ CREATE INDEX "marker_image_id" ON "marker" ("image_id");
 CREATE INDEX "marker_partner_id" ON "marker" ("partner_id");
 CREATE INDEX "marker_type_id" ON "marker" ("type_id");
 CREATE UNIQUE INDEX "marker_image_id_track_id" ON "marker" ("image_id", "track_id");
+CREATE TABLE "line" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x1" REAL NOT NULL, "y1" REAL NOT NULL, "x2" REAL NOT NULL, "y2" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);
+CREATE INDEX "line_image_id" ON "line" ("image_id");
+CREATE INDEX "line_type_id" ON "line" ("type_id");
+CREATE TABLE "rectangle" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "width" REAL NOT NULL, "height" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);
+CREATE INDEX "rectangle_image_id" ON "rectangle" ("image_id");
+CREATE INDEX "rectangle_type_id" ON "rectangle" ("type_id");
 CREATE TABLE "track" ("id" INTEGER NOT NULL PRIMARY KEY, "uid" VARCHAR(255) NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), "type_id" INTEGER NOT NULL, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);
 CREATE INDEX "track_type_id" ON "track" ("type_id");
 CREATE TABLE "markertype" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL, "color" VARCHAR(255) NOT NULL, "mode" INTEGER NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255));
@@ -28,4 +34,4 @@ CREATE TABLE "tagassociation" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id
 CREATE INDEX "tagassociation_tag_id" ON "tagassociation" ("tag_id");
 CREATE INDEX "tagassociation_annotation_id" ON "tagassociation" ("annotation_id");
 CREATE TRIGGER no_empty_tracks                                AFTER DELETE ON marker                                BEGIN                                  DELETE FROM track WHERE id = OLD.track_id AND (SELECT COUNT(marker.id) FROM marker WHERE marker.track_id = track.id) = 0;                                END;
-INSERT OR REPLACE INTO meta (id,key,value) VALUES            ((SELECT id FROM meta WHERE key='version'),'version',13);
+INSERT OR REPLACE INTO meta (id,key,value) VALUES            ((SELECT id FROM meta WHERE key='version'),'version',14);

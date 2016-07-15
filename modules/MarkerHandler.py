@@ -3,7 +3,6 @@ import os
 import re
 import peewee
 
-
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
 import qtawesome as qta
@@ -18,6 +17,7 @@ import uuid
 import json
 import matplotlib.pyplot as plt
 import random
+from threading import Thread
 
 from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex
 from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
@@ -47,15 +47,19 @@ point_display_types = [path1, path2, path3]
 point_display_type = 0
 
 path_circle = QtGui.QPainterPath()
-#path_circle.arcTo(-5, -5, 10, 10, 0, 130)
+# path_circle.arcTo(-5, -5, 10, 10, 0, 130)
 path_circle.addEllipse(-5, -5, 10, 10)
 
-paths = dict(cross=path1, circle=path_circle)
+path_rect = QtGui.QPainterPath()
+path_rect.addRect(-5, -5, 10, 10)
+
+paths = dict(cross=path1, circle=path_circle, rect=path_rect)
 
 TYPE_Normal = 0
 TYPE_Rect = 1
 TYPE_Line = 2
 TYPE_Track = 4
+
 
 class MarkerFile:
     def __init__(self, datafile):
@@ -64,6 +68,8 @@ class MarkerFile:
         self.table_markertype = self.data_file.table_markertype
         self.table_marker = self.data_file.table_marker
         self.table_track = self.data_file.table_track
+        self.table_line = self.data_file.table_line
+        self.table_rectangle = self.data_file.table_rectangle
 
     def set_track(self, type):
         track = self.table_track(uid=uuid.uuid4().hex, type=type)
@@ -122,9 +128,9 @@ def GetColorFromMap(identifier, id):
     cmap = plt.get_cmap(identifier)
     if id is None:
         id = 0
-    index = int((id*255/count) % 256)
+    index = int((id * 255 / count) % 256)
     color = np.array(cmap(index))
-    color = color[:3]*255
+    color = color[:3] * 255
     return color
 
 
@@ -140,7 +146,9 @@ class DeleteType(QtWidgets.QDialog):
         self.setModal(True)
         main_layout = QtWidgets.QVBoxLayout(self)
 
-        self.label = QtWidgets.QLabel("The type %s has %d marker. Do you want to delete all of them or assign them to another type?" % (type.name, count))
+        self.label = QtWidgets.QLabel(
+            "The type %s has %d marker. Do you want to delete all of them or assign them to another type?" % (
+            type.name, count))
         main_layout.addWidget(self.label)
 
         self.type_ids = {type.name: type.id for type in types}
@@ -194,12 +202,19 @@ class MarkerEditor(QtWidgets.QWidget):
         for row, marker_type in enumerate(marker_types):
             # add item
             item_type = QtGui.QStandardItem(marker_type.name)
+            marker_type.expanded = False
             item_type.entry = marker_type
             item_type.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(marker_type.color))))
             item_type.setEditable(False)
             model.setItem(row, 0, item_type)
             self.marker_type_modelitems[marker_type.id] = item_type
 
+            # add dummy child
+            child = QtGui.QStandardItem()
+            child.setEditable(False)
+            item_type.appendRow(child)
+            model.setItem(row, 0, item_type)
+            """ " ""
             # if type is track type
             if marker_type.mode & TYPE_Track:
                 # add all tracks for this type
@@ -235,6 +250,7 @@ class MarkerEditor(QtWidgets.QWidget):
                     item_marker.setEditable(False)
                     item_type.appendRow(item_marker)
                     self.marker_modelitems[marker.id] = item_marker
+            "" " """
         # add entry for new type
         self.new_type = self.data_file.table_markertype()
         self.new_type.color = GetColorByIndex(marker_types.count())
@@ -242,7 +258,7 @@ class MarkerEditor(QtWidgets.QWidget):
         item_type.entry = self.new_type
         item_type.setIcon(qta.icon("fa.plus"))
         item_type.setEditable(False)
-        model.setItem(row+1, 0, item_type)
+        model.setItem(row + 1, 0, item_type)
         self.marker_type_modelitems[-1] = item_type
 
         # some settings for the tree
@@ -250,7 +266,10 @@ class MarkerEditor(QtWidgets.QWidget):
         self.tree.setHeaderHidden(True)
         self.tree.setAnimated(True)
         self.tree.setModel(model)
-        self.tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMarker(selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
+        self.tree.expanded.connect(self.TreeExpand)
+        self.tree.clicked.connect(self.treeClicked)
+        self.tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMarker(
+            selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
 
         self.layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(self.layout)
@@ -266,6 +285,17 @@ class MarkerEditor(QtWidgets.QWidget):
         self.markerWidget.type = AddQComboBox(layout, "Type:", [t.name for t in self.data_file.get_type_list()])
         self.markerWidget.x = AddQSpinBox(layout, "X:")
         self.markerWidget.y = AddQSpinBox(layout, "Y:")
+        self.markerWidget.x1 = AddQSpinBox(layout, "X1:")
+        self.markerWidget.y1 = AddQSpinBox(layout, "Y1:")
+        self.markerWidget.x2 = AddQSpinBox(layout, "X2:")
+        self.markerWidget.y2 = AddQSpinBox(layout, "Y2:")
+        self.markerWidget.width = AddQSpinBox(layout, "Width:")
+        self.markerWidget.height = AddQSpinBox(layout, "Height:")
+        self.markerWidget.special_widgets = [self.markerWidget.x, self.markerWidget.y, self.markerWidget.x1, self.markerWidget.y1, self.markerWidget.x2, self.markerWidget.y2, self.markerWidget.width, self.markerWidget.height]
+        self.markerWidget.widget_types = {TYPE_Normal: [self.markerWidget.x, self.markerWidget.y],
+                                          TYPE_Line: [self.markerWidget.x1, self.markerWidget.y1, self.markerWidget.x2, self.markerWidget.y2],
+                                          TYPE_Rect: [self.markerWidget.x, self.markerWidget.y, self.markerWidget.width, self.markerWidget.height],
+                                          TYPE_Track: [self.markerWidget.x, self.markerWidget.y]}
         self.markerWidget.style = AddQLineEdit(layout, "Style:")
         self.markerWidget.text = AddQLineEdit(layout, "Text:")
         self.markerWidget.label = AddQLabel(layout)
@@ -307,21 +337,134 @@ class MarkerEditor(QtWidgets.QWidget):
         self.pushbutton_Cancel.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
+    def ExpandType(self, item_type, entry):
+        # change icon to hourglass during waiting
+        item_type.setIcon(qta.icon("fa.hourglass-o", color=QtGui.QColor(*HTMLColorToRGB(entry.color))))
+        # remove the dummy child
+        item_type.removeRow(0)
+
+        # if type is track type
+        if entry.mode & TYPE_Track:
+            # add all tracks for this type
+            tracks = self.data_file.table_track.select().where(self.data_file.table_track.type == entry)
+            for track in tracks:
+                # get markers for track
+                markers = (self.data_file.table_marker.select()
+                           .where(self.data_file.table_marker.track == track)
+                           .join(self.data_file.data_file.table_image)
+                           .order_by(self.data_file.data_file.table_image.sort_index))
+
+                # add item
+                item_track = QtGui.QStandardItem("Track #%d (%d)" % (track.id, markers.count()))
+                track.expanded = False
+                item_track.entry = track
+                item_track.setEditable(False)
+                item_type.appendRow(item_track)
+
+                # add dummy child
+                child = QtGui.QStandardItem()
+                child.setEditable(False)
+                item_track.appendRow(child)
+        elif entry.mode & TYPE_Line:
+            # add marker for the type
+            lines = self.data_file.table_line.select().where(self.data_file.table_line.type == entry)
+            for line in lines:
+                item_line = QtGui.QStandardItem("Line #%d (frame %d)" % (line.id, line.image.sort_index))
+                item_line.entry = line
+                item_line.setEditable(False)
+                item_type.appendRow(item_line)
+                self.marker_modelitems["L%d" % line.id] = item_line
+        elif entry.mode & TYPE_Rect:
+            # add marker for the type
+            rectangles = self.data_file.table_rectangle.select().where(self.data_file.table_rectangle.type == entry)
+            for rect in rectangles:
+                item_rect = QtGui.QStandardItem("Rectangle #%d (frame %d)" % (rect.id, rect.image.sort_index))
+                item_rect.entry = rect
+                item_rect.setEditable(False)
+                item_type.appendRow(item_rect)
+                self.marker_modelitems["R%d" % rect.id] = item_rect
+        else:
+            # add marker for the type
+            markers = self.data_file.table_marker.select().where(self.data_file.table_marker.type == entry)
+            for marker in markers:
+                item_marker = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
+                item_marker.entry = marker
+                item_marker.setEditable(False)
+                item_type.appendRow(item_marker)
+                self.marker_modelitems["M%d" % marker.id] = item_marker
+
+        # mark the entry as expanded and rest the icon
+        entry.expanded = True
+        item_type.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color))))
+
+    def ExpandTrack(self, item_track, entry):
+        # change icon to hourglass during waiting
+        item_track.setIcon(qta.icon("fa.hourglass-o"))
+        # remove the dummy child
+        item_track.removeRow(0)
+
+        # add marker for the type
+        # get markers for track
+        markers = (self.data_file.table_marker.select()
+                   .where(self.data_file.table_marker.track == entry)
+                   .join(self.data_file.data_file.table_image)
+                   .order_by(self.data_file.data_file.table_image.sort_index))
+        for marker in markers:
+            item_marker = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
+            item_marker.entry = marker
+            item_marker.setEditable(False)
+            item_track.appendRow(item_marker)
+            self.marker_modelitems[marker.id] = item_marker
+
+        # mark the entry as expanded and rest the icon
+        entry.expanded = True
+        item_track.setIcon(QtGui.QIcon())
+
+    def TreeExpand(self, index):
+        # Get item and entry
+        item = index.model().itemFromIndex(index)
+        entry = item.entry
+        thread = None
+
+        # Expand marker type
+        if isinstance(entry, self.data_file.table_markertype) and entry.expanded is False:
+            thread = Thread(target=self.ExpandType, args=(item, entry))
+
+        # Expand track
+        if isinstance(entry, self.data_file.table_track) and entry.expanded is False:
+            thread = Thread(target=self.ExpandTrack, args=(item, entry))
+
+        # Start thread as daemonic
+        if thread:
+            thread.setDaemon(True)
+            thread.start()
+
+    def treeClicked(self, index):
+        data = index.model().itemFromIndex(index).entry
+        if type(data) == self.data_file.table_marker and self.data == data:
+            self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
+
     def setMarker(self, data, data_type=None):
         if self.prevent_recursion:
             return
-        if type(data) == self.data_file.table_marker and self.data == data:
-            self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
         self.data = data
 
         self.pushbutton_Remove.setHidden(False)
 
-        if type(data) == self.data_file.table_marker:
+        if type(data) == self.data_file.table_marker or type(data) == self.data_file.table_line or type(data) == self.data_file.table_rectangle:
             self.StackedWidget.setCurrentIndex(0)
+            for widget in self.markerWidget.special_widgets:
+                widget.setHidden(True)
+            for widget in self.markerWidget.widget_types[data.type.mode]:
+                widget.setHidden(False)
             self.markerWidget.setTitle("Marker #%d" % data.id)
 
             self.prevent_recursion = True
-            self.tree.setCurrentIndex(self.marker_modelitems[data.id].index())
+            #try:
+            #    self.tree.setCurrentIndex(self.marker_modelitems[data.id].index())
+            #except KeyError:
+            #    if self.data.track is None:
+            #        self.ExpandType(self.marker_type_modelitems[self.data.id])
             self.prevent_recursion = False
 
             data2 = data.partner if data.partner_id is not None else None
@@ -329,23 +472,23 @@ class MarkerEditor(QtWidgets.QWidget):
             text = ''
 
             if data.type.mode & TYPE_Line:
-                if data2 is not None:
-                    text += 'Line Length %.2f' % np.linalg.norm(np.array([data.x, data.y])-np.array([data2.x, data2.y]))
-                else:
-                    text += 'Line not connected'
+                self.markerWidget.x1.setValue(data.x1)
+                self.markerWidget.y1.setValue(data.y1)
+                self.markerWidget.x2.setValue(data.x2)
+                self.markerWidget.y2.setValue(data.y2)
             elif data.type.mode & TYPE_Rect:
-                if data2 is not None:
-                    text += 'Rect width %.2f height %.2f' % (abs(data.x-data2.x), abs(data.y-data2.y))
-                else:
-                    text += 'Rect not connected'
+                self.markerWidget.x.setValue(data.x)
+                self.markerWidget.y.setValue(data.y)
+                self.markerWidget.width.setValue(data.width)
+                self.markerWidget.height.setValue(data.height)
             else:
                 text += ''
+                self.markerWidget.x.setValue(data.x)
+                self.markerWidget.y.setValue(data.y)
 
             self.markerWidget.label.setText(text)
 
             self.markerWidget.type.setCurrentIndex(self.markerWidget.type_indices[data.type.id])
-            self.markerWidget.x.setValue(data.x)
-            self.markerWidget.y.setValue(data.y)
             self.markerWidget.style.setText(data.style if data.style else "")
             self.markerWidget.text.setText(data.text if data.text else "")
 
@@ -392,17 +535,28 @@ class MarkerEditor(QtWidgets.QWidget):
     def saveMarker(self):
         print("Saving changes...")
         # set parameters
-        if type(self.data) == self.data_file.table_marker:
-            self.data.x = self.markerWidget.x.value()
-            self.data.y = self.markerWidget.y.value()
+        if type(self.data) == self.data_file.table_marker or type(self.data) == self.data_file.table_line or type(self.data) == self.data_file.table_rectangle:
+            if self.data.type.mode & TYPE_Line:
+                self.data.x1 = self.markerWidget.x1.value()
+                self.data.y1 = self.markerWidget.y1.value()
+                self.data.x2 = self.markerWidget.x2.value()
+                self.data.y2 = self.markerWidget.y2.value()
+            elif self.data.type.mode & TYPE_Rect:
+                self.data.x = self.markerWidget.x.value()
+                self.data.y = self.markerWidget.y.value()
+                self.data.width = self.markerWidget.width.value()
+                self.data.height = self.markerWidget.height.value()
+            else:
+                self.data.x = self.markerWidget.x.value()
+                self.data.y = self.markerWidget.y.value()
             self.data.type = self.marker_handler.marker_file.get_type(self.markerWidget.type.currentText())
             self.data.style = self.markerWidget.style.text()
             self.data.text = self.filterText(self.markerWidget.text.text())
             self.data.save()
 
             # load updated data
-            if self.data.track:
-                track_item = self.marker_handler.GetTrackItem(self.data.track)
+            if self.data.type.mode & TYPE_Track:
+                track_item = self.marker_handler.GetMarkerItem(self.data.track)
                 track_item.update(self.data.image.sort_index, self.data)
             else:
                 marker_item = self.marker_handler.GetMarkerItem(self.data)
@@ -428,14 +582,14 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_handler.LoadPoints()
 
         # close widget
-        self.marker_handler.marker_edit_window = None
-        self.close()
+        #self.marker_handler.marker_edit_window = None
+        #self.close()
 
     def removeMarker(self):
         print("Remove ...")
         # currently selected a marker -> remove the marker
-        if type(self.data) == self.data_file.table_marker:
-            if self.data.track is None:
+        if type(self.data) == self.data_file.table_marker or type(self.data) == self.data_file.table_line or type(self.data) == self.data_file.table_rectangle:
+            if not (self.data.type.mode & TYPE_Track):
                 # find point
                 marker_item = self.marker_handler.GetMarkerItem(self.data)
                 # delete marker
@@ -445,13 +599,13 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.data.delete_instance()
             else:
                 # find corresponding track and remove the point
-                track_item = self.marker_handler.GetTrackItem(self.data.track)
+                track_item = self.marker_handler.GetMarkerItem(self.data.track)
                 track_item.RemoveTrackPoint(self.data.image.sort_index)
-                    
+
         # currently selected a track -> remove the track
         elif type(self.data) == self.data_file.table_track:
             # get the track and remove it
-            track = self.marker_handler.GetTrackItem(self.data)
+            track = self.marker_handler.GetMarkerItem(self.data)
             track.delete()
 
         # currently selected a type -> remove the type
@@ -462,7 +616,9 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.data.delete_instance()
             else:
                 # Ask the user if he wants to delete all markers from this type or assign them to a different type
-                self.window = DeleteType(self.data, count, [marker_type for marker_type in self.data_file.get_type_list() if marker_type != self.data])
+                self.window = DeleteType(self.data, count,
+                                         [marker_type for marker_type in self.data_file.get_type_list() if
+                                          marker_type != self.data])
                 value = self.window.exec_()
                 if value == 0:  # canceled
                     return
@@ -499,52 +655,138 @@ class MarkerEditor(QtWidgets.QWidget):
             self.saveMarker()
 
 
-class MyMarkerItem(QtWidgets.QGraphicsPathItem):
-    style = {}
+class MyGrabberItem(QtWidgets.QGraphicsPathItem):
     scale_value = 1
+    drag_start_pos = None
 
-    dragged = False
-    UseCrosshair = True
+    def __init__(self, parent, color, x, y, shape="rect"):
+        # init and store parent
+        QtWidgets.QGraphicsPathItem.__init__(self, parent)
+        self.parent = parent
 
-    partner = None
-    rectObj = None
+        # set path
+        self.setPath(paths[shape])
+
+        # set brush and pen
+        self.setBrush(QtGui.QBrush(color))
+        self.setPen(QtGui.QPen(0))
+
+        # accept hover events and set position
+        self.setAcceptHoverEvents(True)
+        self.setPos(x, y)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
+
+    def hoverEnterEvent(self, event):
+        # a bit bigger during hover
+        super(QtWidgets.QGraphicsPathItem, self).setScale(1.2 * self.scale_value)
+
+    def hoverLeaveEvent(self, event):
+        # switch back to normal size
+        super(QtWidgets.QGraphicsPathItem, self).setScale(1 * self.scale_value)
+
+    def mousePressEvent(self, event):
+        # store start position of move
+        if event.button() == QtCore.Qt.LeftButton:
+            # left click + control -> remove
+            if event.modifiers() == QtCore.Qt.ControlModifier:
+                self.parent.graberDelete(self)
+            # left click -> move
+            else:
+                self.drag_start_pos = event.pos()
+
+    def mouseMoveEvent(self, event):
+        # notify parent
+        pos = self.parent.mapFromItem(self, event.pos() - self.drag_start_pos)
+        self.parent.graberMoved(self, pos)
+
+    def setScale(self, scale=None):
+        # store scale
+        if scale is not None:
+            self.scale_value = scale
+        # adjust scale
+        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value)
+
+
+class MyDisplayItem:
+    style = {}
+    track_style = {}
+    scale_value = 1
 
     font = None
     text = None
 
-    def __init__(self, marker_handler, parent, data, saved=False):
-        QtWidgets.QGraphicsPathItem.__init__(self, parent)
-        self.parent = parent
+    def __init__(self, marker_handler, data=None, event=None, type=None):
+        # store marker handler
         self.marker_handler = marker_handler
-        self.data = data
-        self.config = self.marker_handler.config
-        self.saved = saved
-
+        # store data or create new instance
+        if data is not None:
+            self.data = data
+        else:
+            self.data = self.newData(event, type)
+            self.data.save()
+        # extract the style information
         self.GetStyle()
+        # call the init function of the main class
+        self.init2()
 
-        self.UpdatePath()
-        self.setPos(self.data.x, self.data.y)
-        self.setZValue(20)
+        # tell the counter that we ware here
+        self.marker_handler.GetCounter(self.data.type).AddCount(1)
 
-        if len(self.marker_handler.counter):
-            self.marker_handler.GetCounter(self.data.type).AddCount(1)
-
-        self.setAcceptHoverEvents(True)
-
-        if self.data.type and (self.data.type.mode & TYPE_Rect or self.data.type.mode & TYPE_Line):
-            self.FindPartner()
-
-        if self.partner:
-            if self.data.type.mode & TYPE_Rect:
-                self.rectObj = QtWidgets.QGraphicsRectItem(self.parent)
-            elif self.data.type.mode & TYPE_Line:
-                self.rectObj = QtWidgets.QGraphicsLineItem(self.parent)
-            self.rectObj.setPen(QtGui.QPen(QtGui.QColor(*self.style["color"])))
-            self.UpdateRect()
-
+        # update the displayed text
         self.setText(self.GetText())
 
+        # apply the style
         self.ApplyStyle()
+
+        # adjust the size
+        pen = self.pen()
+        pen.setCosmetic(True)
+        self.setPen(pen)
+        self.setScale(1 / self.marker_handler.scale)
+
+    def ReloadData(self):
+        # reload data from database
+        self.data = self.data.get(id=self.data.id)
+        # update marker display
+        self.GetStyle()
+        self.ApplyStyle()
+        self.setText(self.GetText())
+
+    def GetStyle(self):
+        self.style = {}
+        entries = [self.data.type, self.data]
+
+        for entry in entries:
+            if entry and entry.style:
+                style_text = entry.style
+                try:
+                    type_style = json.loads(style_text)
+                except ValueError:
+                    type_style = {}
+                    print("WARNING: %d style could not be read: %s" % (entry.id, style_text))
+                self.style.update(type_style)
+
+        # get color from old color field
+        if "color" not in self.style and self.data.type:
+            self.style["color"] = self.data.type.color
+
+        # change color text to rgb by interpreting it as html text or a color map
+        if self.style["color"][0] != "#":
+            self.style["color"] = GetColorFromMap(self.style["color"], self.data.id)
+        else:
+            self.style["color"] = HTMLColorToRGB(self.style["color"])
+
+        # store color
+        self.color = QtGui.QColor(*self.style["color"])
+
+    def ApplyStyle(self):
+        if self.text:
+            self.text.setBrush(QtGui.QBrush(self.color))
+        self.setScale(None)
+        pen = self.pen()
+        pen.setColor(self.color)
+        pen.setWidth(2)
+        self.setPen(pen)
 
     # update text with priorities: marker, track, label
     def GetText(self):
@@ -553,7 +795,8 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             return self.data.text
 
         # check for track text entry
-        if self.data.track is not None and self.data.track.text is not None:
+        if isinstance(self.data,
+                      self.marker_handler.data_file.table_marker) and self.data.track is not None and self.data.track.text is not None:
             return self.data.track.text
 
         # check for type text entry
@@ -561,12 +804,12 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
             return self.data.type.text
 
         # check for type text entry
-        if self.data.track and self.data.track.type.text is not None:
-                return self.data.track.type.text
+        if isinstance(self.data,
+                      self.marker_handler.data_file.table_marker) and self.data.track and self.data.track.type.text is not None:
+            return self.data.track.type.text
 
         # if there are no text entries return an empty string
         return ""
-
 
     def setText(self, text):
         if self.text is None:
@@ -610,98 +853,21 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
 
         self.text.setText(text)
 
-    def GetStyle(self):
-        self.style = {}
+    def setScale(self, scale=None):
+        if scale is not None:
+            self.scale_value = scale
 
-        # get style from marker type
-        type = self.data.type if self.data.type else self.data.track.type
-        if type and type.style:
-            style_text = type.style
-            try:
-                type_style = json.loads(style_text)
-            except ValueError:
-                type_style = {}
-                print("WARNING: type %d style could not be read: %s" % (type.id, style_text))
-            self.style.update(type_style)
+    def draw(self, image, start_x, start_y, scale=1):
+        pass
 
-        # get style from marker
-        if self.data.style:
-            style_text = self.data.style
-            try:
-                marker_style = json.loads(style_text)
-            except ValueError:
-                marker_style = {}
-                print("WARNING: marker %d style could not be read: %s" % (self.data.track.id, style_text))
-            self.style.update(marker_style)
+    def graberDelete(self, grabber):
+        self.delete()
 
-        # get color from old color field
-        if "color" not in self.style and self.data.type:
-            self.style["color"] = self.data.type.color
-
-        # change color text to rgb by interpreting it as html text or a color map
-        if self.style["color"][0] != "#":
-            self.style["color"] = GetColorFromMap(self.style["color"], self.data.id)
-        else:
-            self.style["color"] = HTMLColorToRGB(self.style["color"])
-
-        # store color
-        self.color = QtGui.QColor(*self.style["color"])
-
-    def ReloadData(self):
-        # reload data from database
-        self.data = self.data.get(id=self.data.id)
-        self.saved = True
-        # update marker display
-        self.setPos(self.data.x, self.data.y)
-        self.GetStyle()
-        self.ApplyStyle()
-        self.setText(self.GetText())
-
-    def ApplyStyle(self):
-        self.color = QtGui.QColor(*self.style["color"])
-        if self.style.get("shape", "cross") == "cross":
-            self.setBrush(QtGui.QBrush(self.color))
-            self.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
-        else:
-            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
-            self.setPen(QtGui.QPen(self.color, self.style.get("line-width", 1)))
-        if self.text:
-            self.text.setBrush(QtGui.QBrush(self.color))
-        self.UpdatePath()
-        self.setScale(None)
-
-    def FindPartner(self):
-        if self.data.partner_id:
-            for point in self.marker_handler.points:
-                if point.data.id == self.data.partner_id:
-                    self.ConnectToPartner(point)
-                    break
-        if not self.data.partner_id:
-            possible_partners = []
-            for point in self.marker_handler.points:
-                if point.data.type == self.data.type and point.partner is None:
-                    possible_partners.append(
-                        [point, np.linalg.norm(PosToArray(self.pos()) - PosToArray(point.pos()))])
-            if len(possible_partners):
-                possible_partners.sort(key=lambda x: x[1])
-                self.ConnectToPartner(possible_partners[0][0])
-
-    def ConnectToPartner(self, point, back=True):
-        if not self.data.id:
-            self.data.save()
-        if self.data.partner_id != point.data.id:
-            self.saved = False
-        if point.data.partner_id != self.data.id:
-            point.saved = False
-        point.data.partner = self.data
-        self.data.partner = point.data
-        self.partner = point
-        self.UseCrosshair = False
-        if back:
-            point.ConnectToPartner(self, back=False)
-
-    def SetProcessed(self, processed):
-        self.data.processed = processed
+    def save(self):
+        # only if there are fields which are changed
+        if len(self.data.dirty_fields):
+            self.data.processed = 0
+            self.data.save(only=self.data.dirty_fields)
 
     def delete(self, just_display=False):
         # delete the database entry
@@ -717,28 +883,44 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
         # delete from counter
         self.marker_handler.GetCounter(self.data.type).AddCount(-1)
 
-        # delete from partner
-        if self.partner and self.partner.rectObj:
-            self.marker_handler.view.scene.removeItem(self.partner.rectObj)
-            self.partner.rectObj = None
-            self.partner.partner = None
-        if self.rectObj:
-            self.partner.partner = None
-            self.marker_handler.view.scene.removeItem(self.rectObj)
 
-    def UpdateRect(self):
-        x, y = self.pos().x(), self.pos().y()
-        x2, y2 = self.partner.pos().x(), self.partner.pos().y()
-        if self.data.type.mode & TYPE_Rect:
-            self.rectObj.setRect(x, y, x2 - x, y2 - y)
-        elif self.data.type.mode & TYPE_Line:
-            self.rectObj.setLine(x, y, x2, y2)
+class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
+    drag_start_pos = None
+
+    def __init__(self, marker_handler, parent, data=None, event=None, type=None):
+        QtWidgets.QGraphicsPathItem.__init__(self, parent)
+        MyDisplayItem.__init__(self, marker_handler, data, event, type)
+        self.init2()
+
+    def init2(self):
+        self.setPos(self.data.x, self.data.y)
+        self.setZValue(20)
+        self.UpdatePath()
+
+    def newData(self, event, type):
+        return self.marker_handler.data_file.table_marker(image=self.marker_handler.data_file.image,
+                                                          x=event.pos().x(), y=event.pos().y(), type=type)
+
+    def ReloadData(self):
+        MyDisplayItem.ReloadData(self)
+        # update marker display
+        self.setPos(self.data.x, self.data.y)
+
+    def ApplyStyle(self):
+        MyDisplayItem.ApplyStyle(self)
+        if self.style.get("shape", "cross") == "cross":
+            self.setBrush(QtGui.QBrush(self.color))
+            self.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
+        else:
+            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
+            self.setPen(QtGui.QPen(self.color, self.style.get("line-width", 1)))
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
             # open marker edit menu
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
-                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file)
+                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler,
+                                                                      self.marker_handler.marker_file)
                 self.marker_handler.marker_edit_window.show()
             self.marker_handler.marker_edit_window.setMarker(self.data)
         if event.button() == QtCore.Qt.LeftButton:
@@ -747,51 +929,33 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
                 self.delete()
             # left click -> move
             else:
-                self.dragged = True
                 self.drag_start_pos = event.pos()
                 self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
-                if self.UseCrosshair:
-                    self.marker_handler.Crosshair.Show(self)
-                    self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+                self.marker_handler.Crosshair.Show(self)
+                self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
 
     def mouseMoveEvent(self, event):
-        if not self.dragged:
-            return
-        pos = self.parent.mapFromItem(self, event.pos()-self.drag_start_pos)
-        self.saved = False
+        pos = self.parentItem().mapFromItem(self, event.pos() - self.drag_start_pos)
         self.setPos(pos.x(), pos.y())
         self.data.x, self.data.y = pos.x(), pos.y()
-        self.marker_handler.PointsUnsaved = True
         if self.data.type.mode & TYPE_Track:
             self.UpdateLine()
         self.setText(self.GetText())
-        if self.UseCrosshair:
-            self.marker_handler.Crosshair.MoveCrosshair(pos.x(), pos.y())
-        if self.partner:
-            if self.rectObj:
-                self.UpdateRect()
-            else:
-                self.partner.UpdateRect()
-                self.partner.setPos(self.partner.pos())
-            self.partner.setText(self.partner.GetText())
+        self.marker_handler.Crosshair.MoveCrosshair(pos.x(), pos.y())
 
     def mouseReleaseEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton and self.dragged:
-            self.dragged = False
-            self.marker_handler.PointsUnsaved = True
-            self.SetProcessed(0)
-            self.data.save()
+        if event.button() == QtCore.Qt.LeftButton:
+            self.save()
             self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
             self.marker_handler.Crosshair.Hide()
-            pass
 
     def setActive(self, active):
         if active:
             self.setAcceptedMouseButtons(Qt.MouseButtons(3))
-            #self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+            # self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
         else:
             self.setAcceptedMouseButtons(Qt.MouseButtons(0))
-            #self.unsetCursor()
+            # self.unsetCursor()
         return True
 
     def UpdatePath(self):
@@ -803,114 +967,223 @@ class MyMarkerItem(QtWidgets.QGraphicsPathItem):
     def setScale(self, scale=None):
         if scale is not None:
             self.scale_value = scale
-        if self.rectObj:
-            self.rectObj.setPen(QtGui.QPen(self.color, 2 * self.scale_value))
-        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value*self.style.get("scale", 1))
-
-    def save(self):
-        if not self.saved:
-            self.data.save()
-            self.saved = True
+        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value * self.style.get("scale", 1))
 
     def draw(self, image, start_x, start_y, scale=1):
-        w = 1.*scale
-        b = (10-7)*scale
-        r2 = 10*scale
-        x, y = self.pos().x()-start_x, self.pos().y()-start_y
+        w = 1. * scale
+        b = (10 - 7) * scale
+        r2 = 10 * scale
+        x, y = self.pos().x() - start_x, self.pos().y() - start_y
         color = (self.color.red(), self.color.green(), self.color.blue())
-        if self.partner:
-            if self.rectObj:
-                x2, y2 = self.partner.pos().x()-start_x, self.partner.pos().y()-start_y
-                if self.data.type.mode & TYPE_Rect:
-                    image.line([x , y , x2, y ], color, width=int(3*scale))
-                    image.line([x , y2, x2, y2], color, width=int(3*scale))
-                    image.line([x , y , x , y2], color, width=int(3*scale))
-                    image.line([x2, y , x2, y2], color, width=int(3*scale))
-                if self.data.type.mode & TYPE_Line:
-                    image.line([x, y, x2, y2], color, width=int(3*scale))
-            return
-        image.rectangle([x-w, y-r2, x+w, y-b], color)
-        image.rectangle([x-w, y+b, x+w, y+r2], color)
-        image.rectangle([x-r2, y-w, x-b, y+w], color)
-        image.rectangle([x+b, y-w, x+r2, y+w], color)
+        image.rectangle([x - w, y - r2, x + w, y - b], color)
+        image.rectangle([x - w, y + b, x + w, y + r2], color)
+        image.rectangle([x - r2, y - w, x - b, y + w], color)
+        image.rectangle([x + b, y - w, x + r2, y + w], color)
 
 
-class MyTrackItem(MyMarkerItem):
-    def __init__(self, marker_handler, parent, points_data, track, saved=False, frame=None):
-        MyMarkerItem.__init__(self, marker_handler, parent, points_data[0])
+class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
+    def __init__(self, marker_handler, parent, data=None, event=None, type=None):
+        QtWidgets.QGraphicsLineItem.__init__(self, parent)
+        MyDisplayItem.__init__(self, marker_handler, data, event, type)
+
+    def init2(self):
+        self.setLine(*self.data.getPos())
+        self.g1 = MyGrabberItem(self, self.color, *self.data.getPos1())
+        self.g2 = MyGrabberItem(self, self.color, *self.data.getPos2())
+        pen = self.pen()
+        pen.setWidth(2)
+        self.setPen(pen)
+
+    def newData(self, event, type):
+        x, y = event.pos().x(), event.pos().y()
+        return self.marker_handler.data_file.table_line(image=self.marker_handler.data_file.image,
+                                                        x1=x, y1=y, x2=x, y2=y, type=type)
+
+    def ReloadData(self):
+        MyDisplayItem.ReloadData(self)
+        # update line display
+        self.setLine(*self.data.getPos())
+        self.g1.setPos(*self.data.getPos1())
+        self.g2.setPos(*self.data.getPos2())
+
+    def graberMoved(self, grabber, pos):
+        if grabber == self.g1:
+            self.data.setPos1(pos.x(), pos.y())
+            self.setLine(*self.data.getPos())
+            self.g1.setPos(*self.data.getPos1())
+        if grabber == self.g2:
+            self.data.setPos2(pos.x(), pos.y())
+            self.setLine(*self.data.getPos())
+            self.g2.setPos(*self.data.getPos2())
+
+    def drag(self, event):
+        self.graberMoved(self.g2, event.pos())
+
+    def draw(self, image, start_x, start_y, scale=1):
+        x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
+        x2, y2 = self.data.getPos2()[0] - start_x, self.data.getPos2()[1] - start_y
+        color = (self.color.red(), self.color.green(), self.color.blue())
+        image.line([x1, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
+
+
+class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
+    def __init__(self, marker_handler, parent, data=None, event=None, type=None):
+        QtWidgets.QGraphicsLineItem.__init__(self, parent)
+        MyDisplayItem.__init__(self, marker_handler, data, event, type)
+
+    def init2(self):
+        self.setRect(*self.data.getRect())
+        self.g1 = MyGrabberItem(self, self.color, *self.data.getPos1())
+        self.g2 = MyGrabberItem(self, self.color, *self.data.getPos2())
+        self.g3 = MyGrabberItem(self, self.color, *self.data.getPos3())
+        self.g4 = MyGrabberItem(self, self.color, *self.data.getPos4())
+        pen = self.pen()
+        pen.setWidth(2)
+        self.setPen(pen)
+
+    def newData(self, event, type):
+        x, y = event.pos().x(), event.pos().y()
+        return self.marker_handler.data_file.table_rectangle(image=self.marker_handler.data_file.image,
+                                                        x=x, y=y, width=0, height=0, type=type)
+
+    def ReloadData(self):
+        MyDisplayItem.ReloadData(self)
+        self.updateDisplay()
+
+    def updateDisplay(self):
+        # update line display
+        self.setRect(*self.data.getRect())
+        self.g1.setPos(*self.data.getPos1())
+        self.g2.setPos(*self.data.getPos2())
+        self.g3.setPos(*self.data.getPos3())
+        self.g4.setPos(*self.data.getPos4())
+
+    def graberMoved(self, grabber, pos):
+        if grabber == self.g1:
+            self.data.width = self.data.x+self.data.width-pos.x()
+            self.data.height = self.data.y + self.data.height - pos.y()
+            self.data.x = pos.x()
+            self.data.y = pos.y()
+            self.updateDisplay()
+        if grabber == self.g2:
+            self.data.width = pos.x() - self.data.x
+            self.data.height = self.data.y + self.data.height - pos.y()
+            self.data.y = pos.y()
+            self.updateDisplay()
+        if grabber == self.g3:
+            self.data.width = pos.x() - self.data.x
+            self.data.height = pos.y() - self.data.y
+            self.updateDisplay()
+        if grabber == self.g4:
+            self.data.width = self.data.x + self.data.width - pos.x()
+            self.data.height = pos.y() - self.data.y
+            self.data.x = pos.x()
+            self.updateDisplay()
+
+    def drag(self, event):
+        self.graberMoved(self.g3, event.pos())
+
+    def setScale(self, scale=None):
+        if scale is not None:
+            self.scale_value = scale
+        self.setPen(QtGui.QPen(self.color, 2 * self.scale_value * self.style.get("scale", 1)))
+
+    def draw(self, image, start_x, start_y, scale=1):
+        x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
+        x2, y2 = self.data.getPos2()[0] - start_x, self.data.getPos2()[1] - start_y
+        color = (self.color.red(), self.color.green(), self.color.blue())
+        image.line([x1, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
+
+
+class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
+    marker = None
+    active = False
+    hidden = False
+
+    points_data = []
+    min_frame = 0
+    max_frame = 0
+    g1 = None
+
+    def __init__(self, marker_handler, parent, data=None, event=None, type=None, frame=None):
+        self.current_frame = frame
+        QtWidgets.QGraphicsPathItem.__init__(self, parent)
+        MyDisplayItem.__init__(self, marker_handler, data, event, type)
+
+    def newData(self, event, type):
+        self.data = self.marker_handler.data_file.table_track(uid=uuid.uuid1(), type=type)
+        self.data.save()
+        self.marker = self.marker_handler.data_file.table_marker(image=self.marker_handler.data_file.image,
+                                                          x=event.pos().x(), y=event.pos().y(), type=type, track=self.data)
+        self.marker.save()
+        return self.data
+
+    def init2(self):
         self.points_data = SortedDict()
-        for point in points_data:
+        for point in self.data.markers:
             self.points_data[point.image.sort_index] = point
-
-        self.track = track
-        self.track_style = {}
-        self.UpdateStyle()
-        self.current_frame = 0
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
-
-        self.pathItem = QtWidgets.QGraphicsPathItem(self.parent)
-        self.path = QtGui.QPainterPath()
-        self.pathItem.setPen(QtGui.QPen(self.color))
-
-        self.hidden = False
-        self.active = True
-        self.saved = saved
-
-        self.FrameChanged(frame)
-
-    def UpdateStyle(self):
-        self.style = {}
-
-        # get style from marker type
-        if self.track.type.style:
-            style_text = self.track.type.style
+        self.g1 = MyGrabberItem(self, self.color, 0, 0, shape="cross")
+        if self.marker is None:
             try:
-                type_style = json.loads(style_text)
-            except ValueError:
-                type_style = {}
-                print("WARNING: type %d style could not be read: %s" % (self.track.type.id, style_text))
-            self.style.update(type_style)
+                self.marker = self.points_data[self.current_frame]
+            except KeyError:
+                self.marker = None
+                self.g1.setPos(*point.pos())
+        self.updateDisplay()
 
-        # get style from track
-        if self.track.style:
-            style_text = self.data.track.style
-            try:
-                track_style = json.loads(style_text)
-            except ValueError:
-                track_style = {}
-                print("WARNING: track %d style could not be read: %s" % (self.data.track.id, style_text))
-            self.style.update(track_style)
+    def ApplyStyle(self):
+        MyDisplayItem.ApplyStyle(self)
+        line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine,
+                           dashdotdot=Qt.DashDotDotLine)
 
-        # get color from old color field
-        if "color" not in self.style:
-            self.style["color"] = self.track.type.color
+        line_style = line_styles[self.style.get("track-line-style", "solid")]
+        line_width = self.style.get("track-line-width", 2)
+        self.setPen(QtGui.QPen(QtGui.QColor(self.color), line_width * self.scale_value, line_style))
 
-        # change color text to rgb by interpreting it as html text or a color map
-        if self.style["color"][0] != "#":
-            self.style["color"] = GetColorFromMap(self.style["color"], self.track.id)
+    def graberMoved(self, grabber, pos):
+        if self.marker is None:
+            self.marker = self.marker_handler.marker_file.table_marker(image=self.marker_handler.marker_file.data_file.image,
+                                                                       x=pos.x(), y=pos.y(),
+                                                                     type=self.data.type,
+                                                                     track=self.data, text=None)
+            self.marker.save()
+            self.points_data[self.current_frame] = self.marker
+            self.SetTrackActive(True)
         else:
-            self.style["color"] = HTMLColorToRGB(self.style["color"])
+            self.marker.x = pos.x()
+            self.marker.y = pos.y()
+        self.updateDisplay()
 
-        # remember the style which is specific for the track before adding marker specific styles
-        self.track_style = self.style.copy()
+    def graberDelete(self, grabber):
+        self.RemoveTrackPoint()
 
-        # get style from current marker
-        if self.data.style:
-            style_text = self.data.style
-            try:
-                marker_style = json.loads(style_text)
-            except ValueError:
-                marker_style = {}
-                print("WARNING: marker %d style could not be read: %s" % (self.data.track.id, style_text))
-            self.style.update(marker_style)
-
-        # convert html color to rgb
-        if self.style["color"][0] == "#":
-            self.style["color"] = HTMLColorToRGB(self.style["color"])
-
-        # apply the style
-        self.ApplyStyle()
+    def updateDisplay(self):
+        path = QtGui.QPainterPath()
+        circle_width = self.scale_value * 10 * self.style.get("track-point-scale", 1)
+        last_frame = None
+        shape = self.style.get("track-point-shape", "circle")
+        for frame in self.points_data:
+            if self.marker_handler.config.tracking_show_trailing != -1 and frame < self.current_frame - self.marker_handler.config.tracking_show_trailing:
+                continue
+            if self.marker_handler.config.tracking_show_leading != -1 and frame > self.current_frame + self.marker_handler.config.tracking_show_leading:
+                break
+            point = self.points_data[frame]
+            if last_frame == frame - 1:
+                path.lineTo(point.x, point.y)
+            else:
+                path.moveTo(point.x, point.y)
+            last_frame = frame
+            if shape == "circle":
+                path.addEllipse(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width,
+                                circle_width)
+            if shape == "rect":
+                path.addRect(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width, circle_width)
+            path.moveTo(point.x, point.y)
+        self.setPath(path)
+        if self.marker is not None:
+            self.g1.setPos(*self.marker.pos())
 
     def FrameChanged(self, frame):
 
@@ -919,34 +1192,30 @@ class MyTrackItem(MyMarkerItem):
         if hide != self.hidden:
             self.hidden = hide
             self.setVisible(not self.hidden)
-            self.pathItem.setVisible(not self.hidden)
+            self.g1.setVisible(not self.hidden)
 
         if frame in self.points_data:
-            self.data = self.points_data[frame]
-            self.setPos(self.data.x, self.data.y)
-            self.UpdateLine()
+            self.marker = self.points_data[frame]
+            self.updateDisplay()
             self.SetTrackActive(True)
-            if self.partner and self.rectObj:
-                self.UpdateRect()
-            self.UpdateStyle()
-            self.setText(self.GetText())
+            #self.GetStyle()
+            #self.setText(self.GetText())
             return
 
         if not self.hidden:
-            self.UpdateLine()
+            self.updateDisplay()
         self.SetTrackActive(False)
-        self.data = self.marker_handler.marker_file.add_marker(x=self.pos().x(), y=self.pos().y(), type=self.track.type, track=self.track, text=None)
-        #self.UpdateStyle()
+        self.marker = None
 
     def update(self, frame, point=None):
         if point is not None:
             self.AddTrackPoint(frame, point)
             if frame == self.current_frame:
-                self.ReloadData()
-                self.UpdateStyle()
+                self.marker = self.marker.get(id=self.marker.id)
+                self.GetStyle()
         else:
             self.RemoveTrackPoint(frame)
-        self.UpdateLine()
+        self.updateDisplay()
 
     def AddTrackPoint(self, frame=None, point=None):
         if frame is None:
@@ -960,37 +1229,6 @@ class MyTrackItem(MyMarkerItem):
             self.SetTrackActive(True)
         BroadCastEvent(self.marker_handler.modules, "MarkerPointsAdded")
 
-    def delete(self, just_display=False):
-        if not just_display:
-            # delete all markers from this track
-            self.marker_handler.data_file.table_marker.delete() \
-                .where(self.marker_handler.data_file.table_marker.track == self.data.track.id) \
-                .execute()
-
-            # delete track entry
-            self.marker_handler.data_file.table_track.delete() \
-                .where(self.marker_handler.data_file.table_track.id == self.data.track.id) \
-                .execute()
-
-        # delete from marker handler list
-        self.marker_handler.RemoveFromList(self)
-
-        # delete from scene
-        self.scene().removeItem(self)
-        self.pathItem.scene().removeItem(self.pathItem)
-
-        # delete from counter
-        self.marker_handler.GetCounter(self.data.type).AddCount(-1)
-
-        # delete from partner
-        if self.partner and self.partner.rectObj:
-            self.marker_handler.view.scene.removeItem(self.partner.rectObj)
-            self.partner.rectObj = None
-            self.partner.partner = None
-        if self.rectObj:
-            self.partner.partner = None
-            self.marker_handler.view.scene.removeItem(self.rectObj)
-
     def RemoveTrackPoint(self, frame=None):
         # use the current frame if no frame is supplied
         if frame is None:
@@ -999,6 +1237,8 @@ class MyTrackItem(MyMarkerItem):
         try:
             data = self.points_data.pop(frame)
             data.delete_instance()
+            if frame == self.current_frame:
+                self.marker = None
         except KeyError:
             pass
         # if it was the last one delete the track, too
@@ -1010,119 +1250,66 @@ class MyTrackItem(MyMarkerItem):
         self.max_frame = max(self.points_data.keys())
         # set the track to inactive if the current marker was removed
         if frame == self.current_frame:
-            self.saved = True
             self.SetTrackActive(False)
         # redraw the track history
-        self.UpdateLine()
+        self.updateDisplay()
 
     def SetTrackActive(self, active):
         if active is False:
             self.active = False
-            self.setOpacity(0.5)
-            self.pathItem.setOpacity(0.25)
+            self.setOpacity(0.25)
+            #self.g1.setOpacity(0.5)
+            if self.marker_handler.config.tracking_connect_nearest:
+                self.setAcceptedMouseButtons(Qt.MouseButtons(0))
         else:
             self.active = True
             self.setOpacity(1)
-            self.pathItem.setOpacity(0.5)
+            #self.g1.setOpacity(2)
+            if self.marker_handler.config.tracking_connect_nearest:
+                self.setAcceptedMouseButtons(Qt.MouseButtons(3))
 
     def CheckToDisplay(self):
-        if self.min_frame-2 <= self.current_frame <= self.max_frame+100:
+        if self.min_frame - 2 <= self.current_frame <= self.max_frame + 100:
             return True
         return False
-
-    def UpdateLine(self):
-        self.path = QtGui.QPainterPath()
-        circle_width = self.scale_value * 10 * self.track_style.get("track-point-scale", 1)
-        last_frame = None
-        shape = self.track_style.get("track-point-shape", "circle")
-        for frame in self.points_data:
-            if self.config.tracking_show_trailing != -1 and frame < self.current_frame-self.config.tracking_show_trailing:
-                continue
-            if self.config.tracking_show_leading != -1 and frame > self.current_frame+self.config.tracking_show_leading:
-                break
-            point = self.points_data[frame]
-            if last_frame == frame-1:
-                self.path.lineTo(point.x, point.y)
-            else:
-                self.path.moveTo(point.x, point.y)
-            last_frame = frame
-            if shape == "circle":
-                self.path.addEllipse(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width, circle_width)
-            if shape == "rect":
-                self.path.addRect(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width, circle_width)
-            self.path.moveTo(point.x, point.y)
-        self.pathItem.setPath(self.path)
 
     def draw(self, image, start_x, start_y, scale=1):
         if not self.CheckToDisplay():
             return
-        if self.partner:
-            return MyMarkerItem.draw(self, image, start_x, start_y, scale)
         color = (self.color.red(), self.color.green(), self.color.blue())
-        circle_width = 10*scale
+        circle_width = 10 * scale
         last_frame = None
         last_point = np.array([0, 0])
         offset = np.array([start_x, start_y])
         for frame in self.points_data:
-            if self.config.tracking_show_trailing != -1 and frame < self.current_frame-self.config.tracking_show_trailing:
+            if self.marker_handler.config.tracking_show_trailing != -1 and frame < self.current_frame - self.marker_handler.config.tracking_show_trailing:
                 continue
-            if self.config.tracking_show_leading != -1 and frame > self.current_frame+self.config.tracking_show_leading:
+            if self.marker_handler.config.tracking_show_leading != -1 and frame > self.current_frame + self.marker_handler.config.tracking_show_leading:
                 break
             point = self.points_data[frame]
-            point = np.array([point.x, point.y])-offset
+            point = np.array([point.x, point.y]) - offset
 
-            if last_frame == frame-1:
-                image.line(np.concatenate((last_point, point)).tolist(), color, width=int(2*scale))
-            image.arc(np.concatenate((point-.5*circle_width, point+.5*circle_width)).tolist(), 0, 360, color)
+            if last_frame == frame - 1:
+                image.line(np.concatenate((last_point, point)).tolist(), color, width=int(2 * scale))
+            image.arc(np.concatenate((point - .5 * circle_width, point + .5 * circle_width)).tolist(), 0, 360, color)
             last_point = point
             last_frame = frame
         if self.active:
             MyMarkerItem.draw(self, image, start_x, start_y, scale)
 
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            if not event.modifiers() & Qt.ControlModifier:
-                if self.active is False:
-                    self.AddTrackPoint()
-                    self.saved = False
-            else:
-                return self.RemoveTrackPoint()
-        MyMarkerItem.mousePressEvent(self, event)
-
-    def mouseMoveEvent(self, event):
-        if self.dragged:
-            if self.active is False:
-                self.AddTrackPoint()
-            self.saved = False
-            self.UpdateLine()
-        MyMarkerItem.mouseMoveEvent(self, event)
-
-    def setCurrentPoint(self, x, y):
-        self.setPos(x, y)
-        self.data.x, self.data.y = x, y
-        if self.active is False:
-            self.AddTrackPoint()
-            self.saved = False
-        self.UpdateLine()
-
     def setScale(self, scale):
-        MyMarkerItem.setScale(self, scale)
-        try:
-            line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine, dashdotdot=Qt.DashDotDotLine)
-            line_style = line_styles[self.track_style.get("track-line-style", "solid")]
-            line_width = self.track_style.get("track-line-width", 2)
-            self.pathItem.setPen(QtGui.QPen(QtGui.QColor(*self.track_style["color"]), line_width * self.scale_value, line_style))
-            self.UpdateLine()
-        except AttributeError:
-            pass
+        MyDisplayItem.setScale(self, scale)
+        self.updateDisplay()
+        pen = self.pen()
+        pen.setWidthF(self.style.get("track-line-width", 2) * self.scale_value)
+        self.setPen(pen)
 
     def save(self):
-        if not self.saved:
-            try:
-                self.data.save()
-            except peewee.IntegrityError:
-                pass
-            self.saved = True
+        if self.active:
+            if len(self.marker.dirty_fields):
+                self.marker.processed = 0
+                self.marker.save(only=self.marker.dirty_fields)
+            MyDisplayItem.save(self)
 
 
 class Crosshair(QtWidgets.QGraphicsPathItem):
@@ -1234,8 +1421,8 @@ class Crosshair(QtWidgets.QGraphicsPathItem):
                 self.setScale(self.scale)
             else:
                 self.setScale(0)
-        self.CrosshairPathItem2.setPen(QtGui.QPen(point.color))
-        self.CrosshairPathItem.setPen(QtGui.QPen(point.color))
+        self.CrosshairPathItem2.setPen(QtGui.QPen(point.color, 1))
+        self.CrosshairPathItem.setPen(QtGui.QPen(point.color, 2))
 
 
 class MyCounter(QtWidgets.QGraphicsRectItem):
@@ -1278,7 +1465,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
         self.count += new_count
         if self.type:
             self.text.setText(
-                str(self.index+1) + ": " + self.type.name + " %d" % self.count)
+                str(self.index + 1) + ": " + self.type.name + " %d" % self.count)
         else:
             self.text.setText("+ add type")
         rect = self.text.boundingRect()
@@ -1305,12 +1492,14 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton or self.type is None:
             if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
-                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler, self.marker_handler.marker_file)
+                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler,
+                                                                      self.marker_handler.marker_file)
                 self.marker_handler.marker_edit_window.show()
             self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
         elif event.button() == QtCore.Qt.LeftButton:
             if not self.marker_handler.active:
-                BroadCastEvent([module for module in self.marker_handler.modules if module != self.marker_handler], "setActiveModule", False)
+                BroadCastEvent([module for module in self.marker_handler.modules if module != self.marker_handler],
+                               "setActiveModule", False)
                 self.marker_handler.setActiveModule(True)
             self.marker_handler.SetActiveMarkerType(self.index)
             if self.marker_handler.marker_edit_window:
@@ -1320,10 +1509,12 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
 class MarkerHandler:
     points = []
     tracks = []
+    lines = []
+    rectangles = []
+    display_lists = [points, tracks, lines, rectangles]
     counter = []
     scale = 1
 
-    text = None
     marker_edit_window = None
 
     active = False
@@ -1332,6 +1523,8 @@ class MarkerHandler:
 
     active_type_index = None
     active_type = None
+
+    active_drag = None
 
     def __init__(self, window, data_file, parent, parent_hud, view, image_display, config, modules, datafile, new_database):
         self.window = window
@@ -1378,10 +1571,9 @@ class MarkerHandler:
             BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
 
     def drawToImage(self, image, start_x, start_y, scale=1):
-        for point in self.points:
-            point.draw(image, start_x, start_y, scale)
-        for track in self.tracks:
-            track.draw(image, start_x, start_y, scale)
+        for list in self.display_lists:
+            for point in list:
+                point.draw(image, start_x, start_y, scale)
 
     def UpdateCounter(self):
         for counter in self.counter:
@@ -1405,23 +1597,27 @@ class MarkerHandler:
         raise NameError("A non existing type was referenced")
 
     def ReloadMarker(self, frame=None):
+        # called via SendCommand from external scripts or add-ons
+        # get the frame
         if frame is None:
             frame = self.data_file.get_current_image()
             image_id = self.data_file.image.id
         else:
             image_id = self.data_file.get_image(frame).id
         # Tracks
-        marker_list = self.marker_file.get_marker_list(image_id)
-        marker_list = {marker.track.id: marker for marker in marker_list if marker.track}
+        marker_list = self.data_file.table_marker.select().where(self.data_file.table_marker.image == image_id)
+        marker_list = {marker.track_id: marker for marker in marker_list}
         for track in self.tracks:
-            if track.track.id in marker_list:
-                track.update(frame, marker_list[track.track.id])
-                marker_list.pop(track.track.id)
+            if track.data.id in marker_list:
+                track.update(frame, marker_list[track.data.id])
+                marker_list.pop(track.data.id)
             else:
                 track.update(frame, None)
         # Points
         if frame == self.frame_number:
             self.LoadPoints()
+            self.LoadLines()
+            self.LoadRectangles()
 
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
@@ -1433,6 +1629,8 @@ class MarkerHandler:
             for track in self.tracks:
                 track.FrameChanged(framenumber)
         self.LoadPoints()
+        self.LoadLines()
+        self.LoadRectangles()
 
     def LoadTracks(self):
         while len(self.tracks):
@@ -1441,28 +1639,47 @@ class MarkerHandler:
         for track in track_list:
             data = track.markers
             if data.count():
-                self.tracks.append(MyTrackItem(self, self.TrackParent, data, track, saved=True, frame=self.frame_number))
-                self.tracks[-1].setScale(1 / self.scale)
+                self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=self.frame_number))
 
     def ReloadTrack(self, track):
-        track_item = self.GetTrackItem(track)
+        track_item = self.GetMarkerItem(track)
         track_item.delete(just_display=True)
-        data = track.markers
-        if data.count():
-            self.tracks.append(MyTrackItem(self, self.TrackParent, data, track, saved=True, frame=self.frame_number))
-            self.tracks[-1].setScale(1 / self.scale)
+        self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=self.frame_number))
 
     def LoadPoints(self):
         while len(self.points):
             self.points[0].delete(just_display=True)
-        marker_list = (self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_markertype)
-            .join(self.marker_file.table_markertype)
-            .where(self.marker_file.table_marker.image == self.data_file.image.id)
-            )
+        marker_list = (
+        self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_markertype)
+        .join(self.marker_file.table_markertype)
+        .where(self.marker_file.table_marker.image == self.data_file.image.id)
+        )
         for marker in marker_list:
             if not marker.track:
-                self.points.append(MyMarkerItem(self, self.MarkerParent, marker, saved=True))
+                self.points.append(MyMarkerItem(self, self.MarkerParent, marker))
                 self.points[-1].setScale(1 / self.scale)
+
+    def LoadLines(self):
+        while len(self.lines):
+            self.lines[0].delete(just_display=True)
+        line_list = (
+            self.marker_file.table_line.select(self.marker_file.table_line, self.marker_file.table_markertype)
+                .join(self.marker_file.table_markertype)
+                .where(self.marker_file.table_line.image == self.data_file.image.id)
+        )
+        for line in line_list:
+            self.lines.append(MyLineItem(self, self.MarkerParent, data=line))
+
+    def LoadRectangles(self):
+        while len(self.rectangles):
+            self.rectangles[0].delete(just_display=True)
+        rect_list = (
+            self.marker_file.table_rectangle.select(self.marker_file.table_rectangle, self.marker_file.table_markertype)
+                .join(self.marker_file.table_markertype)
+                .where(self.marker_file.table_rectangle.image == self.data_file.image.id)
+        )
+        for rect in rect_list:
+            self.rectangles.append(MyRectangleItem(self, self.MarkerParent, data=rect))
 
     def ClearPoints(self):
         self.points = []
@@ -1471,29 +1688,33 @@ class MarkerHandler:
         self.MarkerParent.setZValue(10)
 
     def RemoveFromList(self, point):
-        try:
-            self.points.remove(point)
-        except ValueError:
-            self.tracks.remove(point)
+        for list in self.display_lists:
+            try:
+                list.remove(point)
+                break
+            except ValueError:
+                continue
 
     def GetMarkerItem(self, data):
-        for point in self.points:
-            if point.data.id == data.id:
-                return point
+        for list in self.display_lists:
+            for point in list:
+                if type(point.data) != type(data):
+                    break
+                if point.data.id == data.id:
+                    return point
 
     def GetTrackItem(self, data):
         for track in self.tracks:
-            if track.track.id == data.id:
+            if track.data.id == data.id:
                 return track
 
     def save(self):
-        for point in self.points:
-            point.save()
-        for track in self.tracks:
-            track.save()
+        for list in self.display_lists:
+            for point in list:
+                point.save()
 
     def SetActiveMarkerType(self, new_index):
-        if new_index >= len(self.counter)-1:
+        if new_index >= len(self.counter) - 1:
             return
         if self.active_type_index is not None:
             self.counter[self.active_type_index].SetToInactiveColor()
@@ -1503,10 +1724,9 @@ class MarkerHandler:
 
     def zoomEvent(self, scale, pos):
         self.scale = scale
-        for point in self.points:
-            point.setScale(1 / scale)
-        for track in self.tracks:
-            track.setScale(1 / scale)
+        for list in self.display_lists:
+            for point in list:
+                point.setScale(1 / scale)
         self.Crosshair.setScale(1 / scale)
 
     def setActiveModule(self, active, first_time=False):
@@ -1537,25 +1757,31 @@ class MarkerHandler:
         if self.hidden or self.data_file.image is None:
             return False
         if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and not event.modifiers() & Qt.ControlModifier:  # QtCore.QEvent.MouseButtonPress:
+            self.active_drag = None
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
             tracks = [track for track in self.tracks if track.data.type.id == self.active_type.id]
             if self.active_type.mode & TYPE_Track and self.config.tracking_connect_nearest and \
                     len(tracks) and not event.modifiers() & Qt.AltModifier:
-                distances = [np.linalg.norm(PosToArray(point.pos() - event.pos())) for point in tracks]
+                distances = [np.linalg.norm(PosToArray(point.g1.pos() - event.pos())) for point in tracks]
                 index = np.argmin(distances)
-                tracks[index].setCurrentPoint(event.pos().x(), event.pos().y())
+                tracks[index].graberMoved(None, event.pos())
+                if event.modifiers() & Qt.ShiftModifier:
+                    self.window.JumpFrames(1)
             elif self.active_type.mode & TYPE_Track:
-                track = self.marker_file.set_track(self.active_type)
-                data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, track=track)
-                self.tracks.append(MyTrackItem(self, self.TrackParent, [data], track, saved=False, frame=self.frame_number))
-                self.tracks[-1].setScale(1 / self.scale)
-                self.tracks[-1].save()
+                self.tracks.append(
+                    MyTrackItem(self, self.TrackParent, event=event, type=self.active_type, frame=self.frame_number))
+            elif self.active_type.mode & TYPE_Line:
+                self.lines.append(MyLineItem(self, self.TrackParent, event=event, type=self.active_type))
+                self.active_drag = self.lines[-1]
+            elif self.active_type.mode & TYPE_Rect:
+                self.rectangles.append(MyRectangleItem(self, self.TrackParent, event=event, type=self.active_type))
+                self.active_drag = self.rectangles[-1]
             else:
-                data = self.marker_file.add_marker(x=event.pos().x(), y=event.pos().y(), type=self.active_type, text=self.text)
-                self.points.append(MyMarkerItem(self, self.MarkerParent, data, saved=False))
-                self.points[-1].setScale(1 / self.scale)
-                self.points[-1].save()
+                self.points.append(MyMarkerItem(self, self.MarkerParent, event=event, type=self.active_type))
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.active_drag:
+            self.active_drag.drag(event)
             return True
         return False
 
@@ -1571,7 +1797,7 @@ class MarkerHandler:
         if event.key() == QtCore.Qt.Key_T:
             # @key T: toggle marker shape
             self.toggleMarkerShape()
-            
+
     def ToggleInterfaceEvent(self):
         self.hidden = not self.hidden
         for key in self.counter:
