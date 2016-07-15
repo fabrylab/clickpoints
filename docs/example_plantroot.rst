@@ -2,7 +2,9 @@ Flourescence intensities in plant roots
 =======================================
 
 .. figure:: images/example_plantroot.png
-   :alt: A plant root with diffusing fluorescence proteins
+    :alt: A plant root with diffusing fluorescence proteins
+
+    Left: image of a plant root in ClickPoints. Right: fluorescence intensities of the cells over time.
 
 In the example, we show how the mask panting feature of ClickPoints can be used to evaluate fluorescence intensities in
 microscope recordings.

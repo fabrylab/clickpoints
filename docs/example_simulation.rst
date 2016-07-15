@@ -1,7 +1,12 @@
 Using ClickPoints for Visualizing Simulation Results
 ====================================================
 
-Here we show how ClickPoints can be apart from viewing and analyzing imagea also be used to store simulation results
+.. figure:: images/example_simulation.png
+    :alt: An example simulation
+
+    Left: Tracks of the random walk simulation in ClickPoints. Right: Tracks plotted all starting from (0, 0).
+
+Here we show how ClickPoints can be apart from viewing and analyzing images also be used to store simulation results
 in a ClickPoints Project file. This has the advantages that the simulation can later be viewed in ClickPoints, with all
 the features of playback, zooming and panning. Also the coordinates of the objects used in the simulation can later be
 accessed through the ClickPoints Project file.

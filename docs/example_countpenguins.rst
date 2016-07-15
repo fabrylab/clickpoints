@@ -1,6 +1,11 @@
 Count Penguins
 ==============
 
+.. figure:: images/example_counts.png
+    :alt: An example showing penguin counts
+
+    Left: image of clickpoints to count penguins. Right: number of penguins counted.
+
 In the example, we show how the ClickPoints can be used to count penguins animals in an image.
 
 The example contains some images recorded with a GoPro Hero 2 camera, located at the Baie du Marin King penguin colony on Possession Island of the Crozet Archipelago [Weimerskirch et al. 1992].
