@@ -857,7 +857,7 @@ class MyDisplayItem:
         if scale is not None:
             self.scale_value = scale
 
-    def draw(self, image, start_x, start_y, scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         pass
 
     def graberDelete(self, grabber):
@@ -969,11 +969,13 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.scale_value = scale
         super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value * self.style.get("scale", 1))
 
-    def draw(self, image, start_x, start_y, scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         w = 1. * scale
         b = (10 - 7) * scale
         r2 = 10 * scale
         x, y = self.pos().x() - start_x, self.pos().y() - start_y
+        x *= image_scale
+        y *= image_scale
         color = (self.color.red(), self.color.green(), self.color.blue())
         image.rectangle([x - w, y - r2, x + w, y - b], color)
         image.rectangle([x - w, y + b, x + w, y + r2], color)
@@ -1019,9 +1021,10 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
     def drag(self, event):
         self.graberMoved(self.g2, event.pos())
 
-    def draw(self, image, start_x, start_y, scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
         x2, y2 = self.data.getPos2()[0] - start_x, self.data.getPos2()[1] - start_y
+        x1, y1, x2, y2 = np.array([x1, y1, x2, y2])*image_scale
         color = (self.color.red(), self.color.green(), self.color.blue())
         image.line([x1, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
 
@@ -1088,11 +1091,15 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
             self.scale_value = scale
         self.setPen(QtGui.QPen(self.color, 2 * self.scale_value * self.style.get("scale", 1)))
 
-    def draw(self, image, start_x, start_y, scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
-        x2, y2 = self.data.getPos2()[0] - start_x, self.data.getPos2()[1] - start_y
+        x2, y2 = self.data.getPos3()[0] - start_x, self.data.getPos3()[1] - start_y
+        x1, y1, x2, y2 = np.array([x1, y1, x2, y2]) * image_scale
         color = (self.color.red(), self.color.green(), self.color.blue())
-        image.line([x1, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
+        image.line([x1, y1, x2, y1], color, width=int(3 * scale * self.style.get("scale", 1)))
+        image.line([x2, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
+        image.line([x2, y2, x1, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
+        image.line([x1, y2, x1, y1], color, width=int(3 * scale * self.style.get("scale", 1)))
 
 
 class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
@@ -1273,7 +1280,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             return True
         return False
 
-    def draw(self, image, start_x, start_y, scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         if not self.CheckToDisplay():
             return
         color = (self.color.red(), self.color.green(), self.color.blue())
@@ -1288,14 +1295,15 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                 break
             point = self.points_data[frame]
             point = np.array([point.x, point.y]) - offset
+            point *= image_scale
 
             if last_frame == frame - 1:
                 image.line(np.concatenate((last_point, point)).tolist(), color, width=int(2 * scale))
             image.arc(np.concatenate((point - .5 * circle_width, point + .5 * circle_width)).tolist(), 0, 360, color)
             last_point = point
             last_frame = frame
-        if self.active:
-            MyMarkerItem.draw(self, image, start_x, start_y, scale)
+        #if self.active:
+        #    MyMarkerItem.draw(self, image, start_x, start_y, scale, image_scale)
 
     def setScale(self, scale):
         MyDisplayItem.setScale(self, scale)
@@ -1570,10 +1578,10 @@ class MarkerHandler:
         for item in self.marker_file.get_marker_frames():
             BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
 
-    def drawToImage(self, image, start_x, start_y, scale=1):
+    def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1):
         for list in self.display_lists:
             for point in list:
-                point.draw(image, start_x, start_y, scale)
+                point.draw(image, start_x, start_y, scale, image_scale)
 
     def UpdateCounter(self):
         for counter in self.counter:
