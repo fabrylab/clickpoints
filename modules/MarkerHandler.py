@@ -570,6 +570,10 @@ class MarkerEditor(QtWidgets.QWidget):
 
             self.marker_handler.ReloadTrack(self.data)
         elif type(self.data) == self.data_file.table_markertype:
+            new_type = self.data.id is None
+            if new_type:
+                self.new_type.color = GetColorByIndex(len(self.marker_type_modelitems))
+                self.data = self.data_file.table_markertype()
             self.data.name = self.typeWidget.name.text()
             self.data.mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
             self.data.style = self.typeWidget.style.text()
@@ -581,6 +585,25 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_handler.LoadTracks()
             else:
                 self.marker_handler.LoadPoints()
+
+            # get the item from tree or insert a new one
+            if new_type:
+                item = QtGui.QStandardItem()
+                item.setEditable(False)
+                item.entry = self.data
+                self.marker_type_modelitems[self.data.id] = item
+                new_row = self.marker_type_modelitems[-1].row()
+                self.tree.model().insertRow(new_row)
+                self.tree.model().setItem(new_row, 0, item)
+            else:
+                item = self.marker_type_modelitems[self.data.id]
+
+            # update item
+            item.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(self.data.color))))
+            item.setText(self.data.name)
+            # if a new type was created switch selection to create a new type
+            if new_type:
+                self.setMarker(self.new_type)
 
         # close widget
         #self.marker_handler.marker_edit_window = None
