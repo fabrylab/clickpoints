@@ -579,7 +579,16 @@ class MarkerEditor(QtWidgets.QWidget):
             self.data.style = self.typeWidget.style.text()
             self.data.color = self.typeWidget.color.getColor()
             self.data.text = self.filterText(self.typeWidget.text.text())
-            self.data.save()
+            try:
+                self.data.save()
+            except peewee.IntegrityError as err:
+                if err.message == "UNIQUE constraint failed: markertype.name":
+                    QtWidgets.QMessageBox.critical(self, 'Error - ClickPoints',
+                                                           'There already exists a markertype with name %s' % self.data.name,
+                                                           QtWidgets.QMessageBox.Ok)
+                    return
+                else:
+                    raise err
             self.marker_handler.UpdateCounter()
             if self.data.mode & TYPE_Track:
                 self.marker_handler.LoadTracks()
@@ -604,10 +613,6 @@ class MarkerEditor(QtWidgets.QWidget):
             # if a new type was created switch selection to create a new type
             if new_type:
                 self.setMarker(self.new_type)
-
-        # close widget
-        #self.marker_handler.marker_edit_window = None
-        #self.close()
 
     def removeMarker(self):
         print("Remove ...")
@@ -652,6 +657,10 @@ class MarkerEditor(QtWidgets.QWidget):
 
         # currently selected a type -> remove the type
         elif type(self.data) == self.data_file.table_markertype:
+            # get the tree view item (don't delete it right away because this changes the selection)
+            index = self.data.id
+            item = self.marker_type_modelitems[index]
+
             count = self.data.markers.count()
             # if this type doesn't have markers delete it without asking
             if count == 0:
@@ -683,11 +692,15 @@ class MarkerEditor(QtWidgets.QWidget):
                     # reload marker
                     self.marker_handler.ReloadMarker()
 
+            # update the counters
             self.marker_handler.UpdateCounter()
 
-        # close widget
-        #self.marker_handler.marker_edit_window = None
-        #self.close()
+            # delete item from list
+            del self.marker_type_modelitems[index]
+            self.new_type.color = GetColorByIndex(len(self.marker_type_modelitems)-1)
+
+            # and then delete the tree view item
+            self.tree.model().removeRow(item.row())
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Escape:
