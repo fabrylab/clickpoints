@@ -770,6 +770,8 @@ class MyDisplayItem:
     font = None
     text = None
 
+    text_parent = None
+
     def __init__(self, marker_handler, data=None, event=None, type=None):
         # store marker handler
         self.marker_handler = marker_handler
@@ -870,7 +872,7 @@ class MyDisplayItem:
         if self.text is None:
             self.font = QtGui.QFont()
             self.font.setPointSize(10)
-            self.text_parent = QtWidgets.QGraphicsPathItem(self)
+            self.text_parent = QtWidgets.QGraphicsPathItem(self if self.text_parent is None else self.text_parent)
             self.text_parent.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
             self.text = QtWidgets.QGraphicsSimpleTextItem(self.text_parent)
             self.text.setFont(self.font)
@@ -880,13 +882,15 @@ class MyDisplayItem:
 
         # augment text
         if '$track_id' in text:
-            if self.data.track and self.data.track.id:
-                text = text.replace('$track_id', '%d' % self.data.track.id)
+            data = self.data if type(self.data) is self.marker_handler.data_file.table_track else None
+            if data and data.id:
+                text = text.replace('$track_id', '%d' % data.id)
             else:
                 text = text.replace('$track_id', '??')
         if '$marker_id' in text:
-            if self.data.id:
-                text = text.replace('$marker_id', '%d' % self.data.id)
+            data = self.data if type(self.data) is not self.marker_handler.data_file.table_track else self.marker
+            if data and data.id:
+                text = text.replace('$marker_id', '%d' % data.id)
             else:
                 text = text.replace('$marker_id', '??')
         if '$x_pos' in text:
@@ -1047,6 +1051,7 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
         self.setLine(*self.data.getPos())
         self.g1 = MyGrabberItem(self, self.color, *self.data.getPos1())
         self.g2 = MyGrabberItem(self, self.color, *self.data.getPos2())
+        self.text_parent = self.g1
         pen = self.pen()
         pen.setWidth(2)
         self.setPen(pen)
@@ -1095,6 +1100,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         self.g2 = MyGrabberItem(self, self.color, *self.data.getPos2())
         self.g3 = MyGrabberItem(self, self.color, *self.data.getPos3())
         self.g4 = MyGrabberItem(self, self.color, *self.data.getPos4())
+        self.text_parent = self.g4
         pen = self.pen()
         pen.setWidth(2)
         self.setPen(pen)
@@ -1187,6 +1193,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
         self.g1 = MyGrabberItem(self, self.color, 0, 0, shape="cross")
+        self.text_parent = self.g1
         if self.marker is None:
             try:
                 self.marker = self.points_data[self.current_frame]
@@ -1262,7 +1269,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.updateDisplay()
             self.SetTrackActive(True)
             #self.GetStyle()
-            #self.setText(self.GetText())
+            self.setText(self.GetText())
             return
 
         if not self.hidden:
