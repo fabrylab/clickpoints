@@ -712,12 +712,10 @@ class MarkerEditor(QtWidgets.QWidget):
 
 class MyGrabberItem(QtWidgets.QGraphicsPathItem):
     scale_value = 1
-    drag_start_pos = None
 
     def __init__(self, parent, color, x, y, shape="rect"):
         # init and store parent
         QtWidgets.QGraphicsPathItem.__init__(self, parent)
-        self.parent = parent
 
         # set path
         self.setPath(paths[shape])
@@ -747,15 +745,12 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         if event.button() == QtCore.Qt.LeftButton:
             # left click + control -> remove
             if event.modifiers() == QtCore.Qt.ControlModifier:
-                self.parent.graberDelete(self)
-            # left click -> move
-            else:
-                self.drag_start_pos = event.pos()
+                self.parentItem().graberDelete(self)
 
     def mouseMoveEvent(self, event):
         # notify parent
-        pos = self.parent.mapFromItem(self, event.pos() - self.drag_start_pos)
-        self.parent.graberMoved(self, pos)
+        pos = self.parentItem().mapFromScene(event.scenePos())
+        self.parentItem().graberMoved(self, pos)
 
     def setScale(self, scale=None):
         # store scale
