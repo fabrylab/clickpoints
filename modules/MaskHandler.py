@@ -327,10 +327,15 @@ class MaskEditor(QtWidgets.QWidget):
 
     def removeMarker(self):
         # get the tree view item (don't delete it right away because this changes the selection)
-        item = self.mask_type_modelitems[self.data.id]
+        index = self.data.id
+        item = self.mask_type_modelitems[index]
 
         # delete the database entry
         self.data.delete_instance()
+
+        # remove from list
+        del self.mask_type_modelitems[index]
+        self.new_type.color = GetColorByIndex(len(self.mask_type_modelitems) + 16 - 1)
 
         # and then delete the tree view item
         self.tree.model().removeRow(item.row())
