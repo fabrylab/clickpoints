@@ -731,6 +731,9 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         self.setPos(x, y)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
 
+    def setShape(self, shape):
+        self.setPath(paths[shape])
+
     def hoverEnterEvent(self, event):
         # a bit bigger during hover
         super(QtWidgets.QGraphicsPathItem, self).setScale(1.2 * self.scale_value)
@@ -1229,6 +1232,8 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         pen.setWidthF(self.style.get("track-line-width", 2))
         pen.setStyle(line_styles[self.style.get("track-line-style", "solid")])
         self.setPen(pen)
+        self.g1.setShape(self.style.get("shape", "cross"))
+        self.g1.setScale(self.style.get("scale", 1))
 
     def graberMoved(self, grabber, pos):
         if self.marker is None:
