@@ -1200,9 +1200,10 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine,
                            dashdotdot=Qt.DashDotDotLine)
 
-        line_style = line_styles[self.style.get("track-line-style", "solid")]
-        line_width = self.style.get("track-line-width", 2)
-        self.setPen(QtGui.QPen(QtGui.QColor(self.color), line_width * self.scale_value, line_style))
+        pen = self.pen()
+        pen.setWidthF(self.style.get("track-line-width", 2))
+        pen.setStyle(line_styles[self.style.get("track-line-style", "solid")])
+        self.setPen(pen)
 
     def graberMoved(self, grabber, pos):
         if self.marker is None:
@@ -1363,9 +1364,6 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def setScale(self, scale):
         MyDisplayItem.setScale(self, scale)
         self.updateDisplay()
-        pen = self.pen()
-        pen.setWidthF(self.style.get("track-line-width", 2) * self.scale_value)
-        self.setPen(pen)
 
     def save(self):
         if self.active:
