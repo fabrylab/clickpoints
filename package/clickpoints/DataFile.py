@@ -197,11 +197,13 @@ class DataFile:
             if not os.path.exists(self.database_filename) and mode != "r+":
                 raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
-            self.db.get_conn().row_factory = dict_factory
             if os.path.exists(self.database_filename):
+                self.db.get_conn().row_factory = dict_factory
                 version = self._CheckVersion()
                 self.next_sort_index = None
                 new_database = False
+            else:
+                self.db.get_conn().row_factory = dict_factory
 
         """ Basic Tables """
 
