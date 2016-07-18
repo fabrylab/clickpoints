@@ -1100,7 +1100,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         self.g2 = MyGrabberItem(self, self.color, *self.data.getPos2())
         self.g3 = MyGrabberItem(self, self.color, *self.data.getPos3())
         self.g4 = MyGrabberItem(self, self.color, *self.data.getPos4())
-        self.text_parent = self.g4
+        self.text_parent = self.g3
         pen = self.pen()
         pen.setWidth(2)
         self.setPen(pen)
@@ -1122,26 +1122,44 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         self.g3.setPos(*self.data.getPos3())
         self.g4.setPos(*self.data.getPos4())
 
+    def CheckPositiveWidthHeight(self):
+        if self.data.width < 0:
+            self.data.x += self.data.width
+            self.data.width = -self.data.width
+            self.g1, self.g2, self.g3, self.g4 = self.g2, self.g1, self.g4, self.g3
+            if self.text:
+                self.text.setParentItem(self.g3)
+        if self.data.height < 0:
+            self.data.y += self.data.height
+            self.data.height = -self.data.height
+            self.g1, self.g2, self.g3, self.g4 = self.g4, self.g3, self.g2, self.g1
+            if self.text:
+                self.text.setParentItem(self.g3)
+
     def graberMoved(self, grabber, pos):
         if grabber == self.g1:
-            self.data.width = self.data.x+self.data.width-pos.x()
+            self.data.width = self.data.x + self.data.width - pos.x()
             self.data.height = self.data.y + self.data.height - pos.y()
             self.data.x = pos.x()
             self.data.y = pos.y()
+            self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g2:
             self.data.width = pos.x() - self.data.x
             self.data.height = self.data.y + self.data.height - pos.y()
             self.data.y = pos.y()
+            self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g3:
             self.data.width = pos.x() - self.data.x
             self.data.height = pos.y() - self.data.y
+            self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g4:
             self.data.width = self.data.x + self.data.width - pos.x()
             self.data.height = pos.y() - self.data.y
             self.data.x = pos.x()
+            self.CheckPositiveWidthHeight()
             self.updateDisplay()
 
     def drag(self, event):
