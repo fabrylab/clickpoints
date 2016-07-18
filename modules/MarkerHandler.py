@@ -360,6 +360,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 item_track.entry = track
                 item_track.setEditable(False)
                 item_type.appendRow(item_track)
+                self.marker_modelitems["T%d" % track.id] = item_track
 
                 # add dummy child
                 child = QtGui.QStandardItem()
@@ -616,9 +617,15 @@ class MarkerEditor(QtWidgets.QWidget):
 
         # currently selected a track -> remove the track
         elif type(self.data) == self.data_file.table_track:
+            # get the tree view item (don't delete it right away because this changes the selection)
+            index = "T%d" % self.data.id
+            item = self.marker_modelitems[index]
             # get the track and remove it
             track = self.marker_handler.GetMarkerItem(self.data)
             track.delete()
+            # and then delete the tree view item
+            item.parent().removeRow(item.row())
+            del self.marker_modelitems[index]
 
         # currently selected a type -> remove the type
         elif type(self.data) == self.data_file.table_markertype:
