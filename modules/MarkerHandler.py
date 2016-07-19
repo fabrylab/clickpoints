@@ -710,12 +710,34 @@ class MarkerEditor(QtWidgets.QWidget):
             self.saveMarker()
 
 
+def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36):
+    timer = QtCore.QTimer()
+    timer.animation_counter = 0
+    duration /= 1e3
+    def timerEvent():
+        timer.animation_time += 1./(fps*duration)
+        timer.animation_counter += 1
+        if timer.animation_time >= 1:
+            target.setScale(end)
+            timer.stop()
+        x = timer.animation_time
+        k = 3
+        y = 0.5 * (x * 2) ** k * (x < 0.5) + (1 - 0.5 * ((1 - x) * 2) ** k) * (x >= 0.5)
+        target.setScale(y)
+    timer.timeout.connect(timerEvent)
+    timer.animation_time = 0
+    target.setScale(start)
+    timer.start(1e3/fps)
+
+
 class MyGrabberItem(QtWidgets.QGraphicsPathItem):
     scale_value = 1
+    use_crosshair = False
 
-    def __init__(self, parent, color, x, y, shape="rect"):
+    def __init__(self, parent, color, x, y, shape="rect", use_crosshair=False):
         # init and store parent
         QtWidgets.QGraphicsPathItem.__init__(self, parent)
+        self.use_crosshair = use_crosshair
 
         # set path
         self.setPath(paths[shape])
@@ -728,6 +750,9 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         self.setAcceptHoverEvents(True)
         self.setPos(x, y)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
+
+        if parent.is_new:
+            AnimationChangeScale(self)
 
     def setShape(self, shape):
         self.setPath(paths[shape])
@@ -746,11 +771,28 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
             # left click + control -> remove
             if event.modifiers() == QtCore.Qt.ControlModifier:
                 self.parentItem().graberDelete(self)
+            # normal left click -> move
+            else:
+                if self.use_crosshair:
+                    # display crosshair
+                    self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
+                    self.parentItem().marker_handler.Crosshair.Show(self)
+                    self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
 
     def mouseMoveEvent(self, event):
+        # move crosshair
+        if self.use_crosshair:
+            self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
         # notify parent
         pos = self.parentItem().mapFromScene(event.scenePos())
         self.parentItem().graberMoved(self, pos)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            # hide crosshair
+            if self.use_crosshair:
+                self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
+                self.parentItem().marker_handler.Crosshair.Hide()
 
     def setScale(self, scale=None):
         # store scale
@@ -770,15 +812,19 @@ class MyDisplayItem:
 
     text_parent = None
 
+    is_new = None
+
     def __init__(self, marker_handler, data=None, event=None, type=None):
         # store marker handler
         self.marker_handler = marker_handler
         # store data or create new instance
         if data is not None:
             self.data = data
+            self.is_new = False
         else:
             self.data = self.newData(event, type)
             self.data.save()
+            self.is_new = True
         # extract the style information
         self.GetStyle()
         # call the init function of the main class
@@ -947,12 +993,10 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def __init__(self, marker_handler, parent, data=None, event=None, type=None):
         QtWidgets.QGraphicsPathItem.__init__(self, parent)
         MyDisplayItem.__init__(self, marker_handler, data, event, type)
-        self.init2()
 
     def init2(self):
-        self.setPos(self.data.x, self.data.y)
-        self.setZValue(20)
-        self.UpdatePath()
+        self.g1 = MyGrabberItem(self, self.color, self.data.x, self.data.y, shape="cross", use_crosshair=True)
+        self.text_parent = self.g1
 
     def newData(self, event, type):
         return self.marker_handler.data_file.table_marker(image=self.marker_handler.data_file.image,
@@ -960,71 +1004,16 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
     def ReloadData(self):
         MyDisplayItem.ReloadData(self)
+        self.updateDisplay()
+
+    def updateDisplay(self):
         # update marker display
-        self.setPos(self.data.x, self.data.y)
+        self.g1.setPos(self.data.x, self.data.y)
 
-    def ApplyStyle(self):
-        MyDisplayItem.ApplyStyle(self)
-        if self.style.get("shape", "cross") == "cross":
-            self.setBrush(QtGui.QBrush(self.color))
-            self.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
-        else:
-            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
-            self.setPen(QtGui.QPen(self.color, self.style.get("line-width", 1)))
-
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.RightButton:
-            # open marker edit menu
-            if not self.marker_handler.marker_edit_window or not self.marker_handler.marker_edit_window.isVisible():
-                self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler,
-                                                                      self.marker_handler.marker_file)
-                self.marker_handler.marker_edit_window.show()
-            self.marker_handler.marker_edit_window.setMarker(self.data)
-        if event.button() == QtCore.Qt.LeftButton:
-            # left click with Ctrl -> delete
-            if event.modifiers() == QtCore.Qt.ControlModifier:
-                self.delete()
-            # left click -> move
-            else:
-                self.drag_start_pos = event.pos()
-                self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
-                self.marker_handler.Crosshair.Show(self)
-                self.marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
-
-    def mouseMoveEvent(self, event):
-        pos = self.parentItem().mapFromItem(self, event.pos() - self.drag_start_pos)
-        self.setPos(pos.x(), pos.y())
-        self.data.x, self.data.y = pos.x(), pos.y()
-        if self.data.type.mode & TYPE_Track:
-            self.UpdateLine()
-        self.setText(self.GetText())
-        self.marker_handler.Crosshair.MoveCrosshair(pos.x(), pos.y())
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.save()
-            self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
-            self.marker_handler.Crosshair.Hide()
-
-    def setActive(self, active):
-        if active:
-            self.setAcceptedMouseButtons(Qt.MouseButtons(3))
-            # self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
-        else:
-            self.setAcceptedMouseButtons(Qt.MouseButtons(0))
-            # self.unsetCursor()
-        return True
-
-    def UpdatePath(self):
-        if point_display_type == 0:
-            self.setPath(paths[self.style.get("shape", "cross")])
-        else:
-            self.setPath(point_display_types[point_display_type])
-
-    def setScale(self, scale=None):
-        if scale is not None:
-            self.scale_value = scale
-        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value * self.style.get("scale", 1))
+    def graberMoved(self, grabber, pos):
+        self.data.x = pos.x()
+        self.data.y = pos.y()
+        self.updateDisplay()
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         w = 1. * scale
@@ -1507,8 +1496,8 @@ class Crosshair(QtWidgets.QGraphicsPathItem):
                 self.setScale(self.scale)
             else:
                 self.setScale(0)
-        self.CrosshairPathItem2.setPen(QtGui.QPen(point.color, 1))
-        self.CrosshairPathItem.setPen(QtGui.QPen(point.color, 2))
+        self.CrosshairPathItem2.setPen(QtGui.QPen(point.brush().color(), 1))
+        self.CrosshairPathItem.setPen(QtGui.QPen(point.brush().color(), 2))
 
 
 class MyCounter(QtWidgets.QGraphicsRectItem):
