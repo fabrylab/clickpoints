@@ -710,7 +710,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.saveMarker()
 
 
-def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36):
+def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36, endcall=None):
     timer = QtCore.QTimer()
     timer.animation_counter = 0
     duration /= 1e3
@@ -720,13 +720,16 @@ def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36):
         if timer.animation_time >= 1:
             target.setScale(end)
             timer.stop()
+            if endcall:
+                endcall()
         x = timer.animation_time
         k = 3
         y = 0.5 * (x * 2) ** k * (x < 0.5) + (1 - 0.5 * ((1 - x) * 2) ** k) * (x >= 0.5)
-        target.setScale(y)
+        target.setScale(y*(end-start)+start)
     timer.timeout.connect(timerEvent)
     timer.animation_time = 0
     target.setScale(start)
+    target.animation_timer = timer
     timer.start(1e3/fps)
 
 
@@ -800,6 +803,12 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
             self.scale_value = scale
         # adjust scale
         super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value)
+
+    def delete(self):
+        self.setAcceptedMouseButtons(Qt.MouseButtons(0))
+        self.setAcceptHoverEvents(False)
+        self.setParentItem(self.parentItem().parentItem())
+        AnimationChangeScale(self, start=1, end=0, endcall=lambda: self.scene().removeItem(self))
 
 
 class MyDisplayItem:
@@ -1028,6 +1037,11 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         image.rectangle([x - r2, y - w, x - b, y + w], color)
         image.rectangle([x + b, y - w, x + r2, y + w], color)
 
+    def delete(self, just_display=False):
+        if not just_display:
+            self.g1.delete()
+        MyDisplayItem.delete(self, just_display)
+
 
 class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
     def __init__(self, marker_handler, parent, data=None, event=None, type=None):
@@ -1074,6 +1088,12 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
         x1, y1, x2, y2 = np.array([x1, y1, x2, y2])*image_scale
         color = (self.color.red(), self.color.green(), self.color.blue())
         image.line([x1, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
+
+    def delete(self, just_display=False):
+        if not just_display:
+            self.g1.delete()
+            self.g2.delete()
+        MyDisplayItem.delete(self, just_display)
 
 
 class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
@@ -1166,6 +1186,14 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         image.line([x2, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
         image.line([x2, y2, x1, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
         image.line([x1, y2, x1, y1], color, width=int(3 * scale * self.style.get("scale", 1)))
+
+    def delete(self, just_display=False):
+        if not just_display:
+            self.g1.delete()
+            self.g2.delete()
+            self.g3.delete()
+            self.g4.delete()
+        MyDisplayItem.delete(self, just_display)
 
 
 class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
