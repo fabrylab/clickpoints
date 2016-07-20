@@ -193,6 +193,8 @@ print("finished zip")
 # Close
 file_list.close()
 myzip.write("files.txt", "installation/files.txt")
+myzip.write("clickpoints/development/pynsist/pynsist_pkgs/sqlite3.dll", "sqlite3.dll")
+myzip.write("clickpoints/development/pynsist/pynsist_pkgs/_sqlite3.pyd", "_sqlite3.pyd")
 myzip.close()
 
 # Copy files to website
