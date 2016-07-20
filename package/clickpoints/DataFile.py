@@ -1194,7 +1194,7 @@ class DataFile:
                  .join(self.table_image)
                  )
         parameter = [image, image_filename, processed, type, type_name]
-        table = self.table_marker
+        table = self.table_rectangle
         fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
@@ -1236,7 +1236,7 @@ class DataFile:
                  .join(self.table_image)
                  )
         parameter = [image, image_filename, processed, type, type_name]
-        table = self.table_marker
+        table = self.table_line
         fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name]
         for field, parameter in zip(fields, parameter):
             if parameter is None:
