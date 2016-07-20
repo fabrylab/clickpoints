@@ -6,6 +6,7 @@ syntax: glob
 
 syntax: regexp
 ^development
+^docs
 ^database
 ^installation
 ^tests
