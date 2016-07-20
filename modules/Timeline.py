@@ -11,6 +11,8 @@ from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
 import qtawesome as qta
 
+from QtShortCuts import AddQSpinBox
+
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
 def timedelta_mul(self, other):
@@ -66,6 +68,24 @@ def Remap(value, minmax1, minmax2):
     except TypeError:
         value2 = datetime.timedelta(seconds=percentage*length2.total_seconds()) + minmax2[0]
     return value2
+
+
+class SelectFrame(QtWidgets.QDialog):
+    def __init__(self, frame, max_frame):
+        QtWidgets.QDialog.__init__(self)
+
+        # Widget
+        self.setWindowTitle("Select Frame - ClickPoints")
+        self.setWindowIcon(qta.icon("fa.play"))
+        self.setModal(True)
+        main_layout = QtWidgets.QVBoxLayout(self)
+        self.spinBox = AddQSpinBox(main_layout, "Frame Number:", value=frame, float=False)
+        self.spinBox.setRange(0, max_frame)
+
+        button2 = QtWidgets.QPushButton("Ok")
+        button2.clicked.connect(lambda: self.done(self.spinBox.value()+1))
+        self.spinBox.managingLayout.addWidget(button2)
+        
 
 class TimeLineGrabberSignal(QtCore.QObject):
     sliderPressed = QtCore.pyqtSignal()
@@ -785,6 +805,7 @@ class PreciseTimer(QtCore.QObject):
                 self.active = 0
             time.sleep(0.01)
 
+
 class Timeline(QtCore.QObject):
     images_added_signal = QtCore.pyqtSignal()
 
@@ -845,6 +866,7 @@ class Timeline(QtCore.QObject):
         self.label_frame.setMinimumWidth(40)
         self.label_frame.setAlignment(Qt.AlignVCenter)
         self.label_frame.setToolTip("current frame number, frame rate and timestamp")
+        self.label_frame.mousePressEvent = self.labelClicked
         self.layoutCtrl.addWidget(self.label_frame)
 
         self.frameSlider = TimeLineSlider()
@@ -990,6 +1012,13 @@ class Timeline(QtCore.QObject):
             if self.data_file.image:
                 label_string += "\n" + str(self.data_file.image.timestamp)
             self.label_frame.setText(label_string)
+
+    def labelClicked(self, event):
+        self.select_frame_window = SelectFrame(self.get_current_frame(), self.get_frame_count())
+
+        value = self.select_frame_window.exec_()
+        if value > 0:
+            self.window.JumpToFrame(value-1)
 
     def FrameChangeEvent(self):
         dt = time.time()-self.last_time
