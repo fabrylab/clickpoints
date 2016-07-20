@@ -31,7 +31,7 @@ RequestExecutionLevel admin
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${INSTALLER_NAME}"
-InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
+InstallDir "C:\Software\${PRODUCT_NAME}"
 ShowInstDetails show
 
 Section -SETTINGS
@@ -70,7 +70,7 @@ Section "!${PRODUCT_NAME}" sec_app
   
   ; Install clickpoints package
   DetailPrint "Installing ClickPoints module..."
-  nsExec::ExecToLog 'python "$INSTDIR\package\setup.py" develop'
+  nsExec::ExecToLog 'python "$INSTDIR\package\setup_nodependencies.py" develop'
   WriteUninstaller $INSTDIR\uninstall.exe
   ; Add ourselves to Add/remove programs
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \

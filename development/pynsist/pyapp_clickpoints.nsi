@@ -36,7 +36,7 @@ RequestExecutionLevel admin
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${INSTALLER_NAME}"
-InstallDir "$PROGRAMFILES${BITNESS}\${PRODUCT_NAME}"
+InstallDir "C:\Software\${PRODUCT_NAME}"
 ShowInstDetails show
 
 Section -SETTINGS
