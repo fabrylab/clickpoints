@@ -66,6 +66,10 @@ for entry in files.split():
     else:
         install_files.append([entry, "$INSTDIR"])
         grouped_files[0][1].append(entry)
+install_files.append(["sqlite3.dll", "$INSTDIR"])
+grouped_files[0][1].append("sqlite3.dll")
+install_files.append(["_sqlite3.pyd", "$INSTDIR"])
+grouped_files[0][1].append("_sqlite3.pyd")
 print(grouped_files)
 print(install_files)
 print(install_dirs)

@@ -65,6 +65,11 @@ def CopyInstallerFilesNoPython(directory):
         dst = os.path.join(path_to_temporary_installer, file)
         print(os.path.abspath(src))
         shutil.copy(src, dst)
+    for file in ["sqlite3.dll", "_sqlite3.pyd"]:
+        src = os.path.join("development", "pynsist", "pynsist_pkgs", file)
+        dst = os.path.join(path_to_temporary_installer, file)
+        print(os.path.abspath(src))
+        shutil.copy(src, dst)
 
     os.chdir(path_to_temporary_installer)
     os.system(sys.executable+" make_no_python_installer.py")
