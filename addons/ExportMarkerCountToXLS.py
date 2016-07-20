@@ -12,7 +12,7 @@ com = clickpoints.Commands(port, catch_terminate_signal=True)
 # prepare write to excel
 wb_name = database.replace('.cdb','.xls')
 wb = xlwt.Workbook()
-wb_sheet = wb.add_sheet('Eval1')
+wb_sheet = wb.add_sheet('data')
 
 # get types and images
 q_types =  db.GetTypes()
@@ -33,7 +33,15 @@ for ridx,image in enumerate(q_images):
 
     # extract type information
     for idx,type in enumerate(q_types):
-        q_marker = db.GetMarker(type=type,image=image)
+        if type.mode == 0:
+            q_marker = db.GetMarker(type=type,image=image)
+        elif type.mode == 1:
+            q_marker = db.GetRectangles(type=type,image=image)
+        elif type.mode == 2:
+            q_marker = db.GetLines(type=type,image=image)
+        else:
+            continue
+
         wb_sheet.write(ridx,idx+2,q_marker.count())
 
 print("Writing to %s" % wb_name)
