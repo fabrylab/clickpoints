@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 import xlwt
+__icon__ = "fa.file-excel-o"
 
 # connect to ClickPoints database
 # database filename is supplied as command line argument when started from ClickPoints
@@ -19,17 +20,17 @@ q_types =  db.GetTypes()
 q_images = db.GetImages()
 
 # write xls header
-wb_sheet.write(0,0, "sort_idx")
-wb_sheet.write(0,1, "filename")
-for idx,type in enumerate(q_types):
-    wb_sheet.write(0,idx+2, type.name + '_count')
+wb_sheet.write(0, 0, "sort_idx")
+wb_sheet.write(0, 1, "filename")
+for idx, type in enumerate(q_types):
+    wb_sheet.write(0, idx+2, type.name + '_count')
 header_offset = 1
 
 # write marker counts per image
-for ridx,image in enumerate(q_images):
-    ridx = ridx + header_offset
-    wb_sheet.write(ridx,0,image.sort_index)
-    wb_sheet.write(ridx,1,image.filename)
+for ridx, image in enumerate(q_images):
+    ridx += header_offset
+    wb_sheet.write(ridx, 0, image.sort_index)
+    wb_sheet.write(ridx, 1, image.filename)
 
     # extract type information
     for idx,type in enumerate(q_types):
@@ -42,7 +43,7 @@ for ridx,image in enumerate(q_images):
         else:
             continue
 
-        wb_sheet.write(ridx,idx+2,q_marker.count())
+        wb_sheet.write(ridx, idx+2, q_marker.count())
 
 print("Writing to %s" % wb_name)
 wb.save(wb_name)
