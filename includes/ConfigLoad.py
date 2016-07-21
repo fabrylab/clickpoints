@@ -117,8 +117,10 @@ buffer_size = 300
 
 """ @config Timestamp Extraction """
 # @config `timestamp_formats` and `timestamp_fromats2` lists of timestamp foramts to match
-timestamp_formats = [r'.*(?P<timestamp>\d{8}-\d{6})']
-timestamp_formats2 = [r'.*(?P<timestamp>\d{8}-\d{6})_(?P<timestamp2>\d{8}-\d{6})']
+timestamp_formats = [r'%Y%m%d-%H%M%S-%f',
+                     r'%Y%m%d-%H%M%S']
+timestamp_formats2 = [r'%Y%m%d-%H%M%S_%Y%m%d-%H%M%S']
+
 
 
 dimension_template = "Recording(?P<recording>\d*)_FoW(?P<fov>\d*)_Mode(?P<mode>.*)_z(?P<z>\d*).tif"
