@@ -217,6 +217,11 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if self.data_file.get_image_count():
             self.JumpToFrame(0)
 
+        # set focus policy for buttons
+        for i in range(self.layoutButtons.count()):
+            if self.layoutButtons.itemAt(i).widget():
+                self.layoutButtons.itemAt(i).widget().setFocusPolicy(Qt.NoFocus)
+
         # apply image rotation from config
         if config.rotation != 0:
             self.view.rotate(config.rotation)
