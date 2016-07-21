@@ -121,7 +121,7 @@ timestamp_formats = [r'%Y%m%d-%H%M%S-%f',
                      r'%Y%m%d-%H%M%S']
 timestamp_formats2 = [r'%Y%m%d-%H%M%S_%Y%m%d-%H%M%S']
 
-
+display_timeformat = r'%Y-%m-%d %H:%M:%S.%2f'
 
 dimension_template = "Recording(?P<recording>\d*)_FoW(?P<fov>\d*)_Mode(?P<mode>.*)_z(?P<z>\d*).tif"
 

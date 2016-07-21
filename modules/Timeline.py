@@ -4,6 +4,7 @@ import os
 import glob
 import time
 import numpy as np
+import re
 import datetime
 from threading import Thread
 
@@ -870,6 +871,13 @@ class Timeline(QtCore.QObject):
         self.label_frame.setToolTip("current frame number, frame rate and timestamp")
         self.label_frame.mousePressEvent = self.labelClicked
         self.layoutCtrl.addWidget(self.label_frame)
+        # prepare timestamp output
+        # detect %*f marker get number form 1 to 6 as *
+        self.subsecond_decimals = 0
+        regexp = re.compile('.*.%(\d)f.*')
+        match = regexp.match(self.config.display_timeformat)
+        if match:
+            self.subsecond_decimals = match.group(1)
 
         self.frameSlider = TimeLineSlider()
         if self.get_frame_count():
@@ -1012,7 +1020,10 @@ class Timeline(QtCore.QObject):
             else:
                 label_string = ""
             if self.data_file.image:
-                label_string += "\n" + str(self.data_file.image.timestamp)
+                # if subsecond decimals are specified - adjust straing accordingly 
+                if not self.subsecond_decimals == 0:
+                    display_timeformat = self.config.display_timeformat.replace('%%%sf' % self.subsecond_decimals,('%%0%sd' % self.subsecond_decimals)% (self.data_file.image.timestamp.microsecond / 10 ** (6-int(self.subsecond_decimals))))
+                label_string += "\n" + self.data_file.image.timestamp.strftime(display_timeformat)
             self.label_frame.setText(label_string)
 
     def labelClicked(self, event):
