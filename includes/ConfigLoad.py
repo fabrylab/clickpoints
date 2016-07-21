@@ -115,6 +115,12 @@ use_natsort = False
 auto_contrast = False
 buffer_size = 300
 
+""" @config Timestamp Extraction """
+# @config `timestamp_formats` and `timestamp_fromats2` lists of timestamp foramts to match
+timestamp_formats = [r'.*(?P<timestamp>\d{8}-\d{6})']
+timestamp_formats2 = [r'.*(?P<timestamp>\d{8}-\d{6})_(?P<timestamp2>\d{8}-\d{6})']
+
+
 dimension_template = "Recording(?P<recording>\d*)_FoW(?P<fov>\d*)_Mode(?P<mode>.*)_z(?P<z>\d*).tif"
 
 # enables .access on dicts
