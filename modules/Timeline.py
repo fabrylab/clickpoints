@@ -12,6 +12,7 @@ from qtpy.QtCore import Qt
 import qtawesome as qta
 
 from QtShortCuts import AddQSpinBox
+from Tools import MySpinBox
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
@@ -831,6 +832,7 @@ class Timeline(QtCore.QObject):
         self.button.setIcon(qta.icon("fa.play"))
         self.button.setToolTip("display timeline")
         self.button.clicked.connect(lambda: self.HideInterface(self.hidden is False))
+        self.button.setFocusPolicy(Qt.NoFocus)
         self.window.layoutButtons.addWidget(self.button)
 
         # control elements
@@ -890,7 +892,7 @@ class Timeline(QtCore.QObject):
         self.slider_update = True
         self.layoutCtrl.addWidget(self.frameSlider)
 
-        self.spinBox_FPS = QtWidgets.QSpinBox()
+        self.spinBox_FPS = MySpinBox()
         self.spinBox_FPS.setMinimum(1)
         self.spinBox_FPS.setMaximum(1000)
         self.spinBox_FPS.setValue(self.fps)
@@ -898,7 +900,7 @@ class Timeline(QtCore.QObject):
         self.spinBox_FPS.setToolTip("play frame rate")
         self.layoutCtrl.addWidget(self.spinBox_FPS)
 
-        self.spinBox_Skip = QtWidgets.QSpinBox()
+        self.spinBox_Skip = MySpinBox()
         self.spinBox_Skip.setMinimum(0)
         self.spinBox_Skip.setMaximum(1000)
         self.spinBox_Skip.setValue(self.skip)

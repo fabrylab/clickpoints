@@ -112,6 +112,16 @@ class HelpText(QtWidgets.QGraphicsRectItem):
             self.ShowHelpText()
 
 
+class MySpinBox(QtWidgets.QSpinBox):
+    def keyPressEvent(self, *args, **kwargs):
+        event = args[0]
+        if event.key() == QtCore.Qt.Key_Return:
+            res = QtWidgets.QSpinBox.keyPressEvent(self, *args, **kwargs)
+            self.window().setFocus()
+            return res
+        return QtWidgets.QSpinBox.keyPressEvent(self, *args, **kwargs)
+
+
 class MySlider(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, name="", start_value=None, max_value=100, min_value=0, font=None):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
