@@ -3,7 +3,7 @@ import os
 import sys
 import importlib
 import itertools
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, MINYEAR
 import peewee
 from playhouse.reflection import Introspector
 try:
@@ -268,14 +268,14 @@ class DataFile(DataFileBase):
         if timestamp is None:
             # do we have a video? then we need two timestamps
             if frames > 1:
-                timestamp, timestamp2 = self.getTimeStampsQuick(filename)
+                timestamp, timestamp2 = self.getTimeStamp(filename)
                 if timestamp is not None:
                     timestamps = date_linspace(timestamp, timestamp2, frames)
                 else:
                     timestamps = itertools.repeat(None)
             # if not one is enough
             else:
-                timestamp = self.getTimeStampQuick(filename)
+                timestamp,_ = self.getTimeStamp(filename)
                 timestamps = itertools.repeat(timestamp)
         else:  # create an iterator from the timestamp
             timestamps = itertools.repeat(timestamp)
@@ -464,50 +464,114 @@ class DataFile(DataFileBase):
         pass
 
     def initTimeStampRegEx(self):
-        # compile regexp for timestamp and timestamp2 lists
+        # extract and compile regexp for timestamp and timestamp2 lists
         for regex in self.config.timestamp_formats:
+            # replace strings with regexp
+            regex = regex.replace('%Y','(?P<Y>\d{4})',1)
+            regex = regex.replace('%y', '(?P<y>\d{2})', 1)
+            regex = regex.replace('%m', '(?P<m>\d{2})', 1)
+            regex = regex.replace('%d', '(?P<d>\d{2})', 1)
+            regex = regex.replace('%H', '(?P<H>\d{2})', 1)
+            regex = regex.replace('%M', '(?P<M>\d{2})', 1)
+            regex = regex.replace('%S', '(?P<S>\d{2})', 1)
+            regex = regex.replace('%f', '(?P<f>\d{1,6})', 1)
+            regex = regex.replace('*', '.*')
+
             self.reg_timestamp.append(re.compile(regex))
 
         for regex in self.config.timestamp_formats2:
+            # replace strings with regexp
+            # timestamp 1
+            regex = regex.replace('%Y','(?P<Y>\d{4})',1)
+            regex = regex.replace('%y', '(?P<y>\d{2})', 1)
+            regex = regex.replace('%m', '(?P<m>\d{2})', 1)
+            regex = regex.replace('%d', '(?P<d>\d{2})', 1)
+            regex = regex.replace('%H', '(?P<H>\d{2})', 1)
+            regex = regex.replace('%M', '(?P<M>\d{2})', 1)
+            regex = regex.replace('%S', '(?P<S>\d{2})', 1)
+            regex = regex.replace('%f', '(?P<f>\d{1,6})', 1)
+            # timestamp 2
+            regex = regex.replace('%Y','(?P<Y2>\d{4})',1)
+            regex = regex.replace('%y', '(?P<y2>\d{2})', 1)
+            regex = regex.replace('%m', '(?P<m2>\d{2})', 1)
+            regex = regex.replace('%d', '(?P<d2>\d{2})', 1)
+            regex = regex.replace('%H', '(?P<H2>\d{2})', 1)
+            regex = regex.replace('%M', '(?P<M2>\d{2})', 1)
+            regex = regex.replace('%S', '(?P<S2>\d{2})', 1)
+            regex = regex.replace('%f', '(?P<f2>\d{1,6})', 1)
+            regex = regex.replace('*', '.*')
+
             self.reg_timestamp2.append(re.compile(regex))
 
     def getTimeStampQuick(self, file):
         for regex in self.reg_timestamp:
             match = regex.match(file)
             if match:
-                par_dict = match.groupdict()
-                return datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S')
+                d = match.groupdict()
+                if "y" in d:
+                    if int(d["y"]) > 60:
+                        d["Y"] = int(d["y"]) + 1900
+                    else:
+                        d["Y"] = int(d["y"]) + 2000
+
+                # reassemble datetime object
+                dt = datetime(int(d.get("Y", MINYEAR)), int(d.get("m", 1)), int(d.get("d", 1)),
+                                       int(d.get("H", 0)), int(d.get("M", 0)), int(d.get("S", 0)))
+                # handle sub second timestamps
+                if "f" in d:
+                    dt = dt.replace(microsecond=int(d["f"]) * 10 ** (6 - len(d["f"])))
+                return dt
         return None
 
     def getTimeStampsQuick(self,file):
-        for regex in self.reg_timestamp:
-            match = filename_data_regex2.match(file)
+        for regex in self.reg_timestamp2:
+            match = regex.match(file)
             if match:
-                par_dict = match.groupdict()
-                return datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S'), datetime.strptime(par_dict["timestamp2"],
-                                                                                                    '%Y%m%d-%H%M%S')
+                d = match.groupdict()
+                # timestamp 1
+                if "y" in d:
+                    if int(d["y"]) > 60:
+                        d["Y"] = int(d["y"]) + 1900
+                    else:
+                        d["Y"] = int(d["y"]) + 2000
+
+                dt = datetime(int(d.get("Y", MINYEAR)), int(d.get("m", 1)), int(d.get("d", 1)),
+                              int(d.get("H", 0)), int(d.get("M", 0)), int(d.get("S", 0)))
+                if "f" in d:
+                    dt = dt.replace(microsecond=int(d["f"]) * 10 ** (6 - len(d["f"])))
+
+                # timestamp 2
+                if "y2" in d:
+                    if int(d["y2"]) > 60:
+                        d["Y2"] = int(d["y2"]) + 1900
+                    else:
+                        d["Y2"] = int(d["y2"]) + 2000
+
+                dt2 = datetime(int(d.get("Y2", MINYEAR)), int(d.get("m2", 1)), int(d.get("d2", 1)),
+                              int(d.get("H2", 0)), int(d.get("M2", 0)), int(d.get("S2", 0)))
+                if "f2" in d:
+                    dt2 = dt2.replace(microsecond=int(d["f"]) * 10 ** (6 - len(d["f2"])))
+
+                return dt, dt2
         return None, None
 
-    def getTimeStamp(self, file, extension):
-        global filename_data_regex
-
+    def getTimeStamp(self, file):
+        _, extension = os.path.splitext(file)
         if extension.lower() == ".tif" or extension.lower() == ".tiff":
             dt = self.get_meta(file)
             return dt, dt
-        match = filename_data_regex.match(file)
-        if match:
-            match2 = filename_data_regex2.match(file)
-            if match2:
-                match = match2
-            par_dict = match.groupdict()
-            if "timestamp" in par_dict:
-                dt = datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S')
-                if "timestamp2" in par_dict:
-                    dt2 = datetime.strptime(par_dict["timestamp2"], '%Y%m%d-%H%M%S')
-                else:
-                    dt2 = dt
-                return dt, dt2
-        elif extension.lower() == ".jpg":
+
+        # try for timestamps2
+        t1,t2 = self.getTimeStampsQuick(file)
+        if not any(elem is None for elem in [t1,t2]):
+            return t1,t2
+
+        # try for timestamp
+        t1 = self.getTimeStampQuick(file)
+        if t1 is not None:
+            return t1,t1
+
+        if extension.lower() == ".jpg":
             dt = self.getExifTime(file)
             return dt, dt
         else:
