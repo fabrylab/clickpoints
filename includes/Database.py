@@ -17,6 +17,9 @@ import numpy as np
 
 from clickpoints import DataFile as DataFileBase
 
+import re
+
+
 # add plugins to imageIO if available
 plugin_searchpath = os.path.join(os.path.split(__file__)[0],'..',r'addons/imageio_plugin')
 sys.path.append(plugin_searchpath)
@@ -131,6 +134,11 @@ class DataFile(DataFileBase):
         self.config = config
         self.temporary_db = None
 
+        # compile regexp for timestamp extraction
+        self.reg_timestamp = []
+        self.reg_timestamp2 = []
+        self.initTimeStampRegEx()
+
         if self.exists:
             # go to the folder
             if os.path.dirname(database_filename):
@@ -180,7 +188,7 @@ class DataFile(DataFileBase):
                 image = self.table_image.get(sort_index=next_frame)
             except peewee.DoesNotExist:
                 break
-            timestamp, _ = getTimeStamp(image.filename, image.ext)
+            timestamp, _ = self.getTimeStamp(image.filename, image.ext)
             if timestamp:
                 image.timestamp = timestamp
                 image.save()
@@ -260,14 +268,14 @@ class DataFile(DataFileBase):
         if timestamp is None:
             # do we have a video? then we need two timestamps
             if frames > 1:
-                timestamp, timestamp2 = getTimeStampsQuick(filename)
+                timestamp, timestamp2 = self.getTimeStampsQuick(filename)
                 if timestamp is not None:
                     timestamps = date_linspace(timestamp, timestamp2, frames)
                 else:
                     timestamps = itertools.repeat(None)
             # if not one is enough
             else:
-                timestamp = getTimeStampQuick(filename)
+                timestamp = self.getTimeStampQuick(filename)
                 timestamps = itertools.repeat(timestamp)
         else:  # create an iterator from the timestamp
             timestamps = itertools.repeat(timestamp)
@@ -455,6 +463,86 @@ class DataFile(DataFileBase):
             self.temporary_db = None
         pass
 
+    def initTimeStampRegEx(self):
+        # compile regexp for timestamp and timestamp2 lists
+        for regex in self.config.timestamp_formats:
+            self.reg_timestamp.append(re.compile(regex))
+
+        for regex in self.config.timestamp_formats2:
+            self.reg_timestamp2.append(re.compile(regex))
+
+    def getTimeStampQuick(self, file):
+        for regex in self.reg_timestamp:
+            match = regex.match(file)
+            if match:
+                par_dict = match.groupdict()
+                return datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S')
+        return None
+
+    def getTimeStampsQuick(self,file):
+        for regex in self.reg_timestamp:
+            match = filename_data_regex2.match(file)
+            if match:
+                par_dict = match.groupdict()
+                return datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S'), datetime.strptime(par_dict["timestamp2"],
+                                                                                                    '%Y%m%d-%H%M%S')
+        return None, None
+
+    def getTimeStamp(self, file, extension):
+        global filename_data_regex
+
+        if extension.lower() == ".tif" or extension.lower() == ".tiff":
+            dt = self.get_meta(file)
+            return dt, dt
+        match = filename_data_regex.match(file)
+        if match:
+            match2 = filename_data_regex2.match(file)
+            if match2:
+                match = match2
+            par_dict = match.groupdict()
+            if "timestamp" in par_dict:
+                dt = datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S')
+                if "timestamp2" in par_dict:
+                    dt2 = datetime.strptime(par_dict["timestamp2"], '%Y%m%d-%H%M%S')
+                else:
+                    dt2 = dt
+                return dt, dt2
+        elif extension.lower() == ".jpg":
+            dt = self.getExifTime(file)
+            return dt, dt
+        else:
+            print("no time", extension)
+        return None, None
+
+    def getExifTime(self, path):
+        from PIL import Image
+        import PIL
+        img = Image.open(path)
+        try:
+            exif = {
+                PIL.ExifTags.TAGS[k]: v
+                for k, v in img._getexif().items()
+                if k in PIL.ExifTags.TAGS
+                }
+            return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
+        except (AttributeError, ValueError):
+            return None
+
+    def get_meta(self, file):
+        import tifffile
+        import json
+        with tifffile.TiffFile(file) as tif:
+            try:
+                metadata = tif[0].image_description
+            except AttributeError:
+                return None
+            try:
+                t = json.loads(metadata.decode('utf-8'))["Time"]
+                return datetime.strptime(t, '%Y%m%d-%H%M%S')
+            except (AttributeError, ValueError, KeyError):
+                return None
+        return None
+
 
 class FrameBuffer:
     slots = None
@@ -497,82 +585,3 @@ class FrameBuffer:
         except ValueError:
             return None
 
-
-import re
-filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})'
-filename_data_regex = re.compile(filename_data_regex)
-filename_data_regex2 = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<timestamp2>\d{8}-\d{6})'
-filename_data_regex2 = re.compile(filename_data_regex2)
-
-def getTimeStampQuick(file):
-    global filename_data_regex, filename_data_regex2
-    match = filename_data_regex.match(file)
-    if match:
-        par_dict = match.groupdict()
-        return datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S')
-    return None
-
-def getTimeStampsQuick(file):
-    global filename_data_regex, filename_data_regex2
-    match = filename_data_regex2.match(file)
-    if match:
-        par_dict = match.groupdict()
-        return datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S'), datetime.strptime(par_dict["timestamp2"], '%Y%m%d-%H%M%S')
-    return None, None
-
-def getTimeStamp(file, extension):
-    global filename_data_regex
-
-    if extension.lower() == ".tif" or extension.lower() == ".tiff":
-        dt = get_meta(file)
-        return dt, dt
-    match = filename_data_regex.match(file)
-    if match:
-        match2 = filename_data_regex2.match(file)
-        if match2:
-            match = match2
-        par_dict = match.groupdict()
-        if "timestamp" in par_dict:
-            dt = datetime.strptime(par_dict["timestamp"], '%Y%m%d-%H%M%S')
-            if "timestamp2" in par_dict:
-                dt2 = datetime.strptime(par_dict["timestamp2"], '%Y%m%d-%H%M%S')
-            else:
-                dt2 = dt
-            return dt, dt2
-    elif extension.lower() == ".jpg":
-        dt = getExifTime(file)
-        return dt, dt
-    else:
-        print("no time", extension)
-    return None, None
-
-
-def getExifTime(path):
-    from PIL import Image
-    import PIL
-    img = Image.open(path)
-    try:
-        exif = {
-            PIL.ExifTags.TAGS[k]: v
-            for k, v in img._getexif().items()
-            if k in PIL.ExifTags.TAGS
-        }
-        return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
-    except (AttributeError, ValueError):
-        return None
-
-
-def get_meta(file):
-    import tifffile
-    import json
-    with tifffile.TiffFile(file) as tif:
-        try:
-            metadata = tif[0].image_description
-        except AttributeError:
-            return None
-        try:
-            t = json.loads(metadata.decode('utf-8'))["Time"]
-            return datetime.strptime(t, '%Y%m%d-%H%M%S')
-        except (AttributeError, ValueError, KeyError):
-            return None
-    return None
