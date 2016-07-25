@@ -1019,7 +1019,7 @@ class Timeline(QtCore.QObject):
                 label_string = format_string.format(self.get_current_frame(), self.get_frame_count() - 1, fps)
             else:
                 label_string = ""
-            if self.data_file.image:
+            if self.data_file.image and self.data_file.image.timestamp:
                 # if subsecond decimals are specified - adjust straing accordingly 
                 if not self.subsecond_decimals == 0:
                     display_timeformat = self.config.display_timeformat.replace('%%%sf' % self.subsecond_decimals,('%%0%sd' % self.subsecond_decimals)% (self.data_file.image.timestamp.microsecond / 10 ** (6-int(self.subsecond_decimals))))
