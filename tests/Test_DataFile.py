@@ -201,6 +201,130 @@ class Test_DataFile(unittest.TestCase):
         masktypes = self.db.getMaskTypes()
         self.assertEqual(masktypes.count(), 0, "Deleting two mask types does not work")
 
+    ''' Test MarkerType functions '''
+    def test_setgetMarkerType_Insert(self):
+        """ Test set and get MarkerType - insert variant"""
+
+        self.db = DataFile("setgetmarkertypeinsert.cdb", "r+")
+        self.db.setMarkerType('rectangle', color='#00ff00', mode=1)
+        item = self.db.getMarkerType('rectangle')
+
+        self.assertEqual(item.name, 'rectangle',"Insert MarkerType - name failed")
+        self.assertEqual(item.mode, 1,"Insert MarkerType - mode failed")
+        self.assertEqual(item.color, '#00ff00',"Insert MarkerType - color failed")
+
+
+    def test_setgetMarkerType_Update(self):
+        """ Test set and get MarkerType - update variant """
+        self.db = DataFile("getmarkertypeupdate.cdb", "r+")
+
+        self.db.setMarkerType('rectangle', color='#00ff00', mode=1)
+        self.db.setMarkerType('rectangle', color='#00ff00')
+
+        item = self.db.getMarkerType('rectangle')
+
+        self.assertEqual(item.name, 'rectangle',"Update MarkerType - mode failed")
+        self.assertEqual(item.mode, 1,"Update MarkerType - mode failed")
+        self.assertEqual(item.color, '#00ff00',"Update MarkerType - mode failed")
+
+
+    def test_getMarkerTypes(self):
+        """ Test getMarkerTypes to recover a query of all available marker types"""
+        self.db = DataFile("getmarkertypes_compare.cdb", "r+")
+
+        markertypes = ['rectangle', 'default', 'line', 'track']
+        self.db.setMarkerType('rectangle', color='#00ff00', mode=1)
+        self.db.setMarkerType('default', color='#00ff00', mode=0)
+        self.db.setMarkerType('line', color='#00ff00', mode=2)
+        self.db.setMarkerType('track', color='#00ff00', mode=4)
+
+        q_markertypes = self.db.getMarkerTypes()
+        markertypes_from_db = [q.name for q in q_markertypes]
+
+        self.assertEqual(markertypes, markertypes_from_db, "getMarkerTypes failed")
+
+
+    def test_deleteMarkerType(self):
+        """ Test deleteMarkerType to delete marker type instance"""
+        self.db = DataFile("deletemarkertypes.cdb", "r+")
+
+        self.db.setMarkerType('rectangle', color='#00ff00', mode=1)
+        self.db.setMarkerType('default', color='#00ff00', mode=0)
+        self.db.setMarkerType('line', color='#00ff00', mode=2)
+        self.db.setMarkerType('track', color='#00ff00', mode=4)
+
+        count = self.db.deleteMarkerType('line')
+
+        q_markertypes = self.db.getMarkerTypes()
+        markertypes_from_db = [q.name for q in q_markertypes]
+
+        q_markertype = self.db.getMarkerType('line')
+
+        self.assertEqual(count, 1)
+        self.assertNotIn('line', markertypes_from_db)
+        self.assertIsNone(q_markertype)
+
+
+    ''' Test Track functions '''
+    def test_setgetTrack(self):
+        """ Test deleteMarkerType to delete marker type instance"""
+        self.db = DataFile("setgettrack.cdb", "r+")
+
+        self.db.setMarkerType('track', color='#00ff00', mode=4)
+        self.db.setMarkerType('track2', color='#00ff00', mode=4)
+
+        # setTracks
+        self.db.setTrack(type='track')
+        self.db.setTrack(type='track')
+        self.db.setTrack(type='track2')
+
+        # unspecific getTracks
+        q_tracks = self.db.getTracks()
+        self.assertEqual(q_tracks.count(), 3,"Get all Tracks failed")
+
+        # specific getTracks
+        q_tracks = self.db.getTracks(type='track')
+        self.assertEqual(q_tracks.count(), 2,"Get specific Tracks by type failed")
+
+        # specific getTrack - success
+        track = self.db.getTrack(id=1)
+        self.assertTrue(track.id == 1, "Get specific track by ID failed")
+
+        # specific getTrack - failed
+        track = self.db.getTrack(id=100000)
+        self.assertIsNone(track, "Failing to get specific track by ID failed")
+
+
+    def test_deleteTrack(self):
+        """ Test deleteMarkerType to delete marker type instance"""
+        self.db = DataFile("deltrack.cdb", "r+")
+
+        self.db.setMarkerType('track', color='#00ff00', mode=4)
+        self.db.setMarkerType('track2', color='#00ff00', mode=4)
+        self.db.setMarkerType('track3', color='#00ff00', mode=4)
+
+        # setTracks
+        self.db.setTrack(type='track')
+        self.db.setTrack(type='track')
+        self.db.setTrack(type='track2')
+        self.db.setTrack(type='track2')
+        self.db.setTrack(type='track')
+        self.db.setTrack(type='track3')
+
+        # delete specific by id
+        self.db.deleteTacks(id=1)
+        q_tracks = self.db.getTracks()
+        self.assertEqual(q_tracks.count(), 5, "Failed to delete track by ID")
+
+        # delete specific by type
+        self.db.deleteTacks(type='track2')
+        q_tracks = self.db.getTracks()
+        self.assertEqual(q_tracks.count(), 3, "Failed to delete track by type")
+
+        # delete all
+        self.db.deleteTacks()
+        q_tracks = self.db.getTracks()
+        self.assertEqual(q_tracks.count(), 0, "Failed to complete generic delete")
 
 if __name__ == '__main__':
     __path__ = os.path.dirname(os.path.abspath(__file__))

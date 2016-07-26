@@ -251,12 +251,26 @@ class DataFile:
         class MarkerType(BaseModel):
             name = peewee.CharField(unique=True)
             color = peewee.CharField()
-            mode = peewee.IntegerField()
+            mode = peewee.IntegerField(default=0)
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
 
+            def __str__(self):
+                return "MarkerType Object: id=%d\tname=%s\tcolor=%s\tmode=%s\tstyle=%s\ttext=%s" \
+                       % (self.id, self.name, self.color, self.mode, self.style, self.text)
+
+            def details(self):
+                print("MarkerType Object:\n"
+                      "id:\t\t{0}\n"
+                      "name:\t{1}\n"
+                      "color:\t{2}\n"
+                      "mode:\t{3}\n"
+                      "style:\t{4}\n"
+                      "text:\t{5}\n"
+                      .format(self.id, self.name, self.color, self.mode, self.style, self.text))
+
         class Track(BaseModel):
-            uid = peewee.CharField()
+            #uid = peewee.CharField() # TODO discard
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
             type = peewee.ForeignKeyField(MarkerType, related_name="tracks", on_delete='CASCADE')
@@ -603,7 +617,7 @@ class DataFile:
         if nr_version < 8:
             print("\tto 8")
             with self.db.transaction():
-                #self.db.execute_sql("ALTER TABLE paths RENAME TO path")
+                self.db.execute_sql("ALTER TABLE paths RENAME TO path")
                 self.db.execute_sql("ALTER TABLE images RENAME TO image")
                 self.db.execute_sql("ALTER TABLE offsets RENAME TO offset")
                 self.db.execute_sql("ALTER TABLE tracks RENAME TO track")
@@ -1352,3 +1366,216 @@ class DataFile:
 
         item.save()
         return item.get_id()
+
+    def getTracks(self, type=None):
+        """
+        Get all track entries, optional filter by type
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.setTracks`, :py:meth:`~.DataFile.deleteTracks`.
+
+        Parameters
+        ----------
+        type: :py:class:`MarkerType` or str
+            the marker type or name of the marker type for the track.
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains the requested :py:class:`Track`.
+        """
+        if isinstance(type, basestring):
+            type = self.getMarkerType(type)
+
+        query = self.table_track.select()
+        query = addFilter(query,type,self.table_track.type)
+
+        return query
+
+    def getTrack(self, id):
+        """
+        Get a specific track entry by its database ID
+        See also: :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTracks`, :py:meth:`~.DataFile.deleteTracks`.
+
+        Parameters
+        ----------
+        track_id: int
+            id of the track
+
+        Returns
+        -------
+        entries : object
+            requested object of class :py:class:`Track` or None
+        """
+        try:
+            return self.table_track.get(self.table_track.id == id)
+        except peewee.DoesNotExist:
+            return None
+
+    def setTrack(self, type, id=None,style=None ,text=None):
+        """
+        Insert or update a :py:class:`Track` object
+
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.deleteTracks`.
+
+
+        Parameters
+        ----------
+        type: :py:class:`MarkerType` or str
+            the marker type or name of the marker type for the track.
+
+        Returns
+        -------
+        track : track object
+            a new :py:class:`Track` object
+        """
+        if isinstance(type, basestring):
+            type = self.getMarkerType(type)
+
+        item = self.table_track.insert(id=id,type=type,style=style,text=text).upsert().execute()
+
+        return item
+
+    def setTracks(self, count, type):
+        """
+        Add multiple new tracks :py:class:`Track`.
+
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.deleteTracks`.
+
+        Parameters
+        ----------
+        count: int
+            how many tracks to create
+
+        type: :py:class:`MarkerType` or str
+            the marker type or name of the marker type for the tracks.
+
+        Returns
+        -------
+        tracks : list of :py:class:`Track`
+            the new track objects
+        """
+
+        if isinstance(type, basestring):
+            type = self.getMarkerType(type)
+
+        return [self.AddTrack(type) for _ in range(count)]
+
+    def deleteTacks(self, id=None, type=None):
+        """
+        Delete a single :py:class:`Track` object specified by id or all :py:class:`Track` object of an type
+
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.setTracks`.
+
+
+        Parameters
+        ----------
+        type: :py:class:`MarkerType` or str
+            the marker type or name of the marker type
+
+        Returns
+        -------
+        entries : int
+            nr of deleted entries
+        """
+
+        if isinstance(type, basestring):
+            type = self.getMarkerType(type)
+
+        query = self.table_track.delete()
+        query = addFilter(query, id, self.table_track.id)
+        query = addFilter(query, type, self.table_track.type)
+        return query.execute()
+
+    def getMarkerTypes(self):
+        """
+        Retreive all :py:class:`MarkerType` objects in the database.
+
+        See also: :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.deleteMarkerType`.
+
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains all :py:class:`MarkerType` entries.
+        """
+        query = self.table_markertype.select()
+        return query
+
+    def getMarkerType(self, name):
+        """
+        Retrieve an :py:class:`MarkerType` object from the database.
+
+        See also: :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.deleteMarkerType`.
+
+        Parameters
+        ----------
+        name: str
+            the name of the desired type
+
+        Returns
+        -------
+        entries : array_like
+            the :py:class:`MarkerType` with the desired name or None.
+        """
+        try:
+            return self.table_markertype.get(self.table_markertype.name == name)
+        except peewee.DoesNotExist:
+            return None
+
+
+    def setMarkerType(self, name, color, mode=None, style=None, text=None):
+        """
+        Insert or update an :py:class:`MarkerType` object in the database.
+
+        See also: :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.deleteMarkerType`.
+
+        Parameters
+        ----------
+        name: str
+            the name of the type
+        color: str
+            hex code string for rgb color of style "#00ff3f"
+        mode: int
+            mode of the marker type (marker 0, rect 1, line 2, track 4)
+        style: str
+            style string
+        text: str
+            default display text for markers of this type
+
+        Returns
+        -------
+        entries : object
+            the created :py:class:`MarkerType` with the desired name or None.
+        """
+        try:
+            item = self.table_markertype.get(self.table_markertype.name == name)
+        except peewee.DoesNotExist:
+            item = self.table_markertype()
+
+        item.name = name
+        item.color = CheckValidColor(color)
+        for key,value in {'mode':mode,'style':style,'text':text}.iteritems():
+            if value is not None:
+                setattr(item,key,value)
+        item.save()
+        return item
+
+
+    def deleteMarkerType(self, name):
+        """
+        Delete all :py:class:`MarkerType` entries from the database, which match the given criteria.
+
+        See also: :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.setMarkerType`.
+        Parameters
+        ----------
+        name: str
+            the name of the type
+
+        Returns
+        -------
+        entries : int
+            nr of deleted entries
+        """
+
+        query = self.table_markertype.delete()
+        query = addFilter(query,name,self.table_markertype.name)
+        return query.execute()
