@@ -21,7 +21,7 @@ def dict_factory(cursor, row):
 
 
 class ImageField(peewee.BlobField):
-
+    """ A database field, that """
     def db_value(self, value):
         value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".png")
         return peewee.binary_construct(value)
@@ -53,6 +53,27 @@ def CheckValidColor(color):
     if len(color_string) != 6 and len(color_string) != 8:
         raise NoValidColor(str(color) + " is no valid color")
     return "#" + color_string
+
+
+def addFilter(query, parameter, field):
+    if parameter is None:
+        return query
+    if isinstance(parameter, (tuple, list)):
+        return query.where(field << parameter)
+    else:
+        return query.where(field == parameter)
+
+def noNoneDict(**kwargs):
+    new_dict = {}
+    for key in kwargs:
+        if kwargs[key] is not None:
+            new_dict[key] = kwargs[key]
+    return new_dict
+
+def setFields(entry, dict):
+    for key in dict:
+        if key is not None:
+            setattr(entry, key, dict[key])
 
 
 def GetCommandLineArgs():
@@ -146,6 +167,9 @@ class DataFile:
         class Path(BaseModel):
             path = peewee.CharField(unique=True)
 
+            def __str__(self):
+                return "PathObject id%s: path=%s" % (self.id, self.path)
+
         class Image(BaseModel):
             filename = peewee.CharField()
             ext = peewee.CharField(max_length=10)
@@ -200,6 +224,11 @@ class DataFile:
                     return data
                 else:
                     return BaseModel(self, item)
+
+            def __str__(self):
+                return "ImageObject id%s: filename=%s, ext=%s, frame=%s, external_id=%s, timestamp=%s, sort_index=%s," \
+                       " width=%s, height=%s, path=%s" % (self.id, self.filename, self.ext, self.frame, self.external_id,
+                        self.timestamp, self.sort_index, self.width, self.height, self.path)
 
         self.base_model = BaseModel
         self.table_meta = Meta
@@ -442,10 +471,16 @@ class DataFile:
             image = peewee.ForeignKeyField(Image, related_name="masks", on_delete='CASCADE')
             data = ImageField()
 
+            def __str__(self):
+                return "MaskObject id%s: image=%s, data=%s" % (self.id, self.image, self.data)
+
         class MaskType(BaseModel):
             name = peewee.CharField()
             color = peewee.CharField()
             index = peewee.IntegerField(unique=True)
+
+            def __str__(self):
+                return "MasktypeObject id%s: name=%s, color=%s, index=%s" % (self.id, self.name, self.color, self.index)
 
         self.table_mask = Mask
         self.table_masktype = MaskType
@@ -754,10 +789,182 @@ class DataFile:
         for table in self.tables:
             table.create_table(fail_silently=True)
 
-    def GetImages(self, start_frame=None):
+    def getDbVersion(self):
         """
-        Get all images sorted by sort index. For large databases :py:meth:`~.DataFile.GetImageIterator`, should be used
+        Returns the version of the currently opened database file.
+
+        Returns
+        -------
+        version : string
+            the version of the database
+
+        """
+        return self.current_version
+
+    def getPath(self, id=None, path_string=None, create=False):  # TODO
+        """
+        Get a :py:class:`Path` entry from the database.
+
+        See also: :py:meth:`~.DataFile.getPaths`, :py:meth:`~.DataFile.setPath`, :py:meth:`~.DataFile.deletePaths`
+
+        Parameters
+        ----------
+        id: int, optional
+            the id of the path.
+        path_string: string, optional
+            the string specifying the path.
+        create: bool, optional
+            whether the path should be created if it does not exist. (default: False)
+
+        Returns
+        -------
+        path : :py:class:`Path`
+            the created/requested :py:class:`Path` entry.
+        """
+        # check input
+        assert any(e is not None for e in [id, path_string]), "Path and ID may not be both None"
+
+        # collect arguments
+        kwargs = {}
+        # normalize the path, making it relative to the database file
+        if path_string is not None:
+            if self.database_filename:
+                try:
+                    path_string = os.path.relpath(path_string, os.path.dirname(self.database_filename))
+                except ValueError:
+                    path_string = os.path.abspath(path_string)
+            path_string = os.path.normpath(path_string)
+            kwargs["path"] = path_string
+        # add the id
+        if id:
+            kwargs["id"] = id
+
+        # try to get the path
+        try:
+            path = self.table_path.get(**kwargs)
+        # if not create it
+        except peewee.DoesNotExist as err:
+            if create:
+                path = self.table_path(**kwargs)
+                path.save()
+            else:
+                return None
+        # return the path
+        return path
+
+    def getPaths(self, ids=None, path_strings=None, base_path=None):
+        """
+        Get all :py:class:`Path` entries from the database, which match the given criteria. If no critera a given, return all paths.
+
+        See also: :py:meth:`~.DataFile.getPath`, :py:meth:`~.DataFile.setPath`, :py:meth:`~.DataFile.deletePaths`
+
+        Parameters
+        ----------
+        ids: int, array_like, optional
+            the id/ids of the paths.
+        path_strings: string, path_string, optional
+            the string/strings specifying the paths.
+        base_path: string, optional
+            return only paths starting with the base_path string.
+
+        Returns
+        -------
+        entries : array_like
+            a query object containing all the matching :py:class:`Path` entries in the database file.
+        """
+
+        query = self.table_path.select()
+
+        query = addFilter(query, ids, self.table_path.id)
+        query = addFilter(query, path_strings, self.table_path.path)
+        if base_path is not None:
+            query = query.where(self.table_path.path.startswith(base_path))
+
+        return query
+
+    def setPath(self, id=None, path_string=None):
+        """
+        Update or create a new :py:class:`Path` entry with the given parameters.
+
+        See also: :py:meth:`~.DataFile.getPath`, :py:meth:`~.DataFile.getPaths`, :py:meth:`~.DataFile.deletePaths`
+
+        Parameters
+        ----------
+        id: int, optional
+            the id of the paths.
+        path_string: string, optional
+            the string specifying the path.
+
+        Returns
+        -------
+        entries : :py:class:`Path`
+            the changed or created :py:class:`Path` entry.
+        """
+
+        try:
+            path = self.table_path.get(id=id, path=path_string)
+        except peewee.DoesNotExist:
+            path = self.table_path()
+
+        if id is not None:
+            path.id = id
+        if path_string is not None:
+            path.path = path_string
+        path.save()
+
+        return path
+
+    def deletePaths(self, ids=None, path_strings=None, base_path=None):
+        """
+        Delete all :py:class:`Path` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getPath`, :py:meth:`~.DataFile.getPaths`, :py:meth:`~.DataFile.setPath`
+
+        Parameters
+        ----------
+        ids: int, optional
+            the id/ids of the paths.
+        path_strings: string, optional
+            the string/strings specifying the paths.
+        base_path: string, optional
+            return only paths starting with the base_path string.
+        """
+
+        query = self.table_path.delete()
+
+        query = addFilter(query, ids, self.table_path.id)
+        query = addFilter(query, path_strings, self.table_path.path)
+        if base_path is not None:
+            query = query.where(self.table_path.path.startswith(base_path))
+        query.execute()
+
+    def getImage(self, frame):
+        """
+        Returns the :py:class:`Image` entry with the given frame number.
+
+        See also: :py:meth:`~.DataFile.getImages`, :py:meth:`~.DataFile.getImageIterator`, :py:meth:`~.DataFile.setImage`,
+        :py:meth:`~.DataFile.deleteImages`.
+
+        Parameters
+        ----------
+        frame : int
+            the frame number of the desired image.
+
+        Returns
+        -------
+        image : :py:class:`Image`
+            the image entry.
+        """
+
+        return self.table_image.get(sort_index=frame)
+
+    def getImages(self, start_frame=None):
+        """
+        Get all :py:class:`Image` entries sorted by sort index. For large databases :py:meth:`~.DataFile.getImageIterator`, should be used
         as it doesn't load all frames at once.
+
+        See also: :py:meth:`~.DataFile.getImage`, :py:meth:`~.DataFile.getImageIterator`, :py:meth:`~.DataFile.setImage`,
+        :py:meth:`~.DataFile.deleteImages`.
 
         Parameters
         ----------
@@ -790,9 +997,11 @@ class DataFile:
         query = query.order_by(self.table_image.sort_index)
         return query
 
-    def GetImageIterator(self, start_frame=0):
+    def getImageIterator(self, start_frame=0):
         """
-        Get an iterator to iterate over all images starting from start_frame.
+        Get an iterator to iterate over all :py:class:`Image` entries starting from start_frame.
+
+        See also: :py:meth:`~.DataFile.getImage`, :py:meth:`~.DataFile.getImages`, :py:meth:`~.DataFile.setImage`,  :py:meth:`~.DataFile.deleteImages`.
 
         Parameters
         ----------
@@ -828,67 +1037,52 @@ class DataFile:
                 break
             frame += 1
 
-    def AddPath(self, path):
-        """
-        Add a path to the database, or return the path entry if it already exists.
+    def setImage(self, id=None, filename=None, path=None, frames=None, external_id=None, timestamp=None, width=None, height=None):
 
-        Returns
-        -------
-        path : path_entry
-            the created/requested :py:class:`Path` entry.
         """
+        Update or create new :py:class:`Image` entry with the given parameters.
 
-        if self.database_filename:
-            try:
-                path = os.path.relpath(path, os.path.dirname(self.database_filename))
-            except ValueError:
-                path = os.path.abspath(path)
-        path = os.path.normpath(path)
-        try:
-            path = self.table_path.get(path=path)
-        except peewee.DoesNotExist:
-            path = self.table_path(path=path)
-            path.save()
-        return path
-
-    def AddImage(self, filename, ext, path, frames=1, external_id=None, timestamp=None, sort_index=None, width=None,
-                 height=None):
-        """
-        Add a single image to db
+        See also: :py:meth:`~.DataFile.getImage`, :py:meth:`~.DataFile.getImages`, :py:meth:`~.DataFile.getImageIterator`, :py:meth:`~.DataFile.deleteImages`.
 
         Parameters
         ----------
-        filename : string
+        id : int, optional
+            the id of the image
+        filename : string, optional
             the filename of the image (including the extension)
-        ext : string
-            the file extension
-        path: string
-            the path to the filename
-        frames : int
+        frames : int, optional
             the number of frames the image has
-        external_id : int
+        external_id : int, optional
             an external id for the image. Only necessary if the annotation server is used
-        timestamp : datetime object
+        timestamp : datetime object, optional
             the timestamp of the image
+        width : int, optional
+            the width of the image
+        height : int, optional
+            the height of the image
 
         Returns
         -------
-        image : image entry
-            the created or updated :py:class:`Image` entry
+        image : :py:class:`Image`
+            the changed or created :py:class:`Image` entry
         """
         try:
-            item = self.table_image.get(self.table_image.filename == filename)
+            item = self.table_image.get(id=id, filename=filename)
             new_image = False
         except peewee.DoesNotExist:
             item = self.table_image()
             new_image = True
 
-        item.filename = filename
-        item.ext = ext
-        item.frames = frames
-        item.external_id = external_id
-        item.timestamp = timestamp
-        item.path = self.AddPath(path)
+        if filename is not None:
+            item.filename = filename
+            item.ext = os.path.splitext(filename)[1]
+            item.path = self.getPath(path_string=os.path.split(filename)[0], create=True)
+        if frames is not None:
+            item.frames = frames
+        if external_id is not None:
+            item.external_id = external_id
+        if timestamp is not None:
+            item.timestamp = timestamp
         if width is not None:
             item.width = width
         if height is not None:
@@ -906,389 +1100,177 @@ class DataFile:
         item.save()
         return item
 
-    def RemoveImage(self, filename):
-        try:
-            item = self.table_image.get(self.table_image.filename == filename)
-        except peewee.DoesNotExist:
-            print("Image with name: \'%s\' is not in DB", filename)
-            return False
 
-        item.delete_instance()
-
-        return True
-
-    def GetTracks(self):
+    def deleteImages(self, ids=None, filenames=None, frames=None, external_ids=None, timestamps=None, widths=None, heights=None):
         """
-        Get all track entries
-    
-        Returns
-        -------
-        entries : array_like
-            a query object which contains the requested :py:class:`Track`.
-        """
+        Delete all :py:class:`Image` entries with the given criteria.
 
-        query = self.table_track.select()
-        return query
-
-    def GetTrack(self, track_id=None):
-        """
-        Get a specific track entry by its database ID
-
-        Returns
-        -------
-        entries : array_like
-            a query object which contains the requested :py:class:`Track`.
-        """
-        try:
-            return self.table_track.select().where(self.table_track.id == track_id)
-        except peewee.DoesNotExist:
-            return None
-
-    def AddTrack(self, type):
-        """
-        Add a new track entry
+        See also: :py:meth:`~.DataFile.getImage`, :py:meth:`~.DataFile.getImages`, :py:meth:`~.DataFile.getImageIterator`, :py:meth:`~.DataFile.setImage`.
 
         Parameters
         ----------
-        type: :py:class:`MarkerType` or str
-            the marker type or name of the marker type for the track.
+        ids : int, array_like, optional
+            the id/ids of the images
+        filenames : string, array_like, optional
+            the filename/filenames of the image (including the extension)
+        frames : int, array_like, optional
+            the number/numbers of frames the images have
+        external_ids : int, array_like, optional
+            an external id/ids for the images. Only necessary if the annotation server is used
+        timestamps : datetime object, array_like, optional
+            the timestamp/timestamps of the images
+        widths : int, array_like, optional
+            the width/widths of the images
+        heights : int, optional
+            the height/heights of the images
 
         Returns
         -------
-        track : track object
-            a new :py:class:`Track` object
+
         """
-        import uuid
+        query = self.table_image.delete()
 
-        if isinstance(type, basestring):
-            type = self.GetType(type)
+        query = addFilter(query, ids, self.table_image.id)
+        query = addFilter(query, filenames, self.table_image.filename)
+        query = addFilter(query, frames, self.table_image.frame)
+        query = addFilter(query, external_ids, self.table_image.external_id)
+        query = addFilter(query, timestamps, self.table_image.timestamp)
+        query = addFilter(query, widths, self.table_image.width)
+        query = addFilter(query, heights, self.table_image.height)
+        query.execute()
 
-        item = self.table_track(uid=uuid.uuid4().hex, type=type)
-        item.save()
-        return item
-
-    def AddTracks(self, count, type):
+    def getMaskType(self, id=None, name=None, color=None, index=None, create=False):
         """
-        Add multiple new tracks
+        Get a :py:class:`MaskType` from the database.
+
+        See also: :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`, :py:meth:`~.DataFile.deleteMaskTypes`.
 
         Parameters
         ----------
-        count: int
-            how many tracks to create
-
-        type: :py:class:`MarkerType` or str
-            the marker type or name of the marker type for the tracks.
+        id : int, optional
+            the id of the mask type.
+        name : string, optional
+            the name of the mask type.
+        color : string, optional
+            the color of the mask type.
+        index : int, optional
+            the index of the mask type, which is used for painting this mask type.
+        create : bool, optional
+            whether the mask type should be created if it does not exist. (default: False)
 
         Returns
         -------
-        tracks : list of :py:class:`Track`
-            the new track objects
+        entries : :py:class:`MaskType`
+            the created/requested :py:class:`MaskType` entry.
         """
+        # check input
+        assert any(e is not None for e in [id, name, color, index]), "Path, ID, color and index may not be all None"
 
-        if isinstance(type, basestring):
-            type = self.GetType(type)
+        # collect arguments
+        kwargs = noNoneDict(id=id, name=name, color=color, index=index)
 
-        return [self.AddTrack(type) for _ in range(count)]
-
-    def GetTypes(self):
-        """
-        Get all type entries
-    
-        Returns
-        -------
-        entries : array_like
-            a query object which contains all :py:class:`MarkerType` entries.
-        """
-        query = self.table_markertype.select()
-        return query
-
-    def AddType(self, name, color, mode=0, style=None):
+        # try to get the path
         try:
-            item = self.table_markertype.get(self.table_markertype.name == name)
-        except peewee.DoesNotExist:
-            item = self.table_markertype()
-
-        item.name = name
-        item.color = CheckValidColor(color)
-        item.mode = mode
-        item.style = style
-
-        item.save()
-        return item.get_id()
-
-    def GetType(self, name):
-        """
-        Get the type with the specified name.
-
-        Parameters
-        ----------
-        name: str
-            the name of the desired type
-
-        Returns
-        -------
-        entries : array_like
-            the :py:class:`MarkerType` with the desired name or None.
-        """
-        try:
-            return self.table_markertype.get(self.table_markertype.name == name)
-        except peewee.DoesNotExist:
-            return None
-
-    def GetMarker(self, image=None, image_filename=None, timestamp=None, processed=None, type=None, type_name=None, track=None, order_by='sort_index'):
-        """
-        Get all the marker entries in the database where the parameters fit. If a parameter is omitted, the column is
-        ignored. If it is provided a single value, only database entries matching this value are returned. If a list is
-        supplied, any entry with a value from the list is matched.
-
-        See also: :py:meth:`~.DataFile.GetRectangles`, :py:meth:`~.DataFile.GetLines`, :py:meth:`~.DataFile.GetTracks`
-
-        Parameters
-        ----------
-        image : int, array, optional
-            the image id(s) for the markers to be selected.
-        processed : bool, array, optional
-            the processed flag(s) for the markers to be selected.
-        type : int, array, optional
-            the type id(s) for the markers to be selected.
-        type_name : string, array, optional
-            the type name(s) for the markers to be selected.
-        track : int, array, optional
-            the track id(s) for the markers to be selected.
-        order_by: string ['sort_index','timestamp']
-            sort results by sort_index or timestamp (def: sort_index)
-
-        Returns
-        -------
-        entries : array_like
-            a query object which can be iterated to get the :py:class:`Marker` entries which where matched by the parameters provided.
-        """
-        # select marker, joined with types and images
-        query = (self.table_marker.select(self.table_marker, self.table_markertype, self.table_image)
-                 .join(self.table_markertype)
-                 .switch(self.table_marker)
-                 .join(self.table_image)
-                 )
-        parameter = [image, image_filename, timestamp, processed, type, type_name, track]
-        table = self.table_marker
-        fields = [table.image, self.table_image.filename, self.table_image.timestamp, table.processed, table.type, self.table_markertype.name,
-                  table.track]
-        for field, parameter in zip(fields, parameter):
-            if parameter is None:
-                continue
-            if isinstance(parameter, (tuple, list)):
-                query = query.where(field << parameter)
+            masktype = self.table_masktype.get(**kwargs)
+        # if not create it
+        except peewee.DoesNotExist as err:
+            if create:
+                masktype = self.table_masktype(**kwargs)
+                masktype.save()
             else:
-                query = query.where(field == parameter)
+                return None
+        # return the path
+        return masktype
 
-        # order query results by
-        if order_by == 'sort_index':
-            query = query.order_by(self.table_image.sort_index)
-        elif order_by == 'timestamp':
-            query = query.order_by(self.table_image.timestamp)
-        else:
-            print("Unknown order_by parameter %s - results not sorted!" % order_by)
-
-        return query
-
-    def GetRectangles(self, image=None, image_filename=None, processed=None, type=None, type_name=None):
+    def getMaskTypes(self, ids=None, names=None, colors=None, indices=None):
         """
-        Works like :py:meth:`~.DataFile.GetMarker`, but for Rectangles.
+        Get all :py:class:`MaskType` entries from the database, which match the given criteria. If no criteria a given, return all mask types.
 
-        See also: :py:meth:`~.DataFile.GetMarker`, :py:meth:`~.DataFile.GetLines`, :py:meth:`~.DataFile.GetTracks`
+        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.setMaskType`, :py:meth:`~.DataFile.deleteMaskTypes`.
 
         Parameters
         ----------
-        image : int, array, optional
-            the image id(s) for the rectangles to be selected.
-        processed : bool, array, optional
-            the processed flag(s) for the rectangles to be selected.
-        type : int, array, optional
-            the type id(s) for the rectangles to be selected.
-        type_name : string, array, optional
-            the type name(s) for the markers to be selected.
+        ids : int, array_like, optional
+            the id/ids of the mask types.
+        names : string, array_like, optional
+            the name/names of the mask types.
+        colors : string, array_like, optional
+            the color/colors of the mask types.
+        indices : int, array_like, optional
+            the index/indices of the mask types, which is used for painting this mask types.
 
         Returns
         -------
         entries : array_like
-            a list of :py:class:`Rectangle` objects.
+            a query object containing all the matching :py:class:`MaskType` entries in the database file.
         """
-        # select marker, joined with types and images
-        query = (self.table_rectangle.select(self.table_marker, self.table_markertype, self.table_image)
-                 .join(self.table_markertype)
-                 .switch(self.table_rectangle)
-                 .join(self.table_image)
-                 )
-        parameter = [image, image_filename, processed, type, type_name]
-        table = self.table_rectangle
-        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name]
-        for field, parameter in zip(fields, parameter):
-            if parameter is None:
-                continue
-            if isinstance(parameter, (tuple, list)):
-                query = query.where(field << parameter)
-            else:
-                query = query.where(field == parameter)
 
-        # return the query
-        return query
-
-    def GetLines(self, image=None, image_filename=None, processed=None, type=None, type_name=None):
-        """
-        Works like :py:meth:`~.DataFile.GetMarker`, but for lines.
-
-        See also: :py:meth:`~.DataFile.GetMarker`, :py:meth:`~.DataFile.GetRectangles`, :py:meth:`~.DataFile.GetTracks`
-
-        Parameters
-        ----------
-        image : int, array, optional
-            the image id(s) for the lines to be selected.
-        processed : bool, array, optional
-            the processed flag(s) for the lines to be selected.
-        type : int, array, optional
-            the type id(s) for the lines to be selected.
-        type_name : string, array, optional
-            the type name(s) for the markers to be selected.
-
-        Returns
-        -------
-        entries : array_like
-            a list of :py:class:`Line` objects.
-        """
-        # select marker, joined with types and images
-        query = (self.table_line.select(self.table_line, self.table_markertype, self.table_image)
-                 .join(self.table_markertype)
-                 .switch(self.table_line)
-                 .join(self.table_image)
-                 )
-        parameter = [image, image_filename, processed, type, type_name]
-        table = self.table_line
-        fields = [table.image, self.table_image.filename, table.processed, table.type, self.table_markertype.name]
-        for field, parameter in zip(fields, parameter):
-            if parameter is None:
-                continue
-            if isinstance(parameter, (tuple, list)):
-                query = query.where(field << parameter)
-            else:
-                query = query.where(field == parameter)
-
-        # return the query
-        return query
-
-    def SetMarker(self, id=None, image=None, x=None, y=None, processed=0, type=None, track=None,
-                  marker_text=None):
-        """
-        Insert or update markers in the database file. Every parameter can either be omitted, to use the default value,
-        supplied with a single value, to use the same value for all entries, or be supplied with a list of values, to use a
-        different value for each entry. If any parameter is a list, multiple entries are inserted, otherwise just a single
-        value will be inserted or updated.
-    
-        Parameters
-        ----------
-        id : int, array, optional
-            the id(s) for the markers to be inserted.
-        image : int, array, optional
-            the image id(s) for the markers to be inserted.
-        x : float, array, optional
-            the x coordinate(s) for the markers to be inserted.
-        y : float, array, optional
-            the y coordinate(s) for the markers to be inserted.
-        processed : bool, array, optional
-            the processed flag(s) for the markers to be inserted.
-        type : int, array, optional
-            the type id(s) for the markers to be inserted.
-        track : int, array, optional
-            the track id(s) for the markers to be inserted.
-
-        Examples
-        --------
-        .. code-block:: python
-            :linenos:
-
-            points = db.GetMarker(image=image)
-            p0 = np.array([[point.x, point.y] for point in points if point.track_id])
-            tracking_ids = [point.track_id for point in points if point.track_id]
-            types = [point.type_id for point in points if point.track_id]
-            db.SetMarker(image=image, x=p0[:, 0]+10, y=p0[:, 1], processed=0, type=types, track=tracking_ids)
-
-        Get all the points of an image and move them 10 pixels to the right.
-
-        """
-        # if the variable track is a list of track instances, we need to convert it to track ids
-        try:
-            if isinstance(track[0], self.table_track):
-                track = track[:]
-                for i, t in enumerate(track):
-                    if isinstance(t, self.table_track):
-                        track[i] = t.id
-        except TypeError:
-            if isinstance(track, self.table_track):
-                track = track.id
-            pass
-        # if the variable image is a list of image instances, we need to convert it to image ids
-        try:
-            if isinstance(image[0], self.table_image):
-                image = image[:]
-                for i, img in enumerate(image):
-                    if isinstance(img, self.table_image):
-                        image[i] = img.id
-        except TypeError:
-            if isinstance(image, self.table_image):
-                image = image.id
-            pass
-        data_sets = []
-        table = self.table_marker
-        fields = [table.id, table.image, table.x, table.y, table.processed, table.type, table.text,
-                  table.track]
-        names = ["id", "image_id", "x", "y", "processed", "type_id", "text", "track_id"]
-        for data in np.broadcast(id, image, x, y, processed, type, marker_text, track):
-            data_set = []
-            condition_list = ["image_id", "track_id"]
-            # TODO: track_id param as position=[-1] is BAD
-            condition_param = [data[1], data[-1]]
-            condition = "WHERE "
-            for idx, cond in enumerate(condition_list):
-                if not condition_param[idx] is None:
-                    condition += cond + " = " + str(condition_param[idx])
-                else:
-                    condition += cond + " = NULL"
-                if not idx == len(condition_list) - 1:
-                    condition += " AND "
-
-            # print(condition)
-
-            # condition = "WHERE image_id = %d AND track_id = %d" % (data[1], data[2], data[-1])
-
-            for field, name, value in zip(fields, names, data):
-                if value is None:
-                    data_set.append("(SELECT " + name + " FROM marker " + condition + ")")
-                else:
-                    try:
-                        data_set.append(str(value.id))
-                    except AttributeError:
-                        # for CharFileds add ticks
-                        if (field.__class__.__name__) == 'CharField':
-                            data_set.append('\'%s\'' % value)
-                        else:
-                            data_set.append(str(value))
-            data_sets.append(",\n ".join(data_set))
-        query = "INSERT OR REPLACE INTO marker (id, image_id, x, y, processed, type_id, text, track_id)\n VALUES (\n"
-        query += "),\n (".join(data_sets)
-        query += ");"
-
-        self.db.execute_sql(query)
-
-    def GetMaskTypes(self):
-        """
-        Get all mask type entries
-
-        Returns
-        -------
-        entries : array_like
-            a query object which contains all :py:class:`MaskType` entries.
-        """
         query = self.table_masktype.select()
+
+        query = addFilter(query, ids, self.table_masktype.id)
+        query = addFilter(query, names, self.table_masktype.name)
+        query = addFilter(query, colors, self.table_masktype.color)
+        query = addFilter(query, indices, self.table_masktype.index)
         return query
+
+    def setMaskType(self, id=None, name=None, color=None, index=None):
+        """
+        Update or create a new a :py:class:`MaskType` entry with the given parameters.
+
+        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`, :py:meth:`~.DataFile.deleteMaskTypes`.
+
+        Parameters
+        ----------
+        id : int, optional
+            the id of the mask type.
+        name : string, optional
+            the name of the mask type.
+        color : string, optional
+            the color of the mask type.
+        index : int, optional
+            the index of the mask type, which is used for painting this mask type.
+
+        Returns
+        -------
+        entries : :py:class:`MaskType`
+            the changed or created :py:class:`MaskType` entry.
+        """
+
+        try:
+            mask_type = self.table_masktype.get(**noNoneDict(id=id, name=name, color=color, index=index))
+        except peewee.DoesNotExist:
+            mask_type = self.table_masktype()
+
+        setFields(mask_type, dict(id=id, name=name, color=color, index=index))
+        mask_type.save()
+
+        return mask_type
+
+    def deleteMaskTypes(self, ids=None, names=None, colors=None, indices=None):
+        """
+        Delete all :py:class:`MaskType` entries from the database, which match the given criteria.
+
+        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`.
+
+        Parameters
+        ----------
+        ids : int, array_like, optional
+            the id/ids of the mask types.
+        names : string, array_like, optional
+            the name/names of the mask types.
+        colors : string, array_like, optional
+            the color/colors of the mask types.
+        indices : int, array_like, optional
+            the index/indices of the mask types, which is used for painting this mask types.
+        """
+
+        query = self.table_masktype.delete()
+
+        query = addFilter(query, ids, self.table_masktype.id)
+        query = addFilter(query, names, self.table_masktype.name)
+        query = addFilter(query, colors, self.table_masktype.color)
+        query = addFilter(query, indices, self.table_masktype.index)
+        query.execute()
 
     def GetMasks(self, order_by="sort_index"):
         """

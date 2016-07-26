@@ -54,6 +54,9 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
    Stores a path. Referenced by each image entry.
 
+   See also: :py:meth:`~.DataFile.getPath`, :py:meth:`~.DataFile.getPaths`, :py:meth:`~.DataFile.setPath`,
+   :py:meth:`~.DataFile.deletePaths`.
+
    Attributes:
         - **path** *(str, unique)* - the path
         - **images** *(list of* :py:class:`Image` *)* - the images with this path.
@@ -61,6 +64,9 @@ The database contains some tables represented in the ClickPoints api as peewee m
 .. py:class:: Image()
 
     Stores an image.
+
+    See also: :py:meth:`~.DataFile.getImages`, :py:meth:`~.DataFile.getImage`, :py:meth:`~.DataFile.getImageIterator`,
+    :py:meth:`~.DataFile.setImage`, :py:meth:`~.DataFile.deleteImages`.
 
     Attributes:
         - **filename** *(str, unique)* - the name of the file.
@@ -178,6 +184,9 @@ The database contains some tables represented in the ClickPoints api as peewee m
 .. py:class:: MaskType()
 
    A mask type.
+
+   See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`,
+   :py:meth:`~.DataFile.deleteMaskTypes`.
 
    Attributes:
         - **name** *(str)* - the name of the mask type.

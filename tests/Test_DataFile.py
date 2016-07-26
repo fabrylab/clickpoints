@@ -5,41 +5,202 @@ import sys
 import os
 import unittest
 
+from clickpoints import DataFile
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from BaseTest import BaseTest
 
-from qtpy.QtCore import Qt
-
-class Test_DataFile(unittest.TestCase, BaseTest):
+class Test_DataFile(unittest.TestCase):
 
     def tearDown(self):
-        BaseTest.tearDown(self)
+        self.db.db.close()
+        os.remove(self.db.database_filename)
 
-    def test_createDatabase(self):
-        """ Test if creating the database on demand works """
-        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
+    def test_getDbVersion(self):
+        """ Test if the getDbVersion function returns the version properly """
+        self.db = DataFile("getDbVersion.cdb", "w")
 
-        # wait for image to be loaded
-        self.wait_for_image_load()
+        self.assertEqual(self.db.getDbVersion(), "14", "Database version is not returned correctly.")
 
-        # switch interface on
-        self.keyPress(Qt.Key_F2)
+    def test_setPath(self):
+        """ Test the setPath function """
+        self.db = DataFile("setPath.cdb", "w")
 
-        # check if no marker is present
-        self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
-        self.assertFalse(os.path.exists(self.database_path), "Database file already present.")
+        # try to set a path
+        path = self.db.setPath(path_string="test")
+        self.assertEqual(path.path, "test", "Path was not set properly")
 
-        # add a marker, and check if it exists
-        self.mouseClick(50, 50)
-        self.assertEqual(len(self.window.GetModule("MarkerHandler").points)+len(self.window.GetModule("MarkerHandler").tracks), 1, "Marker wasn't added by clicking")
+    def test_getPath(self):
+        """ Test the getPath function """
+        self.db = DataFile("getPath.cdb", "w")
 
-        # the database should not exist at this point
-        self.assertFalse(os.path.exists(self.database_path), "Database file already present.")
+        # set a new path
+        self.db.setPath(path_string="test")
 
-        # Test saving database
-        self.window.SaveDatabase(os.path.abspath("tmp.cdb"))
-        self.assertTrue(os.path.exists(os.path.abspath("tmp.cdb")), "Database file was not created.")
+        # try to get the path
+        path = self.db.getPath(path_string="test")
+        self.assertEqual(path.path, "test", "Retrieving a path does not work")
+
+        # try to get a non-existent path
+        path = self.db.getPath(path_string="testX")
+        self.assertEqual(path, None, "Retrieving an non existent path does not work")
+
+        # try to create a non-existent path
+        path = self.db.getPath(path_string="testX", create=True)
+        self.assertEqual(path.path, "testX", "Creating a non existent path does not work")
+
+    def test_getPaths(self):
+        """ Test the getPaths function """
+        self.db = DataFile("getPaths.cdb", "w")
+
+        p1 = os.path.join("foo", "bar1")
+        p2 = os.path.join("foo", "bar2")
+        p3 = os.path.join("loo", "bar1")
+        self.db.setPath(path_string=p1)
+        self.db.setPath(path_string=p2)
+        self.db.setPath(path_string=p3)
+        paths = self.db.getPaths(path_strings=p2)
+        self.assertEqual([p.path for p in paths], [p2], "Retrieving a single path works does not work.")
+
+        paths = self.db.getPaths(path_strings=[p1, p2])
+        self.assertEqual([p.path for p in paths], [p1, p2], "Retrieving multiple paths does not work.")
+
+        paths = self.db.getPaths()
+        self.assertEqual(paths.count(), 3, "Retrieving all paths does not work.")
+
+        paths = self.db.getPaths(base_path="foo")
+        self.assertEqual([p.path for p in paths], [p1, p2], "Retrieving paths with basepath does not work.")
+
+    def test_deletePaths(self):
+        """ Test the deletePaths function """
+        self.db = DataFile("deletePaths.cdb", "w")
+
+        p1 = os.path.join("foo", "bar1")
+        p2 = os.path.join("foo", "bar2")
+        p3 = os.path.join("loo", "bar1")
+        self.db.setPath(path_string=p1)
+        self.db.setPath(path_string=p2)
+        self.db.setPath(path_string=p3)
+
+        self.db.deletePaths(path_strings=p1)
+        paths = self.db.getPaths()
+        self.assertEqual(paths.count(), 2, "Deleting one path does not work")
+        self.db.setPath(path_string=p1)
+
+        self.db.deletePaths(path_strings=[p1, p3])
+        paths = self.db.getPaths()
+        self.assertEqual(paths.count(), 1, "Deleting two paths does not work")
+        self.db.setPath(path_string=p1)
+        self.db.setPath(path_string=p3)
+
+        self.db.deletePaths(base_path="foo")
+        paths = self.db.getPaths()
+        self.assertEqual(paths.count(), 1, "Deleting two paths with base_path does not work")
+
+    def test_setImage(self):
+        """ Test the setImage function """
+        self.db = DataFile("setImage.cdb", "w")
+
+        im1 = self.db.setImage(None, "test.jpg")
+        self.assertEqual(im1.filename, "test.jpg", "Creating an image didn't work")
+
+    def test_getImage(self):
+        """ Test the setImage function """
+        self.db = DataFile("getImage.cdb", "w")
+
+        self.db.setImage(None, "test1.jpg")
+        self.db.setImage(None, "test2.jpg")
+        self.db.setImage(None, "test3.jpg")
+
+        im = self.db.getImage(2)
+        self.assertEqual(im.filename, "test3.jpg", "Getting an image does not work.")
+
+    def test_getImages(self):
+        """ Test the getImages function """
+        self.db = DataFile("getImages.cdb", "w")
+
+        self.db.setImage(None, "test1.jpg")
+        self.db.setImage(None, "test2.jpg")
+        self.db.setImage(None, "test3.jpg")
+
+        ims = self.db.getImages(1)
+        self.assertEqual(ims.count(), 2, "Getting images does not work")
+
+        ims = self.db.getImageIterator(1)
+        self.assertEqual([im.filename for im in ims], ["test2.jpg", "test3.jpg"], "Getting images does not work")
+
+    def test_deleteImages(self):
+        """ Test the deleteImages function """
+        self.db = DataFile("deleteImages.cdb", "w")
+
+        self.db.setImage(None, "test1.jpg")
+        self.db.setImage(None, "test2.jpg")
+        self.db.setImage(None, "test3.jpg")
+
+        ims = self.db.getImages(0)
+        self.assertEqual(ims.count(), 3, "Getting images does not work")
+
+        self.db.deleteImages(filenames="test1.jpg")
+
+        ims = self.db.getImages(0)
+        self.assertEqual(ims.count(), 2, "Deleting image does not work")
+
+        self.db.deleteImages(filenames=["test2.jpg", "test3.jpg"])
+
+        ims = self.db.getImages(0)
+        self.assertEqual(ims.count(), 0, "Deleting images does not work")
+
+    def test_getMaskType(self):
+        """ Test the getMaskType function """
+        self.db = DataFile("getMaskType.cdb", "w")
+
+        masktype = self.db.getMaskType(name="color")
+        self.assertEqual(masktype, None, "Getting non-existent mask does not work")
+
+        masktype = self.db.getMaskType(name="color", color="#FF0000", index=2, create=True)
+        self.assertEqual(masktype.name, "color", "Getting non-existent mask does not work")
+
+    def test_setMaskType(self):
+        """ Test the setMaskType function """
+        self.db = DataFile("setMaskType.cdb", "w")
+
+        self.db.setMaskType(name="color", color="#FF0000", index=2)
+        masktype = self.db.getMaskType(name="color")
+        self.assertEqual(masktype.name, "color", "Creating a new mask type does not work")
+
+        self.db.setMaskType(id=masktype.id, name="color2", color="#FF0000", index=2)
+        masktype = self.db.getMaskType(id=masktype.id)
+        self.assertEqual(masktype.name, "color2", "Alterning a mask type does not work")
+
+    def test_getMaskTypes(self):
+        """ Test the getMaskTypes function """
+        self.db = DataFile("getMaskTypes.cdb", "w")
+
+        self.db.setMaskType(name="color1", color="#FF0000", index=1)
+        self.db.setMaskType(name="color2", color="#FF0000", index=2)
+        self.db.setMaskType(name="color3", color="#FF0000", index=3)
+        masktypes = self.db.getMaskTypes(names="color1")
+        self.assertEqual([m.name for m in masktypes], ["color1"], "Retrieving one mask type does not work")
+
+        masktypes = self.db.getMaskTypes(names=["color1", "color2"])
+        self.assertEqual([m.name for m in masktypes], ["color1", "color2"], "Retrieving two mask types does not work")
+
+    def test_deleteMaskTypes(self):
+        """ Test the deleteMaskTypes function """
+        self.db = DataFile("deleteMaskTypes.cdb", "w")
+
+        self.db.setMaskType(name="color1", color="#FF0000", index=1)
+        self.db.setMaskType(name="color2", color="#FF0000", index=2)
+        self.db.setMaskType(name="color3", color="#FF0000", index=3)
+
+        self.db.deleteMaskTypes(names="color1")
+        masktypes = self.db.getMaskTypes()
+        self.assertEqual(masktypes.count(), 2, "Deleting one mask type does not work")
+
+        self.db.deleteMaskTypes(names=["color2", "color3"])
+        masktypes = self.db.getMaskTypes()
+        self.assertEqual(masktypes.count(), 0, "Deleting two mask types does not work")
+
 
 if __name__ == '__main__':
     __path__ = os.path.dirname(os.path.abspath(__file__))
