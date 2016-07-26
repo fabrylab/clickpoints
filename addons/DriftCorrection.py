@@ -26,20 +26,24 @@ if not db.GetType("drift_rect"):
 
 # try to load marker
 rect = db.GetRectangles(type_name="drift_rect")
-if len(rect) < 1:
+print(rect)
+print("count:",rect.count())
+if rect.count() < 1:
     print("ERROR: no rectangle selected.\nPlease mark a rectangle with type 'drift_rect'.")
     sys.exit(-1)
 rect = rect[0]
 
 # Get images and template
 images = db.GetImageIterator(start_frame=start_frame)
-template = images.next().data[rect.y1-border_y:rect.y2+border_y, rect.x1-border_x:rect.x2+border_x]
+print('slices:',rect.slice_y(), rect.slice_x)
+print(rect.slice_y().start - border_y, rect.slice_y().stop + border_y , rect.slice_x().start - border_x, rect.slice_x().stop + border_x)
+template = images.next().data[rect.slice_y().start - border_y: rect.slice_y().stop + border_y , rect.slice_x().start - border_x: rect.slice_x().stop + border_x]
 
 # start iteration
 last_shift = np.array([0, 0])
 for image in images:
     # template matching for drift correction
-    res = cv2.matchTemplate(image.data[rect.slice_y, rect.slice_x], template, cv2.TM_CCOEFF)
+    res = cv2.matchTemplate(image.data[rect.slice_y(), rect.slice_x()], template, cv2.TM_CCOEFF)
     res += np.amin(res)
     res = res**4.
 
@@ -65,7 +69,7 @@ for image in images:
 
     # get new template if compare_to_first is off
     if not compare_to_first:
-        template = image.data[rect.y1-border_y:rect.y2+border_y, rect.x1-border_x:rect.x2+border_x]
+        template = image.data[rect.slice_y().start - border_y: rect.slice_y().stop + border_y , rect.slice_x().start - border_x: rect.slice_x().stop + border_x]
         shift += last_shift
         last_shift = shift
 
