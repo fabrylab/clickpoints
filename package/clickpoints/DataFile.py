@@ -55,7 +55,7 @@ def CheckValidColor(color):
     return "#" + color_string
 
 
-def addFilter(query, parameter, field):
+def addFilter(query, parameter, field):  # TODO add slice
     if parameter is None:
         return query
     if isinstance(parameter, (tuple, list)):
@@ -72,7 +72,7 @@ def noNoneDict(**kwargs):
 
 def setFields(entry, dict):
     for key in dict:
-        if key is not None:
+        if dict[key] is not None:
             setattr(entry, key, dict[key])
 
 
@@ -116,7 +116,7 @@ class DataFile:
     """
     db = None
     reader = None
-    current_version = "14"
+    _current_version = "14"
     database_filename = None
     next_sort_index = 0
 
@@ -131,7 +131,7 @@ class DataFile:
             raise TypeError("No database filename supplied.")
         self.database_filename = database_filename
 
-        version = self.current_version
+        version = self._current_version
         new_database = True
 
         # Create a new database
@@ -489,7 +489,7 @@ class DataFile:
                 return "MaskObject id%s: image=%s, data=%s" % (self.id, self.image, self.data)
 
         class MaskType(BaseModel):
-            name = peewee.CharField()
+            name = peewee.CharField()  # TODO make unique
             color = peewee.CharField()
             index = peewee.IntegerField(unique=True)
 
@@ -546,10 +546,10 @@ class DataFile:
                                 END;")
 
         if new_database:
-            self.table_meta(key="version", value=self.current_version).save()
+            self.table_meta(key="version", value=self._current_version).save()
 
         # second migration part which needs the peewee model
-        if version is not None and int(version) < int(self.current_version):
+        if version is not None and int(version) < int(self._current_version):
             self._migrateDBFrom2(version)
 
     def _CheckVersion(self):
@@ -558,12 +558,12 @@ class DataFile:
         except (KeyError, peewee.DoesNotExist):
             version = "0"
         print("Open database with version", version)
-        if int(version) < int(self.current_version):
+        if int(version) < int(self._current_version):
             self._migrateDBFrom(version)
-        elif int(version) > int(self.current_version):
+        elif int(version) > int(self._current_version):
             print("Warning Database version %d is newer than ClickPoints version %d "
                   "- please get an updated Version!"
-                  % (int(version), int(self.current_version)))
+                  % (int(version), int(self._current_version)))
             print("Proceeding on own risk!")
         return version
 
@@ -803,6 +803,30 @@ class DataFile:
         for table in self.tables:
             table.create_table(fail_silently=True)
 
+    def _processesTypeNameField(self, types):
+        def CheckType(type):
+            if isinstance(type, basestring):
+                type = self.getMarkerType(type)
+            return type
+
+        if isinstance(types, (tuple, list)):
+            types = [CheckType(type) for type in types]
+        else:
+            types = CheckType(types)
+        return types
+
+    def _processPathNameField(self, paths):
+        def CheckPath(path):
+            if isinstance(path, basestring):
+                return self.getPath(path)
+            return path
+
+        if isinstance(paths, (tuple, list)):
+            paths = [CheckPath(path) for path in paths]
+        else:
+            paths = CheckPath(paths)
+        return paths
+
     def getDbVersion(self):
         """
         Returns the version of the currently opened database file.
@@ -813,9 +837,9 @@ class DataFile:
             the version of the database
 
         """
-        return self.current_version
+        return self._current_version
 
-    def getPath(self, id=None, path_string=None, create=False):  # TODO
+    def getPath(self, path_string=None, id=None, create=False):
         """
         Get a :py:class:`Path` entry from the database.
 
@@ -823,10 +847,10 @@ class DataFile:
 
         Parameters
         ----------
-        id: int, optional
-            the id of the path.
         path_string: string, optional
             the string specifying the path.
+        id: int, optional
+            the id of the path.
         create: bool, optional
             whether the path should be created if it does not exist. (default: False)
 
@@ -866,7 +890,7 @@ class DataFile:
         # return the path
         return path
 
-    def getPaths(self, ids=None, path_strings=None, base_path=None):
+    def getPaths(self, path_strings=None, base_path=None, ids=None):
         """
         Get all :py:class:`Path` entries from the database, which match the given criteria. If no critera a given, return all paths.
 
@@ -874,12 +898,12 @@ class DataFile:
 
         Parameters
         ----------
-        ids: int, array_like, optional
-            the id/ids of the paths.
         path_strings: string, path_string, optional
             the string/strings specifying the paths.
         base_path: string, optional
             return only paths starting with the base_path string.
+        ids: int, array_like, optional
+            the id/ids of the paths.
 
         Returns
         -------
@@ -896,7 +920,7 @@ class DataFile:
 
         return query
 
-    def setPath(self, id=None, path_string=None):
+    def setPath(self, path_string=None, id=None):
         """
         Update or create a new :py:class:`Path` entry with the given parameters.
 
@@ -904,10 +928,10 @@ class DataFile:
 
         Parameters
         ----------
-        id: int, optional
-            the id of the paths.
         path_string: string, optional
             the string specifying the path.
+        id: int, optional
+            the id of the paths.
 
         Returns
         -------
@@ -916,19 +940,16 @@ class DataFile:
         """
 
         try:
-            path = self.table_path.get(id=id, path=path_string)
+            path = self.table_path.get(**noNoneDict(id=id, path=path_string))
         except peewee.DoesNotExist:
             path = self.table_path()
 
-        if id is not None:
-            path.id = id
-        if path_string is not None:
-            path.path = path_string
+        setFields(path, dict(path=path_string))
         path.save()
 
         return path
 
-    def deletePaths(self, ids=None, path_strings=None, base_path=None):
+    def deletePaths(self, path_strings=None, base_path=None, ids=None):
         """
         Delete all :py:class:`Path` entries with the given criteria.
 
@@ -936,12 +957,17 @@ class DataFile:
 
         Parameters
         ----------
-        ids: int, optional
-            the id/ids of the paths.
         path_strings: string, optional
             the string/strings specifying the paths.
         base_path: string, optional
             return only paths starting with the base_path string.
+        ids: int, optional
+            the id/ids of the paths.
+
+        Returns
+        -------
+        rows : int
+            the number of affected rows.
         """
 
         query = self.table_path.delete()
@@ -950,9 +976,9 @@ class DataFile:
         query = addFilter(query, path_strings, self.table_path.path)
         if base_path is not None:
             query = query.where(self.table_path.path.startswith(base_path))
-        query.execute()
+        return query.execute()
 
-    def getImage(self, frame):
+    def getImage(self, frame=None, filename=None, id=None):
         """
         Returns the :py:class:`Image` entry with the given frame number.
 
@@ -961,8 +987,12 @@ class DataFile:
 
         Parameters
         ----------
-        frame : int
-            the frame number of the desired image.
+        frame : int, optional
+            the frame number of the desired image, as displayed in ClickPoints.
+        filename : string, optional
+            the filename of the desired image.
+        id : int, optional
+            the id of the image.
 
         Returns
         -------
@@ -970,9 +1000,9 @@ class DataFile:
             the image entry.
         """
 
-        return self.table_image.get(sort_index=frame)
+        return self.table_image.get(**noNoneDict(sort_index=frame, filename=filename, id=id))
 
-    def getImages(self, start_frame=None):
+    def getImages(self, frames=None, filenames=None, exts=None, external_ids=None, timestamps=None, widths=None, heights=None, paths=None, order_by="sort_index"):
         """
         Get all :py:class:`Image` entries sorted by sort index. For large databases :py:meth:`~.DataFile.getImageIterator`, should be used
         as it doesn't load all frames at once.
@@ -982,36 +1012,40 @@ class DataFile:
 
         Parameters
         ----------
-        start_frame : int, optional
-            only return images with sort_index >= start_frame. Default is 0, which returns all images
+        frames : int, array_like, optional
+            the frame/frames of the images
+        filenames : string, array_like, optional
+            the filename/filenames of the images
+        exts : string, array_like, optional
+            the extension/extensions of the images
+        TODO
 
         Returns
         -------
         entries : array_like
             a query object containing all the :py:class:`Image` entries in the database file.
-
-        Examples
-        --------
-        .. code-block:: python
-            :linenos:
-
-            import clickpoints
-
-            # open the database "data.cdb"
-            db = clickpoints.DataFile("data.cdb")
-
-            # iterate over all images and print the filename
-            for image in db.GetImages():
-                print(image.filename)
         """
 
         query = self.table_image.select()
-        if start_frame is not None:
-            query = query.where(self.table_image.sort_index >= start_frame)
-        query = query.order_by(self.table_image.sort_index)
+
+        query = addFilter(query, frames, self.table_image.sort_index)
+        query = addFilter(query, filenames, self.table_image.filename)
+        query = addFilter(query, exts, self.table_image.ext)
+        query = addFilter(query, external_ids, self.table_image.external_id)
+        query = addFilter(query, timestamps, self.table_image.timestamp)
+        query = addFilter(query, widths, self.table_image.width)
+        query = addFilter(query, heights, self.table_image.height)
+        query = addFilter(query, paths, self.table_image.path)
+
+        if order_by == "sort_index":
+            query = query.order_by(self.table_image.sort_index)
+        elif order_by == "timestamp":
+            query = query.order_by(self.table_image.timestamp)
+        else:
+            raise Exception()  #TODO
         return query
 
-    def getImageIterator(self, start_frame=0):
+    def getImageIterator(self, start_frame=0, end_frame=None):  #TODO: end_frame
         """
         Get an iterator to iterate over all :py:class:`Image` entries starting from start_frame.
 
@@ -1021,6 +1055,7 @@ class DataFile:
         ----------
         start_frame : int, optional
             start at the image with the number start_frame. Default is 0
+        end_frame
 
         Returns
         -------
@@ -1051,7 +1086,7 @@ class DataFile:
                 break
             frame += 1
 
-    def setImage(self, id=None, filename=None, path=None, frames=None, external_id=None, timestamp=None, width=None, height=None):
+    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None):
 
         """
         Update or create new :py:class:`Image` entry with the given parameters.
@@ -1060,12 +1095,12 @@ class DataFile:
 
         Parameters
         ----------
-        id : int, optional
-            the id of the image
         filename : string, optional
             the filename of the image (including the extension)
-        frames : int, optional
-            the number of frames the image has
+        path : string, int, :py:class:`Path`, optional
+            the path string, id or entry of the image to insert
+        frame : int, optional
+            the frame number if the image is part of a video
         external_id : int, optional
             an external id for the image. Only necessary if the annotation server is used
         timestamp : datetime object, optional
@@ -1074,6 +1109,8 @@ class DataFile:
             the width of the image
         height : int, optional
             the height of the image
+        id : int, optional
+            the id of the image
 
         Returns
         -------
@@ -1088,22 +1125,16 @@ class DataFile:
             new_image = True
 
         if filename is not None:
-            item.filename = filename
+            item.filename = os.path.split(filename)[1]
             item.ext = os.path.splitext(filename)[1]
-            item.path = self.getPath(path_string=os.path.split(filename)[0], create=True)
-        if frames is not None:
-            item.frames = frames
-        if external_id is not None:
-            item.external_id = external_id
-        if timestamp is not None:
-            item.timestamp = timestamp
-        if width is not None:
-            item.width = width
-        if height is not None:
-            item.height = height
+            if path is None:
+                item.path = self.getPath(path_string=os.path.split(filename)[0], create=True)
+        if isinstance(path, basestring):
+            path = self.getPath(path)
+        setFields(item, noNoneDict(frame=frame, path=path, external_id=external_id, timestamp=timestamp, width=width, height=height))
         if new_image:
             if self.next_sort_index is None:
-                query = self.table_image.select().order_by(-self.table_image.sort_index).limit(1)
+                query = self.table_image.select().order_by(-self.table_image.sort_index).limit(1)  # TODO more efficent sort index retrieval
                 try:
                     self.next_sort_index = query[0].sort_index + 1
                 except IndexError:
@@ -1114,8 +1145,7 @@ class DataFile:
         item.save()
         return item
 
-
-    def deleteImages(self, ids=None, filenames=None, frames=None, external_ids=None, timestamps=None, widths=None, heights=None):
+    def deleteImages(self, filenames=None, paths=None, frames=None, external_ids=None, timestamps=None, widths=None, heights=None, ids=None):
         """
         Delete all :py:class:`Image` entries with the given criteria.
 
@@ -1123,10 +1153,10 @@ class DataFile:
 
         Parameters
         ----------
-        ids : int, array_like, optional
-            the id/ids of the images
         filenames : string, array_like, optional
             the filename/filenames of the image (including the extension)
+        paths : string, int, :py:class:`Path`, array_like optional
+            the path string, id or entry of the image to insert
         frames : int, array_like, optional
             the number/numbers of frames the images have
         external_ids : int, array_like, optional
@@ -1137,282 +1167,79 @@ class DataFile:
             the width/widths of the images
         heights : int, optional
             the height/heights of the images
+        ids : int, array_like, optional
+            the id/ids of the images
 
         Returns
         -------
-
+        rows : int
+            the number of affected rows.
         """
         query = self.table_image.delete()
 
+        paths = self._processPathNameField(paths)
+
         query = addFilter(query, ids, self.table_image.id)
+        query = addFilter(query, paths, self.table_image.path)
         query = addFilter(query, filenames, self.table_image.filename)
         query = addFilter(query, frames, self.table_image.frame)
         query = addFilter(query, external_ids, self.table_image.external_id)
         query = addFilter(query, timestamps, self.table_image.timestamp)
         query = addFilter(query, widths, self.table_image.width)
         query = addFilter(query, heights, self.table_image.height)
-        query.execute()
+        return query.execute()
 
-    def getMaskType(self, id=None, name=None, color=None, index=None, create=False):
+    def getTracks(self, types=None, texts=None, ids=None):  # TODO docstring
         """
-        Get a :py:class:`MaskType` from the database.
+        Get all :py:class:`Track` entries, optional filter by type
 
-        See also: :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`, :py:meth:`~.DataFile.deleteMaskTypes`.
-
-        Parameters
-        ----------
-        id : int, optional
-            the id of the mask type.
-        name : string, optional
-            the name of the mask type.
-        color : string, optional
-            the color of the mask type.
-        index : int, optional
-            the index of the mask type, which is used for painting this mask type.
-        create : bool, optional
-            whether the mask type should be created if it does not exist. (default: False)
-
-        Returns
-        -------
-        entries : :py:class:`MaskType`
-            the created/requested :py:class:`MaskType` entry.
-        """
-        # check input
-        assert any(e is not None for e in [id, name, color, index]), "Path, ID, color and index may not be all None"
-
-        # collect arguments
-        kwargs = noNoneDict(id=id, name=name, color=color, index=index)
-
-        # try to get the path
-        try:
-            masktype = self.table_masktype.get(**kwargs)
-        # if not create it
-        except peewee.DoesNotExist as err:
-            if create:
-                masktype = self.table_masktype(**kwargs)
-                masktype.save()
-            else:
-                return None
-        # return the path
-        return masktype
-
-    def getMaskTypes(self, ids=None, names=None, colors=None, indices=None):
-        """
-        Get all :py:class:`MaskType` entries from the database, which match the given criteria. If no criteria a given, return all mask types.
-
-        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.setMaskType`, :py:meth:`~.DataFile.deleteMaskTypes`.
-
-        Parameters
-        ----------
-        ids : int, array_like, optional
-            the id/ids of the mask types.
-        names : string, array_like, optional
-            the name/names of the mask types.
-        colors : string, array_like, optional
-            the color/colors of the mask types.
-        indices : int, array_like, optional
-            the index/indices of the mask types, which is used for painting this mask types.
-
-        Returns
-        -------
-        entries : array_like
-            a query object containing all the matching :py:class:`MaskType` entries in the database file.
-        """
-
-        query = self.table_masktype.select()
-
-        query = addFilter(query, ids, self.table_masktype.id)
-        query = addFilter(query, names, self.table_masktype.name)
-        query = addFilter(query, colors, self.table_masktype.color)
-        query = addFilter(query, indices, self.table_masktype.index)
-        return query
-
-    def setMaskType(self, id=None, name=None, color=None, index=None):
-        """
-        Update or create a new a :py:class:`MaskType` entry with the given parameters.
-
-        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`, :py:meth:`~.DataFile.deleteMaskTypes`.
-
-        Parameters
-        ----------
-        id : int, optional
-            the id of the mask type.
-        name : string, optional
-            the name of the mask type.
-        color : string, optional
-            the color of the mask type.
-        index : int, optional
-            the index of the mask type, which is used for painting this mask type.
-
-        Returns
-        -------
-        entries : :py:class:`MaskType`
-            the changed or created :py:class:`MaskType` entry.
-        """
-
-        try:
-            mask_type = self.table_masktype.get(**noNoneDict(id=id, name=name, color=color, index=index))
-        except peewee.DoesNotExist:
-            mask_type = self.table_masktype()
-
-        setFields(mask_type, dict(id=id, name=name, color=color, index=index))
-        mask_type.save()
-
-        return mask_type
-
-    def deleteMaskTypes(self, ids=None, names=None, colors=None, indices=None):
-        """
-        Delete all :py:class:`MaskType` entries from the database, which match the given criteria.
-
-        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`.
-
-        Parameters
-        ----------
-        ids : int, array_like, optional
-            the id/ids of the mask types.
-        names : string, array_like, optional
-            the name/names of the mask types.
-        colors : string, array_like, optional
-            the color/colors of the mask types.
-        indices : int, array_like, optional
-            the index/indices of the mask types, which is used for painting this mask types.
-        """
-
-        query = self.table_masktype.delete()
-
-        query = addFilter(query, ids, self.table_masktype.id)
-        query = addFilter(query, names, self.table_masktype.name)
-        query = addFilter(query, colors, self.table_masktype.color)
-        query = addFilter(query, indices, self.table_masktype.index)
-        query.execute()
-
-    def GetMasks(self, order_by="sort_index"):
-        """
-        Get all mask entries
-
-        Parameters
-        ----------
-        order_by: string ['sort_index','timestamp']
-            sort results by sort_index or timestamp (def: sort_index)
-
-        Returns
-        -------
-        entries : array_like
-            a query object which contains all :py:class:`Mask` entries.
-        """
-
-        query = self.table_mask.select()
-        # order query results by
-        if order_by=='sort_index':
-            query = query.join(self.table_image).order_by(self.table_image.sort_index)
-        elif order_by=='timestamp':
-            query = query.join(self.table_image).order_by(self.table_image.timestamp)
-        else:
-            print("Unknown order_by paramter %s - results not sorted!" % order_by)
-
-        return query
-
-    def GetMask(self, image):
-        """
-        Get the mask image data for the image with the id `image`. If the database already has an entry the corresponding
-        mask will be loaded, otherwise a new empty mask array will be created.
-    
-        To save the changes on the mask use `SetMask`.
-    
-        Parameters
-        ----------
-        image : int
-            image id.
-    
-        Returns
-        -------
-        mask : ndarray
-            mask data for the image.
-        """
-        # Test if mask already exists in database
-        mask_entry = self.table_mask.get(self.table_mask.image == image)
-        return mask_entry
-
-    def SetMask(self, mask, image):
-        """
-        Add or overwrite the mask file for the image with the id `image`
-    
-        Parameters
-        ----------
-        mask : array_like
-            mask image data.
-        image : int
-            image id.
-        """
-        try:
-            # Test if mask already exists in database
-            mask_entry = self.table_mask.get(self.table_mask.image == image)
-            mask_entry.data = image
-            mask_entry.save()
-        except peewee.DoesNotExist:
-            # Create new entry
-            mask_entry = self.table_mask(image=image)
-            mask_entry.data = image
-            mask_entry.save()
-
-    def AddMaskFile(self, image_id, filename):
-        try:
-            item = self.table_mask.get(self.table_mask.image == image_id)
-        except peewee.DoesNotExist:
-            item = self.table_mask()
-
-        item.image = image_id
-        item.filename = filename
-
-        item.save()
-        return item.get_id()
-
-    def getTracks(self, type=None):
-        """
-        Get all track entries, optional filter by type
         See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.setTracks`, :py:meth:`~.DataFile.deleteTracks`.
 
         Parameters
         ----------
-        type: :py:class:`MarkerType` or str
-            the marker type or name of the marker type for the track.
+        types: :py:class:`MarkerType`, str, array_like
+            the marker type/types or name of the marker type for the track.
+        texts :
+        ids : int, array_like
 
         Returns
         -------
         entries : array_like
             a query object which contains the requested :py:class:`Track`.
         """
-        if isinstance(type, basestring):
-            type = self.getMarkerType(type)
+        types = self._processesTypeNameField(types)
 
         query = self.table_track.select()
-        query = addFilter(query,type,self.table_track.type)
+        query = addFilter(query, types, self.table_track.type)
+        query = addFilter(query, texts, self.table_track.text)
+        query = addFilter(query, ids, self.table_track.id)
 
         return query
 
     def getTrack(self, id):
         """
-        Get a specific track entry by its database ID
+        Get a specific :py:class:`Track` entry by its database ID.
+
         See also: :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTracks`, :py:meth:`~.DataFile.deleteTracks`.
 
         Parameters
         ----------
-        track_id: int
+        id: int
             id of the track
 
         Returns
         -------
-        entries : object
+        entries : :py:class:`Track`
             requested object of class :py:class:`Track` or None
         """
         try:
-            return self.table_track.get(self.table_track.id == id)
+            return self.table_track.get(id=id)
         except peewee.DoesNotExist:
             return None
 
-    def setTrack(self, type, id=None,style=None ,text=None):
+    def setTrack(self, type, style=None, text=None, id=None):  # TODO docstring
         """
-        Insert or update a :py:class:`Track` object
+        Insert or update a :py:class:`Track` object.
 
         See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.deleteTracks`.
 
@@ -1427,65 +1254,38 @@ class DataFile:
         track : track object
             a new :py:class:`Track` object
         """
-        if isinstance(type, basestring):
-            type = self.getMarkerType(type)
+        type = self._processesTypeNameField(type)
 
-        item = self.table_track.insert(id=id,type=type,style=style,text=text).upsert().execute()
+        item = self.table_track.insert(id=id, type=type, style=style, text=text).upsert().execute()
 
         return item
 
-    def setTracks(self, count, type):
-        """
-        Add multiple new tracks :py:class:`Track`.
-
-        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.deleteTracks`.
-
-        Parameters
-        ----------
-        count: int
-            how many tracks to create
-
-        type: :py:class:`MarkerType` or str
-            the marker type or name of the marker type for the tracks.
-
-        Returns
-        -------
-        tracks : list of :py:class:`Track`
-            the new track objects
-        """
-
-        if isinstance(type, basestring):
-            type = self.getMarkerType(type)
-
-        return [self.AddTrack(type) for _ in range(count)]
-
-    def deleteTacks(self, id=None, type=None):
+    def deleteTacks(self, types=None, texts=None, ids=None):  # TODO docstring
         """
         Delete a single :py:class:`Track` object specified by id or all :py:class:`Track` object of an type
 
         See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.setTracks`.
 
-
         Parameters
         ----------
-        type: :py:class:`MarkerType` or str
+        types: :py:class:`MarkerType` or str
             the marker type or name of the marker type
 
         Returns
         -------
-        entries : int
-            nr of deleted entries
+        rows : int
+            the number of affected rows.
         """
 
-        if isinstance(type, basestring):
-            type = self.getMarkerType(type)
+        types = self._processesTypeNameField(types)
 
         query = self.table_track.delete()
-        query = addFilter(query, id, self.table_track.id)
-        query = addFilter(query, type, self.table_track.type)
+        query = addFilter(query, ids, self.table_track.id)
+        query = addFilter(query, texts, self.table_track.text)
+        query = addFilter(query, types, self.table_track.type)
         return query.execute()
 
-    def getMarkerTypes(self):
+    def getMarkerTypes(self, names=None, colors=None, modes=None, texts=None, ids=None):  # TODO docstring
         """
         Retreive all :py:class:`MarkerType` objects in the database.
 
@@ -1498,9 +1298,16 @@ class DataFile:
             a query object which contains all :py:class:`MarkerType` entries.
         """
         query = self.table_markertype.select()
+
+        query = addFilter(query, names, self.table_markertype.name)
+        query = addFilter(query, colors, self.table_markertype.color)
+        query = addFilter(query, modes, self.table_markertype.mode)
+        query = addFilter(query, texts, self.table_markertype.text)
+        query = addFilter(query, ids, self.table_markertype.id)
+
         return query
 
-    def getMarkerType(self, name):
+    def getMarkerType(self, name=None, id=None): # TODO doc string
         """
         Retrieve an :py:class:`MarkerType` object from the database.
 
@@ -1517,12 +1324,11 @@ class DataFile:
             the :py:class:`MarkerType` with the desired name or None.
         """
         try:
-            return self.table_markertype.get(self.table_markertype.name == name)
+            return self.table_markertype.get(**noNoneDict(name=name, id=id))
         except peewee.DoesNotExist:
             return None
 
-
-    def setMarkerType(self, name, color, mode=None, style=None, text=None):
+    def setMarkerType(self, name=None, color=None, mode=None, style=None, text=None, id=None):  # TODO docstring
         """
         Insert or update an :py:class:`MarkerType` object in the database.
 
@@ -1547,24 +1353,22 @@ class DataFile:
             the created :py:class:`MarkerType` with the desired name or None.
         """
         try:
-            item = self.table_markertype.get(self.table_markertype.name == name)
+            item = self.table_markertype.get(**noNoneDict(id=id, name=name))
         except peewee.DoesNotExist:
             item = self.table_markertype()
 
-        item.name = name
-        item.color = CheckValidColor(color)
-        for key,value in {'mode':mode,'style':style,'text':text}.iteritems():
-            if value is not None:
-                setattr(item,key,value)
+        if color is not None:
+            color = CheckValidColor(color)
+        setFields(item, dict(name=name, color=color, mode=mode, style=style, text=text))
         item.save()
         return item
 
-
-    def deleteMarkerType(self, name):
+    def deleteMarkerTypes(self, names=None, colors=None, modes=None, texts=None, ids=None):  # TODO docstring
         """
         Delete all :py:class:`MarkerType` entries from the database, which match the given criteria.
 
         See also: :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.setMarkerType`.
+
         Parameters
         ----------
         name: str
@@ -1575,7 +1379,303 @@ class DataFile:
         entries : int
             nr of deleted entries
         """
-
         query = self.table_markertype.delete()
-        query = addFilter(query,name,self.table_markertype.name)
+
+        query = addFilter(query, names, self.table_markertype.name)
+        query = addFilter(query, colors, self.table_markertype.color)
+        query = addFilter(query, modes, self.table_markertype.mode)
+        query = addFilter(query, texts, self.table_markertype.text)
+        query = addFilter(query, ids, self.table_markertype.id)
+
         return query.execute()
+
+    def getMaskType(self, name=None, color=None, index=None, id=None):
+        """
+        Get a :py:class:`MaskType` from the database.
+
+        See also: :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`, :py:meth:`~.DataFile.deleteMaskTypes`.
+
+        Parameters
+        ----------
+        name : string, optional
+            the name of the mask type.
+        color : string, optional
+            the color of the mask type.
+        index : int, optional
+            the index of the mask type, which is used for painting this mask type.
+        id : int, optional
+            the id of the mask type.
+
+        Returns
+        -------
+        entries : :py:class:`MaskType`
+            the created/requested :py:class:`MaskType` entry.
+        """
+        # check input
+        assert any(e is not None for e in [id, name, color, index]), "Path, ID, color and index may not be all None"
+
+        # TODO normalize color
+
+        # try to get the path
+        try:
+            return self.table_masktype.get(**noNoneDict(id=id, name=name, color=color, index=index))
+        # if not create it
+        except peewee.DoesNotExist:
+            return None
+
+    def getMaskTypes(self, names=None, colors=None, indices=None, ids=None):
+        """
+        Get all :py:class:`MaskType` entries from the database, which match the given criteria. If no criteria a given,
+        return all mask types.
+
+        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.setMaskType`,
+        :py:meth:`~.DataFile.deleteMaskTypes`.
+
+        Parameters
+        ----------
+        names : string, array_like, optional
+            the name/names of the mask types.
+        colors : string, array_like, optional
+            the color/colors of the mask types.
+        indices : int, array_like, optional
+            the index/indices of the mask types, which is used for painting this mask types.
+        ids : int, array_like, optional
+            the id/ids of the mask types.
+
+        Returns
+        -------
+        entries : array_like
+            a query object containing all the matching :py:class:`MaskType` entries in the database file.
+        """
+
+        query = self.table_masktype.select()
+
+        # TODO normalize color
+
+        query = addFilter(query, ids, self.table_masktype.id)
+        query = addFilter(query, names, self.table_masktype.name)
+        query = addFilter(query, colors, self.table_masktype.color)
+        query = addFilter(query, indices, self.table_masktype.index)
+        return query
+
+    def setMaskType(self, name=None, color=None, index=None, id=None):
+        """
+        Update or create a new a :py:class:`MaskType` entry with the given parameters.
+
+        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`, :py:meth:`~.DataFile.deleteMaskTypes`.
+
+        Parameters
+        ----------
+        name : string, optional
+            the name of the mask type.
+        color : string, optional
+            the color of the mask type.
+        index : int, optional
+            the index of the mask type, which is used for painting this mask type.
+        id : int, optional
+            the id of the mask type.
+
+        Returns
+        -------
+        entries : :py:class:`MaskType`
+            the changed or created :py:class:`MaskType` entry.
+        """
+
+        # TODO normalize and validate color
+        # TODO index find free one
+
+        try:
+            mask_type = self.table_masktype.get(**noNoneDict(id=id, name=name, color=color, index=index))
+        except peewee.DoesNotExist:
+            mask_type = self.table_masktype()
+
+        setFields(mask_type, dict(name=name, color=color, index=index))
+        mask_type.save()
+
+        return mask_type
+
+    def deleteMaskTypes(self, names=None, colors=None, indices=None, ids=None):
+        """
+        Delete all :py:class:`MaskType` entries from the database, which match the given criteria.
+
+        See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`.
+
+        Parameters
+        ----------
+        names : string, array_like, optional
+            the name/names of the mask types.
+        colors : string, array_like, optional
+            the color/colors of the mask types.
+        indices : int, array_like, optional
+            the index/indices of the mask types, which is used for painting this mask types.
+        ids : int, array_like, optional
+            the id/ids of the mask types.
+        """
+
+        query = self.table_masktype.delete()
+
+        # TODO normalize color
+
+        query = addFilter(query, ids, self.table_masktype.id)
+        query = addFilter(query, names, self.table_masktype.name)
+        query = addFilter(query, colors, self.table_masktype.color)
+        query = addFilter(query, indices, self.table_masktype.index)
+        query.execute()
+
+    def getMask(self, image=None, frame=None, filename=None, id=None, create=False):
+        """
+        Get the :py:class:`Mask` entry for the given image frame number or filename.
+
+        See also: :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMask`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image for which the mask should be retrieved. If omitted, frame number or filename should be specified instead.
+        frame : int, optional
+            frame number of the image, which mask should be returned. If omitted, image or filename should be specified instead.
+        filename : string, optional
+            filename of the image, which mask should be returned. If omitted, image or frame number should be specified instead.
+        id : int, optional
+            id of the mask entry.
+        create : bool, optional
+            whether the mask should be created if it does not exist. (default: False)
+
+        Returns
+        -------
+        entries : :py:class:`Mask`
+            the desired :py:class:`Mask` entry.
+        """
+        # check input
+        assert sum(e is not None for e in [image, frame, filename]) == 1, \
+            "Exactly one of image, frame or filename should be specified"
+
+        query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
+
+        query = addFilter(query, id, self.table_mask.id)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query.limit(1)
+
+        try:
+            return query[0]
+        except IndexError:
+            if create is True:
+                image = self.getImage(frame, filename)
+                data = np.zeros(image.getShape())  # TODO exception if image can't be loaded
+                mask = self.table_mask.get(image=image, data=data)
+                mask.save()
+                return mask
+            return None
+
+    def getMasks(self, images=None, frames=None, filenames=None, ids=None):
+        """
+        Get all :py:class:`Mask` entries from the database, which match the given criteria. If no criteria a given, return all masks.
+
+        See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMask`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/images for which the mask should be retrieved. If omitted, frame numbers or filenames should be specified instead.
+        frames: int, array_like, optional
+            frame number/numbers of the images, which masks should be returned. If omitted, images or filenames should be specified instead.
+        filenames: string, array_like, optional
+            filename of the image/images, which masks should be returned. If omitted, images or frame numbers should be specified instead.
+        ids : int, array_like, optional
+            id/ids of the masks.
+
+        Returns
+        -------
+        entries : :py:class:`Mask`
+            a query object containing all the matching :py:class:`Mask` entries in the database file.
+        """
+        # check input
+        assert sum(e is not None for e in [images, frames, filenames]) == 1, \
+            "Exactly one of images, frames or filenames should be specified"
+
+        query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
+
+        query = addFilter(query, ids, self.table_mask.id)
+        query = addFilter(query, images, self.table_mask.image)
+        query = addFilter(query, frames, self.table_image.sort_index)
+        query = addFilter(query, filenames, self.table_image.filename)
+
+        return query
+
+    def setMask(self, image=None, frame=None, filename=None, data=None, id=None):
+        """
+        Update or create new :py:class:`Mask` entry with the given parameters.
+
+        See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.deleteMask`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image for which the mask should be set. If omitted, frame number or filename should be specified instead.
+        frame: int, optional
+            frame number of the images, which masks should be set. If omitted, image or filename should be specified instead.
+        filename: string, optional
+            filename of the image, which masks should be set. If omitted, image or frame number should be specified instead.
+        data: ndarray, optional
+            the mask data of the mask to set. Must have the same dimensions as the corresponding image, but only
+            one channel, and it should be using the data type uint8.
+        id : int, optional
+            id of the mask entry.
+
+        Returns
+        -------
+        mask : :py:class:`Mask`
+            the changed or created :py:class:`Mask` entry.
+        """
+        # check input
+        assert sum(e is not None for e in [image, frame, filename]) == 1, \
+            "Exactly one of image, frame or filename should be specified"
+
+        # TODO check data shape and datatype warn if it couldn't be checked
+
+        try:
+            mask = self.getMask(image=image, frame=frame, filename=filename, id=id)
+        except peewee.DoesNotExist:
+            if data is None:
+                image = self.getImage(frame, filename)
+                data = np.zeros(image.getShape())  # TODO raise if dimensions cant be retrieved
+            mask = self.table_mask(image=image, data=data)
+
+        setFields(mask, dict(data=data, image=image))
+        if frame is not None or filename is not None:
+            mask.image = self.getImage(frame=frame, filename=filename)
+        mask.save()
+
+        return mask
+
+    def deleteMasks(self, images=None, frames=None, filenames=None, ids=None):
+        """
+        Delete all :py:class:`Mask` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.setMask`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/images for which the mask should be deleted. If omitted, frame numbers or filenames should be specified instead.
+        frames: int, array_like, optional
+            frame number/numbers of the images, which masks should be deleted. If omitted, images or filenames should be specified instead.
+        filenames: string, array_like, optional
+            filename of the image/images, which masks should be deleted. If omitted, images or frame numbers should be specified instead.
+        ids : int, array_like, optional
+            id/ids of the masks.
+        """
+        # check input
+        assert sum(e is not None for e in [images, frames, filenames]) == 1, \
+            "Exactly one of images, frames or filenames should be specified"
+
+        # TODO test if join is possible
+
+        query = self.table_mask.delete(self.table_mask, self.table_image).join(self.table_image)
+
+        query = addFilter(query, ids, self.table_mask.id)
+        query = addFilter(query, images, self.table_mask.image)
+        query = addFilter(query, frames, self.table_image.sort_index)
+        query = addFilter(query, filenames, self.table_image.filename)
+        query.execute()
