@@ -225,6 +225,12 @@ class DataFile:
                 else:
                     return BaseModel(self, item)
 
+            def getShape(self):
+                if self.width is not None and self.height is not None:
+                    return [self.height, self.width]
+                else:
+                    return self.data.shape[:2]
+
             def __str__(self):
                 return "ImageObject id%s: filename=%s, ext=%s, frame=%s, external_id=%s, timestamp=%s, sort_index=%s," \
                        " width=%s, height=%s, path=%s" % (self.id, self.filename, self.ext, self.frame, self.external_id,
