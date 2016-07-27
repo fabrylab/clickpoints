@@ -10,20 +10,20 @@ import clickpoints
 
 class Test_DataFile(unittest.TestCase):
 
+    def setUp(self):
+        self.db = DataFile(self.id().split(".")[-1]+".cdb", "w")
+
     def tearDown(self):
         self.db.db.close()
-        #os.remove(self.db.database_filename)
+        os.remove(self.db.database_filename)
 
     def test_getDbVersion(self):
         """ Test if the getDbVersion function returns the version properly """
-        self.db = DataFile("getDbVersion.cdb", "w")
-
         self.assertEqual(self.db.getDbVersion(), "14", "Database version is not returned correctly.")
 
     ''' Test Path functions '''
     def test_setPath(self):
         """ Test the setPath function """
-        self.db = DataFile("setPath.cdb", "w")
 
         # try to set a path
         path = self.db.setPath(path_string="test")
@@ -31,7 +31,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getPath(self):
         """ Test the getPath function """
-        self.db = DataFile("getPath.cdb", "w")
 
         # set a new path
         self.db.setPath(path_string="test")
@@ -50,7 +49,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getPaths(self):
         """ Test the getPaths function """
-        self.db = DataFile("getPaths.cdb", "w")
 
         p1 = os.path.join("foo", "bar1")
         p2 = os.path.join("foo", "bar2")
@@ -72,7 +70,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_deletePaths(self):
         """ Test the deletePaths function """
-        self.db = DataFile("deletePaths.cdb", "w")
 
         p1 = os.path.join("foo", "bar1")
         p2 = os.path.join("foo", "bar2")
@@ -99,7 +96,6 @@ class Test_DataFile(unittest.TestCase):
     ''' Test Image functions '''
     def test_setImage(self):
         """ Test the setImage function """
-        self.db = DataFile("setImage.cdb", "w")
 
         im1 = self.db.setImage("test.jpg")
         self.assertEqual(im1.filename, "test.jpg", "Creating an image didn't work")
@@ -117,7 +113,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getImages(self):
         """ Test the getImages function """
-        self.db = DataFile("getImages.cdb", "w")
 
         self.db.setImage("test1.jpg")
         self.db.setImage("test2.jpg")
@@ -145,7 +140,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_deleteImages(self):
         """ Test the deleteImages function """
-        self.db = DataFile("deleteImages.cdb", "w")
 
         self.db.setImage("test1.jpg")
         self.db.setImage("test2.jpg")
@@ -168,7 +162,6 @@ class Test_DataFile(unittest.TestCase):
     def test_setgetMarkerType_Insert(self):
         """ Test set and get MarkerType - insert variant"""
 
-        self.db = DataFile("setgetmarkertypeinsert.cdb", "r+")
         self.db.setMarkerType('rectangle', color='#00ff00', mode=1)
         item = self.db.getMarkerType('rectangle')
 
@@ -179,7 +172,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_setgetMarkerType_Update(self):
         """ Test set and get MarkerType - update variant """
-        self.db = DataFile("getmarkertypeupdate.cdb", "r+")
 
         self.db.setMarkerType('rectangle', color='#00ff00', mode=1)
         self.db.setMarkerType('rectangle', color='#00ff00')
@@ -193,7 +185,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getMarkerTypes(self):
         """ Test getMarkerTypes to recover a query of all available marker types"""
-        self.db = DataFile("getmarkertypes_compare.cdb", "r+")
 
         markertypes = ['rectangle', 'default', 'line', 'track']
         self.db.setMarkerType('rectangle', color='#00ff00', mode=1)
@@ -209,7 +200,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_deleteMarkerType(self):
         """ Test deleteMarkerType to delete marker type instance"""
-        self.db = DataFile("deletemarkertypes.cdb", "r+")
 
         self.db.setMarkerType('rectangle', color='#00ff00', mode=1)
         self.db.setMarkerType('default', color='#00ff00', mode=0)
@@ -231,7 +221,6 @@ class Test_DataFile(unittest.TestCase):
     ''' Test Track functions '''
     def test_setgetTrack(self):
         """ Test deleteMarkerType to delete marker type instance"""
-        self.db = DataFile("setgettrack.cdb", "r+")
 
         self.db.setMarkerType('track', color='#00ff00', mode=4)
         self.db.setMarkerType('track2', color='#00ff00', mode=4)
@@ -259,7 +248,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_deleteTrack(self):
         """ Test deleteMarkerType to delete marker type instance"""
-        self.db = DataFile("deltrack.cdb", "r+")
 
         self.db.setMarkerType('track', color='#00ff00', mode=4)
         self.db.setMarkerType('track2', color='#00ff00', mode=4)
@@ -291,7 +279,6 @@ class Test_DataFile(unittest.TestCase):
     ''' Test MaskType functions '''
     def test_getMaskType(self):
         """ Test the getMaskType function """
-        self.db = DataFile("getMaskType.cdb", "w")
 
         masktype = self.db.getMaskType(name="color")
         self.assertEqual(masktype, None, "Getting non-existent mask does not work")
@@ -303,7 +290,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_setMaskType(self):
         """ Test the setMaskType function """
-        self.db = DataFile("setMaskType.cdb", "w")
 
         self.db.setMaskType(name="color", color="#FF0000", index=2)
         masktype = self.db.getMaskType(name="color")
@@ -321,7 +307,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getMaskTypes(self):
         """ Test the getMaskTypes function """
-        self.db = DataFile("getMaskTypes.cdb", "w")
 
         self.db.setMaskType(name="color1", color="#FF1c00", index=1)
         self.db.setMaskType(name="color2", color="#FF00ff", index=2)
@@ -342,7 +327,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_deleteMaskTypes(self):
         """ Test the deleteMaskTypes function """
-        self.db = DataFile("deleteMaskTypes.cdb", "w")
 
         self.db.setMaskType(name="color1", color="#FF0000", index=1)
         self.db.setMaskType(name="color2", color="#FF0000", index=2)
@@ -359,7 +343,6 @@ class Test_DataFile(unittest.TestCase):
     ''' Test Mask functions '''
     def test_setMask(self):
         """ Test the setMask function """
-        self.db = DataFile("setMask.cdb", "w")
 
         im = self.db.setImage(filename="test.jpg", width=100, height=100)
         print(im)
@@ -375,7 +358,6 @@ class Test_DataFile(unittest.TestCase):
     ''' Test Marker functions '''
     def test_setMarker(self):
         """ Test the setMarker function """
-        self.db = DataFile("setMarker.cdb", "w")
 
         # Basic db structure
         marker_type = self.db.setMarkerType(name="Test", color="#FF0000")
@@ -414,7 +396,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getMarker(self):
         """ Test the getMarker function """
-        self.db = DataFile("getMarker.cdb", "w")
 
         # basic db structure
         marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
@@ -431,7 +412,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getMarkers(self):
         """ Test the getMarker function """
-        self.db = DataFile("getMarker.cdb", "w")
 
         # basic db structure
         marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
