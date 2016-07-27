@@ -31,7 +31,6 @@ class ImageField(peewee.BlobField):
             value = str(value)
         return imageio.imread(value, format=".png")
 
-
 def CheckValidColor(color):
     class NoValidColor(Exception):
         pass
@@ -54,12 +53,31 @@ def CheckValidColor(color):
         raise NoValidColor(str(color) + " is no valid color")
     return "#" + color_string
 
+def NormalizeColor(color):
+    # if color is a string
+    if isinstance(color, basestring):
+        color = str(color).upper()
 
-def addFilter(query, parameter, field):  # TODO add slice
+        CheckValidColor(color)
+        return color
+
+    # if color is a list
+    color = [CheckValidColor(col.upper()) for col in color]
+    return color
+
+
+def addFilter(query, parameter, field):
     if parameter is None:
         return query
     if isinstance(parameter, (tuple, list)):
         return query.where(field << parameter)
+    if isinstance(parameter, slice):
+        if parameter.start is None:
+            return query.where(field < parameter.stop)
+        elif parameter.stop is None:
+            return query.where(field >= parameter.start)
+        else:
+            return query.where( field.between(parameter.start, parameter.stop))
     else:
         return query.where(field == parameter)
 
@@ -1048,7 +1066,8 @@ class DataFile:
         elif order_by == "timestamp":
             query = query.order_by(self.table_image.timestamp)
         else:
-            raise Exception()  #TODO
+            raise Exception("Unknown order_by parameter - use sort_index or timestamp")
+
         return query
 
     def getImageIterator(self, start_frame=0, end_frame=None):  #TODO: end_frame
@@ -1195,7 +1214,7 @@ class DataFile:
         query = addFilter(query, heights, self.table_image.height)
         return query.execute()
 
-    def getTracks(self, types=None, texts=None, ids=None):  # TODO docstring
+    def getTracks(self, types=None, texts=None, ids=None):
         """
         Get all :py:class:`Track` entries, optional filter by type
 
@@ -1206,7 +1225,9 @@ class DataFile:
         types: :py:class:`MarkerType`, str, array_like
             the marker type/types or name of the marker type for the track.
         texts :
+            the :py:class:`Track` specific text entry
         ids : int, array_like
+            the  :py:class:`Track` ID
 
         Returns
         -------
@@ -1243,7 +1264,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def setTrack(self, type, style=None, text=None, id=None):  # TODO docstring
+    def setTrack(self, type, style=None, text=None, id=None):
         """
         Insert or update a :py:class:`Track` object.
 
@@ -1254,6 +1275,13 @@ class DataFile:
         ----------
         type: :py:class:`MarkerType` or str
             the marker type or name of the marker type for the track.
+        style:
+            the :py:class:`Track` specific style entry
+        texts :
+            the :py:class:`Track` specific text entry
+        ids : int, array_like
+            the  :py:class:`Track` ID
+
 
         Returns
         -------
@@ -1266,7 +1294,7 @@ class DataFile:
 
         return item
 
-    def deleteTacks(self, types=None, texts=None, ids=None):  # TODO docstring
+    def deleteTacks(self, types=None, texts=None, ids=None):
         """
         Delete a single :py:class:`Track` object specified by id or all :py:class:`Track` object of an type
 
@@ -1276,6 +1304,10 @@ class DataFile:
         ----------
         types: :py:class:`MarkerType` or str
             the marker type or name of the marker type
+        texts :
+            the :py:class:`Track` specific text entry
+        ids : int, array_like
+            the  :py:class:`Track` ID
 
         Returns
         -------
@@ -1291,12 +1323,24 @@ class DataFile:
         query = addFilter(query, types, self.table_track.type)
         return query.execute()
 
-    def getMarkerTypes(self, names=None, colors=None, modes=None, texts=None, ids=None):  # TODO docstring
+    def getMarkerTypes(self, names=None, colors=None, modes=None, texts=None, ids=None):
         """
         Retreive all :py:class:`MarkerType` objects in the database.
 
         See also: :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.deleteMarkerType`.
 
+        Parameters
+        ----------
+        names: str
+            the name of the type
+        colors: str
+            hex code string for rgb color of style "#00ff3f"
+        modes: int
+            mode of the marker type (marker 0, rect 1, line 2, track 4)
+        texts: str
+            display text
+        ids: int
+            id of the :py:class:`MarkerType` object
 
         Returns
         -------
@@ -1313,7 +1357,7 @@ class DataFile:
 
         return query
 
-    def getMarkerType(self, name=None, id=None): # TODO doc string
+    def getMarkerType(self, name=None, id=None):
         """
         Retrieve an :py:class:`MarkerType` object from the database.
 
@@ -1323,6 +1367,8 @@ class DataFile:
         ----------
         name: str
             the name of the desired type
+        id: int
+            id of the :py:class:`MarkerType` object
 
         Returns
         -------
@@ -1334,7 +1380,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def setMarkerType(self, name=None, color=None, mode=None, style=None, text=None, id=None):  # TODO docstring
+    def setMarkerType(self, name=None, color=None, mode=None, style=None, text=None, id=None):
         """
         Insert or update an :py:class:`MarkerType` object in the database.
 
@@ -1351,7 +1397,9 @@ class DataFile:
         style: str
             style string
         text: str
-            default display text for markers of this type
+            display text
+        id: int
+            id of the :py:class:`MarkerType` object
 
         Returns
         -------
@@ -1369,7 +1417,7 @@ class DataFile:
         item.save()
         return item
 
-    def deleteMarkerTypes(self, names=None, colors=None, modes=None, texts=None, ids=None):  # TODO docstring
+    def deleteMarkerTypes(self, names=None, colors=None, modes=None, texts=None, ids=None):
         """
         Delete all :py:class:`MarkerType` entries from the database, which match the given criteria.
 
@@ -1377,8 +1425,16 @@ class DataFile:
 
         Parameters
         ----------
-        name: str
+        names: str
             the name of the type
+        colors: str
+            hex code string for rgb color of style "#00ff3f"
+        modes: int
+            mode of the marker type (marker 0, rect 1, line 2, track 4)
+        texts: str
+            display text
+        ids: int
+            id of the :py:class:`MarkerType` object
 
         Returns
         -------
@@ -1420,7 +1476,8 @@ class DataFile:
         # check input
         assert any(e is not None for e in [id, name, color, index]), "Path, ID, color and index may not be all None"
 
-        # TODO normalize color
+        if color:
+            color = NormalizeColor(color)
 
         # try to get the path
         try:
@@ -1456,7 +1513,8 @@ class DataFile:
 
         query = self.table_masktype.select()
 
-        # TODO normalize color
+        if colors:
+            colors = NormalizeColor(colors)
 
         query = addFilter(query, ids, self.table_masktype.id)
         query = addFilter(query, names, self.table_masktype.name)
@@ -1487,11 +1545,22 @@ class DataFile:
             the changed or created :py:class:`MaskType` entry.
         """
 
-        # TODO normalize and validate color
-        # TODO index find free one
+        # normalizer and check color values
+        if color:
+            color = NormalizeColor(color)
+
+        # get lowest free index is not specified by user
+        if not index:
+            index_list = [l.index for l in self.table_masktype.select().order_by(self.table_masktype.index)]
+            free_idxs = list(set(range(1,254)) - set(index_list))
+            index = free_idxs[0]
 
         try:
-            mask_type = self.table_masktype.get(**noNoneDict(id=id, name=name, color=color, index=index))
+            # only use id if multiple unique fields are specified
+            if id:
+                mask_type = self.table_masktype.get(id=id)
+            else:
+                mask_type = self.table_masktype.get(**noNoneDict(id=id, name=name, color=color, index=index))
         except peewee.DoesNotExist:
             mask_type = self.table_masktype()
 
@@ -1640,14 +1709,17 @@ class DataFile:
 
         # TODO check data shape and datatype warn if it couldn't be checked
 
-        try:
-            mask = self.getMask(image=image, frame=frame, filename=filename, id=id)
-        except peewee.DoesNotExist:
+        mask = self.getMask(image=image, frame=frame, filename=filename, id=id)
+
+        if not mask:
+            print("entering exception")
             if data is None:
                 image = self.getImage(frame, filename)
+                dir(image)
                 data = np.zeros(image.getShape())  # TODO raise if dimensions cant be retrieved
             mask = self.table_mask(image=image, data=data)
 
+        print(mask)
         setFields(mask, dict(data=data, image=image))
         if frame is not None or filename is not None:
             mask.image = self.getImage(frame=frame, filename=filename)

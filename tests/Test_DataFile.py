@@ -128,6 +128,20 @@ class Test_DataFile(unittest.TestCase):
         ims = self.db.getImageIterator(1)
         self.assertEqual([im.filename for im in ims], ["test2.jpg", "test3.jpg"], "Getting images does not work")
 
+        self.db.setImage("test4.jpg")
+        self.db.setImage("test5.jpg")
+        self.db.setImage("test6.jpg")
+        self.db.setImage("test7.jpg")
+
+        ims = self.db.getImages(frames=slice(1,5))
+        self.assertTrue([im.sort_index for im in ims] == [1, 2, 3, 4, 5], "Failed get by slice uppder and lower limit")
+
+        ims = self.db.getImages(frames=slice(4, None))
+        self.assertTrue([im.sort_index for im in ims] == [4, 5, 6], "Failed get by slice lower limit")
+
+        ims = self.db.getImages(frames=slice(None, 3))
+        self.assertTrue([im.sort_index for im in ims] == [0, 1, 2], "Failed get by slice uppder limit")
+
     def test_deleteImages(self):
         """ Test the deleteImages function """
         self.db = DataFile("deleteImages.cdb", "w")
@@ -281,6 +295,11 @@ class Test_DataFile(unittest.TestCase):
         masktype = self.db.getMaskType(name="color")
         self.assertEqual(masktype, None, "Getting non-existent mask does not work")
 
+        self.db.setMaskType("mask1","#FF00FF",index=10)
+        mask = self.db.getMaskType(color="#ff00FF")
+        self.assertIsNotNone(mask, "Failed retrieving mask type by color")
+
+
     def test_setMaskType(self):
         """ Test the setMaskType function """
         self.db = DataFile("setMaskType.cdb", "w")
@@ -293,18 +312,32 @@ class Test_DataFile(unittest.TestCase):
         masktype = self.db.getMaskType(id=masktype.id)
         self.assertEqual(masktype.name, "color2", "Alterning a mask type does not work")
 
+        # suppose free indieces are 1,3,4
+        self.db.setMaskType(name="color3", color="#FF0000")
+        self.db.setMaskType(name="color4", color="#FF0000")
+        masktype = self.db.setMaskType(name="color5", color="#FF0000")
+        self.assertTrue(masktype.index == 4,"Failed to automatically create correct index entries")
+
     def test_getMaskTypes(self):
         """ Test the getMaskTypes function """
         self.db = DataFile("getMaskTypes.cdb", "w")
 
-        self.db.setMaskType(name="color1", color="#FF0000", index=1)
-        self.db.setMaskType(name="color2", color="#FF0000", index=2)
-        self.db.setMaskType(name="color3", color="#FF0000", index=3)
+        self.db.setMaskType(name="color1", color="#FF1c00", index=1)
+        self.db.setMaskType(name="color2", color="#FF00ff", index=2)
+        self.db.setMaskType(name="color3", color="#FF00FF", index=3)
+        self.db.setMaskType(name="color4", color="#FFFFFF", index=4)
+
+        # get by single name
         masktypes = self.db.getMaskTypes(names="color1")
         self.assertEqual([m.name for m in masktypes], ["color1"], "Retrieving one mask type does not work")
 
+        # get by  multiple names
         masktypes = self.db.getMaskTypes(names=["color1", "color2"])
         self.assertEqual([m.name for m in masktypes], ["color1", "color2"], "Retrieving two mask types does not work")
+
+        # get by multiple colors (checking NormalizeColor function)
+        masktypes = self.db.getMaskTypes(colors=["#ff00ff", "#ff1c00"])
+        self.assertTrue(masktypes.count() == 3, "Retrieving multiple mask by colors (normalized string) failed")
 
     def test_deleteMaskTypes(self):
         """ Test the deleteMaskTypes function """
@@ -328,6 +361,7 @@ class Test_DataFile(unittest.TestCase):
         self.db = DataFile("setMask.cdb", "w")
 
         im = self.db.setImage(filename="test.jpg", width=100, height=100)
+        print(im)
         masktype = self.db.setMaskType(name="color", color="#FF0000", index=2)
         mask = self.db.setMask(image=im)
         masktype = self.db.getMaskType(name="color")
