@@ -5,13 +5,14 @@ import os
 import unittest
 
 from clickpoints import DataFile
+import clickpoints
 
 
 class Test_DataFile(unittest.TestCase):
 
     def tearDown(self):
         self.db.db.close()
-        os.remove(self.db.database_filename)
+        #os.remove(self.db.database_filename)
 
     def test_getDbVersion(self):
         """ Test if the getDbVersion function returns the version properly """
@@ -370,6 +371,126 @@ class Test_DataFile(unittest.TestCase):
         self.db.setMaskType(id=masktype.id, name="color2", color="#FF0000", index=2)
         masktype = self.db.getMaskType(id=masktype.id)
         self.assertEqual(masktype.name, "color2", "Alterning a mask type does not work")
+
+    ''' Test Marker functions '''
+    def test_setMarker(self):
+        """ Test the setMarker function """
+        self.db = DataFile("setMarker.cdb", "w")
+
+        # Basic db structure
+        marker_type = self.db.setMarkerType(name="Test", color="#FF0000")
+        image = self.db.setImage("test.jpg")
+
+        # test to set a marker with image_id
+        marker = self.db.setMarker(image=image.id, x=123, y=0, type=marker_type)
+        self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
+
+        # with filename and type name
+        marker = self.db.setMarker(filename="test.jpg", x=123, y=20, type="Test")
+        self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
+
+        # with frame number
+        marker = self.db.setMarker(frame=0, x=123, y=0, type=marker_type)
+        self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
+
+        # with id
+        marker = self.db.setMarker(x=123, y=0, id=marker)
+        self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
+
+        # with invalid frame number
+        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setMarker, frame=1, x=123, y=0, type=marker_type)
+
+        # with invalid filename
+        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setMarker, filename="no.jpg", x=123, y=0, type=marker_type)
+
+        # with invalid type na,e
+        self.assertRaises(clickpoints.MarkerTypeDoesNotExist, self.db.setMarker, image=1, x=123, y=0, type="NoType")
+
+        # without image
+        self.assertRaises(AssertionError, self.db.setMarker, x=123, y=0)
+
+        # without id
+        self.assertRaises(AssertionError, self.db.setMarker, x=123, y=0, type=marker_type)
+
+    def test_getMarker(self):
+        """ Test the getMarker function """
+        self.db = DataFile("getMarker.cdb", "w")
+
+        # basic db structure
+        marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
+        image1 = self.db.setImage("test1.jpg")
+        self.db.setMarker(image=image1, x=456, y=2, type=marker_type1)
+
+        # get a valid marker
+        marker = self.db.getMarker(id=1)
+        self.assertEqual(marker.x, 456, "Getting marker does not work properly.")
+
+        # get an invalid marker
+        marker = self.db.getMarker(id=0)
+        self.assertEqual(marker, None, "Getting marker does not work properly.")
+
+    def test_getMarkers(self):
+        """ Test the getMarker function """
+        self.db = DataFile("getMarker.cdb", "w")
+
+        # basic db structure
+        marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
+        marker_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
+        marker_type3 = self.db.setMarkerType(name="Track", color="#00FF00")
+
+        image1 = self.db.setImage("test1.jpg")
+        image2 = self.db.setImage("test2.jpg")
+        image3 = self.db.setImage("test3.jpg")
+        image4 = self.db.setImage("test4.jpg")
+
+        track1 = self.db.setTrack(marker_type3)
+        track2 = self.db.setTrack(marker_type3)
+
+        self.db.setMarkers(images=image1, xs=[1, 2, 3, 4, 5], ys=[0, 0, 0, 0, 0], types=marker_type1)
+        self.db.setMarkers(images=image1, xs=[1, 2, 3, 4, 5], ys=[0, 0, 0, 0, 0], types=marker_type2)
+        self.db.setMarkers(images=image2, xs=[1, 2, 3, 4, 5], ys=[0, 0, 0, 0, 0], types=marker_type1)
+        self.db.setMarkers(images=[image3, image4], xs=[10, 20], ys=[0, 0], tracks=track1)
+        self.db.setMarkers(images=[image3, image4], xs=[10, 20], ys=[0, 0], tracks=track2)
+
+        # get image list
+        markers = self.db.getMarkers(images=[image1, image2])
+        self.assertEqual(markers.count(), 15, "Getting markers does not work properly.")
+
+        # get single image
+        markers = self.db.getMarkers(images=image1)
+        self.assertEqual(markers.count(), 10, "Getting markers does not work properly.")
+
+        # get by image frame
+        markers = self.db.getMarkers(frames=0)
+        self.assertEqual(markers.count(), 10, "Getting markers does not work properly.")
+
+        # get by image filenames
+        markers = self.db.getMarkers(filenames=["test1.jpg", "test2.jpg"])
+        self.assertEqual(markers.count(), 15, "Getting markers does not work properly.")
+
+        # get by x coordinates
+        markers = self.db.getMarkers(xs=[2, 3])
+        self.assertEqual(markers.count(), 6, "Getting markers does not work properly.")
+
+        # get by x and y coordinates
+        markers = self.db.getMarkers(xs=[2, 3], ys=[0, 1, 2])
+        self.assertEqual(markers.count(), 6, "Getting markers does not work properly.")
+
+        # get by type
+        markers = self.db.getMarkers(types=marker_type1)
+        self.assertEqual(markers.count(), 10, "Getting markers does not work properly.")
+
+        # get by type list
+        markers = self.db.getMarkers(types=["Test1", "Test2"])
+        self.assertEqual(markers.count(), 15, "Getting markers does not work properly.")
+
+        # test invalid type name
+        self.assertRaises(clickpoints.MarkerTypeDoesNotExist, self.db.getMarkers, types=["NoType"])
+
+        # test by track
+        markers = self.db.getMarkers(tracks=track1)
+        self.assertEqual(markers.count(), 2, "Getting markers does not work properly.")
+
 
 if __name__ == '__main__':
     __path__ = os.path.dirname(os.path.abspath(__file__))

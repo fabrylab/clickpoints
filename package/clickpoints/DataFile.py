@@ -93,6 +93,39 @@ def setFields(entry, dict):
         if dict[key] is not None:
             setattr(entry, key, dict[key])
 
+def packToDictList(**kwargs):
+    import itertools
+    max_len = 0
+    singles = {}
+    for key in kwargs.keys():
+        if kwargs[key] is None:
+            del kwargs[key]
+            continue
+        if isinstance(kwargs[key], (tuple, list)):
+            if max_len > 1 and max_len != len(kwargs[key]):
+                raise IndexError()
+            max_len = max(max_len, len(kwargs[key]))
+            singles[key] = False
+        else:
+            max_len = max(max_len, 1)
+            singles[key] = True
+    dict_list = []
+    for i in range(max_len):
+        dict_list.append({key: kwargs[key] if singles[key] else kwargs[key][i] for key in kwargs})
+    return dict_list
+
+def VerboseDict(dictionary):
+    return " and ".join("%s=%s" % (key, dictionary[key]) for key in dictionary)
+
+
+class DoesNotExit(peewee.DoesNotExist):
+    pass
+
+class ImageDoesNotExit(DoesNotExit):
+    pass
+
+class MarkerTypeDoesNotExist(DoesNotExit):
+    pass
 
 def GetCommandLineArgs():
     """
@@ -830,7 +863,10 @@ class DataFile:
     def _processesTypeNameField(self, types):
         def CheckType(type):
             if isinstance(type, basestring):
+                type_name = type
                 type = self.getMarkerType(type)
+                if type is None:
+                    raise MarkerTypeDoesNotExist("No marker type with the name \"%s\" exists." % type_name)
             return type
 
         if isinstance(types, (tuple, list)):
@@ -850,6 +886,35 @@ class DataFile:
         else:
             paths = CheckPath(paths)
         return paths
+
+    def _processImagesField(self, images, frames, filenames):
+        print(images, frames, filenames)
+        if images is not None:
+            return images
+
+        def CheckImageFrame(frame):
+            image = self.getImage(frame=frame)
+            if image is None:
+                raise ImageDoesNotExit("No image with the frame number %s exists." % frame)
+            return image
+
+        def CheckImageFilename(filename):
+            image = self.getImage(filename=filename)
+            if image is None:
+                raise ImageDoesNotExit("No image with the filename \"%s\" exists." % filename)
+            return image
+
+        if frames is not None:
+            if isinstance(frames, (tuple, list)):
+                images = [CheckImageFrame(frame) for frame in frames]
+            else:
+                images = CheckImageFrame(frames)
+        else:
+            if isinstance(filenames, (tuple, list)):
+                images = [CheckImageFilename(filename) for filename in filenames]
+            else:
+                images = CheckImageFilename(filenames)
+        return images
 
     def getDbVersion(self):
         """
@@ -1024,7 +1089,11 @@ class DataFile:
             the image entry.
         """
 
-        return self.table_image.get(**noNoneDict(sort_index=frame, filename=filename, id=id))
+        kwargs = noNoneDict(sort_index=frame, filename=filename, id=id)
+        try:
+            return self.table_image.get(**kwargs)
+        except peewee.DoesNotExist:
+            KeyError("No image with %s found." % VerboseDict(kwargs))
 
     def getImages(self, frames=None, filenames=None, exts=None, external_ids=None, timestamps=None, widths=None, heights=None, paths=None, order_by="sort_index"):
         """
@@ -1757,3 +1826,225 @@ class DataFile:
         query = addFilter(query, frames, self.table_image.sort_index)
         query = addFilter(query, filenames, self.table_image.filename)
         query.execute()
+
+
+
+
+    def getMarker(self, id):
+        """
+        Retrieve an :py:class:`Marker` object from the database.
+
+        See also: :py:meth:`~.DataFile.getMarkers`, :py:meth:`~.DataFile.setMarker`, :py:meth:`~.DataFile.setMarkers`,
+        :py:meth:`~.DataFile.deleteMarkers`.
+
+        Parameters
+        ----------
+        id: int
+            the id of the marker
+
+        Returns
+        -------
+        marker : :py:class:`Marker`
+            the :py:class:`Marker` with the desired id or None.
+        """
+        try:
+            return self.table_marker.get(id=id)
+        except peewee.DoesNotExist:
+            return None
+
+    def getMarkers(self, images=None, frames=None, filenames=None, xs=None, ys=None, types=None, processed=None, tracks=None, texts=None, ids=None):
+        """
+        Get all :py:class:`Marker` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getMarker`, :py:meth:`~.DataFile.getMarkers`, :py:meth:`~.DataFile.setMarker`, :py:meth:`~.DataFile.setMarkers`, :py:meth:`~.DataFile.deleteMarkers`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the markers.
+        frames : int, array_like, optional
+            the frame/s of the images of the markers.
+        filenames : string, array_like, optional
+            the filename/s of the images of the markers.
+        xs : int, array_like, optional
+            the x coordinate/s of the markers.
+        ys : int, array_like, optional
+            the y coordinate/s of the markers.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the markers.
+        processed : int, array_like, optional
+            the processed flag/s of the markers.
+        tracks : int, :py:class:`Track`, array_like, optional
+            the track id/s or instance/s of the markers.
+        texts : string, array_like, optional
+            the text/s of the markers.
+        ids : int, array_like, optional
+            the id/s of the markers.
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains all :py:class:`Marker` entries.
+        """
+        types = self._processesTypeNameField(types)
+
+        query = self.table_marker.select(self.table_marker, self.table_image).join(self.table_image)
+
+        query = addFilter(query, ids, self.table_marker.id)
+        query = addFilter(query, images, self.table_marker.image)
+        query = addFilter(query, frames, self.table_image.sort_index)
+        query = addFilter(query, filenames, self.table_image.filename)
+        query = addFilter(query, xs, self.table_marker.x)
+        query = addFilter(query, ys, self.table_marker.y)
+        query = addFilter(query, types, self.table_marker.type)
+        query = addFilter(query, processed, self.table_marker.processed)
+        query = addFilter(query, tracks, self.table_marker.track)
+        query = addFilter(query, texts, self.table_marker.text)
+
+        return query
+
+    def setMarker(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, style=None, text=None, id=None):
+        """
+        Insert or update an :py:class:`Marker` object in the database.
+
+        See also: :py:meth:`~.DataFile.getMarker`, :py:meth:`~.DataFile.getMarkers`, :py:meth:`~.DataFile.setMarkers`,
+        :py:meth:`~.DataFile.deleteMarkers`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image of the marker.
+        frame : int, optional
+            the frame of the images of the marker.
+        filename : string, optional
+            the filename of the image of the marker.
+        x : int, optional
+            the x coordinate of the marker.
+        y : int, optional
+            the y coordinate of the marker.
+        type : string, :py:class:`MarkerType`, optional
+            the marker type (or name) of the marker.
+        processed : int, optional
+            the processed flag of the marker.
+        track : int, :py:class:`Track`, optional
+            the track id or instance of the marker.
+        text : string, optional
+            the text of the marker.
+        id : int, optional
+            the id of the marker.
+
+        Returns
+        -------
+        marker : :py:class:`Marker`
+            the created or changed :py:class:`Marker` item.
+        """
+        assert not (id is None and type is None and track is None), "Marker must either have a type or a track or be referenced by it's id."
+        assert not (id is None and image is None and frame is None and filename is None), "Marker must have an image, frame or filename given or be referenced by it's id."
+
+        try:
+            item = self.table_marker.get(id=id)
+        except peewee.DoesNotExist:
+            item = self.table_marker()
+
+        type = self._processesTypeNameField(type)
+        image = self._processImagesField(image, frame, filename)
+
+        setFields(item, dict(image=image, x=x, y=y, type=type, processed=processed, track=track, style=style, text=text))
+        item.save()
+        return item
+
+    def setMarkers(self, images=None, frames=None, filenames=None, xs=None, ys=None, types=None, processed=None,
+                   tracks=None, styles=None, texts=None, ids=None):
+        """
+        Insert or update multiple :py:class:`Marker` objects in the database.
+
+        See also: :py:meth:`~.DataFile.getMarker`, :py:meth:`~.DataFile.getMarkers`, :py:meth:`~.DataFile.setMarker`,
+         :py:meth:`~.DataFile.deleteMarkers`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the markers.
+        frames : int, array_like, optional
+            the frame/s of the images of the markers.
+        filenames : string, array_like, optional
+            the filename/s of the images of the markers.
+        xs : int, array_like, optional
+            the x coordinate/s of the markers.
+        ys : int, array_like, optional
+            the y coordinate/s of the markers.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the markers.
+        processed : int, array_like, optional
+            the processed flag/s of the markers.
+        tracks : int, :py:class:`Track`, array_like, optional
+            the track id/s or instance/s of the markers.
+        texts : string, array_like, optional
+            the text/s of the markers.
+        ids : int, array_like, optional
+            the id/s of the markers.
+
+        Returns
+        -------
+        success : bool
+            it the inserting was successful.
+        """
+        types = self._processesTypeNameField(types)
+        images = self._processImagesField(images, frames, filenames)
+
+        data = packToDictList(id=ids, image=images, x=xs, y=ys, processed=processed, type=types, track=tracks,
+                              style=styles, text=texts)
+        return self.table_marker.insert_many(data).upsert().execute()
+
+    def deleteMarkers(self, images=None, frames=None, filenames=None, xs=None, ys=None, types=None, processed=None,
+                      tracks=None, texts=None, ids=None):
+        """
+        Delete all :py:class:`Marker` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getMarker`, :py:meth:`~.DataFile.getMarkers`, :py:meth:`~.DataFile.setMarker`,
+        :py:meth:`~.DataFile.setMarkers`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the markers.
+        frames : int, array_like, optional
+            the frame/s of the images of the markers.
+        filenames : string, array_like, optional
+            the filename/s of the images of the markers.
+        xs : int, array_like, optional
+            the x coordinate/s of the markers.
+        ys : int, array_like, optional
+            the y coordinate/s of the markers.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the markers.
+        processed : int, array_like, optional
+            the processed flag/s of the markers.
+        tracks : int, :py:class:`Track`, array_like, optional
+            the track id/s or instance/s of the markers.
+        texts : string, array_like, optional
+            the text/s of the markers.
+        ids : int, array_like, optional
+            the id/s of the markers.
+
+        Returns
+        -------
+        rows : int
+            the number of affected rows.
+        """
+        types = self._processesTypeNameField(types)
+
+        query = self.table_marker.delete(self.table_marker, self.table_image).join(self.table_image)
+
+        query = addFilter(query, ids, self.table_marker.id)
+        query = addFilter(query, images, self.table_mask.image)
+        query = addFilter(query, frames, self.table_image.sort_index)
+        query = addFilter(query, filenames, self.table_image.filename)
+        query = addFilter(query, xs, self.table_marker.x)
+        query = addFilter(query, ys, self.table_marker.y)
+        query = addFilter(query, types, self.table_marker.type)
+        query = addFilter(query, processed, self.table_marker.processed)
+        query = addFilter(query, tracks, self.table_marker.track)
+        query = addFilter(query, texts, self.table_marker.text)
+
+        return query.execute()
