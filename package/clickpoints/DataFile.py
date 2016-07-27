@@ -5,6 +5,7 @@ import peewee
 from PIL import Image as PILImage
 import imageio
 import sys
+from cStringIO import StringIO
 
 PY3 = sys.version_info[0] == 3
 if PY3:
@@ -29,7 +30,7 @@ class ImageField(peewee.BlobField):
     def python_value(self, value):
         if not PY3:
             value = str(value)
-        return imageio.imread(value, format=".png")
+        return imageio.imread(StringIO(value), format=".png")
 
 def CheckValidColor(color):
     class NoValidColor(Exception):
