@@ -263,17 +263,17 @@ class Test_DataFile(unittest.TestCase):
         self.db.setTrack(type='track3')
 
         # delete specific by id
-        self.db.deleteTacks(ids=1)
+        self.db.deleteTracks(ids=1)
         q_tracks = self.db.getTracks()
         self.assertEqual(q_tracks.count(), 5, "Failed to delete track by ID")
 
         # delete specific by type
-        self.db.deleteTacks(types='track2')
+        self.db.deleteTracks(types='track2')
         q_tracks = self.db.getTracks()
         self.assertEqual(q_tracks.count(), 3, "Failed to delete track by type")
 
         # delete all
-        self.db.deleteTacks()
+        self.db.deleteTracks()
         q_tracks = self.db.getTracks()
         self.assertEqual(q_tracks.count(), 0, "Failed to complete generic delete")
 
@@ -670,7 +670,7 @@ class Test_DataFile(unittest.TestCase):
         def CreateMarkers():
             global track1, track2
             self.db.deleteMarkers()
-            self.db.deleteTacks()
+            self.db.deleteTracks()
             track1 = self.db.setTrack(marker_type3)
             track2 = self.db.setTrack(marker_type3)
             self.db.setMarkers(images=image1, xs=[1, 2, 3, 4, 5], ys=[0, 0, 0, 0, 0], types=marker_type1)
@@ -944,7 +944,7 @@ class Test_DataFile(unittest.TestCase):
         def CreateMarkers():
             global track1, track2
             self.db.deleteMarkers()
-            self.db.deleteTacks()
+            self.db.deleteTracks()
             track1 = self.db.setTrack(marker_type3)
             track2 = self.db.setTrack(marker_type3)
             self.db.setMarkers(images=image1, xs=[1, 2, 3, 4, 5], ys=[0, 0, 0, 0, 0], types=marker_type1)
