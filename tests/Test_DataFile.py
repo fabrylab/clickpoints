@@ -348,35 +348,122 @@ class Test_DataFile(unittest.TestCase):
         self.db.setMaskType(name="color2", color="#FF0000", index=2)
         self.db.setMaskType(name="color3", color="#FF0000", index=3)
 
-        self.db.deleteMaskTypes(colors=["#ff000"])
+        self.db.deleteMaskTypes(colors=["#ff0000"])
         masktypes = self.db.getMaskTypes()
-        self.assertEqual(masktypes.count(), 0, "Deleting two mask types does not work")
+        self.assertEqual(masktypes.count(), 0, "Failed deleting mask types by color")
+
+        # check for exception
+        # self.db.deleteMaskTypes(colors=["#ff000"])
+        # self.assertRaises(DataFile.CheckValidColor.NoValidColor)
 
 
     ''' Test Mask functions '''
     def test_setMask(self):
         """ Test the setMask function """
-
         im = self.db.setImage(filename="test.jpg", width=100, height=100)
+        im2 = self.db.setImage(filename="test2.jpg", width=100, height=100)
+        im3 = self.db.setImage(filename="test3.jpg", width=100, height=100)
         masktype = self.db.setMaskType(name="color", color="#FF0000", index=2)
         masktype2 = self.db.setMaskType(name="color2", color="#FF0000")
         mask = self.db.setMask(image=im)
         self.assertTrue(mask.image==im,  "Failed adding a new mask")
 
-        mdata = mask.data
-        # mdata = np.ones((100,100),dtype='uint8')
+        mdata = np.ones((100,100),dtype='uint8')
         mask = self.db.setMask(image=im, data=mdata)
         mask = self.db.getMask(image=im)
-        self.assertTrue(mask.data==mdata, "Failed updating mask data")
+        self.assertTrue(np.array_equal(mask.data,mdata), "Failed updating mask data")
+
+        # update with wrong dtype
+        mdata = np.ones((100,100),dtype='int16')
+        self.assertRaises(clickpoints.MaskDtypeMismatch, self.db.setMask,image=im, data=mdata)
+        # insert with wrong dimension
+        mdata = np.ones((100, 50), dtype='uint8')
+        self.assertRaises(clickpoints.MaskDimensionMismatch, self.db.setMask, image=im, data=mdata)
+
+        # insert with wrong dtype
+        mdata = np.ones((100,100),dtype='int8')
+        self.assertRaises(clickpoints.MaskDtypeMismatch, self.db.setMask,image=im2, data=mdata)
+        # insert with wrong dimension
+        mdata = np.ones((100, 50), dtype='uint8')
+        self.assertRaises(clickpoints.MaskDimensionMismatch, self.db.setMask, image=im3, data=mdata)
+
+    def test_getMask(self):
+        im1 = self.db.setImage(filename="test1.jpg", width=100, height=100)
+        im2 = self.db.setImage(filename="test2.jpg", width=100, height=100)
+        im3 = self.db.setImage(filename="test3.jpg", width=100, height=100)
+        im4 = self.db.setImage(filename="test4.jpg", width=100, height=100)
+        im5 = self.db.setImage(filename="test5.jpg")
+
+        mask = self.db.setMask(image=im1)
+        mask = self.db.setMask(image=im2)
+
+        # retrieve by filename
+        mask = self.db.getMask(filename='test2.jpg')
+        self.assertTrue(mask.image.filename == im2.filename,"Failed retrieving mask by image filename")
+
+        # retrieve by filename + create
+        mask = self.db.getMask(filename='test3.jpg',create=True)
+        self.assertTrue(mask.image.filename == 'test3.jpg', "Failed creating mask on getMask")
+
+        # retrieve by image + create
+        mask = self.db.getMask(image=im4, create=True)
+        self.assertTrue(mask.image.filename == 'test4.jpg', "Failed creating mask on getMask")
+
+        # retrieve by filename which doesn't have an image entry
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.getMask, filename='testDOESNTEXIST.jpg', create=True)
+        # retrieve by image where image has now width and height or file
+        self.assertRaises(clickpoints.MaskDimensionUnknown, self.db.getMask, image=im5, create=True)
+
+
+    def test_getMasks(self):
+        im1 = self.db.setImage(filename="test1.jpg", width=100, height=100)
+        im2 = self.db.setImage(filename="test2.jpg", width=100, height=100)
+        im3 = self.db.setImage(filename="test3.jpg", width=100, height=100)
+
+        mask = self.db.setMask(image=im1)
+        mask = self.db.setMask(image=im2)
+        mask = self.db.setMask(image=im3)
+
+        # get all
+        masks = self.db.getMasks()
+        self.assertTrue(masks.count() == 3, 'Failed to retrieve all masks without parameter')
+
+        # get multiple by image list
+        masks = self.db.getMasks(images=[im1,im2])
+        self.assertTrue(masks.count() == 2, 'Failed to retrieve masks by images ')
+
+        # get multiple by image ids
+        masks = self.db.getMasks(frames=[1,2])
+        self.assertTrue(masks.count() == 2, 'Failed to retrieve masks by frames ')
+
+        # get multiple by image filenames
+        masks = self.db.getMasks(filenames=['test1.jpg','test3.jpg'])
+        self.assertTrue(masks.count() == 2, 'Failed to retrieve masks by filenames ')
+
+        # get multiple by image ids
+        masks = self.db.getMasks(frames=[0, 2])
+        self.assertTrue(masks.count() == 2, 'Failed to retrieve masks by ids ')
+
 
     def text_deleteMasks(self):
         """ test delete masks function """
+        im1 = self.db.setImage(filename="test1.jpg", width=100, height=100)
+        im2 = self.db.setImage(filename="test2.jpg", width=100, height=100)
+        im3 = self.db.setImage(filename="test3.jpg", width=100, height=100)
+
+        mask = self.db.setMask(image=im1)
+        mask = self.db.setMask(image=im2)
+        mask = self.db.setMask(image=im3)
 
         # single delete by images
-        im = self.db.setImage(filename="test.jpg", width=100, height=100)
-        masktype = self.db.setMaskType(name="color", color="#FF0000", index=2)
-        mask = self.db.setMask(image=im)
-        self.db.deleteMasks(images=im)
+        self.db.deleteMasks(images=im1)
+        masks = self.db.getMasks()
+        self.assertTrue(masks.count() == 2, 'Failed to to delete single mask by image')
+
+        # delete all masks
+        self.db.deleteMasks()
+        masks = self.db.getMasks()
+        self.assertTrue(masks.count() == 0, 'Failed to to delete all masks')
 
 
 
@@ -406,10 +493,10 @@ class Test_DataFile(unittest.TestCase):
         self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
 
         # with invalid frame number
-        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setMarker, frame=1, x=123, y=0, type=marker_type)
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setMarker, frame=1, x=123, y=0, type=marker_type)
 
         # with invalid filename
-        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setMarker, filename="no.jpg", x=123, y=0, type=marker_type)
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setMarker, filename="no.jpg", x=123, y=0, type=marker_type)
 
         # with invalid type na,e
         self.assertRaises(clickpoints.MarkerTypeDoesNotExist, self.db.setMarker, image=1, x=123, y=0, type="NoType")
