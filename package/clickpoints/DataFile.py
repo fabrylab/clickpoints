@@ -119,14 +119,29 @@ def VerboseDict(dictionary):
     return " and ".join("%s=%s" % (key, dictionary[key]) for key in dictionary)
 
 
-class DoesNotExit(peewee.DoesNotExist):
+class DoesNotExist(peewee.DoesNotExist):
     pass
 
-class ImageDoesNotExit(DoesNotExit):
+
+class ImageDoesNotExist(DoesNotExist):
     pass
 
-class MarkerTypeDoesNotExist(DoesNotExit):
+
+class MaskDimensionMismatch(DoesNotExist):
     pass
+
+
+class MaskDtypeMismatch(DoesNotExist):
+    pass
+
+
+class MaskDimensionUnknown(DoesNotExist):
+    pass
+
+
+class MarkerTypeDoesNotExist(DoesNotExist):
+    pass
+
 
 def GetCommandLineArgs():
     """
@@ -281,7 +296,12 @@ class DataFile:
                 if self.width is not None and self.height is not None:
                     return [self.height, self.width]
                 else:
-                    return self.data.shape[:2]
+                    try:
+                        return self.data.shape[:2]
+                    except:
+                        raise IOError("Can't retrieve image dimensions for %s" % self.filename)
+
+
 
             def __str__(self):
                 return "ImageObject id%s: filename=%s, ext=%s, frame=%s, external_id=%s, timestamp=%s, sort_index=%s," \
@@ -896,13 +916,13 @@ class DataFile:
         def CheckImageFrame(frame):
             image = self.getImage(frame=frame)
             if image is None:
-                raise ImageDoesNotExit("No image with the frame number %s exists." % frame)
+                raise ImageDoesNotExist("No image with the frame number %s exists." % frame)
             return image
 
         def CheckImageFilename(filename):
             image = self.getImage(filename=filename)
             if image is None:
-                raise ImageDoesNotExit("No image with the filename \"%s\" exists." % filename)
+                raise ImageDoesNotExist("No image with the filename \"%s\" exists." % filename)
             return image
 
         if frames is not None:
@@ -1700,6 +1720,7 @@ class DataFile:
         query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
 
         query = addFilter(query, id, self.table_mask.id)
+        query = addFilter(query, image, self.table_mask.image)
         query = addFilter(query, frame, self.table_image.sort_index)
         query = addFilter(query, filename, self.table_image.filename)
         query.limit(1)
@@ -1708,9 +1729,15 @@ class DataFile:
             return query[0]
         except IndexError:
             if create is True:
-                image = self.getImage(frame, filename)
-                data = np.zeros(image.getShape())  # TODO exception if image can't be loaded
-                mask = self.table_mask.get(image=image, data=data)
+                if not image:
+                    image = self.getImage(frame, filename)
+                    if not image:
+                        raise ImageDoesNotExist("No parent image found ")
+                try:
+                    data = np.zeros(image.getShape())
+                except IOError:
+                    raise MaskDimensionUnknown("Can't retreive dimensions for mask from image %s " % image.filename)
+                mask = self.table_mask(image=image, data=data)
                 mask.save()
                 return mask
             return None
@@ -1738,7 +1765,7 @@ class DataFile:
             a query object containing all the matching :py:class:`Mask` entries in the database file.
         """
         # check input
-        assert sum(e is not None for e in [images, frames, filenames]) == 1, \
+        assert sum(e is not None for e in [images, frames, filenames]) <= 1, \
             "Exactly one of images, frames or filenames should be specified"
 
         query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
@@ -1779,19 +1806,43 @@ class DataFile:
         assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
             "Exactly one of image, frame or filename should be specified or an id"
 
-        # TODO check data shape and datatype warn if it couldn't be checked
-
         mask = self.getMask(image=image, frame=frame, filename=filename, id=id)
 
+        # get image object
+        if not image:
+            image = self.getImage(frame, filename)
+            if not image:
+                raise ImageDoesNotExist("No matching parent image found (%s)" % filename)
+
+
+        # verify data
+        if data is not None:
+            if not data.dtype == np.uint8:
+                raise MaskDtypeMismatch("mask.data dtype is not of type uint8")
+            try:
+                if not list(data.shape) == image.getShape():
+                    raise MaskDimensionMismatch("mask.data shape doesn't match image dimensions!")
+            except IOError:
+                UserWarning("Couldn't retrieve image dimension - shape verification not possible ")
+
+        # create mask element
         if not mask:
-            print("entering exception")
+            # create and verify data
             if data is None:
-                image = self.getImage(frame, filename)
-                dir(image)
-                data = np.zeros(image.getShape())  # TODO raise if dimensions cant be retrieved
+                try:
+                    data = np.zeros(image.getShape())
+                except IOError:
+                    raise MaskDimensionUnknown("Can't retreive dimensions for mask from image %s " % image.filename)
+            else:
+                if not data.dtype == np.uint8:
+                    raise MaskDtypeMismatch("mask.data dtype is not of type uint8")
+                try:
+                    if not list(data.shape) == image.getShape():
+                        raise MaskDimensionMismatch("mask.data shape doesn't match image dimensions!")
+                except IOError:
+                    UserWarning("Couldn't retrieve image dimension - shape verification not possible ")
             mask = self.table_mask(image=image, data=data)
 
-        print(mask)
         setFields(mask, dict(data=data, image=image))
         if frame is not None or filename is not None:
             mask.image = self.getImage(frame=frame, filename=filename)
@@ -1819,8 +1870,6 @@ class DataFile:
         # check input
         assert sum(e is not None for e in [images, frames, filenames]) == 1, \
             "Exactly one of images, frames or filenames should be specified"
-
-        # TODO test if join is possible
 
         query = self.table_mask.delete(self.table_mask, self.table_image).join(self.table_image)
 
