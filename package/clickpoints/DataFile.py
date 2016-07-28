@@ -1000,7 +1000,7 @@ class DataFile:
         # return the path
         return path
 
-    def getPaths(self, path_strings=None, base_path=None, ids=None):
+    def getPaths(self, path_string=None, base_path=None, id=None):
         """
         Get all :py:class:`Path` entries from the database, which match the given criteria. If no critera a given, return all paths.
 
@@ -1008,11 +1008,11 @@ class DataFile:
 
         Parameters
         ----------
-        path_strings: string, path_string, optional
+        path_string : string, path_string, optional
             the string/strings specifying the paths.
-        base_path: string, optional
+        base_path : string, optional
             return only paths starting with the base_path string.
-        ids: int, array_like, optional
+        id: int, array_like, optional
             the id/ids of the paths.
 
         Returns
@@ -1023,8 +1023,8 @@ class DataFile:
 
         query = self.table_path.select()
 
-        query = addFilter(query, ids, self.table_path.id)
-        query = addFilter(query, path_strings, self.table_path.path)
+        query = addFilter(query, id, self.table_path.id)
+        query = addFilter(query, path_string, self.table_path.path)
         if base_path is not None:
             query = query.where(self.table_path.path.startswith(base_path))
 
@@ -1059,7 +1059,7 @@ class DataFile:
 
         return path
 
-    def deletePaths(self, path_strings=None, base_path=None, ids=None):
+    def deletePaths(self, path_string=None, base_path=None, id=None):
         """
         Delete all :py:class:`Path` entries with the given criteria.
 
@@ -1067,11 +1067,11 @@ class DataFile:
 
         Parameters
         ----------
-        path_strings: string, optional
+        path_string: string, optional
             the string/strings specifying the paths.
         base_path: string, optional
             return only paths starting with the base_path string.
-        ids: int, optional
+        id: int, optional
             the id/ids of the paths.
 
         Returns
@@ -1082,8 +1082,8 @@ class DataFile:
 
         query = self.table_path.delete()
 
-        query = addFilter(query, ids, self.table_path.id)
-        query = addFilter(query, path_strings, self.table_path.path)
+        query = addFilter(query, id, self.table_path.id)
+        query = addFilter(query, path_string, self.table_path.path)
         if base_path is not None:
             query = query.where(self.table_path.path.startswith(base_path))
         return query.execute()
@@ -1116,7 +1116,7 @@ class DataFile:
         except peewee.DoesNotExist:
             KeyError("No image with %s found." % VerboseDict(kwargs))
 
-    def getImages(self, frames=None, filenames=None, exts=None, external_ids=None, timestamps=None, widths=None, heights=None, paths=None, order_by="sort_index"):
+    def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, order_by="sort_index"):
         """
         Get all :py:class:`Image` entries sorted by sort index. For large databases :py:meth:`~.DataFile.getImageIterator`, should be used
         as it doesn't load all frames at once.
@@ -1142,14 +1142,14 @@ class DataFile:
 
         query = self.table_image.select()
 
-        query = addFilter(query, frames, self.table_image.sort_index)
-        query = addFilter(query, filenames, self.table_image.filename)
-        query = addFilter(query, exts, self.table_image.ext)
-        query = addFilter(query, external_ids, self.table_image.external_id)
-        query = addFilter(query, timestamps, self.table_image.timestamp)
-        query = addFilter(query, widths, self.table_image.width)
-        query = addFilter(query, heights, self.table_image.height)
-        query = addFilter(query, paths, self.table_image.path)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, ext, self.table_image.ext)
+        query = addFilter(query, external_id, self.table_image.external_id)
+        query = addFilter(query, timestamp, self.table_image.timestamp)
+        query = addFilter(query, width, self.table_image.width)
+        query = addFilter(query, height, self.table_image.height)
+        query = addFilter(query, path, self.table_image.path)
 
         if order_by == "sort_index":
             query = query.order_by(self.table_image.sort_index)
@@ -1260,7 +1260,7 @@ class DataFile:
         item.save()
         return item
 
-    def deleteImages(self, filenames=None, paths=None, frames=None, external_ids=None, timestamps=None, widths=None, heights=None, ids=None):
+    def deleteImages(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None):
         """
         Delete all :py:class:`Image` entries with the given criteria.
 
@@ -1268,21 +1268,21 @@ class DataFile:
 
         Parameters
         ----------
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/filenames of the image (including the extension)
-        paths : string, int, :py:class:`Path`, array_like optional
+        path : string, int, :py:class:`Path`, array_like optional
             the path string, id or entry of the image to insert
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the number/numbers of frames the images have
-        external_ids : int, array_like, optional
+        external_id : int, array_like, optional
             an external id/ids for the images. Only necessary if the annotation server is used
-        timestamps : datetime object, array_like, optional
+        timestamp : datetime object, array_like, optional
             the timestamp/timestamps of the images
-        widths : int, array_like, optional
+        width : int, array_like, optional
             the width/widths of the images
-        heights : int, optional
+        height : int, optional
             the height/heights of the images
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/ids of the images
 
         Returns
@@ -1292,19 +1292,19 @@ class DataFile:
         """
         query = self.table_image.delete()
 
-        paths = self._processPathNameField(paths)
+        path = self._processPathNameField(path)
 
-        query = addFilter(query, ids, self.table_image.id)
-        query = addFilter(query, paths, self.table_image.path)
-        query = addFilter(query, filenames, self.table_image.filename)
-        query = addFilter(query, frames, self.table_image.frame)
-        query = addFilter(query, external_ids, self.table_image.external_id)
-        query = addFilter(query, timestamps, self.table_image.timestamp)
-        query = addFilter(query, widths, self.table_image.width)
-        query = addFilter(query, heights, self.table_image.height)
+        query = addFilter(query, id, self.table_image.id)
+        query = addFilter(query, path, self.table_image.path)
+        query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, frame, self.table_image.frame)
+        query = addFilter(query, external_id, self.table_image.external_id)
+        query = addFilter(query, timestamp, self.table_image.timestamp)
+        query = addFilter(query, width, self.table_image.width)
+        query = addFilter(query, height, self.table_image.height)
         return query.execute()
 
-    def getTracks(self, types=None, texts=None, ids=None):
+    def getTracks(self, type=None, text=None, id=None):
         """
         Get all :py:class:`Track` entries, optional filter by type
 
@@ -1312,11 +1312,11 @@ class DataFile:
 
         Parameters
         ----------
-        types: :py:class:`MarkerType`, str, array_like
+        type: :py:class:`MarkerType`, str, array_like, optional
             the marker type/types or name of the marker type for the track.
-        texts :
+        text : str, array_like, optional
             the :py:class:`Track` specific text entry
-        ids : int, array_like
+        id : int, array_like, optional
             the  :py:class:`Track` ID
 
         Returns
@@ -1324,12 +1324,12 @@ class DataFile:
         entries : array_like
             a query object which contains the requested :py:class:`Track`.
         """
-        types = self._processesTypeNameField(types)
+        type = self._processesTypeNameField(type)
 
         query = self.table_track.select()
-        query = addFilter(query, types, self.table_track.type)
-        query = addFilter(query, texts, self.table_track.text)
-        query = addFilter(query, ids, self.table_track.id)
+        query = addFilter(query, type, self.table_track.type)
+        query = addFilter(query, text, self.table_track.text)
+        query = addFilter(query, id, self.table_track.id)
 
         return query
 
@@ -1363,7 +1363,7 @@ class DataFile:
 
         Parameters
         ----------
-        type: :py:class:`MarkerType` or str
+        type: :py:class:`MarkerType`, str
             the marker type or name of the marker type for the track.
         style:
             the :py:class:`Track` specific style entry
@@ -1384,7 +1384,7 @@ class DataFile:
 
         return item
 
-    def deleteTracks(self, types=None, texts=None, ids=None):
+    def deleteTracks(self, type=None, text=None, id=None):
         """
         Delete a single :py:class:`Track` object specified by id or all :py:class:`Track` object of an type
 
@@ -1392,11 +1392,11 @@ class DataFile:
 
         Parameters
         ----------
-        types: :py:class:`MarkerType` or str
+        type: :py:class:`MarkerType`, str, array_like, optional
             the marker type or name of the marker type
-        texts :
+        text : str, array_like, optional
             the :py:class:`Track` specific text entry
-        ids : int, array_like
+        id : int, array_like, array_like, optional
             the  :py:class:`Track` ID
 
         Returns
@@ -1405,15 +1405,15 @@ class DataFile:
             the number of affected rows.
         """
 
-        types = self._processesTypeNameField(types)
+        type = self._processesTypeNameField(type)
 
         query = self.table_track.delete()
-        query = addFilter(query, ids, self.table_track.id)
-        query = addFilter(query, texts, self.table_track.text)
-        query = addFilter(query, types, self.table_track.type)
+        query = addFilter(query, id, self.table_track.id)
+        query = addFilter(query, text, self.table_track.text)
+        query = addFilter(query, type, self.table_track.type)
         return query.execute()
 
-    def getMarkerTypes(self, names=None, colors=None, modes=None, texts=None, ids=None):
+    def getMarkerTypes(self, name=None, color=None, mode=None, text=None, id=None):
         """
         Retreive all :py:class:`MarkerType` objects in the database.
 
@@ -1421,15 +1421,15 @@ class DataFile:
 
         Parameters
         ----------
-        names: str
+        name: str, array_like, optional
             the name of the type
-        colors: str
+        color: str, array_like, optional
             hex code string for rgb color of style "#00ff3f"
-        modes: int
+        mode: int, array_like, optional
             mode of the marker type (marker 0, rect 1, line 2, track 4)
-        texts: str
+        text: str, array_like, optional
             display text
-        ids: int
+        id: int, array_like, optional
             id of the :py:class:`MarkerType` object
 
         Returns
@@ -1439,11 +1439,11 @@ class DataFile:
         """
         query = self.table_markertype.select()
 
-        query = addFilter(query, names, self.table_markertype.name)
-        query = addFilter(query, colors, self.table_markertype.color)
-        query = addFilter(query, modes, self.table_markertype.mode)
-        query = addFilter(query, texts, self.table_markertype.text)
-        query = addFilter(query, ids, self.table_markertype.id)
+        query = addFilter(query, name, self.table_markertype.name)
+        query = addFilter(query, color, self.table_markertype.color)
+        query = addFilter(query, mode, self.table_markertype.mode)
+        query = addFilter(query, text, self.table_markertype.text)
+        query = addFilter(query, id, self.table_markertype.id)
 
         return query
 
@@ -1455,9 +1455,9 @@ class DataFile:
 
         Parameters
         ----------
-        name: str
+        name: str, optional
             the name of the desired type
-        id: int
+        id: int, optional
             id of the :py:class:`MarkerType` object
 
         Returns
@@ -1478,17 +1478,17 @@ class DataFile:
 
         Parameters
         ----------
-        name: str
+        name: str, optional
             the name of the type
-        color: str
+        color: str, optional
             hex code string for rgb color of style "#00ff3f"
-        mode: int
+        mode: int, optional
             mode of the marker type (marker 0, rect 1, line 2, track 4)
-        style: str
+        style: str, optional
             style string
-        text: str
+        text: str, optional
             display text
-        id: int
+        id: int, optional
             id of the :py:class:`MarkerType` object
 
         Returns
@@ -1507,7 +1507,7 @@ class DataFile:
         item.save()
         return item
 
-    def deleteMarkerTypes(self, names=None, colors=None, modes=None, texts=None, ids=None):
+    def deleteMarkerTypes(self, name=None, color=None, mode=None, text=None, id=None):
         """
         Delete all :py:class:`MarkerType` entries from the database, which match the given criteria.
 
@@ -1515,15 +1515,15 @@ class DataFile:
 
         Parameters
         ----------
-        names: str
+        name: str, array_like, optional
             the name of the type
-        colors: str
+        color: str, array_like, optional
             hex code string for rgb color of style "#00ff3f"
-        modes: int
+        mode: int, array_like, optional
             mode of the marker type (marker 0, rect 1, line 2, track 4)
-        texts: str
+        text: str, array_like, optional
             display text
-        ids: int
+        id: int, array_like, optional
             id of the :py:class:`MarkerType` object
 
         Returns
@@ -1533,11 +1533,11 @@ class DataFile:
         """
         query = self.table_markertype.delete()
 
-        query = addFilter(query, names, self.table_markertype.name)
-        query = addFilter(query, colors, self.table_markertype.color)
-        query = addFilter(query, modes, self.table_markertype.mode)
-        query = addFilter(query, texts, self.table_markertype.text)
-        query = addFilter(query, ids, self.table_markertype.id)
+        query = addFilter(query, name, self.table_markertype.name)
+        query = addFilter(query, color, self.table_markertype.color)
+        query = addFilter(query, mode, self.table_markertype.mode)
+        query = addFilter(query, text, self.table_markertype.text)
+        query = addFilter(query, id, self.table_markertype.id)
 
         return query.execute()
 
@@ -1576,7 +1576,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def getMaskTypes(self, names=None, colors=None, indices=None, ids=None):
+    def getMaskTypes(self, name=None, color=None, index=None, id=None):
         """
         Get all :py:class:`MaskType` entries from the database, which match the given criteria. If no criteria a given,
         return all mask types.
@@ -1586,13 +1586,13 @@ class DataFile:
 
         Parameters
         ----------
-        names : string, array_like, optional
+        name : string, array_like, optional
             the name/names of the mask types.
-        colors : string, array_like, optional
+        color : string, array_like, optional
             the color/colors of the mask types.
-        indices : int, array_like, optional
+        index : int, array_like, optional
             the index/indices of the mask types, which is used for painting this mask types.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/ids of the mask types.
 
         Returns
@@ -1603,13 +1603,13 @@ class DataFile:
 
         query = self.table_masktype.select()
 
-        if colors:
-            colors = NormalizeColor(colors)
+        if color:
+            color = NormalizeColor(color)
 
-        query = addFilter(query, ids, self.table_masktype.id)
-        query = addFilter(query, names, self.table_masktype.name)
-        query = addFilter(query, colors, self.table_masktype.color)
-        query = addFilter(query, indices, self.table_masktype.index)
+        query = addFilter(query, id, self.table_masktype.id)
+        query = addFilter(query, name, self.table_masktype.name)
+        query = addFilter(query, color, self.table_masktype.color)
+        query = addFilter(query, index, self.table_masktype.index)
         return query
 
     def setMaskType(self, name=None, color=None, index=None, id=None):
@@ -1659,7 +1659,7 @@ class DataFile:
 
         return mask_type
 
-    def deleteMaskTypes(self, names=None, colors=None, indices=None, ids=None):
+    def deleteMaskTypes(self, name=None, color=None, index=None, id=None):
         """
         Delete all :py:class:`MaskType` entries from the database, which match the given criteria.
 
@@ -1667,26 +1667,26 @@ class DataFile:
 
         Parameters
         ----------
-        names : string, array_like, optional
+        name : string, array_like, optional
             the name/names of the mask types.
-        colors : string, array_like, optional
+        color : string, array_like, optional
             the color/colors of the mask types.
-        indices : int, array_like, optional
+        index : int, array_like, optional
             the index/indices of the mask types, which is used for painting this mask types.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/ids of the mask types.
         """
 
         query = self.table_masktype.delete()
 
         # normalize and check color values
-        if colors:
-            colors = NormalizeColor(colors)
+        if color:
+            color = NormalizeColor(color)
 
-        query = addFilter(query, ids, self.table_masktype.id)
-        query = addFilter(query, names, self.table_masktype.name)
-        query = addFilter(query, colors, self.table_masktype.color)
-        query = addFilter(query, indices, self.table_masktype.index)
+        query = addFilter(query, id, self.table_masktype.id)
+        query = addFilter(query, name, self.table_masktype.name)
+        query = addFilter(query, color, self.table_masktype.color)
+        query = addFilter(query, index, self.table_masktype.index)
         query.execute()
 
     def getMask(self, image=None, frame=None, filename=None, id=None, create=False):
@@ -1742,7 +1742,7 @@ class DataFile:
                 return mask
             return None
 
-    def getMasks(self, images=None, frames=None, filenames=None, ids=None):
+    def getMasks(self, image=None, frame=None, filename=None, id=None):
         """
         Get all :py:class:`Mask` entries from the database, which match the given criteria. If no criteria a given, return all masks.
 
@@ -1750,13 +1750,13 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/images for which the mask should be retrieved. If omitted, frame numbers or filenames should be specified instead.
-        frames: int, array_like, optional
+        frame: int, array_like, optional
             frame number/numbers of the images, which masks should be returned. If omitted, images or filenames should be specified instead.
-        filenames: string, array_like, optional
+        filename: string, array_like, optional
             filename of the image/images, which masks should be returned. If omitted, images or frame numbers should be specified instead.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             id/ids of the masks.
 
         Returns
@@ -1765,15 +1765,15 @@ class DataFile:
             a query object containing all the matching :py:class:`Mask` entries in the database file.
         """
         # check input
-        assert sum(e is not None for e in [images, frames, filenames]) <= 1, \
+        assert sum(e is not None for e in [image, frame, filename]) <= 1, \
             "Exactly one of images, frames or filenames should be specified"
 
         query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
 
-        query = addFilter(query, ids, self.table_mask.id)
-        query = addFilter(query, images, self.table_mask.image)
-        query = addFilter(query, frames, self.table_image.sort_index)
-        query = addFilter(query, filenames, self.table_image.filename)
+        query = addFilter(query, id, self.table_mask.id)
+        query = addFilter(query, image, self.table_mask.image)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
 
         return query
 
@@ -1850,7 +1850,7 @@ class DataFile:
 
         return mask
 
-    def deleteMasks(self, images=None, frames=None, filenames=None, ids=None):
+    def deleteMasks(self, image=None, frame=None, filename=None, id=None):
         """
         Delete all :py:class:`Mask` entries with the given criteria.
 
@@ -1858,30 +1858,30 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/images for which the mask should be deleted. If omitted, frame numbers or filenames should be specified instead.
-        frames: int, array_like, optional
+        frame: int, array_like, optional
             frame number/numbers of the images, which masks should be deleted. If omitted, images or filenames should be specified instead.
-        filenames: string, array_like, optional
+        filename: string, array_like, optional
             filename of the image/images, which masks should be deleted. If omitted, images or frame numbers should be specified instead.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             id/ids of the masks.
         """
         # check input
-        assert sum(e is not None for e in [images, frames, filenames]) <= 1, \
+        assert sum(e is not None for e in [image, frame, filename]) <= 1, \
             "Exactly one of images, frames or filenames should be specified"
 
         query = self.table_mask.delete()
 
-        if images is None:
+        if image is None:
             images = self.table_image.select()
-            images = addFilter(images, frames, self.table_image.sort_index)
-            images = addFilter(images, filenames, self.table_image.filename)
+            images = addFilter(images, frame, self.table_image.sort_index)
+            images = addFilter(images, filename, self.table_image.filename)
             query = query.where(self.table_mask.image.in_(images))
         else:
-            query = addFilter(query, images, self.table_mask.image)
+            query = addFilter(query, image, self.table_mask.image)
 
-        query = addFilter(query, ids, self.table_mask.id)
+        query = addFilter(query, id, self.table_mask.id)
         query.execute()
 
 
@@ -1909,7 +1909,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def getMarkers(self, images=None, frames=None, filenames=None, xs=None, ys=None, types=None, processed=None, tracks=None, texts=None, ids=None):
+    def getMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, text=None, id=None):
         """
         Get all :py:class:`Marker` entries with the given criteria.
 
@@ -1917,25 +1917,25 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the markers.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the markers.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the markers.
-        xs : int, array_like, optional
+        x : int, array_like, optional
             the x coordinate/s of the markers.
-        ys : int, array_like, optional
+        y : int, array_like, optional
             the y coordinate/s of the markers.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the markers.
         processed : int, array_like, optional
             the processed flag/s of the markers.
-        tracks : int, :py:class:`Track`, array_like, optional
+        track : int, :py:class:`Track`, array_like, optional
             the track id/s or instance/s of the markers.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the markers.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the markers.
 
         Returns
@@ -1943,20 +1943,20 @@ class DataFile:
         entries : array_like
             a query object which contains all :py:class:`Marker` entries.
         """
-        types = self._processesTypeNameField(types)
+        type = self._processesTypeNameField(type)
 
         query = self.table_marker.select(self.table_marker, self.table_image).join(self.table_image)
 
-        query = addFilter(query, ids, self.table_marker.id)
-        query = addFilter(query, images, self.table_marker.image)
-        query = addFilter(query, frames, self.table_image.sort_index)
-        query = addFilter(query, filenames, self.table_image.filename)
-        query = addFilter(query, xs, self.table_marker.x)
-        query = addFilter(query, ys, self.table_marker.y)
-        query = addFilter(query, types, self.table_marker.type)
+        query = addFilter(query, id, self.table_marker.id)
+        query = addFilter(query, image, self.table_marker.image)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, x, self.table_marker.x)
+        query = addFilter(query, y, self.table_marker.y)
+        query = addFilter(query, type, self.table_marker.type)
         query = addFilter(query, processed, self.table_marker.processed)
-        query = addFilter(query, tracks, self.table_marker.track)
-        query = addFilter(query, texts, self.table_marker.text)
+        query = addFilter(query, track, self.table_marker.track)
+        query = addFilter(query, text, self.table_marker.text)
 
         return query
 
@@ -2010,8 +2010,8 @@ class DataFile:
         item.save()
         return item
 
-    def setMarkers(self, images=None, frames=None, filenames=None, xs=None, ys=None, types=None, processed=None,
-                   tracks=None, styles=None, texts=None, ids=None):
+    def setMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None,
+                   track=None, style=None, text=None, id=None):
         """
         Insert or update multiple :py:class:`Marker` objects in the database.
 
@@ -2020,25 +2020,25 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the markers.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the markers.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the markers.
-        xs : int, array_like, optional
+        x : int, array_like, optional
             the x coordinate/s of the markers.
-        ys : int, array_like, optional
+        y : int, array_like, optional
             the y coordinate/s of the markers.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the markers.
         processed : int, array_like, optional
             the processed flag/s of the markers.
-        tracks : int, :py:class:`Track`, array_like, optional
+        track : int, :py:class:`Track`, array_like, optional
             the track id/s or instance/s of the markers.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the markers.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the markers.
 
         Returns
@@ -2046,15 +2046,15 @@ class DataFile:
         success : bool
             it the inserting was successful.
         """
-        types = self._processesTypeNameField(types)
-        images = self._processImagesField(images, frames, filenames)
+        type = self._processesTypeNameField(type)
+        image = self._processImagesField(image, frame, filename)
 
-        data = packToDictList(id=ids, image=images, x=xs, y=ys, processed=processed, type=types, track=tracks,
-                              style=styles, text=texts)
+        data = packToDictList(id=id, image=image, x=x, y=y, processed=processed, type=type, track=track,
+                              style=style, text=text)
         return self.table_marker.insert_many(data).upsert().execute()
 
-    def deleteMarkers(self, images=None, frames=None, filenames=None, xs=None, ys=None, types=None, processed=None,
-                      tracks=None, texts=None, ids=None):
+    def deleteMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None,
+                      track=None, text=None, id=None):
         """
         Delete all :py:class:`Marker` entries with the given criteria.
 
@@ -2063,25 +2063,25 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the markers.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the markers.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the markers.
-        xs : int, array_like, optional
+        x : int, array_like, optional
             the x coordinate/s of the markers.
-        ys : int, array_like, optional
+        y : int, array_like, optional
             the y coordinate/s of the markers.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the markers.
         processed : int, array_like, optional
             the processed flag/s of the markers.
-        tracks : int, :py:class:`Track`, array_like, optional
+        track : int, :py:class:`Track`, array_like, optional
             the track id/s or instance/s of the markers.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the markers.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the markers.
 
         Returns
@@ -2089,25 +2089,25 @@ class DataFile:
         rows : int
             the number of affected rows.
         """
-        types = self._processesTypeNameField(types)
+        type = self._processesTypeNameField(type)
 
         query = self.table_marker.delete()
 
-        if images is None:
+        if image is None:
             images = self.table_image.select()
-            images = addFilter(images, frames, self.table_image.sort_index)
-            images = addFilter(images, filenames, self.table_image.filename)
+            images = addFilter(images, frame, self.table_image.sort_index)
+            images = addFilter(images, filename, self.table_image.filename)
             query = query.where(self.table_marker.image.in_(images))
         else:
-            query = addFilter(query, images, self.table_marker.image)
+            query = addFilter(query, image, self.table_marker.image)
 
-        query = addFilter(query, ids, self.table_marker.id)
-        query = addFilter(query, xs, self.table_marker.x)
-        query = addFilter(query, ys, self.table_marker.y)
-        query = addFilter(query, types, self.table_marker.type)
+        query = addFilter(query, id, self.table_marker.id)
+        query = addFilter(query, x, self.table_marker.x)
+        query = addFilter(query, y, self.table_marker.y)
+        query = addFilter(query, type, self.table_marker.type)
         query = addFilter(query, processed, self.table_marker.processed)
-        query = addFilter(query, tracks, self.table_marker.track)
-        query = addFilter(query, texts, self.table_marker.text)
+        query = addFilter(query, track, self.table_marker.track)
+        query = addFilter(query, text, self.table_marker.text)
 
         return query.execute()
 
@@ -2135,8 +2135,8 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def getLines(self, images=None, frames=None, filenames=None, xs1=None, ys1=None, xs2=None, ys2=None, types=None,
-                 processed=None, texts=None, ids=None):
+    def getLines(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None,
+                 processed=None, text=None, id=None):
         """
         Get all :py:class:`Line` entries with the given criteria.
 
@@ -2145,27 +2145,27 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the lines.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the lines.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the lines.
-        xs1 : int, array_like, optional
+        x1 : int, array_like, optional
             the x coordinate/s of the lines start.
-        ys1 : int, array_like, optional
+        y1 : int, array_like, optional
             the y coordinate/s of the lines start.
-        xs2 : int, array_like, optional
+        x2 : int, array_like, optional
             the x coordinate/s of the lines end.
-        ys2 : int, array_like, optional
+        y2 : int, array_like, optional
             the y coordinate/s of the lines end.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the lines.
         processed : int, array_like, optional
             the processed flag/s of the lines.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the lines.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the lines.
 
         Returns
@@ -2173,21 +2173,21 @@ class DataFile:
         entries : array_like
             a query object which contains all :py:class:`Line` entries.
         """
-        types = self._processesTypeNameField(types)
+        type = self._processesTypeNameField(type)
 
         query = self.table_line.select(self.table_line, self.table_image).join(self.table_image)
 
-        query = addFilter(query, ids, self.table_line.id)
-        query = addFilter(query, images, self.table_line.image)
-        query = addFilter(query, frames, self.table_image.sort_index)
-        query = addFilter(query, filenames, self.table_image.filename)
-        query = addFilter(query, xs1, self.table_line.x1)
-        query = addFilter(query, ys1, self.table_line.y1)
-        query = addFilter(query, xs2, self.table_line.x2)
-        query = addFilter(query, ys2, self.table_line.y2)
-        query = addFilter(query, types, self.table_line.type)
+        query = addFilter(query, id, self.table_line.id)
+        query = addFilter(query, image, self.table_line.image)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, x1, self.table_line.x1)
+        query = addFilter(query, y1, self.table_line.y1)
+        query = addFilter(query, x2, self.table_line.x2)
+        query = addFilter(query, y2, self.table_line.y2)
+        query = addFilter(query, type, self.table_line.type)
         query = addFilter(query, processed, self.table_line.processed)
-        query = addFilter(query, texts, self.table_line.text)
+        query = addFilter(query, text, self.table_line.text)
 
         return query
 
@@ -2243,8 +2243,8 @@ class DataFile:
         item.save()
         return item
 
-    def setLines(self, images=None, frames=None, filenames=None, xs1=None, ys1=None, xs2=None, ys2=None, types=None,
-                 processed=None, styles=None, texts=None, ids=None):
+    def setLines(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None,
+                 processed=None, style=None, text=None, id=None):
         """
         Insert or update multiple :py:class:`Line` objects in the database.
 
@@ -2253,29 +2253,29 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the lines.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the lines.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the lines.
-        xs1 : int, array_like, optional
+        x1 : int, array_like, optional
             the x coordinate/s of the start of the lines.
-        ys1 : int, array_like, optional
+        y1 : int, array_like, optional
             the y coordinate/s of the start of the lines.
-        xs2 : int, array_like, optional
+        x2 : int, array_like, optional
             the x coordinate/s of the end of the lines.
-        ys2 : int, array_like, optional
+        y2 : int, array_like, optional
             the y coordinate/s of the end of the lines.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the lines.
         processed : int, array_like, optional
             the processed flag/s of the lines.
-        tracks : int, :py:class:`Track`, array_like, optional
+        track : int, :py:class:`Track`, array_like, optional
             the track id/s or instance/s of the lines.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the lines.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the lines.
 
         Returns
@@ -2283,44 +2283,44 @@ class DataFile:
         success : bool
             it the inserting was successful.
         """
-        types = self._processesTypeNameField(types)
-        images = self._processImagesField(images, frames, filenames)
+        type = self._processesTypeNameField(type)
+        image = self._processImagesField(image, frame, filename)
 
-        data = packToDictList(id=ids, image=images, x1=xs1, y1=ys1, x2=xs2, y2=ys2, processed=processed, type=types,
-                              style=styles, text=texts)
+        data = packToDictList(id=id, image=image, x1=x1, y1=y1, x2=x2, y2=y2, processed=processed, type=type,
+                              style=style, text=text)
         return self.table_line.insert_many(data).upsert().execute()
 
-    def deleteLines(self, images=None, frames=None, filenames=None, xs1=None, ys1=None, xs2=None, ys2=None, types=None,
-                    processed=None, texts=None, ids=None):
+    def deleteLines(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None,
+                    processed=None, text=None, id=None):
         """
-        Delete all :py:class:`Marker` entries with the given criteria.
+        Delete all :py:class:`Line` entries with the given criteria.
 
         See also: :py:meth:`~.DataFile.getLine`, :py:meth:`~.DataFile.getLines`, :py:meth:`~.DataFile.setLine`,
         :py:meth:`~.DataFile.setLines`.
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the lines.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the lines.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the lines.
-        xs1 : int, array_like, optional
+        x1 : int, array_like, optional
             the x coordinate/s of the start of the lines.
-        ys1 : int, array_like, optional
+        y1 : int, array_like, optional
             the y coordinate/s of the start of the lines.
-        xs2 : int, array_like, optional
+        x2 : int, array_like, optional
             the x coordinate/s of the end of the lines.
-        ys2 : int, array_like, optional
+        y2 : int, array_like, optional
             the y coordinate/s of the end of the lines.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the lines.
         processed : int, array_like, optional
             the processed flag/s of the lines.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the lines.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the lines.
 
         Returns
@@ -2328,26 +2328,26 @@ class DataFile:
         rows : int
             the number of affected rows.
         """
-        types = self._processesTypeNameField(types)
+        type = self._processesTypeNameField(type)
 
         query = self.table_line.delete()
 
-        if images is None:
+        if image is None:
             images = self.table_image.select()
-            images = addFilter(images, frames, self.table_image.sort_index)
-            images = addFilter(images, filenames, self.table_image.filename)
+            images = addFilter(images, frame, self.table_image.sort_index)
+            images = addFilter(images, filename, self.table_image.filename)
             query = query.where(self.table_line.image.in_(images))
         else:
-            query = addFilter(query, images, self.table_line.image)
+            query = addFilter(query, image, self.table_line.image)
 
-        query = addFilter(query, ids, self.table_line.id)
-        query = addFilter(query, xs1, self.table_line.x1)
-        query = addFilter(query, ys1, self.table_line.y1)
-        query = addFilter(query, xs2, self.table_line.x2)
-        query = addFilter(query, ys2, self.table_line.y2)
-        query = addFilter(query, types, self.table_line.type)
+        query = addFilter(query, id, self.table_line.id)
+        query = addFilter(query, x1, self.table_line.x1)
+        query = addFilter(query, y1, self.table_line.y1)
+        query = addFilter(query, x2, self.table_line.x2)
+        query = addFilter(query, y2, self.table_line.y2)
+        query = addFilter(query, type, self.table_line.type)
         query = addFilter(query, processed, self.table_line.processed)
-        query = addFilter(query, texts, self.table_line.text)
+        query = addFilter(query, text, self.table_line.text)
 
         return query.execute()
 
@@ -2374,8 +2374,8 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def getRectangles(self, images=None, frames=None, filenames=None, xs=None, ys=None, widths=None, heights=None, types=None,
-                 processed=None, texts=None, ids=None):
+    def getRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
+                 processed=None, text=None, id=None):
         """
         Get all :py:class:`Rectangle` entries with the given criteria.
 
@@ -2384,27 +2384,27 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the rectangles.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the rectangles.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the rectangles.
-        xs : int, array_like, optional
+        x : int, array_like, optional
             the x coordinate/s of the upper left corner/s of the rectangles.
-        ys : int, array_like, optional
+        y : int, array_like, optional
             the y coordinate/s of the upper left corner/s of the rectangles.
-        widths : int, array_like, optional
+        width : int, array_like, optional
             the width/s of the rectangles.
-        heights : int, array_like, optional
+        height : int, array_like, optional
             the height/s of the rectangles.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the rectangles.
         processed : int, array_like, optional
             the processed flag/s of the rectangles.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the rectangles.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the rectangles.
 
         Returns
@@ -2412,21 +2412,21 @@ class DataFile:
         entries : array_like
             a query object which contains all :py:class:`Rectangle` entries.
         """
-        types = self._processesTypeNameField(types)
+        type = self._processesTypeNameField(type)
 
         query = self.table_rectangle.select(self.table_rectangle, self.table_image).join(self.table_image)
 
-        query = addFilter(query, ids, self.table_rectangle.id)
-        query = addFilter(query, images, self.table_rectangle.image)
-        query = addFilter(query, frames, self.table_image.sort_index)
-        query = addFilter(query, filenames, self.table_image.filename)
-        query = addFilter(query, xs, self.table_rectangle.x)
-        query = addFilter(query, ys, self.table_rectangle.y)
-        query = addFilter(query, heights, self.table_rectangle.height)
-        query = addFilter(query, widths, self.table_rectangle.width)
-        query = addFilter(query, types, self.table_rectangle.type)
+        query = addFilter(query, id, self.table_rectangle.id)
+        query = addFilter(query, image, self.table_rectangle.image)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, x, self.table_rectangle.x)
+        query = addFilter(query, y, self.table_rectangle.y)
+        query = addFilter(query, height, self.table_rectangle.height)
+        query = addFilter(query, width, self.table_rectangle.width)
+        query = addFilter(query, type, self.table_rectangle.type)
         query = addFilter(query, processed, self.table_rectangle.processed)
-        query = addFilter(query, texts, self.table_rectangle.text)
+        query = addFilter(query, text, self.table_rectangle.text)
 
         return query
 
@@ -2483,8 +2483,8 @@ class DataFile:
         item.save()
         return item
 
-    def setRectangles(self, images=None, frames=None, filenames=None, xs=None, ys=None, widths=None, heights=None, types=None,
-                 processed=None, styles=None, texts=None, ids=None):
+    def setRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
+                 processed=None, style=None, text=None, id=None):
         """
         Insert or update multiple :py:class:`Rectangle` objects in the database.
 
@@ -2493,29 +2493,29 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the rectangles.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the rectangles.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the rectangles.
-        xs : int, array_like, optional
+        x : int, array_like, optional
             the x coordinate/s of the upper left corner/s of the rectangles.
-        ys : int, array_like, optional
+        y : int, array_like, optional
          the y coordinate/s of the upper left corner/s of the rectangles.
-        widths : int, array_like, optional
+        width : int, array_like, optional
             the width/s of the rectangles.
-        heights : int, array_like, optional
+        height : int, array_like, optional
             the height/s of the rectangles.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the rectangles.
         processed : int, array_like, optional
             the processed flag/s of the rectangles.
-        tracks : int, :py:class:`Track`, array_like, optional
+        track : int, :py:class:`Track`, array_like, optional
             the track id/s or instance/s of the rectangles.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the rectangles.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the rectangles.
 
         Returns
@@ -2523,15 +2523,15 @@ class DataFile:
         success : bool
             it the inserting was successful.
         """
-        types = self._processesTypeNameField(types)
-        images = self._processImagesField(images, frames, filenames)
+        type = self._processesTypeNameField(type)
+        image = self._processImagesField(image, frame, filename)
 
-        data = packToDictList(id=ids, image=images, x=xs, y=ys, width=widths, height=heights, processed=processed, type=types,
-                              style=styles, text=texts)
+        data = packToDictList(id=id, image=image, x=x, y=y, width=width, height=height, processed=processed, type=type,
+                              style=style, text=text)
         return self.table_rectangle.insert_many(data).upsert().execute()
 
-    def deleteRectangles(self, images=None, frames=None, filenames=None, xs=None, ys=None, widths=None, heights=None, types=None,
-                    processed=None, texts=None, ids=None):
+    def deleteRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
+                    processed=None, text=None, id=None):
         """
         Delete all :py:class:`Rectangle` entries with the given criteria.
 
@@ -2540,27 +2540,27 @@ class DataFile:
 
         Parameters
         ----------
-        images : int, :py:class:`Image`, array_like, optional
+        image : int, :py:class:`Image`, array_like, optional
             the image/s of the rectangles.
-        frames : int, array_like, optional
+        frame : int, array_like, optional
             the frame/s of the images of the rectangles.
-        filenames : string, array_like, optional
+        filename : string, array_like, optional
             the filename/s of the images of the rectangles.
-        xs : int, array_like, optional
+        x : int, array_like, optional
             the x coordinate/s of the upper left corner/s of the rectangles.
-        ys : int, array_like, optional
+        y : int, array_like, optional
             the y coordinate/s of the upper left corner/s of the rectangles.
-        widths : int, array_like, optional
+        width : int, array_like, optional
             the width/s of the rectangles.
-        heights : int, array_like, optional
+        height : int, array_like, optional
             the height/s of the rectangles.
-        types : string, :py:class:`MarkerType`, array_like, optional
+        type : string, :py:class:`MarkerType`, array_like, optional
             the marker type/s (or name/s) of the rectangles.
         processed : int, array_like, optional
             the processed flag/s of the rectangles.
-        texts : string, array_like, optional
+        text : string, array_like, optional
             the text/s of the rectangles.
-        ids : int, array_like, optional
+        id : int, array_like, optional
             the id/s of the rectangles.
 
         Returns
@@ -2568,25 +2568,25 @@ class DataFile:
         rows : int
             the number of affected rows.
         """
-        types = self._processesTypeNameField(types)
+        type = self._processesTypeNameField(type)
 
         query = self.table_rectangle.delete()
 
-        if images is None:
+        if image is None:
             images = self.table_image.select()
-            images = addFilter(images, frames, self.table_image.sort_index)
-            images = addFilter(images, filenames, self.table_image.filename)
+            images = addFilter(images, frame, self.table_image.sort_index)
+            images = addFilter(images, filename, self.table_image.filename)
             query = query.where(self.table_rectangle.image.in_(images))
         else:
-            query = addFilter(query, images, self.table_rectangle.image)
+            query = addFilter(query, image, self.table_rectangle.image)
 
-        query = addFilter(query, ids, self.table_rectangle.id)
-        query = addFilter(query, xs, self.table_rectangle.x)
-        query = addFilter(query, ys, self.table_rectangle.y)
-        query = addFilter(query, widths, self.table_rectangle.width)
-        query = addFilter(query, heights, self.table_rectangle.height)
-        query = addFilter(query, types, self.table_rectangle.type)
+        query = addFilter(query, id, self.table_rectangle.id)
+        query = addFilter(query, x, self.table_rectangle.x)
+        query = addFilter(query, y, self.table_rectangle.y)
+        query = addFilter(query, width, self.table_rectangle.width)
+        query = addFilter(query, height, self.table_rectangle.height)
+        query = addFilter(query, type, self.table_rectangle.type)
         query = addFilter(query, processed, self.table_rectangle.processed)
-        query = addFilter(query, texts, self.table_rectangle.text)
+        query = addFilter(query, text, self.table_rectangle.text)
 
         return query.execute()
