@@ -3,6 +3,7 @@ __testname__ = "Data File"
 
 import os
 import unittest
+import numpy as np
 
 from clickpoints import DataFile
 import clickpoints
@@ -332,28 +333,53 @@ class Test_DataFile(unittest.TestCase):
         self.db.setMaskType(name="color2", color="#FF0000", index=2)
         self.db.setMaskType(name="color3", color="#FF0000", index=3)
 
+        # delete by single name
         self.db.deleteMaskTypes(names="color1")
         masktypes = self.db.getMaskTypes()
         self.assertEqual(masktypes.count(), 2, "Deleting one mask type does not work")
 
+        #delete by multiple names
         self.db.deleteMaskTypes(names=["color2", "color3"])
         masktypes = self.db.getMaskTypes()
         self.assertEqual(masktypes.count(), 0, "Deleting two mask types does not work")
+
+        # delete by color (check normalize)
+        self.db.setMaskType(name="color1", color="#FF0000", index=1)
+        self.db.setMaskType(name="color2", color="#FF0000", index=2)
+        self.db.setMaskType(name="color3", color="#FF0000", index=3)
+
+        self.db.deleteMaskTypes(colors=["#ff000"])
+        masktypes = self.db.getMaskTypes()
+        self.assertEqual(masktypes.count(), 0, "Deleting two mask types does not work")
+
 
     ''' Test Mask functions '''
     def test_setMask(self):
         """ Test the setMask function """
 
         im = self.db.setImage(filename="test.jpg", width=100, height=100)
-        print(im)
+        masktype = self.db.setMaskType(name="color", color="#FF0000", index=2)
+        masktype2 = self.db.setMaskType(name="color2", color="#FF0000")
+        mask = self.db.setMask(image=im)
+        self.assertTrue(mask.image==im,  "Failed adding a new mask")
+
+        mdata = mask.data
+        # mdata = np.ones((100,100),dtype='uint8')
+        mask = self.db.setMask(image=im, data=mdata)
+        mask = self.db.getMask(image=im)
+        self.assertTrue(mask.data==mdata, "Failed updating mask data")
+
+    def text_deleteMasks(self):
+        """ test delete masks function """
+
+        # single delete by images
+        im = self.db.setImage(filename="test.jpg", width=100, height=100)
         masktype = self.db.setMaskType(name="color", color="#FF0000", index=2)
         mask = self.db.setMask(image=im)
-        masktype = self.db.getMaskType(name="color")
-        self.assertEqual(masktype.name, "color", "Creating a new mask type does not work")
+        self.db.deleteMasks(images=im)
 
-        self.db.setMaskType(id=masktype.id, name="color2", color="#FF0000", index=2)
-        masktype = self.db.getMaskType(id=masktype.id)
-        self.assertEqual(masktype.name, "color2", "Alterning a mask type does not work")
+
+
 
     ''' Test Marker functions '''
     def test_setMarker(self):
