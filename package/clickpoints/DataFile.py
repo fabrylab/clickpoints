@@ -1659,7 +1659,9 @@ class DataFile:
 
         query = self.table_masktype.delete()
 
-        # TODO normalize color
+        # normalize and check color values
+        if colors:
+            colors = NormalizeColor(colors)
 
         query = addFilter(query, ids, self.table_masktype.id)
         query = addFilter(query, names, self.table_masktype.name)
