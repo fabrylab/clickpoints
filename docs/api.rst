@@ -44,20 +44,20 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
 .. py:class:: Meta()
 
-   Stores key value pairs containing meta information for the ClickPoints project.
+    Stores key value pairs containing meta information for the ClickPoints project.
 
-   Attributes:
+    Attributes:
         - **key** *(str, unique)* - the key
         - **value** *(str)* - the value for the key
 
 .. py:class:: Path()
 
-   Stores a path. Referenced by each image entry.
+    Stores a path. Referenced by each image entry.
 
-   See also: :py:meth:`~.DataFile.getPath`, :py:meth:`~.DataFile.getPaths`, :py:meth:`~.DataFile.setPath`,
-   :py:meth:`~.DataFile.deletePaths`.
+    See also: :py:meth:`~.DataFile.getPath`, :py:meth:`~.DataFile.getPaths`, :py:meth:`~.DataFile.setPath`,
+    :py:meth:`~.DataFile.deletePaths`.
 
-   Attributes:
+    Attributes:
         - **path** *(str, unique)* - the path
         - **images** *(list of* :py:class:`Image` *)* - the images with this path.
 
@@ -85,21 +85,22 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **mask** *(* :py:class:`Mask` *)* - the mask entry associated with the image.
         - **data** *(array)* - the image data as a numpy array. Data will be loaded on demand and cached.
         - **data8** *(array, uint8)* - the image data converted to unsigned 8 bit integers.
+        - **getShape()** *(list)* - a list containing height and width of the image. If they are not stored in the database yet, the image data has to be loaded.
 
 .. py:class:: Offset()
 
-   Offsets associated with an image.
+    Offsets associated with an image.
 
-   Attributes:
+    Attributes:
         - **image** *(* :py:class:`Image` *)* - the associated image entry.
         - **x** *(int)* - the x offset
         - **y** *(int)* - the y offset
 
 .. py:class:: Track()
 
-   A track containing multiple markers.
+    A track containing multiple markers.
 
-   Attributes:
+    Attributes:
         - **style** *(str)* - the style for this track.
         - **points** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers.
         - **marker** *(list of* :py:class:`Marker` *)* - a list containing all the associated markers.
@@ -108,9 +109,9 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
 .. py:class:: MarkerType()
 
-   A marker type.
+    A marker type.
 
-   Attributes:
+    Attributes:
         - **name** *(str, unique)* - the name of the marker type.
         - **color** *(str)* - the color of the marker in HTML format, e.g. #FF0000 (red).
         - **mode** *(int)* - the mode, hast to be either: TYPE_Normal, TYPE_Rect, TYPE_Line or TYPE_Track
@@ -121,9 +122,12 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
 .. py:class:: Marker()
 
-   A marker. Can be queries by :py:meth:`~.DataFile.GetMarker` and set by :py:meth:`~.DataFile.SetMarker`.
+    A marker.
 
-   Attributes:
+    See also: :py:meth:`~.DataFile.getMarker`, :py:meth:`~.DataFile.getMarkers`, :py:meth:`~.DataFile.setMarker`,
+    :py:meth:`~.DataFile.setMarkers`, :py:meth:`~.DataFile.deleteMarkers`.
+
+    Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
         - **x** *(int)* - the x coordinate of the marker.
         - **y** *(int)* - the y coordinate of the marker.
@@ -137,9 +141,12 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
 .. py:class:: Line()
 
-   A line. Can be queries by :py:meth:`~.DataFile.GetLines`.
+    A line.
 
-   Attributes:
+    See also: :py:meth:`~.DataFile.getLine`, :py:meth:`~.DataFile.getLines`, :py:meth:`~.DataFile.setLine`,
+    :py:meth:`~.DataFile.setLines`, :py:meth:`~.DataFile.deleteLines`.
+
+    Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this line.
         - **x1** *(int)* - the first x coordinate of the line.
         - **y1** *(int)* - the first y coordinate of the line.
@@ -155,9 +162,12 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
 .. py:class:: Rectangle()
 
-   A rectangle. Can be queried by :py:meth:`~.DataFile.GetRectangles`.
+    A rectangle.
 
-   Attributes:
+    See also: :py:meth:`~.DataFile.getRectangle`, :py:meth:`~.DataFile.getRectangles`, :py:meth:`~.DataFile.setRectangle`,
+        :py:meth:`~.DataFile.setRectangles`, :py:meth:`~.DataFile.deleteRectangles`.
+
+    Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this rectangle.
         - **x** *(int)* - the x coordinate of the rectangle.
         - **y** *(int)* - the y coordinate of the rectangle.
@@ -169,26 +179,27 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **text** *(str)* - an additional text associated with the rectangle. It is displayed next to the rectangle in ClickPoints.
         - **correctedXY()** *(array)* - the rectangle positions corrected by the offset of the image.
         - **pos()** *(array)* - an array containing the coordinates of the rectangle: [x, y].
-        - **slice_x** *(slice*) - a slice object to use the rectangle to cut out a region of an image
-        - **slice_y** *(slice)* - a slice object to use the rectangle to cut out a region of an image
+        - **slice_x()** *(slice*) - a slice object to use the rectangle to cut out a region of an image
+        - **slice_y()** *(slice)* - a slice object to use the rectangle to cut out a region of an image
+        - **area()** *(float)* - the area of the rectangle
 
 .. py:class:: Mask()
 
-   A mask entry.
+    A mask entry.
 
-   Attributes:
+    Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
         - **data** *(array)* - the mask image as a numpy array. Mask types are stored by their index value.
 
 
 .. py:class:: MaskType()
 
-   A mask type.
+    A mask type.
 
-   See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`,
-   :py:meth:`~.DataFile.deleteMaskTypes`.
+    See also: :py:meth:`~.DataFile.getMaskType`, :py:meth:`~.DataFile.getMaskTypes`, :py:meth:`~.DataFile.setMaskType`,
+    :py:meth:`~.DataFile.deleteMaskTypes`.
 
-   Attributes:
+    Attributes:
         - **name** *(str)* - the name of the mask type.
         - **color** *(str)* - the color of the mask type in HTML format, e.g. #FF0000 (red).
         - **index** *(int)* - the integer value used to represent this type in the mask.
@@ -196,9 +207,9 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
 .. py:class:: Annotation()
 
-   An annotation.
+    An annotation.
 
-   Attributes:
+    Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this annotation.
         - **timestamp** *(datetime)* - the timestamp of the image linked to the annotation.
         - **comment** *(str)* - the text of the comment.
@@ -208,9 +219,9 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
 .. py:class:: Tag()
 
-   A tag for an :py:class:`Annotation`.
+    A tag for an :py:class:`Annotation`.
 
-   Attributes:
+    Attributes:
         - **name** *(str)* - the name of the tag.
         - **annotations** *(list of* :py:class:`Annotation` *)* - the annotations associated with this tag.
 
@@ -227,4 +238,4 @@ Commands
 --------   
    
 .. autoclass:: clickpoints.Commands
-   :members:
+    :members:
