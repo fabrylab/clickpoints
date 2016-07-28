@@ -1384,7 +1384,7 @@ class DataFile:
 
         return item
 
-    def deleteTacks(self, types=None, texts=None, ids=None):
+    def deleteTracks(self, types=None, texts=None, ids=None):
         """
         Delete a single :py:class:`Track` object specified by id or all :py:class:`Track` object of an type
 
