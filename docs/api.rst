@@ -100,6 +100,8 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
     A track containing multiple markers.
 
+    See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTracks`, :py:meth:`~.DataFile.deleteTracks`.
+
     Attributes:
         - **style** *(str)* - the style for this track.
         - **points** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers.
@@ -110,6 +112,8 @@ The database contains some tables represented in the ClickPoints api as peewee m
 .. py:class:: MarkerType()
 
     A marker type.
+
+    Seel also: :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.deleteMarkerType`.
 
     Attributes:
         - **name** *(str, unique)* - the name of the marker type.
@@ -165,7 +169,7 @@ The database contains some tables represented in the ClickPoints api as peewee m
     A rectangle.
 
     See also: :py:meth:`~.DataFile.getRectangle`, :py:meth:`~.DataFile.getRectangles`, :py:meth:`~.DataFile.setRectangle`,
-        :py:meth:`~.DataFile.setRectangles`, :py:meth:`~.DataFile.deleteRectangles`.
+    :py:meth:`~.DataFile.setRectangles`, :py:meth:`~.DataFile.deleteRectangles`.
 
     Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this rectangle.
@@ -186,6 +190,8 @@ The database contains some tables represented in the ClickPoints api as peewee m
 .. py:class:: Mask()
 
     A mask entry.
+
+    See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMask`.
 
     Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
