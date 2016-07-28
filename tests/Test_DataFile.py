@@ -765,10 +765,10 @@ class Test_DataFile(unittest.TestCase):
         self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
 
         # with invalid frame number
-        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setMarker, frame=1, x=123, y=0, type=marker_type)
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setMarker, frame=1, x=123, y=0, type=marker_type)
 
         # with invalid filename
-        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setMarker, filename="no.jpg", x=123, y=0,
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setMarker, filename="no.jpg", x=123, y=0,
                           type=marker_type)
 
         # with invalid type na,e
@@ -1037,10 +1037,10 @@ class Test_DataFile(unittest.TestCase):
         self.assertEqual(Line.x1, 123, "Setting Line does not work properly.")
 
         # with invalid frame number
-        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setLine, frame=1, x1=123, y1=0, x2=10, y2=10, type=Line_type)
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setLine, frame=1, x1=123, y1=0, x2=10, y2=10, type=Line_type)
 
         # with invalid filename
-        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setLine, filename="no.jpg", x1=123, y1=0, x2=10, y2=10, type=Line_type)
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setLine, filename="no.jpg", x1=123, y1=0, x2=10, y2=10, type=Line_type)
 
         # with invalid type na,e
         self.assertRaises(clickpoints.MarkerTypeDoesNotExist, self.db.setLine, image=1, x1=123, y1=0, x2=10, y2=10, type="NoType")
@@ -1276,11 +1276,11 @@ class Test_DataFile(unittest.TestCase):
         self.assertEqual(Rectangle.x, 123, "Setting Rectangle does not work properly.")
 
         # with invalid frame number
-        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setRectangle, frame=1, x=123, y=0, width=10, height=10,
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setRectangle, frame=1, x=123, y=0, width=10, height=10,
                           type=Rectangle_type)
 
         # with invalid filename
-        self.assertRaises(clickpoints.ImageDoesNotExit, self.db.setRectangle, filename="no.jpg", x=123, y=0, width=10,
+        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setRectangle, filename="no.jpg", x=123, y=0, width=10,
                           height=10, type=Rectangle_type)
 
         # with invalid type na,e
