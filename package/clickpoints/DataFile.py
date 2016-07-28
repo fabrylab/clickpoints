@@ -1694,8 +1694,8 @@ class DataFile:
             the desired :py:class:`Mask` entry.
         """
         # check input
-        assert sum(e is not None for e in [image, frame, filename]) == 1, \
-            "Exactly one of image, frame or filename should be specified"
+        assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
+            "Exactly one of image, frame or filename should be specified or should be referenced by it's id."
 
         query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
 
@@ -1776,8 +1776,8 @@ class DataFile:
             the changed or created :py:class:`Mask` entry.
         """
         # check input
-        assert sum(e is not None for e in [image, frame, filename]) == 1, \
-            "Exactly one of image, frame or filename should be specified"
+        assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
+            "Exactly one of image, frame or filename should be specified or an id"
 
         # TODO check data shape and datatype warn if it couldn't be checked
 
@@ -2037,17 +2037,502 @@ class DataFile:
         """
         types = self._processesTypeNameField(types)
 
-        query = self.table_marker.delete(self.table_marker, self.table_image).join(self.table_image)
+        query = self.table_marker.delete()
+
+        if images is None:
+            images = self.table_image.select()
+            images = addFilter(images, frames, self.table_image.sort_index)
+            images = addFilter(images, filenames, self.table_image.filename)
+            query = query.where(self.table_marker.image.in_(images))
+        else:
+            query = addFilter(query, images, self.table_mask.image)
 
         query = addFilter(query, ids, self.table_marker.id)
-        query = addFilter(query, images, self.table_mask.image)
-        query = addFilter(query, frames, self.table_image.sort_index)
-        query = addFilter(query, filenames, self.table_image.filename)
         query = addFilter(query, xs, self.table_marker.x)
         query = addFilter(query, ys, self.table_marker.y)
         query = addFilter(query, types, self.table_marker.type)
         query = addFilter(query, processed, self.table_marker.processed)
         query = addFilter(query, tracks, self.table_marker.track)
         query = addFilter(query, texts, self.table_marker.text)
+
+        return query.execute()
+
+
+
+    def getLine(self, id):
+        """
+        Retrieve an :py:class:`Line` object from the database.
+
+        See also: :py:meth:`~.DataFile.getLines`, :py:meth:`~.DataFile.setLine`, :py:meth:`~.DataFile.setLines`,
+        :py:meth:`~.DataFile.deleteLines`.
+
+        Parameters
+        ----------
+        id: int
+            the id of the line
+
+        Returns
+        -------
+        line : :py:class:`Line`
+            the :py:class:`Line` with the desired id or None.
+        """
+        try:
+            return self.table_line.get(id=id)
+        except peewee.DoesNotExist:
+            return None
+
+    def getLines(self, images=None, frames=None, filenames=None, xs1=None, ys1=None, xs2=None, ys2=None, types=None,
+                 processed=None, texts=None, ids=None):
+        """
+        Get all :py:class:`Line` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getLine`, :py:meth:`~.DataFile.setLine`, :py:meth:`~.DataFile.setLines`,
+        :py:meth:`~.DataFile.deleteLines`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the lines.
+        frames : int, array_like, optional
+            the frame/s of the images of the lines.
+        filenames : string, array_like, optional
+            the filename/s of the images of the lines.
+        xs1 : int, array_like, optional
+            the x coordinate/s of the lines start.
+        ys1 : int, array_like, optional
+            the y coordinate/s of the lines start.
+        xs2 : int, array_like, optional
+            the x coordinate/s of the lines end.
+        ys2 : int, array_like, optional
+            the y coordinate/s of the lines end.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the lines.
+        processed : int, array_like, optional
+            the processed flag/s of the lines.
+        texts : string, array_like, optional
+            the text/s of the lines.
+        ids : int, array_like, optional
+            the id/s of the lines.
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains all :py:class:`Line` entries.
+        """
+        types = self._processesTypeNameField(types)
+
+        query = self.table_line.select(self.table_line, self.table_image).join(self.table_image)
+
+        query = addFilter(query, ids, self.table_line.id)
+        query = addFilter(query, images, self.table_line.image)
+        query = addFilter(query, frames, self.table_image.sort_index)
+        query = addFilter(query, filenames, self.table_image.filename)
+        query = addFilter(query, xs1, self.table_line.x1)
+        query = addFilter(query, ys1, self.table_line.y1)
+        query = addFilter(query, xs2, self.table_line.x2)
+        query = addFilter(query, ys2, self.table_line.y2)
+        query = addFilter(query, types, self.table_line.type)
+        query = addFilter(query, processed, self.table_line.processed)
+        query = addFilter(query, texts, self.table_line.text)
+
+        return query
+
+    def setLine(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None, processed=None, style=None, text=None, id=None):
+        """
+        Insert or update an :py:class:`Line` object in the database.
+
+        See also: :py:meth:`~.DataFile.getLine`, :py:meth:`~.DataFile.getLines`, :py:meth:`~.DataFile.setLines`,
+        :py:meth:`~.DataFile.deleteLines`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image of the line.
+        frame : int, optional
+            the frame of the images of the line.
+        filename : string, optional
+            the filename of the image of the line.
+        x1 : int, optional
+            the x coordinate of the start of the line.
+        y1 : int, optional
+            the y coordinate of the start of the line.
+        x2 : int, optional
+            the x coordinate of the end of the line.
+        y2 : int, optional
+            the y coordinate of the end of the line.
+        type : string, :py:class:`MarkerType`, optional
+            the marker type (or name) of the line.
+        processed : int, optional
+            the processed flag of the line.
+        text : string, optional
+            the text of the line.
+        id : int, optional
+            the id of the line.
+
+        Returns
+        -------
+        line : :py:class:`Line`
+            the created or changed :py:class:`Line` item.
+        """
+        assert not (id is None and type is None), "Line must either have a type or be referenced by it's id."
+        assert not (id is None and image is None and frame is None and filename is None), "Line must have an image, frame or filename given or be referenced by it's id."
+
+        try:
+            item = self.table_line.get(id=id)
+        except peewee.DoesNotExist:
+            item = self.table_line()
+
+        type = self._processesTypeNameField(type)
+        image = self._processImagesField(image, frame, filename)
+
+        setFields(item, dict(image=image, x1=x1, y1=y1, x2=x2, y2=y2, type=type, processed=processed, style=style, text=text))
+        item.save()
+        return item
+
+    def setLines(self, images=None, frames=None, filenames=None, xs1=None, ys1=None, xs2=None, ys2=None, types=None,
+                 processed=None, styles=None, texts=None, ids=None):
+        """
+        Insert or update multiple :py:class:`Line` objects in the database.
+
+        See also: :py:meth:`~.DataFile.getLine`, :py:meth:`~.DataFile.getLines`, :py:meth:`~.DataFile.setLine`,
+        :py:meth:`~.DataFile.deleteLines`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the lines.
+        frames : int, array_like, optional
+            the frame/s of the images of the lines.
+        filenames : string, array_like, optional
+            the filename/s of the images of the lines.
+        xs1 : int, array_like, optional
+            the x coordinate/s of the start of the lines.
+        ys1 : int, array_like, optional
+            the y coordinate/s of the start of the lines.
+        xs2 : int, array_like, optional
+            the x coordinate/s of the end of the lines.
+        ys2 : int, array_like, optional
+            the y coordinate/s of the end of the lines.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the lines.
+        processed : int, array_like, optional
+            the processed flag/s of the lines.
+        tracks : int, :py:class:`Track`, array_like, optional
+            the track id/s or instance/s of the lines.
+        texts : string, array_like, optional
+            the text/s of the lines.
+        ids : int, array_like, optional
+            the id/s of the lines.
+
+        Returns
+        -------
+        success : bool
+            it the inserting was successful.
+        """
+        types = self._processesTypeNameField(types)
+        images = self._processImagesField(images, frames, filenames)
+
+        data = packToDictList(id=ids, image=images, x1=xs1, y1=ys1, x2=xs2, y2=ys2, processed=processed, type=types,
+                              style=styles, text=texts)
+        return self.table_line.insert_many(data).upsert().execute()
+
+    def deleteLines(self, images=None, frames=None, filenames=None, xs1=None, ys1=None, xs2=None, ys2=None, types=None,
+                    processed=None, texts=None, ids=None):
+        """
+        Delete all :py:class:`Marker` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getLine`, :py:meth:`~.DataFile.getLines`, :py:meth:`~.DataFile.setLine`,
+        :py:meth:`~.DataFile.setLines`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the lines.
+        frames : int, array_like, optional
+            the frame/s of the images of the lines.
+        filenames : string, array_like, optional
+            the filename/s of the images of the lines.
+        xs1 : int, array_like, optional
+            the x coordinate/s of the start of the lines.
+        ys1 : int, array_like, optional
+            the y coordinate/s of the start of the lines.
+        xs2 : int, array_like, optional
+            the x coordinate/s of the end of the lines.
+        ys2 : int, array_like, optional
+            the y coordinate/s of the end of the lines.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the lines.
+        processed : int, array_like, optional
+            the processed flag/s of the lines.
+        texts : string, array_like, optional
+            the text/s of the lines.
+        ids : int, array_like, optional
+            the id/s of the lines.
+
+        Returns
+        -------
+        rows : int
+            the number of affected rows.
+        """
+        types = self._processesTypeNameField(types)
+
+        query = self.table_line.delete()
+
+        if images is None:
+            images = self.table_image.select()
+            images = addFilter(images, frames, self.table_image.sort_index)
+            images = addFilter(images, filenames, self.table_image.filename)
+            query = query.where(self.table_line.image.in_(images))
+        else:
+            query = addFilter(query, images, self.table_mask.image)
+
+        query = addFilter(query, ids, self.table_line.id)
+        query = addFilter(query, xs1, self.table_line.x1)
+        query = addFilter(query, ys1, self.table_line.y1)
+        query = addFilter(query, xs2, self.table_line.x2)
+        query = addFilter(query, ys2, self.table_line.y2)
+        query = addFilter(query, types, self.table_line.type)
+        query = addFilter(query, processed, self.table_line.processed)
+        query = addFilter(query, texts, self.table_line.text)
+
+        return query.execute()
+
+
+    def getRectangle(self, id):
+        """
+        Retrieve an :py:class:`Rectangle` object from the database.
+
+        See also: :py:meth:`~.DataFile.getRectangles`, :py:meth:`~.DataFile.setRectangle`,
+        :py:meth:`~.DataFile.setRectangles`, :py:meth:`~.DataFile.deleteRectangles`.
+
+        Parameters
+        ----------
+        id: int
+            the id of the rectangle.
+
+        Returns
+        -------
+        rectangle : :py:class:`Rectangle`
+            the :py:class:`Rectangle` with the desired id or None.
+        """
+        try:
+            return self.table_rectangle.get(id=id)
+        except peewee.DoesNotExist:
+            return None
+
+    def getRectangles(self, images=None, frames=None, filenames=None, xs=None, ys=None, widths=None, heights=None, types=None,
+                 processed=None, texts=None, ids=None):
+        """
+        Get all :py:class:`Rectangle` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getRectangle`, :py:meth:`~.DataFile.setRectangle`,
+        :py:meth:`~.DataFile.setRectangles`, :py:meth:`~.DataFile.deleteRectangles`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the rectangles.
+        frames : int, array_like, optional
+            the frame/s of the images of the rectangles.
+        filenames : string, array_like, optional
+            the filename/s of the images of the rectangles.
+        xs : int, array_like, optional
+            the x coordinate/s of the upper left corner/s of the rectangles.
+        ys : int, array_like, optional
+            the y coordinate/s of the upper left corner/s of the rectangles.
+        widths : int, array_like, optional
+            the width/s of the rectangles.
+        heights : int, array_like, optional
+            the height/s of the rectangles.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the rectangles.
+        processed : int, array_like, optional
+            the processed flag/s of the rectangles.
+        texts : string, array_like, optional
+            the text/s of the rectangles.
+        ids : int, array_like, optional
+            the id/s of the rectangles.
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains all :py:class:`Rectangle` entries.
+        """
+        types = self._processesTypeNameField(types)
+
+        query = self.table_rectangle.select(self.table_rectangle, self.table_image).join(self.table_image)
+
+        query = addFilter(query, ids, self.table_rectangle.id)
+        query = addFilter(query, images, self.table_rectangle.image)
+        query = addFilter(query, frames, self.table_image.sort_index)
+        query = addFilter(query, filenames, self.table_image.filename)
+        query = addFilter(query, xs, self.table_rectangle.x)
+        query = addFilter(query, ys, self.table_rectangle.y)
+        query = addFilter(query, heights, self.table_rectangle.height)
+        query = addFilter(query, widths, self.table_rectangle.width)
+        query = addFilter(query, types, self.table_rectangle.type)
+        query = addFilter(query, processed, self.table_rectangle.processed)
+        query = addFilter(query, texts, self.table_rectangle.text)
+
+        return query
+
+    def setRectangle(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
+                     processed=None, style=None, text=None, id=None):
+        """
+        Insert or update an :py:class:`Rectangle` object in the database.
+
+        See also: :py:meth:`~.DataFile.getRectangle`, :py:meth:`~.DataFile.getRectangles`,
+        :py:meth:`~.DataFile.setRectangles`, :py:meth:`~.DataFile.deleteRectangles`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image of the rectangle.
+        frame : int, optional
+            the frame of the images of the rectangle.
+        filename : string, optional
+            the filename of the image of the rectangle.
+        x : int, optional
+            the x coordinate of the upper left corner of the rectangle.
+        y : int, optional
+            the y coordinate of the upper left of the rectangle.
+        width : int, optional
+            the width of the rectangle.
+        height : int, optional
+            the height of the rectangle.
+        type : string, :py:class:`MarkerType`, optional
+            the marker type (or name) of the rectangle.
+        processed : int, optional
+            the processed flag of the rectangle.
+        text : string, optional
+            the text of the rectangle.
+        id : int, optional
+            the id of the rectangle.
+
+        Returns
+        -------
+        rectangle : :py:class:`Rectangle`
+            the created or changed :py:class:`Rectangle` item.
+        """
+        assert not (id is None and type is None), "Rectangle must either have a type or be referenced by it's id."
+        assert not (id is None and image is None and frame is None and filename is None), "Rectangle must have an image, frame or filename given or be referenced by it's id."
+
+        try:
+            item = self.table_rectangle.get(id=id)
+        except peewee.DoesNotExist:
+            item = self.table_rectangle()
+
+        type = self._processesTypeNameField(type)
+        image = self._processImagesField(image, frame, filename)
+
+        setFields(item, dict(image=image, x=x, y=y, width=width, height=height, type=type, processed=processed, style=style, text=text))
+        item.save()
+        return item
+
+    def setRectangles(self, images=None, frames=None, filenames=None, xs=None, ys=None, widths=None, heights=None, types=None,
+                 processed=None, styles=None, texts=None, ids=None):
+        """
+        Insert or update multiple :py:class:`Rectangle` objects in the database.
+
+        See also: :py:meth:`~.DataFile.getRectangle`, :py:meth:`~.DataFile.getRectangles`,
+        :py:meth:`~.DataFile.setRectangle`, :py:meth:`~.DataFile.deleteRectangles`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the rectangles.
+        frames : int, array_like, optional
+            the frame/s of the images of the rectangles.
+        filenames : string, array_like, optional
+            the filename/s of the images of the rectangles.
+        xs : int, array_like, optional
+            the x coordinate/s of the upper left corner/s of the rectangles.
+        ys : int, array_like, optional
+         the y coordinate/s of the upper left corner/s of the rectangles.
+        widths : int, array_like, optional
+            the width/s of the rectangles.
+        heights : int, array_like, optional
+            the height/s of the rectangles.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the rectangles.
+        processed : int, array_like, optional
+            the processed flag/s of the rectangles.
+        tracks : int, :py:class:`Track`, array_like, optional
+            the track id/s or instance/s of the rectangles.
+        texts : string, array_like, optional
+            the text/s of the rectangles.
+        ids : int, array_like, optional
+            the id/s of the rectangles.
+
+        Returns
+        -------
+        success : bool
+            it the inserting was successful.
+        """
+        types = self._processesTypeNameField(types)
+        images = self._processImagesField(images, frames, filenames)
+
+        data = packToDictList(id=ids, image=images, x=xs, y=ys, width=widths, height=heights, processed=processed, type=types,
+                              style=styles, text=texts)
+        return self.table_rectangle.insert_many(data).upsert().execute()
+
+    def deleteRectangles(self, images=None, frames=None, filenames=None, xs=None, ys=None, widths=None, heights=None, types=None,
+                    processed=None, texts=None, ids=None):
+        """
+        Delete all :py:class:`Rectangle` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getRectangle`, :py:meth:`~.DataFile.getRectangles`,
+        :py:meth:`~.DataFile.setRectangle`, :py:meth:`~.DataFile.setRectangles`.
+
+        Parameters
+        ----------
+        images : int, :py:class:`Image`, array_like, optional
+            the image/s of the rectangles.
+        frames : int, array_like, optional
+            the frame/s of the images of the rectangles.
+        filenames : string, array_like, optional
+            the filename/s of the images of the rectangles.
+        xs : int, array_like, optional
+            the x coordinate/s of the upper left corner/s of the rectangles.
+        ys : int, array_like, optional
+            the y coordinate/s of the upper left corner/s of the rectangles.
+        widths : int, array_like, optional
+            the width/s of the rectangles.
+        heights : int, array_like, optional
+            the height/s of the rectangles.
+        types : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the rectangles.
+        processed : int, array_like, optional
+            the processed flag/s of the rectangles.
+        texts : string, array_like, optional
+            the text/s of the rectangles.
+        ids : int, array_like, optional
+            the id/s of the rectangles.
+
+        Returns
+        -------
+        rows : int
+            the number of affected rows.
+        """
+        types = self._processesTypeNameField(types)
+
+        query = self.table_rectangle.delete()
+
+        if images is None:
+            images = self.table_image.select()
+            images = addFilter(images, frames, self.table_image.sort_index)
+            images = addFilter(images, filenames, self.table_image.filename)
+            query = query.where(self.table_rectangle.image.in_(images))
+        else:
+            query = addFilter(query, images, self.table_mask.image)
+
+        query = addFilter(query, ids, self.table_rectangle.id)
+        query = addFilter(query, xs, self.table_rectangle.x)
+        query = addFilter(query, ys, self.table_rectangle.y)
+        query = addFilter(query, widths, self.table_rectangle.width)
+        query = addFilter(query, heights, self.table_rectangle.height)
+        query = addFilter(query, types, self.table_rectangle.type)
+        query = addFilter(query, processed, self.table_rectangle.processed)
+        query = addFilter(query, texts, self.table_rectangle.text)
 
         return query.execute()
