@@ -1868,15 +1868,20 @@ class DataFile:
             id/ids of the masks.
         """
         # check input
-        assert sum(e is not None for e in [images, frames, filenames]) == 1, \
+        assert sum(e is not None for e in [images, frames, filenames]) <= 1, \
             "Exactly one of images, frames or filenames should be specified"
 
-        query = self.table_mask.delete(self.table_mask, self.table_image).join(self.table_image)
+        query = self.table_mask.delete()
+
+        if images is None:
+            images = self.table_image.select()
+            images = addFilter(images, frames, self.table_image.sort_index)
+            images = addFilter(images, filenames, self.table_image.filename)
+            query = query.where(self.table_mask.image.in_(images))
+        else:
+            query = addFilter(query, images, self.table_mask.image)
 
         query = addFilter(query, ids, self.table_mask.id)
-        query = addFilter(query, images, self.table_mask.image)
-        query = addFilter(query, frames, self.table_image.sort_index)
-        query = addFilter(query, filenames, self.table_image.filename)
         query.execute()
 
 
@@ -2011,7 +2016,7 @@ class DataFile:
         Insert or update multiple :py:class:`Marker` objects in the database.
 
         See also: :py:meth:`~.DataFile.getMarker`, :py:meth:`~.DataFile.getMarkers`, :py:meth:`~.DataFile.setMarker`,
-         :py:meth:`~.DataFile.deleteMarkers`.
+        :py:meth:`~.DataFile.deleteMarkers`.
 
         Parameters
         ----------
@@ -2094,7 +2099,7 @@ class DataFile:
             images = addFilter(images, filenames, self.table_image.filename)
             query = query.where(self.table_marker.image.in_(images))
         else:
-            query = addFilter(query, images, self.table_mask.image)
+            query = addFilter(query, images, self.table_marker.image)
 
         query = addFilter(query, ids, self.table_marker.id)
         query = addFilter(query, xs, self.table_marker.x)
@@ -2333,7 +2338,7 @@ class DataFile:
             images = addFilter(images, filenames, self.table_image.filename)
             query = query.where(self.table_line.image.in_(images))
         else:
-            query = addFilter(query, images, self.table_mask.image)
+            query = addFilter(query, images, self.table_line.image)
 
         query = addFilter(query, ids, self.table_line.id)
         query = addFilter(query, xs1, self.table_line.x1)
@@ -2573,7 +2578,7 @@ class DataFile:
             images = addFilter(images, filenames, self.table_image.filename)
             query = query.where(self.table_rectangle.image.in_(images))
         else:
-            query = addFilter(query, images, self.table_mask.image)
+            query = addFilter(query, images, self.table_rectangle.image)
 
         query = addFilter(query, ids, self.table_rectangle.id)
         query = addFilter(query, xs, self.table_rectangle.x)

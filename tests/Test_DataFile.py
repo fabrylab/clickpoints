@@ -444,8 +444,7 @@ class Test_DataFile(unittest.TestCase):
         masks = self.db.getMasks(frames=[0, 2])
         self.assertTrue(masks.count() == 2, 'Failed to retrieve masks by ids ')
 
-
-    def text_deleteMasks(self):
+    def test_deleteMasks(self):
         """ test delete masks function """
         im1 = self.db.setImage(filename="test1.jpg", width=100, height=100)
         im2 = self.db.setImage(filename="test2.jpg", width=100, height=100)
@@ -460,12 +459,15 @@ class Test_DataFile(unittest.TestCase):
         masks = self.db.getMasks()
         self.assertTrue(masks.count() == 2, 'Failed to to delete single mask by image')
 
+        # single delete by filename
+        self.db.deleteMasks(filenames="test3.jpg")
+        masks = self.db.getMasks()
+        self.assertTrue(masks.count() == 1, 'Failed to to delete single mask by image')
+
         # delete all masks
         self.db.deleteMasks()
         masks = self.db.getMasks()
         self.assertTrue(masks.count() == 0, 'Failed to to delete all masks')
-
-
 
 
     ''' Test Marker functions '''
@@ -692,6 +694,7 @@ class Test_DataFile(unittest.TestCase):
         CreateMarkers()
         self.db.deleteMarkers(filenames="test2.jpg")
         self.assertEqual(self.db.getMarkers().count(), 13, "Deleting markers does not work properly.")
+        self.assertEqual(self.db.getMarkers(filenames="test2.jpg").count(), 0, "Deleting markers does not work properly.")
         self.db.deleteMarkers()
 
         # delete by filename
