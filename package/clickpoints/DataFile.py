@@ -94,25 +94,46 @@ def setFields(entry, dict):
         if dict[key] is not None:
             setattr(entry, key, dict[key])
 
-def packToDictList(**kwargs):
+def packToDictList(table, **kwargs):
     import itertools
     max_len = 0
     singles = {}
+    def WrapSingle(key, i):
+        return kwargs[key]
+    def WrapMultiple(key, i):
+        return kwargs[key][i]
+    def WrapNoneID(key, i):
+        field = getattr(table, key)
+        result = table.select(field).where(table.id == singles["id"](i))
+        if field.default is not None:
+            result = peewee.fn.COALESCE(result, field.default)
+        return result
+    def WrapNoneImageTrack(key, i):
+        field = getattr(table, key)
+        result = table.select(field).where(table.image == singles["image"](i), table.track == singles["track"](i))
+        if field.default is not None:
+            result = peewee.fn.COALESCE(result, field.default)
+        return result
     for key in kwargs.keys():
         if kwargs[key] is None:
-            del kwargs[key]
+            if "id" in kwargs and kwargs["id"] is not None:
+                singles[key] = lambda i, key=key: WrapNoneID(key, i)
+            elif ("image" in kwargs and kwargs["image"] is not None) and ("track" in kwargs and kwargs["track"] is not None):
+                singles[key] = lambda i, key=key: WrapNoneImageTrack(key, i)
+            else:
+                del kwargs[key]
             continue
         if isinstance(kwargs[key], (tuple, list)):
             if max_len > 1 and max_len != len(kwargs[key]):
                 raise IndexError()
             max_len = max(max_len, len(kwargs[key]))
-            singles[key] = False
+            singles[key] = lambda i, key=key: WrapMultiple(key, i)
         else:
             max_len = max(max_len, 1)
-            singles[key] = True
+            singles[key] = lambda i, key=key: WrapSingle(key, i)
     dict_list = []
     for i in range(max_len):
-        dict_list.append({key: kwargs[key] if singles[key] else kwargs[key][i] for key in kwargs})
+        dict_list.append({key: singles[key](i) for key in kwargs})
     return dict_list
 
 def VerboseDict(dictionary):
@@ -426,6 +447,23 @@ class DataFile:
                     return self.pos()
                 return BaseModel(self, item)
 
+            def __str__(self):
+                return "Marker Object: id=%d\timage=#%s\tx=%s\tx=%s\ttype=%s\tprocessed=%s\ttrack=#%s\tstyle=%s\ttext=%s" \
+                       % (self.id, self.image_id, self.x, self.y, self.type, self.processed, self.track_id, self.style, self.text)
+
+            def details(self):
+                print("Marker Object:\n"
+                      "id:\t\t{0}\n"
+                      "image:\t{1}\n"
+                      "x:\t{2}\n"
+                      "y:\t{3}\n"
+                      "type:\t{4}\n"
+                      "processed:\t{5}\n"
+                      "track:\t{5}\n"
+                      "style:\t{5}\n"
+                      "text:\t{5}\n"
+                      .format(self.id, self.image, self.x, self.y, self.type, self.processed, self.track, self.style, self.text))
+
             def correctedXY(self):
                 join_condition = ((Marker.image == Offset.image) & \
                                   (Marker.image_frame == Offset.image_frame))
@@ -698,7 +736,6 @@ class DataFile:
                 else:
                     return BaseModel(self, item)
 
-<<<<<<< dest
             def __str__(self):
                 return "AnnotationObject id%s:\timage=%s\ttimestamp=%s\tcomment=%s\trating=%s" \
                        % (self.id, self.image, self.timestmap, self.comment, self.rating)
@@ -712,22 +749,6 @@ class DataFile:
                       "rating:\t{4}\n"
                       .format(self.id, self.image, self.timestmap, self.comment, self.rating))
 
-=======
-            def __str__(self):
-                return "Annotation Object: id=%d\timage=%s\ttimestamp=%s\tcomment=%s\trating=%s\ttags=%s" \
-                       % (self.id, self.image, self.timestamp, self.comment, self.rating, self.tags)
-
-            def details(self):
-                print("Annotation Object:\n"
-                      "id:\t\t{0}\n"
-                      "image:\t{1}\n"
-                      "timestamp:\t{2}\n"
-                      "comment:\t{3}\n"
-                      "rating:\t{4}\n"
-                      "tags:\t{5}\n"
-                      .format(self.id, self.image, self.timestamp, self.comment, self.rating, self.tags))
-
->>>>>>> source
         class Tag(BaseModel):
             name = peewee.CharField()
 
@@ -2204,7 +2225,7 @@ class DataFile:
         type = self._processesTypeNameField(type)
         image = self._processImagesField(image, frame, filename)
 
-        data = packToDictList(id=id, image=image, x=x, y=y, processed=processed, type=type, track=track,
+        data = packToDictList(self.table_marker, id=id, image=image, x=x, y=y, processed=processed, type=type, track=track,
                               style=style, text=text)
         return self.table_marker.insert_many(data).upsert().execute()
 
@@ -2441,7 +2462,7 @@ class DataFile:
         type = self._processesTypeNameField(type)
         image = self._processImagesField(image, frame, filename)
 
-        data = packToDictList(id=id, image=image, x1=x1, y1=y1, x2=x2, y2=y2, processed=processed, type=type,
+        data = packToDictList(self.table_line, id=id, image=image, x1=x1, y1=y1, x2=x2, y2=y2, processed=processed, type=type,
                               style=style, text=text)
         return self.table_line.insert_many(data).upsert().execute()
 
@@ -2681,7 +2702,7 @@ class DataFile:
         type = self._processesTypeNameField(type)
         image = self._processImagesField(image, frame, filename)
 
-        data = packToDictList(id=id, image=image, x=x, y=y, width=width, height=height, processed=processed, type=type,
+        data = packToDictList(self.table_rectangle, id=id, image=image, x=x, y=y, width=width, height=height, processed=processed, type=type,
                               style=style, text=text)
         return self.table_rectangle.insert_many(data).upsert().execute()
 
