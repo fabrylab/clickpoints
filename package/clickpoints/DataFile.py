@@ -304,9 +304,24 @@ class DataFile:
 
 
             def __str__(self):
-                return "ImageObject id%s: filename=%s, ext=%s, frame=%s, external_id=%s, timestamp=%s, sort_index=%s," \
-                       " width=%s, height=%s, path=%s" % (self.id, self.filename, self.ext, self.frame, self.external_id,
+                return "ImageObject id%s:\tfilename=%s\text=%s\tframe=%s\texternal_id=%s\ttimestamp=%s\tsort_index=%s," \
+                       " width=%s\theight=%s\tpath=%s" \
+                       % (self.id, self.filename, self.ext, self.frame, self.external_id,
                         self.timestamp, self.sort_index, self.width, self.height, self.path)
+
+            def print_details(self):
+                print("ImageObject:\n"
+                      "id:\t\t{0}\n"
+                      "filename:\t{1}\n"
+                      "ext:\t{2}\n"
+                      "external_id:\t{3}\n"
+                      "timestamp:\t{4}\n"
+                      "sort_index:\t{5}\n"
+                      "widht:\t{6}\n"
+                      "height:\t{7}\n"
+                      "path:\t{8}"
+                      .format(self.id, self.filename, self.ext, self.frame, self.external_id,
+                        self.timestamp, self.sort_index, self.width, self.height, self.path))
 
         self.base_model = BaseModel
         self.table_meta = Meta
@@ -321,8 +336,22 @@ class DataFile:
             x = peewee.FloatField()
             y = peewee.FloatField()
 
+            def __str__(self):
+                return "OffsetObject id%s:\tx=%s\ty=%s\timage=%s" \
+                        % (self.id, self.x, self.y, self.image)
+
+            def print_details(self):
+                print("OffsetObject:\n"
+                      "id:\t\t{0}\n"
+                      "x:\t{1}\n"
+                      "y:\t{2}\n"
+                      "image:\t{3}\n"
+                      .format(self.id, self.x, self.y, self.image))
+
+
         self.table_offset = Offset
         self.tables.extend([Offset])
+
 
         """ Marker Tables """
 
@@ -334,11 +363,11 @@ class DataFile:
             text = peewee.CharField(null=True)
 
             def __str__(self):
-                return "MarkerType Object: id=%d\tname=%s\tcolor=%s\tmode=%s\tstyle=%s\ttext=%s" \
+                return "MarkerTypeObject id%s:\tname=%s\tcolor=%s\tmode=%s\tstyle=%s\ttext=%s" \
                        % (self.id, self.name, self.color, self.mode, self.style, self.text)
 
-            def details(self):
-                print("MarkerType Object:\n"
+            def print_details(self):
+                print("MarkerTypeObject:\n"
                       "id:\t\t{0}\n"
                       "name:\t{1}\n"
                       "color:\t{2}\n"
@@ -363,6 +392,19 @@ class DataFile:
                 if item == "frames":
                     return np.array([point.image.sort_index for point in self.markers])
                 return BaseModel(self, item)
+
+            def __str__(self):
+                return "TrackObject id%s:\ttype=%s\ttext=%s\tstyle=%s" \
+                       % (self.id, self.type, self.style, self.text)
+
+            def print_details(self):
+                print("TrackObject:\n"
+                      "id:\t\t{0}\n"
+                      "type:\t{1}\n"
+                      "style:\t{2}\n"
+                      "text:\t{3}\n"
+                      .format(self.id, self.type, self.style, self.text))
+
 
         class Marker(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="markers", on_delete='CASCADE')
@@ -405,6 +447,25 @@ class DataFile:
 
             def pos(self):
                 return np.array([self.x, self.y])
+
+            def __str__(self):
+                return "MarkerObject id%s:\timage=%s\tx=%s\ty=%s\ttype=%s\tprocessed=%s\ttrack=%s\tstyle=%s\ttext=%s" \
+                       % (self.id, self.image, self.x, self.y, self.type, self.processed, self.track, self.style,
+                          self.text)
+
+            def print_details(self):
+                print("MarkerObject:\n"
+                      "id:\t\t{0}\n"
+                      "image:\t{1}\n"
+                      "x:\t{2}\n"
+                      "y:\t{3}\n"
+                      "type:\t{4}\n"
+                      "processed:\t{5}\n"
+                      "track:\t{6}\n"
+                      "style:\t{7}\n"
+                      "text:\t{8}"
+                      .format(self.id, self.image, self.x, self.y, self.type, self.processed, self.track, self.style,
+                              self.text))
 
         class Line(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="lines", on_delete='CASCADE')
@@ -467,6 +528,27 @@ class DataFile:
 
             def length(self):
                 return np.sqrt((self.x1-self.x2)**2 + (self.y1-self.y2)**2)
+
+            def __str__(self):
+                return "LineObject id%s:\timage=%s\tx1=%s\ty1=%s\tx2=%s\ty2=%s\ttype=%s\tprocessed=%s\tstyle=%s\ttext=%s" \
+                       % (self.id, self.image, self.x1, self.y1, self.x2, self.y2, self.type, self.processed, self.style,
+                          self.text)
+
+            def print_details(self):
+                print("LineObject:\n"
+                      "id:\t\t{0}\n"
+                      "image:\t{1}\n"
+                      "x1:\t{2}\n"
+                      "y1:\t{3}\n"
+                      "x2:\t{4}\n"
+                      "y2:\t{5}\n"
+                      "type:\t{6}\n"
+                      "processed:\t{7}\n"
+                      "style:\t{8}\n"
+                      "text:\t{9}"
+                      .format(self.id, self.image, self.x1, self.y1, self.x2, self.y2, self.type, self.processed,
+                              self.style,
+                              self.text))
 
         class Rectangle(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="rectangles", on_delete='CASCADE')
@@ -550,6 +632,29 @@ class DataFile:
             def area(self):
                 return self.width * self.height
 
+            def __str__(self):
+                return "RectangleObject id%s:\timage=%s\tx=%s\ty=%s\twidth=%s\theight=%s\ttype=%s\tprocessed=%s\tstyle=%s\ttext=%s" \
+                       % (
+                           self.id, self.image, self.x, self.y, self.width, self.height, self.type, self.processed,
+                           self.style,
+                           self.text)
+
+            def print_details(self):
+                print("RectangleObject:\n"
+                      "id:\t\t{0}\n"
+                      "image:\t{1}\n"
+                      "x:\t{2}\n"
+                      "y:\t{3}\n"
+                      "width:\t{4}\n"
+                      "height:\t{5}\n"
+                      "type:\t{6}\n"
+                      "processed:\t{7}\n"
+                      "style:\t{8}\n"
+                      "text:\t{9}"
+                      .format(self.id, self.image, self.x, self.y, self.width, self.height, self.type, self.processed,
+                              self.style,
+                              self.text))
+
         self.table_marker = Marker
         self.table_line = Line
         self.table_rectangle = Rectangle
@@ -593,6 +698,19 @@ class DataFile:
                 else:
                     return BaseModel(self, item)
 
+            def __str__(self):
+                return "AnnotationObject id%s:\timage=%s\ttimestamp=%s\tcomment=%s\trating=%s" \
+                       % (self.id, self.image, self.timestmap, self.comment, self.rating)
+
+            def print_details(self):
+                print("AnnotationObject:\n"
+                      "id:\t\t{0}\n"
+                      "image:\t{1}\n"
+                      "timestamp:\t{2}\n"
+                      "comment:\t{3}\n"
+                      "rating:\t{4}\n"
+                      .format(self.id, self.image, self.timestmap, self.comment, self.rating))
+
         class Tag(BaseModel):
             name = peewee.CharField()
 
@@ -602,9 +720,30 @@ class DataFile:
                 else:
                     return BaseModel(self, item)
 
+            def __str__(self):
+                return "TagObject id%s:\timage=%s" \
+                       % (self.id, self.name)
+
+            def print_details(self):
+                print("TagObject:\n"
+                      "id:\t\t{0}\n"
+                      "name:\t{1}\n"
+                      .format(self.id, self.name))
+
         class TagAssociation(BaseModel):
             annotation = peewee.ForeignKeyField(Annotation, related_name="tagassociations", on_delete='CASCADE')
             tag = peewee.ForeignKeyField(Tag, related_name="tagassociations", on_delete='CASCADE')
+
+            def __str__(self):
+                return "TagAssociationObject id%s:\tannotation=%s\ttag=%s" \
+                       % (self.id, self.annotation, self.tag)
+
+            def print_details(self):
+                print("TagAssociationObject:\n"
+                      "id:\t\t{0}\n"
+                      "annotation:\t{1}\n"
+                      "tag:\t{2}\n"
+                      .format(self.id, self.annotation, self.tag))
 
         self.table_annotation = Annotation
         self.table_tag = Tag
