@@ -16,8 +16,8 @@ wb = xlwt.Workbook()
 wb_sheet = wb.add_sheet('data')
 
 # get types and images
-q_types =  db.GetTypes()
-q_images = db.GetImages()
+q_types =  db.getMarkerTypes()
+q_images = db.getImages()
 
 # write xls header
 wb_sheet.write(0, 0, "sort_idx")
@@ -35,11 +35,11 @@ for ridx, image in enumerate(q_images):
     # extract type information
     for idx,type in enumerate(q_types):
         if type.mode == 0:
-            q_marker = db.GetMarker(type=type,image=image)
+            q_marker = db.getMarkers(type=type,image=image)
         elif type.mode == 1:
-            q_marker = db.GetRectangles(type=type,image=image)
+            q_marker = db.getRectangles(type=type,image=image)
         elif type.mode == 2:
-            q_marker = db.GetLines(type=type,image=image)
+            q_marker = db.getLines(type=type,image=image)
         else:
             continue
 
