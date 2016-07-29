@@ -1555,6 +1555,102 @@ class Test_DataFile(unittest.TestCase):
         count = self.db.deleteTags(name=['tag1','tag3'])
         self.assertEqual(count, 2, 'Failed delete tags by name list')
 
+    ''' Test Annotation functions '''
+    def test_getAnnotation(self):
+        im = self.db.setImage("test.jpg")
+        self.db.setAnnotation(im, comment="foo")
+
+        annotation = self.db.getAnnotation(image=im)
+        self.assertEqual(annotation.comment, "foo", "Failed to get annotation by image.")
+
+        annotation = self.db.getAnnotation(frame=0)
+        self.assertEqual(annotation.comment, "foo", "Failed to get annotation by frame.")
+
+        annotation = self.db.getAnnotation(filename="test.jpg")
+        self.assertEqual(annotation.comment, "foo", "Failed to get annotation by filename.")
+
+        annotation = self.db.getAnnotation(id=1)
+        self.assertEqual(annotation.comment, "foo", "Failed to get annotation by id.")
+
+        annotation = self.db.getAnnotation(filename="test2.jpg")
+        self.assertEqual(annotation, None, "Failed to get non existent annotation.")
+
+    def test_getAnnotations(self):
+        im1 = self.db.setImage("test1.jpg")
+        self.db.setAnnotation(im1, comment="foo", rating=1)
+        im2 = self.db.setImage("test2.jpg")
+        self.db.setAnnotation(im2, comment="bar", rating=3)
+        im3 = self.db.setImage("test3.jpg")
+        self.db.setAnnotation(im3, comment="foo")
+        im4 = self.db.setImage("test4.jpg")
+
+        annotations = self.db.getAnnotations(image=[im1, im2, im4])
+        self.assertEqual(annotations.count(), 2, "Failed to get annotations by images.")
+
+        annotations = self.db.getAnnotations(filename="test2.jpg")
+        self.assertEqual(annotations.count(), 1, "Failed to get annotation by filename.")
+
+        annotations = self.db.getAnnotations(comment="foo")
+        self.assertEqual(annotations.count(), 2, "Failed to get annotation by comment.")
+
+        annotations = self.db.getAnnotations(rating=1)
+        self.assertEqual(annotations.count(), 1, "Failed to get annotation by rating.")
+
+        annotations = self.db.getAnnotations()
+        self.assertEqual(annotations.count(), 3, "Failed to get annotation without filter.")
+
+    def test_setAnnotation(self):
+        im1 = self.db.setImage("test1.jpg")
+        im2 = self.db.setImage("test2.jpg")
+        im3 = self.db.setImage("test3.jpg")
+        im4 = self.db.setImage("test4.jpg")
+
+        self.db.setAnnotation(image=im1, comment="foo")
+        self.assertEqual(self.db.getAnnotation(image=im1).comment, "foo", "Failed to set annotation.")
+
+        self.db.setAnnotation(image=im1, rating=2)
+        self.assertEqual(self.db.getAnnotation(image=im1).rating, 2, "Failed to set annotation.")
+
+        self.db.setAnnotation(id=1, rating=3)
+        self.assertEqual(self.db.getAnnotation(image=im1).rating, 3, "Failed to set annotation.")
+
+        self.assertRaises(AssertionError, self.db.setAnnotation, comment="", rating=2)
+
+    def test_deleteAnnotations(self):
+        im1 = self.db.setImage("test1.jpg")
+        im2 = self.db.setImage("test2.jpg")
+        im3 = self.db.setImage("test3.jpg")
+        im4 = self.db.setImage("test4.jpg")
+
+        def CreateAnnotations():
+            self.db.deleteAnnotations()
+            self.db.setAnnotation(im1, comment="foo", rating=1)
+            self.db.setAnnotation(im2, comment="bar", rating=3)
+            self.db.setAnnotation(im3, comment="foo")
+
+        CreateAnnotations()
+        self.db.deleteAnnotations()
+        self.assertEqual(self.db.getAnnotations().count(), 0, "Failed to delete all annotation.")
+
+        CreateAnnotations()
+        self.db.deleteAnnotations(rating=[1, 3])
+        self.assertEqual(self.db.getAnnotations().count(), 1, "Failed to delete all annotation.")
+
+        CreateAnnotations()
+        self.db.deleteAnnotations(comment="bar")
+        self.assertEqual(self.db.getAnnotations().count(), 2, "Failed to delete all annotation.")
+
+        CreateAnnotations()
+        self.db.deleteAnnotations(image=[im1, im4])
+        self.assertEqual(self.db.getAnnotations().count(), 2, "Failed to delete all annotation.")
+
+        CreateAnnotations()
+        self.db.deleteAnnotations(filename="test3.jpg")
+        anns = self.db.getAnnotations()
+        for an in anns:
+            print(an)
+        print(self.db.getAnnotations().count())
+        self.assertEqual(self.db.getAnnotations().count(), 2, "Failed to delete all annotation.")
 
 
 if __name__ == '__main__':
