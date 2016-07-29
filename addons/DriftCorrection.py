@@ -20,12 +20,12 @@ border_x = 20
 border_y = 20
 
 # Check if the marker type is present
-if not db.GetType("drift_rect"):
-    db.AddType("drift_rect", [0, 255, 255], db.TYPE_Rect)
+if not db.getMarkerType("drift_rect"):
+    db.setMarkerType("drift_rect", [0, 255, 255], db.TYPE_Rect)
     com.ReloadTypes()
 
 # try to load marker
-rect = db.GetRectangles(type_name="drift_rect")
+rect = db.getRectangles(type="drift_rect")
 print(rect)
 print("count:",rect.count())
 if rect.count() < 1:
@@ -34,7 +34,7 @@ if rect.count() < 1:
 rect = rect[0]
 
 # Get images and template
-images = db.GetImageIterator(start_frame=start_frame)
+images = db.getImageIterator(start_frame=start_frame)
 print('slices:',rect.slice_y(), rect.slice_x)
 print(rect.slice_y().start - border_y, rect.slice_y().stop + border_y , rect.slice_x().start - border_x, rect.slice_x().stop + border_x)
 template = images.next().data[rect.slice_y().start - border_y: rect.slice_y().stop + border_y , rect.slice_x().start - border_x: rect.slice_x().stop + border_x]
