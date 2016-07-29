@@ -687,7 +687,7 @@ class DataFile:
         """ Annotation Tables """
 
         class Annotation(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="annotations", on_delete='CASCADE')
+            image = peewee.ForeignKeyField(Image, related_name="annotations", on_delete='CASCADE')  # TODO make unique constraint
             timestamp = peewee.DateTimeField(null=True)
             comment = peewee.TextField(default="")
             rating = peewee.IntegerField(default=0)
@@ -698,6 +698,7 @@ class DataFile:
                 else:
                     return BaseModel(self, item)
 
+<<<<<<< dest
             def __str__(self):
                 return "AnnotationObject id%s:\timage=%s\ttimestamp=%s\tcomment=%s\trating=%s" \
                        % (self.id, self.image, self.timestmap, self.comment, self.rating)
@@ -711,6 +712,22 @@ class DataFile:
                       "rating:\t{4}\n"
                       .format(self.id, self.image, self.timestmap, self.comment, self.rating))
 
+=======
+            def __str__(self):
+                return "Annotation Object: id=%d\timage=%s\ttimestamp=%s\tcomment=%s\trating=%s\ttags=%s" \
+                       % (self.id, self.image, self.timestamp, self.comment, self.rating, self.tags)
+
+            def details(self):
+                print("Annotation Object:\n"
+                      "id:\t\t{0}\n"
+                      "image:\t{1}\n"
+                      "timestamp:\t{2}\n"
+                      "comment:\t{3}\n"
+                      "rating:\t{4}\n"
+                      "tags:\t{5}\n"
+                      .format(self.id, self.image, self.timestamp, self.comment, self.rating, self.tags))
+
+>>>>>>> source
         class Tag(BaseModel):
             name = peewee.CharField()
 
@@ -1048,7 +1065,6 @@ class DataFile:
         return paths
 
     def _processImagesField(self, images, frames, filenames):
-        print(images, frames, filenames)
         if images is not None:
             return images
 
@@ -1849,7 +1865,7 @@ class DataFile:
 
         Returns
         -------
-        entries : :py:class:`Mask`
+        mask : :py:class:`Mask`
             the desired :py:class:`Mask` entry.
         """
         # check input
@@ -1875,7 +1891,7 @@ class DataFile:
                 try:
                     data = np.zeros(image.getShape())
                 except IOError:
-                    raise MaskDimensionUnknown("Can't retreive dimensions for mask from image %s " % image.filename)
+                    raise MaskDimensionUnknown("Can't retrieve dimensions for mask from image %s " % image.filename)
                 mask = self.table_mask(image=image, data=data)
                 mask.save()
                 return mask
@@ -2232,8 +2248,8 @@ class DataFile:
 
         query = self.table_marker.delete()
 
-        if image is None:
-            images = self.table_image.select()
+        if image is None and (frame is not None or filename is not None):
+            images = self.table_image.select(self.table_image.id)
             images = addFilter(images, frame, self.table_image.sort_index)
             images = addFilter(images, filename, self.table_image.filename)
             query = query.where(self.table_marker.image.in_(images))
@@ -2471,8 +2487,8 @@ class DataFile:
 
         query = self.table_line.delete()
 
-        if image is None:
-            images = self.table_image.select()
+        if image is None and (frame is not None or filename is not None):
+            images = self.table_image.select(self.table_image.id)
             images = addFilter(images, frame, self.table_image.sort_index)
             images = addFilter(images, filename, self.table_image.filename)
             query = query.where(self.table_line.image.in_(images))
@@ -2711,8 +2727,8 @@ class DataFile:
 
         query = self.table_rectangle.delete()
 
-        if image is None:
-            images = self.table_image.select()
+        if image is None and (frame is not None or filename is not None):
+            images = self.table_image.select(self.table_image.id)
             images = addFilter(images, frame, self.table_image.sort_index)
             images = addFilter(images, filename, self.table_image.filename)
             query = query.where(self.table_rectangle.image.in_(images))
@@ -2851,3 +2867,183 @@ class DataFile:
 
         return query.execute()
 
+    def getAnnotation(self, image=None, frame=None, filename=None, id=None, create=False):
+        """
+        Get the :py:class:`Annotation` entry for the given image frame number or filename.
+
+        See also: :py:meth:`~.DataFile.getAnnotations`, :py:meth:`~.DataFile.setAnnotation`, :py:meth:`~.DataFile.deleteAnnotation`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image for which the annotation should be retrieved. If omitted, frame number or filename should be specified instead.
+        frame : int, optional
+            frame number of the image, which annotation should be returned. If omitted, image or filename should be specified instead.
+        filename : string, optional
+            filename of the image, which annotation should be returned. If omitted, image or frame number should be specified instead.
+        id : int, optional
+            id of the annotation entry.
+        create : bool, optional
+            whether the annotation should be created if it does not exist. (default: False)
+
+        Returns
+        -------
+        annotation : :py:class:`Annotation`
+            the desired :py:class:`Annotation` entry.
+        """
+        # check input
+        assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
+            "Exactly one of image, frame or filename should be specified or should be referenced by it's id."
+
+        query = self.table_annotation.select(self.table_annotation, self.table_image).join(self.table_image)
+
+        query = addFilter(query, id, self.table_annotation.id)
+        query = addFilter(query, image, self.table_annotation.image)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query.limit(1)
+
+        try:
+            return query[0]
+        except IndexError:
+            if create is True:
+                if not image:
+                    image = self.getImage(frame, filename)
+                    if not image:
+                        raise ImageDoesNotExist("No parent image found ")
+                annotation = self.table_annotation(image=image, timestamp=image.timestamp, comment="", rating=None)
+                annotation.save()
+                return annotation
+            return None
+
+    def getAnnotations(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None):
+        """
+        Get all :py:class:`Annotation` entries from the database, which match the given criteria. If no criteria a given, return all masks.
+
+        See also: :py:meth:`~.DataFile.getAnnotation`, :py:meth:`~.DataFile.setAnnotation`, :py:meth:`~.DataFile.deleteAnnotation`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, array_like, optional
+            the image/images for which the annotations should be retrieved. If omitted, frame numbers or filenames should be specified instead.
+        frame: int, array_like, optional
+            frame number/numbers of the images, which annotations should be returned. If omitted, images or filenames should be specified instead.
+        filename: string, array_like, optional
+            filename of the image/images, which annotations should be returned. If omitted, images or frame numbers should be specified instead.
+        timestamp : datetime, array_like, optional
+            timestamp/s of the annotations.
+        comment : string, array_like, optional
+            the comment/s of the annotations.
+        rating : int, array_like, optional
+            the rating/s of the annotations.
+        id : int, array_like, optional
+            id/ids of the annotations.
+
+        Returns
+        -------
+        entries : :py:class:`Annotation`
+            a query object containing all the matching :py:class:`Annotation` entries in the database file.
+        """
+        # check input
+        assert sum(e is not None for e in [image, frame, filename]) <= 1, \
+            "Exactly one of images, frames or filenames should be specified"
+
+        query = self.table_annotation.select(self.table_annotation, self.table_image).join(self.table_image)
+
+        query = addFilter(query, id, self.table_annotation.id)
+        query = addFilter(query, image, self.table_annotation.image)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, timestamp, self.table_annotation.timestamp)
+        query = addFilter(query, comment, self.table_annotation.comment)
+        query = addFilter(query, rating, self.table_annotation.rating)
+
+        return query
+
+    def setAnnotation(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None):
+        """
+        Insert or update an :py:class:`Annotation` object in the database.
+
+        See also: :py:meth:`~.DataFile.getAnnotation`, :py:meth:`~.DataFile.getAnnotations`, :py:meth:`~.DataFile.deleteAnnotation`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image of the annotation.
+        frame : int, optional
+            the frame of the images of the annotation.
+        filename : string, optional
+            the filename of the image of the annotation.
+        timestamp : datetime, optional
+            the timestamp of the annotation.
+        comment : string, optional
+            the text of the annotation.
+        rating : int, optional
+            the rating of the annotation.
+        id : int, optional
+            the id of the annotation.
+
+        Returns
+        -------
+        annotation : :py:class:`Annotation`
+            the created or changed :py:class:`Annotation` item.
+        """
+        assert not (id is None and image is None and frame is None and filename is None), "Annotations must have an image, frame or filename given or be referenced by it's id."
+
+        image = self._processImagesField(image, frame, filename)
+
+        try:
+            item = self.table_annotation.get(**noNoneDict(id=id, image=image))
+        except peewee.DoesNotExist:
+            item = self.table_annotation()
+
+        setFields(item, dict(image=image, timestamp=timestamp, comment=comment, rating=rating))
+        item.save()
+        return item
+
+    def deleteAnnotations(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None):
+        """
+        Delete all :py:class:`Annotation` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getAnnotation`, :py:meth:`~.DataFile.getAnnotations`, :py:meth:`~.DataFile.setAnnotation`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, array_like, optional
+            the image/images for which the annotations should be retrieved. If omitted, frame numbers or filenames should be specified instead.
+        frame: int, array_like, optional
+            frame number/numbers of the images, which annotations should be returned. If omitted, images or filenames should be specified instead.
+        filename: string, array_like, optional
+            filename of the image/images, which annotations should be returned. If omitted, images or frame numbers should be specified instead.
+        timestamp : datetime, array_like, optional
+            timestamp/s of the annotations.
+        comment : string, array_like, optional
+            the comment/s of the annotations.
+        rating : int, array_like, optional
+            the rating/s of the annotations.
+        id : int, array_like, optional
+            id/ids of the annotations.
+
+        Returns
+        -------
+        rows : int
+            the number of affected rows.
+        """
+
+        query = self.table_annotation.delete()
+
+        if image is None and (frame is not None or filename is not None):
+            images = self.table_image.select(self.table_image.id)
+            images = addFilter(images, frame, self.table_image.sort_index)
+            images = addFilter(images, filename, self.table_image.filename)
+            query = query.where(self.table_annotation.image.in_(images))
+        else:
+            query = addFilter(query, image, self.table_annotation.image)
+
+        query = addFilter(query, id, self.table_annotation.id)
+        query = addFilter(query, image, self.table_annotation.image)
+        query = addFilter(query, timestamp, self.table_annotation.timestamp)
+        query = addFilter(query, comment, self.table_annotation.comment)
+        query = addFilter(query, rating, self.table_annotation.rating)
+
+        return query.execute()
