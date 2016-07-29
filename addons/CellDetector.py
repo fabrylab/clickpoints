@@ -369,14 +369,14 @@ db = clickpoints.DataFile(database)
 com = clickpoints.Commands(port, catch_terminate_signal=True)
 
 # Check if the marker type is present
-if not db.GetType("cell_nucleus"):
-    marker_type = db.AddType("cell_nucleus", [255, 0, 255], db.TYPE_Normal)
+if not db.getMarkerType("cell_nucleus"):
+    marker_type = db.setMarkerType("cell_nucleus", [255, 0, 255], db.TYPE_Normal)
     com.ReloadTypes()
 else:
-    marker_type = db.GetType("cell_nucleus")
+    marker_type = db.getMarkerType("cell_nucleus")
 
 # get images and mask_types
-images = db.GetImages()
+images = db.getImages()
 
 # iterate over all images
 for image in images:
@@ -387,7 +387,7 @@ for image in images:
     p1 = count_old(data)
 
     db.table_marker.delete().where(db.table_marker.image == image.id).execute()
-    db.SetMarker(image=image.id, x=p1[:, 0], y=p1[:, 1], type=marker_type)
+    db.setMarkers(image=image.id, x=p1[:, 0], y=p1[:, 1], type=marker_type)
     com.ReloadMarker(image.sort_index)
 
     # check if we should terminate
