@@ -1,3 +1,5 @@
+from __future__ import print_function, division
+
 __key__ = "DATAFILE"
 __testname__ = "Data File"
 
@@ -469,279 +471,6 @@ class Test_DataFile(unittest.TestCase):
         masks = self.db.getMasks()
         self.assertTrue(masks.count() == 0, 'Failed to to delete all masks')
 
-
-    ''' Test Marker functions '''
-    def test_setMarker(self):
-        """ Test the setMarker function """
-
-        # Basic db structure
-        marker_type = self.db.setMarkerType(name="Test", color="#FF0000")
-        image = self.db.setImage("test.jpg")
-
-        # test to set a marker with image_id
-        marker = self.db.setMarker(image=image.id, x=123, y=0, type=marker_type)
-        self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
-
-        # with filename and type name
-        marker = self.db.setMarker(filename="test.jpg", x=123, y=20, type="Test")
-        self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
-
-        # with frame number
-        marker = self.db.setMarker(frame=0, x=123, y=0, type=marker_type)
-        self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
-
-        # with id
-        marker = self.db.setMarker(x=123, y=0, id=marker)
-        self.assertEqual(marker.x, 123, "Setting marker does not work properly.")
-
-        # with invalid frame number
-        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setMarker, frame=1, x=123, y=0, type=marker_type)
-
-        # with invalid filename
-        self.assertRaises(clickpoints.ImageDoesNotExist, self.db.setMarker, filename="no.jpg", x=123, y=0, type=marker_type)
-
-        # with invalid type na,e
-        self.assertRaises(clickpoints.MarkerTypeDoesNotExist, self.db.setMarker, image=1, x=123, y=0, type="NoType")
-
-        # without image
-        self.assertRaises(AssertionError, self.db.setMarker, x=123, y=0)
-
-        # without id
-        self.assertRaises(AssertionError, self.db.setMarker, x=123, y=0, type=marker_type)
-
-    def test_getMarker(self):
-        """ Test the getMarker function """
-
-        # basic db structure
-        marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        image1 = self.db.setImage("test1.jpg")
-        self.db.setMarker(image=image1, x=456, y=2, type=marker_type1)
-
-        # get a valid marker
-        marker = self.db.getMarker(id=1)
-        self.assertEqual(marker.x, 456, "Getting marker does not work properly.")
-
-        # get an invalid marker
-        marker = self.db.getMarker(id=0)
-        self.assertEqual(marker, None, "Getting marker does not work properly.")
-
-    def test_getMarkers(self):
-        """ Test the getMarker function """
-
-        # basic db structure
-        marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        marker_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
-        marker_type3 = self.db.setMarkerType(name="Track", color="#00FF00")
-
-        image1 = self.db.setImage("test1.jpg")
-        image2 = self.db.setImage("test2.jpg")
-        image3 = self.db.setImage("test3.jpg")
-        image4 = self.db.setImage("test4.jpg")
-
-        track1 = self.db.setTrack(marker_type3)
-        track2 = self.db.setTrack(marker_type3)
-
-        self.db.setMarkers(image=image1, x=[1, 2, 3, 4, 5], y=[0, 0, 0, 0, 0], type=marker_type1)
-        self.db.setMarkers(image=image1, x=[1, 2, 3, 4, 5], y=[0, 0, 0, 0, 0], type=marker_type2)
-        self.db.setMarkers(image=image2, x=[1, 2, 3, 4, 5], y=[0, 0, 0, 0, 0], type=marker_type1)
-        self.db.setMarkers(image=[image3, image4], x=[10, 20], y=[0, 0], track=track1)
-        self.db.setMarkers(image=[image3, image4], x=[10, 20], y=[0, 0], track=track2)
-
-        # get image list
-        markers = self.db.getMarkers(image=[image1, image2])
-        self.assertEqual(markers.count(), 15, "Getting markers does not work properly.")
-
-        # get single image
-        markers = self.db.getMarkers(image=image1)
-        self.assertEqual(markers.count(), 10, "Getting markers does not work properly.")
-
-        # get by image frame
-        markers = self.db.getMarkers(frame=0)
-        self.assertEqual(markers.count(), 10, "Getting markers does not work properly.")
-
-        # get by image filenames
-        markers = self.db.getMarkers(filename=["test1.jpg", "test2.jpg"])
-        self.assertEqual(markers.count(), 15, "Getting markers does not work properly.")
-
-        # get by x coordinates
-        markers = self.db.getMarkers(x=[2, 3])
-        self.assertEqual(markers.count(), 6, "Getting markers does not work properly.")
-
-        # get by x and y coordinates
-        markers = self.db.getMarkers(x=[2, 3], y=[0, 1, 2])
-        self.assertEqual(markers.count(), 6, "Getting markers does not work properly.")
-
-        # get by type
-        markers = self.db.getMarkers(type=marker_type1)
-        self.assertEqual(markers.count(), 10, "Getting markers does not work properly.")
-
-        # get by type list
-        markers = self.db.getMarkers(type=["Test1", "Test2"])
-        self.assertEqual(markers.count(), 15, "Getting markers does not work properly.")
-
-        # test invalid type name
-        self.assertRaises(clickpoints.MarkerTypeDoesNotExist, self.db.getMarkers, type=["NoType"])
-
-        # test by track
-        markers = self.db.getMarkers(track=track1)
-        self.assertEqual(markers.count(), 2, "Getting markers does not work properly.")
-
-    def test_setMarkers(self):
-        """ Test the setMarkers function """
-
-        # set up db
-        marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        marker_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
-        marker_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Track)
-
-        image1 = self.db.setImage("test1.jpg")
-        image2 = self.db.setImage("test2.jpg")
-        image3 = self.db.setImage("test3.jpg")
-        image4 = self.db.setImage("test4.jpg")
-
-        track1 = self.db.setTrack(marker_type3)
-        track2 = self.db.setTrack(marker_type3)
-
-        # test multiple markers for one image
-        self.db.setMarkers(image=image1, x=[1, 2, 3, 4, 5], y=[0, 0, 0, 0, 0], type=marker_type1)
-        self.assertEqual(self.db.getMarkers().count(), 5, "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # test multiple images
-        self.db.setMarkers(image=[image1, image2], x=[1, 2], y=[0, 0], type=marker_type1)
-        self.assertEqual(self.db.getMarkers().count(), 2, "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # test multiple types
-        self.db.setMarkers(image=image1, x=1, y=0, type=[marker_type1, marker_type2])
-        self.assertEqual(self.db.getMarkers().count(), 2, "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # test multiple texts and one style
-        self.db.setMarkers(image=image1, x=1, y=0, type=marker_type1, text=["foo", "bar", "hu"], style="{}")
-        self.assertEqual(self.db.getMarkers().count(), 3, "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # test image by filename
-        self.db.setMarkers(filename="test2.jpg", x=1, y=0, type=marker_type2)
-        self.assertEqual(self.db.getMarkers().count(), 1, "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # test images by frames
-        self.db.setMarkers(frame=[0, 1, 2], x=1, y=0, type=marker_type2)
-        self.assertEqual(self.db.getMarkers().count(), 3, "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # test to set for one track multiple images
-        self.db.setMarkers(frame=[0, 1, 2], x=1, y=0, track=track1)
-        self.assertEqual(self.db.getMarkers().count(), 3, "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # test one track multiple coordinates -> should result in only one marker
-        self.db.setMarkers(image=image1, x=[0, 1, 2], y=0, track=track2)
-        self.assertEqual(self.db.getMarkers().count(), 1, "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # set and update markers
-        self.db.setMarkers(image=image1, x=[0, 1, 2], y=[0, 1, 2], type=marker_type1)
-        markers = self.db.getMarkers()
-        self.assertTrue(all(m.x < 10 for m in markers), "Setting markers does not work properly.")
-        self.db.setMarkers(x=[10, 20, 30], y=[0, 1, 2], id=[m for m in markers])
-        markers = self.db.getMarkers()
-        self.assertTrue(all(m.x >= 10 for m in markers), "Setting markers does not work properly.")
-        self.db.deleteMarkers()
-
-    def test_deleteMarkers(self):
-        """ Test the deleteMarkers function """
-
-        # set up db
-        marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        marker_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
-        marker_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Track)
-
-        image1 = self.db.setImage("test1.jpg")
-        image2 = self.db.setImage("test2.jpg")
-        image3 = self.db.setImage("test3.jpg")
-        image4 = self.db.setImage("test4.jpg")
-
-        track1 = None
-        track2 = None
-
-        def CreateMarkers():
-            global track1, track2
-            self.db.deleteMarkers()
-            self.db.deleteTracks()
-            track1 = self.db.setTrack(marker_type3)
-            track2 = self.db.setTrack(marker_type3)
-            self.db.setMarkers(image=image1, x=[1, 2, 3, 4, 5], y=[0, 0, 0, 0, 0], type=marker_type1)
-            self.db.setMarkers(image=image2, x=[1, 2, 3, 4, 5], y=[0, 0, 0, 0, 0], processed=True, text="foo", type=marker_type1)
-            self.db.setMarkers(image=image1, x=[1, 2, 3, 4, 5], y=[0, 0, 0, 0, 0], text="bar", type=marker_type2)
-            self.db.setMarkers(image=[image1, image2, image3, image4], x=1, y=3, track=track1)
-
-        # delete from one image
-        CreateMarkers()
-        self.db.deleteMarkers(image=image1)
-        self.assertEqual(self.db.getMarkers().count(), 8, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete from two images
-        CreateMarkers()
-        self.db.deleteMarkers(image=[image1, image2])
-        self.assertEqual(self.db.getMarkers().count(), 2, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete by filename
-        CreateMarkers()
-        self.db.deleteMarkers(filename="test2.jpg")
-        self.assertEqual(self.db.getMarkers().count(), 13, "Deleting markers does not work properly.")
-        self.assertEqual(self.db.getMarkers(filename="test2.jpg").count(), 0, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete by filename
-        CreateMarkers()
-        self.db.deleteMarkers(frame=1)
-        self.assertEqual(self.db.getMarkers().count(), 13, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete by x coordinate
-        CreateMarkers()
-        self.db.deleteMarkers(x=slice(2, 4))
-        self.assertEqual(self.db.getMarkers().count(), 10, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete by processed
-        CreateMarkers()
-        self.db.deleteMarkers(processed=True)
-        self.assertEqual(self.db.getMarkers().count(), 14, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete by text
-        CreateMarkers()
-        self.db.deleteMarkers(text="foo")
-        self.assertEqual(self.db.getMarkers().count(), 14, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete by id
-        CreateMarkers()
-        ids = [m.id for m in self.db.getMarkers(text="foo")]
-        self.db.deleteMarkers(id=ids)
-        self.assertEqual(self.db.getMarkers().count(), 14, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete by track
-        CreateMarkers()
-        print(self.db.getMarkers().count())
-        self.db.deleteMarkers(track=[track1, track2])
-        print(self.db.getMarkers().count())
-        self.assertEqual(self.db.getMarkers().count(), 15, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
-        # delete by type
-        CreateMarkers()
-        self.db.deleteMarkers(type="Test1")
-        self.assertEqual(self.db.getMarkers().count(), 9, "Deleting markers does not work properly.")
-        self.db.deleteMarkers()
-
     ''' Test Marker functions '''
 
     def test_setMarker(self):
@@ -860,6 +589,10 @@ class Test_DataFile(unittest.TestCase):
         markers = self.db.getMarkers(track=track1)
         self.assertEqual(markers.count(), 2, "Getting markers does not work properly.")
 
+    def test_setMarkersX(self):
+        print(self.db.table_marker.processed.default)
+        print(self.db.table_marker.image.default)
+
     def test_setMarkers(self):
         """ Test the setMarkers function """
 
@@ -907,8 +640,16 @@ class Test_DataFile(unittest.TestCase):
         self.db.deleteMarkers()
 
         # test to set for one track multiple images
-        self.db.setMarkers(frame=[0, 1, 2], x=1, y=0, track=track1)
-        self.assertEqual(self.db.getMarkers().count(), 3, "Setting markers does not work properly.")
+        self.db.setMarkers(frame=0, x=1, y=0, track=track1)
+        self.assertEqual(self.db.getMarkers().count(), 1, "Setting markers does not work properly.")
+        ms = self.db.getMarkers(track=track1)
+        for m in ms:
+            print("a", m)
+        self.db.setMarkers(frame=0, processed=1, track=track1)
+        ms = self.db.getMarkers(track=track1)
+        for m in ms:
+            print("b", m)
+        self.assertEqual(self.db.getMarkers().count(), 1, "Setting markers does not work properly.")
         self.db.deleteMarkers()
 
         # test one track multiple coordinates -> should result in only one marker
