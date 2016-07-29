@@ -2590,3 +2590,125 @@ class DataFile:
         query = addFilter(query, text, self.table_rectangle.text)
 
         return query.execute()
+
+    def setTag(self, name=None, id=None):
+        """
+            Set a specific :py:class:`Tag` entry by its name or database ID
+
+            See also: :py:meth:`~.DataFile.getTag`, :py:meth:`~.DataFile.getTags`, :py:meth:`~.DataFile.deleteTags`.
+
+            Parameters
+            ----------
+            name: str
+                name of the tag
+            id: int
+                id of :py:class:`Tag` entry
+
+
+            Returns
+            -------
+            entries : :py:class:`Tag`
+                object of class :py:class:`Tag`
+            """
+
+        # check input
+        assert any(e is not None for e in [id, name]), "Name and ID may not be all None"
+
+        try:
+            if id:
+                tag = self.table_tag.get(id=id)
+            else:
+                tag = self.table_tag.get(name=name)
+        except peewee.DoesNotExist:
+            tag = self.table_tag()
+
+        setFields(tag,dict(name=name))
+        tag.save()
+
+        return tag
+
+    def getTag(self,name=None,id=None):
+        """
+        Get a specific :py:class:`Tag` entry by its name or database ID
+
+        See also: :py:meth:`~.DataFile.setTag`, :py:meth:`~.DataFile.getTags`, :py:meth:`~.DataFile.deleteTags`.
+
+        Parameters
+        ----------
+        name: str
+            name of the tag
+        id: int
+            id of :py:class:`Tag` entry
+
+
+        Returns
+        -------
+        entries : :py:class:`Tag`
+            requested object of class :py:class:`Tag` or None
+        """
+
+        # check input
+        assert any(e is not None for e in [id, name]), "Name and ID may not be all None"
+
+        try:
+            return self.table_tag.get(**noNoneDict(name=name, id=id))
+        except:
+            return None
+
+
+    def getTags(self,name=None,id=None):
+        """
+        Get all :py:class:`Tag` entries from the database, which match the given criteria. If no criteria a given,
+        return all.
+
+        See also: :py:meth:`~.DataFile.getTag`, :py:meth:`~.DataFile.setTag`,
+        :py:meth:`~.DataFile.deleteTags`.
+
+        Parameters
+        ----------
+        name : string, array_like, optional
+            the name/names of the :py:class:`Tag`.
+        id : int, array_like, optional
+            the id/ids of the :py:class:`Tag`.
+
+        Returns
+        -------
+        entries : array_like
+            a query object containing all the matching :py:class:`Tag` entries in the database file.
+        """
+
+        query = self.table_tag.select()
+
+        query = addFilter(query, name, self.table_tag.name)
+        query = addFilter(query, id, self.table_tag.id)
+
+        return query
+
+    def deleteTags(self,name=None,id=None):
+        """
+        Delete all :py:class:`Tag` entries from the database, which match the given criteria. If no criteria a given,
+        delete all.
+
+        See also: :py:meth:`~.DataFile.getTag`, :py:meth:`~.DataFile.setTag`,
+        :py:meth:`~.DataFile.deleteTags`.
+
+        Parameters
+        ----------
+        name : string, array_like, optional
+            the name/names of the :py:class:`Tag`.
+        id : int, array_like, optional
+            the id/ids of the :py:class:`Tag`.
+
+        Returns
+        -------
+        rows : int
+            number of rows deleted
+        """
+
+        query = self.table_tag.delete()
+
+        query = addFilter(query, name, self.table_tag.name)
+        query = addFilter(query, id, self.table_tag.id)
+
+        return query.execute()
+

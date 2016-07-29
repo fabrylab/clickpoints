@@ -1504,6 +1504,59 @@ class Test_DataFile(unittest.TestCase):
         self.assertEqual(self.db.getRectangles().count(), 5, "Deleting Rectangles does not work properly.")
         self.db.deleteRectangles()
 
+    def test_setgetTag(self):
+
+        tag1 = self.db.setTag(name='tag1')
+        self.assertTrue(tag1.name == 'tag1', "Failed setting Tag")
+
+        self.assertRaises(self.db.setTag)
+
+        tag1 = self.db.getTag(name='tag1')
+        self.assertTrue(tag1.name == 'tag1', "Failed retrieving single Tag by Name ")
+
+        tag1 = self.db.getTag(id=1)
+        self.assertTrue(tag1.name == 'tag1', "Failed retrieving single Tag by ID ")
+
+        self.assertRaises(self.db.getTag)
+
+        tag1b = self.db.setTag(id=1, name='tag1b')
+        tags = self.db.getTags()
+        self.assertTrue(tags.count()==1,'Failed updating tag entry - nr tags')
+        self.assertTrue(tags[0].name == 'tag1b','Failed updating tag entry - tag name' )
+
+    def test_getTags(self):
+        tag1 = self.db.setTag(name='tag1')
+        tag2 = self.db.setTag(name='tag2')
+        tag3 = self.db.setTag(name='tag3')
+
+        # all
+        tags = self.db.getTags()
+        self.assertEqual(tags.count(),3, 'Failed retrieving all tags')
+
+        # by names
+        tags = self.db.getTags(name=['tag1','tag3'])
+        self.assertEqual(tags.count(), 2, 'Failed retrieving tags by name list')
+
+        # by ids
+        tags = self.db.getTags(id=[1,2])
+        self.assertEqual(tags.count(), 2, 'Failed retrieving tags by ID list')
+
+    def test_deleteTags(self):
+        tag1 = self.db.setTag(name='tag1')
+        tag2 = self.db.setTag(name='tag2')
+        tag3 = self.db.setTag(name='tag3')
+
+        count = self.db.deleteTags()
+        self.assertEqual(count,3,'Failed delete all tags')
+
+        tag1 = self.db.setTag(name='tag1')
+        tag2 = self.db.setTag(name='tag2')
+        tag3 = self.db.setTag(name='tag3')
+        count = self.db.deleteTags(name=['tag1','tag3'])
+        self.assertEqual(count, 2, 'Failed delete tags by name list')
+
+
+
 if __name__ == '__main__':
     __path__ = os.path.dirname(os.path.abspath(__file__))
     log_file = os.path.join(__path__, 'log_'+__key__+'.txt')
