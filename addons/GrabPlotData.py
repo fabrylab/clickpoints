@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-import os
+import os, sys
 import clickpoints
 __icon__ = "fa.th"
 
@@ -19,24 +19,24 @@ com = clickpoints.Commands(port, catch_terminate_signal=True)
 
 # Check if the marker types are present
 reload_types = False
-if not db.GetType("x_axis"):
-    db.AddType("x_axis", [0, 200, 0], db.TYPE_Line)
+if not db.getMarkerType("x_axis"):
+    db.setMarkerType("x_axis", [0, 200, 0], db.TYPE_Line)
     reload_types = True
-if not db.GetType("y_axis"):
-    db.AddType("y_axis", [200, 200, 0], db.TYPE_Line)
+if not db.setMarkerType("y_axis"):
+    db.setMarkerType("y_axis", [200, 200, 0], db.TYPE_Line)
     reload_types = True
-if not db.GetType("data"):
-    db.AddType("data", [200, 0, 0], db.TYPE_Normal)
+if not db.getMarkerType("data"):
+    db.setMarkerType("data", [200, 0, 0], db.TYPE_Normal)
     reload = True
 if reload_types:
     com.ReloadTypes()
 
 # get the current image
-image = db.GetImageIterator(start_frame).next()
+image = db.getImageIterator(start_frame).next()
 
 # try to load axis
-x_axis = db.GetLines(image=image, type_name="x_axis")
-y_axis = db.GetLines(image=image, type_name="y_axis")
+x_axis = db.getLines(image=image, type="x_axis")
+y_axis = db.getLines(image=image, type="y_axis")
 if len(x_axis) != 1 or len(y_axis) != 1:
     print("ERROR: Please mark exactly one line with type 'x_axis' and exactly one with 'y_axis'.\nFound %d x_axis and %d y_axis" % (len(x_axis), len(y_axis)))
     sys.exit(-1)
@@ -48,7 +48,7 @@ remap_x = lambda x: Remap(x, [x_axis.marker1.x, x_axis.marker2.x], [float(x_axis
 remap_y = lambda y: Remap(y, [y_axis.marker1.y, y_axis.marker2.y], [float(y_axis.marker1.text), float(y_axis.marker2.text)])
 
 # get all markers
-markers = db.GetMarker(image=image, type_name="data")
+markers = db.getMarkers(image=image, type="data")
 # compose the output filename
 filename = os.path.splitext(image.filename)[0]+".txt"
 # iterate over all data markers
