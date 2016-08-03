@@ -214,43 +214,6 @@ class MarkerEditor(QtWidgets.QWidget):
             child.setEditable(False)
             item_type.appendRow(child)
             model.setItem(row, 0, item_type)
-            """ " ""
-            # if type is track type
-            if marker_type.mode & TYPE_Track:
-                # add all tracks for this type
-                tracks = self.data_file.table_track.select().where(self.data_file.table_track.type == marker_type)
-                for track in tracks:
-                    # get markers for track
-                    markers = (self.data_file.table_marker.select()
-                               .where(self.data_file.table_marker.track == track)
-                               .join(self.data_file.data_file.table_image)
-                               .order_by(self.data_file.data_file.table_image.sort_index))
-
-                    # add item
-                    item_track = QtGui.QStandardItem("Track #%d (%d)" % (track.id, markers.count()))
-                    item_track.entry = track
-                    item_track.setEditable(False)
-                    item_type.appendRow(item_track)
-
-                    # add all markers for this track
-                    for marker in markers:
-                        # add item
-                        item_marker = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
-                        item_marker.entry = marker
-                        item_marker.setEditable(False)
-                        item_track.appendRow(item_marker)
-                        self.marker_modelitems[marker.id] = item_marker
-            # type not a track type
-            else:
-                # add marker for the type
-                markers = self.data_file.table_marker.select().where(self.data_file.table_marker.type == marker_type)
-                for marker in markers:
-                    item_marker = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
-                    item_marker.entry = marker
-                    item_marker.setEditable(False)
-                    item_type.appendRow(item_marker)
-                    self.marker_modelitems[marker.id] = item_marker
-            "" " """
         # add entry for new type
         self.new_type = self.data_file.table_markertype()
         self.new_type.color = GetColorByIndex(marker_types.count())
@@ -338,6 +301,9 @@ class MarkerEditor(QtWidgets.QWidget):
         horizontal_layout.addWidget(self.pushbutton_Cancel)
 
     def ExpandType(self, item_type, entry):
+        if item_type.entry.expanded is True:
+            self.tree.expand(item_type.index())
+            return
         # change icon to hourglass during waiting
         item_type.setIcon(qta.icon("fa.hourglass-o", color=QtGui.QColor(*HTMLColorToRGB(entry.color))))
         # remove the dummy child
@@ -395,10 +361,14 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_modelitems["M%d" % marker.id] = item_marker
 
         # mark the entry as expanded and rest the icon
-        entry.expanded = True
+        item_type.entry.expanded = True
         item_type.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color))))
+        self.tree.expand(item_type.index())
 
     def ExpandTrack(self, item_track, entry):
+        if item_track.entry.expanded is True:
+            self.tree.expand(item_track.index())
+            return
         # change icon to hourglass during waiting
         item_track.setIcon(qta.icon("fa.hourglass-o"))
         # remove the dummy child
@@ -418,7 +388,8 @@ class MarkerEditor(QtWidgets.QWidget):
             self.marker_modelitems["M%d" % marker.id] = item_marker
 
         # mark the entry as expanded and rest the icon
-        entry.expanded = True
+        item_track.entry.expanded = True
+        self.tree.expand(item_track.index())
         item_track.setIcon(QtGui.QIcon())
 
     def TreeExpand(self, index):
@@ -461,11 +432,18 @@ class MarkerEditor(QtWidgets.QWidget):
             self.markerWidget.setTitle("Marker #%d" % data.id)
 
             self.prevent_recursion = True
-            #try:
-            #    self.tree.setCurrentIndex(self.marker_modelitems[data.id].index())
-            #except KeyError:
-            #    if self.data.track is None:
-            #        self.ExpandType(self.marker_type_modelitems[self.data.id])
+
+            data_string = {self.data_file.table_marker: "M%d", self.data_file.table_line: "L%d", self.data_file.table_rectangle: "R%d"}
+            # get the tree view item (don't delete it right away because this changes the selection)
+            index = data_string[type(self.data)] % self.data.id
+
+            self.ExpandType(self.marker_type_modelitems[self.data.type.id], self.data.type)
+            if self.data.type.mode & TYPE_Track:
+                item_track = self.marker_modelitems["T%d" % self.data.track.id]
+                self.ExpandTrack(item_track, self.data.track)
+            item = self.marker_modelitems[index]
+            self.tree.setCurrentIndex(item.index())
+
             self.prevent_recursion = False
 
             data2 = data.partner if data.partner_id is not None else None
@@ -743,6 +721,7 @@ def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36, endcall=N
 class MyGrabberItem(QtWidgets.QGraphicsPathItem):
     scale_value = 1
     use_crosshair = False
+    grabbed = True
 
     def __init__(self, parent, color, x, y, shape="rect", use_crosshair=False):
         # init and store parent
@@ -788,27 +767,23 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
                     self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
                     self.parentItem().marker_handler.Crosshair.Show(self)
                     self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+                self.grabbed = True
         if event.button() == QtCore.Qt.RightButton:
             # right button -> open menu
-            # open marker edit menu
-            mh = self.parentItem().marker_handler
-            if not mh.marker_edit_window or not mh.marker_edit_window.isVisible():
-                mh.marker_edit_window = MarkerEditor(mh, mh.marker_file)
-                mh.marker_edit_window.show()
-            else:
-                mh.marker_edit_window.raise_()
-            mh.marker_edit_window.setMarker(self.parentItem().data)
+            self.parentItem().rightClick(self)
 
     def mouseMoveEvent(self, event):
-        # move crosshair
-        if self.use_crosshair:
-            self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
-        # notify parent
-        pos = self.parentItem().mapFromScene(event.scenePos())
-        self.parentItem().graberMoved(self, pos)
+        if self.grabbed:
+            # move crosshair
+            if self.use_crosshair:
+                self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+            # notify parent
+            pos = self.parentItem().mapFromScene(event.scenePos())
+            self.parentItem().graberMoved(self, pos)
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
+            self.grabbed = False
             # hide crosshair
             if self.use_crosshair:
                 self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
@@ -1010,6 +985,16 @@ class MyDisplayItem:
 
     def graberDelete(self, grabber):
         self.delete()
+
+    def rightClick(self, grabber):
+        # open marker edit menu
+        mh = self.marker_handler
+        if not mh.marker_edit_window or not mh.marker_edit_window.isVisible():
+            mh.marker_edit_window = MarkerEditor(mh, mh.marker_file)
+            mh.marker_edit_window.show()
+        else:
+            mh.marker_edit_window.raise_()
+        mh.marker_edit_window.setMarker(self.data)
 
     def save(self):
         # only if there are fields which are changed
@@ -1302,6 +1287,11 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def graberDelete(self, grabber):
         self.RemoveTrackPoint()
 
+    def rightClick(self, grabber):
+        MyDisplayItem.rightClick(self, grabber)
+        if self.marker is not None:
+            self.marker_handler.marker_edit_window.setMarker(self.marker)
+
     def updateDisplay(self):
         path = QtGui.QPainterPath()
         circle_width = self.scale_value * 10 * self.style.get("track-point-scale", 1)
@@ -1589,6 +1579,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
         self.setZValue(9)
 
         self.setIndex(index)
+        self.Update(self.type)
         self.AddCount(0)
 
     def setIndex(self, index):
@@ -1599,7 +1590,6 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
         self.type = type
         if self.type is not None:
             self.color = QtGui.QColor(*HTMLColorToRGB(self.type.color))
-            print("++", self.type)
         else:
             self.color = QtGui.QColor("white")
         self.text.setBrush(QtGui.QBrush(self.color))
