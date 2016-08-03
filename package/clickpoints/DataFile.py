@@ -448,7 +448,7 @@ class DataFile:
                 return BaseModel(self, item)
 
             def __str__(self):
-                return "Marker Object: id=%d\timage=#%s\tx=%s\tx=%s\ttype=%s\tprocessed=%s\ttrack=#%s\tstyle=%s\ttext=%s" \
+                return "Marker Object: id=%s\timage=#%s\tx=%s\tx=%s\ttype=%s\tprocessed=%s\ttrack=#%s\tstyle=%s\ttext=%s" \
                        % (self.id, self.image_id, self.x, self.y, self.type, self.processed, self.track_id, self.style, self.text)
 
             def details(self):
@@ -465,19 +465,19 @@ class DataFile:
                       .format(self.id, self.image, self.x, self.y, self.type, self.processed, self.track, self.style, self.text))
 
             def correctedXY(self):
-                join_condition = ((Marker.image == Offset.image) & \
-                                  (Marker.image_frame == Offset.image_frame))
+                join_condition = ((Marker.image == Offset.image))
 
                 querry = Marker.select(Marker.x,
                                        Marker.y,
                                        Offset.x,
                                        Offset.y) \
-                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=join_condition) \
+                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=(join_condition).alias('offset')) \
                     .where(Marker.id == self.id)
 
+
                 for q in querry:
-                    if not (q.offsets.x is None) or not (q.offsets.y is None):
-                        pt = [q.x + q.offsets.x, q.y + q.offsets.y]
+                    if not (q.offset.x is None) or not (q.offset.y is None):
+                        pt = [q.x + q.offset.x, q.y + q.offset.y]
                     else:
                         pt = [q.x, q.y]
 
@@ -486,24 +486,6 @@ class DataFile:
             def pos(self):
                 return np.array([self.x, self.y])
 
-            def __str__(self):
-                return "MarkerObject id%s:\timage=%s\tx=%s\ty=%s\ttype=%s\tprocessed=%s\ttrack=%s\tstyle=%s\ttext=%s" \
-                       % (self.id, self.image, self.x, self.y, self.type, self.processed, self.track, self.style,
-                          self.text)
-
-            def print_details(self):
-                print("MarkerObject:\n"
-                      "id:\t\t{0}\n"
-                      "image:\t{1}\n"
-                      "x:\t{2}\n"
-                      "y:\t{3}\n"
-                      "type:\t{4}\n"
-                      "processed:\t{5}\n"
-                      "track:\t{6}\n"
-                      "style:\t{7}\n"
-                      "text:\t{8}"
-                      .format(self.id, self.image, self.x, self.y, self.type, self.processed, self.track, self.style,
-                              self.text))
 
         class Line(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="lines", on_delete='CASCADE')
@@ -543,19 +525,18 @@ class DataFile:
                 return BaseModel(self, item)
 
             def correctedXY(self):
-                join_condition = ((Marker.image == Offset.image) & \
-                                  (Marker.image_frame == Offset.image_frame))
+                join_condition = (Marker.image == Offset.image)
 
                 querry = Marker.select(Marker.x,
                                        Marker.y,
                                        Offset.x,
                                        Offset.y) \
-                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=join_condition) \
+                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=(join_condition).alias('offset')) \
                     .where(Marker.id == self.id)
 
                 for q in querry:
-                    if not (q.offsets.x is None) or not (q.offsets.y is None):
-                        pt = [q.x + q.offsets.x, q.y + q.offsets.y]
+                    if not (q.offset.x is None) or not (q.offset.y is None):
+                        pt = [q.x + q.offset.x, q.y + q.offset.y]
                     else:
                         pt = [q.x, q.y]
 
@@ -636,19 +617,18 @@ class DataFile:
                 return BaseModel(self, item)
 
             def correctedXY(self):
-                join_condition = ((Marker.image == Offset.image) & \
-                                  (Marker.image_frame == Offset.image_frame))
+                join_condition = (Marker.image == Offset.image)
 
                 querry = Marker.select(Marker.x,
                                        Marker.y,
                                        Offset.x,
                                        Offset.y) \
-                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=join_condition) \
+                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=(join_condition).alias('offset')) \
                     .where(Marker.id == self.id)
 
                 for q in querry:
-                    if not (q.offsets.x is None) or not (q.offsets.y is None):
-                        pt = [q.x + q.offsets.x, q.y + q.offsets.y]
+                    if not (q.offset.x is None) or not (q.offset.y is None):
+                        pt = [q.x + q.offset.x, q.y + q.offset.y]
                     else:
                         pt = [q.x, q.y]
 
@@ -1530,7 +1510,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def setTrack(self, type, style=None, text=None, id=None):
+    def setTrack(self, type, style=None, text=None, id=None, uid=None):
         """
         Insert or update a :py:class:`Track` object.
 
