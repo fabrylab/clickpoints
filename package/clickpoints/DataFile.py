@@ -2755,23 +2755,22 @@ class DataFile:
 
     def setTag(self, name=None, id=None):
         """
-            Set a specific :py:class:`Tag` entry by its name or database ID
+        Set a specific :py:class:`Tag` entry by its name or database ID
 
-            See also: :py:meth:`~.DataFile.getTag`, :py:meth:`~.DataFile.getTags`, :py:meth:`~.DataFile.deleteTags`.
+        See also: :py:meth:`~.DataFile.getTag`, :py:meth:`~.DataFile.getTags`, :py:meth:`~.DataFile.deleteTags`.
 
-            Parameters
-            ----------
-            name: str
-                name of the tag
-            id: int
-                id of :py:class:`Tag` entry
+        Parameters
+        ----------
+        name: str
+            name of the tag
+        id: int
+            id of :py:class:`Tag` entry
 
-
-            Returns
-            -------
-            entries : :py:class:`Tag`
-                object of class :py:class:`Tag`
-            """
+        Returns
+        -------
+        entries : :py:class:`Tag`
+            object of class :py:class:`Tag`
+        """
 
         # check input
         assert any(e is not None for e in [id, name]), "Name and ID may not be all None"

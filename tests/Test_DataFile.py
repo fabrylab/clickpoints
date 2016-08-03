@@ -1253,7 +1253,7 @@ class Test_DataFile(unittest.TestCase):
         tag1 = self.db.setTag(name='tag1')
         self.assertTrue(tag1.name == 'tag1', "Failed setting Tag")
 
-        self.assertRaises(self.db.setTag)
+        self.assertRaises(AssertionError, self.db.setTag)
 
         tag1 = self.db.getTag(name='tag1')
         self.assertTrue(tag1.name == 'tag1', "Failed retrieving single Tag by Name ")
@@ -1261,7 +1261,7 @@ class Test_DataFile(unittest.TestCase):
         tag1 = self.db.getTag(id=1)
         self.assertTrue(tag1.name == 'tag1', "Failed retrieving single Tag by ID ")
 
-        self.assertRaises(self.db.getTag)
+        self.assertRaises(AssertionError, self.db.getTag)
 
         tag1b = self.db.setTag(id=1, name='tag1b')
         tags = self.db.getTags()
