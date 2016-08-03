@@ -781,6 +781,14 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
                     self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
                     self.parentItem().marker_handler.Crosshair.Show(self)
                     self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+        if event.button() == QtCore.Qt.RightButton:
+            # right button -> open menu
+            # open marker edit menu
+            mh = self.parentItem().marker_handler
+            if not mh.marker_edit_window or not mh.marker_edit_window.isVisible():
+                mh.marker_edit_window = MarkerEditor(mh, mh.marker_file)
+                mh.marker_edit_window.show()
+            mh.marker_edit_window.setMarker(self.parentItem().data)
 
     def mouseMoveEvent(self, event):
         # move crosshair
