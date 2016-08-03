@@ -792,6 +792,8 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
             if not mh.marker_edit_window or not mh.marker_edit_window.isVisible():
                 mh.marker_edit_window = MarkerEditor(mh, mh.marker_file)
                 mh.marker_edit_window.show()
+            else:
+                mh.marker_edit_window.raise_()
             mh.marker_edit_window.setMarker(self.parentItem().data)
 
     def mouseMoveEvent(self, event):
@@ -1631,6 +1633,8 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
                 self.marker_handler.marker_edit_window = MarkerEditor(self.marker_handler,
                                                                       self.marker_handler.marker_file)
                 self.marker_handler.marker_edit_window.show()
+            else:
+                self.marker_handler.marker_edit_window.raise_()
             self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
         elif event.button() == QtCore.Qt.LeftButton:
             if not self.marker_handler.active:
