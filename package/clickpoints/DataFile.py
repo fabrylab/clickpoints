@@ -31,6 +31,8 @@ class ImageField(peewee.BlobField):
     """ A database field, that """
     def db_value(self, value):
         value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".png")
+        if PY3:
+            return value
         return peewee.binary_construct(value)
 
     def python_value(self, value):
