@@ -5,7 +5,13 @@ import peewee
 from PIL import Image as PILImage
 import imageio
 import sys
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 PY3 = sys.version_info[0] == 3
 if PY3:
