@@ -7,6 +7,9 @@ import os
 import unittest
 import numpy as np
 
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "package"))
+
 from clickpoints import DataFile
 import clickpoints
 
