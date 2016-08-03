@@ -950,16 +950,22 @@ class MyDisplayItem:
             text = text.replace('$x_pos', '%.2f' % self.data.x)
         if '$y_pos' in text:
             text = text.replace('$y_pos', '%.2f' % self.data.y)
-        if '$line_length' in text:
-            if self.data.partner_id:
-                if self.data.x > self.data.partner.x:
-                    text = text.replace('$line_length', '%.2f' % np.linalg.norm(
-                        np.array([self.data.x, self.data.y]) - np.array(
-                            [self.data.partner.x, self.data.partner.y])))
+        if '$length' in text:
+            if type(self.data) is self.marker_handler.data_file.table_line:
+                if self.data.length() is not None:
+                    text = text.replace('$length', '%.2f' % self.data.length())
                 else:
-                    text = text.replace('$line_length', '')
+                    text = text.replace('$length', '')
             else:
-                text = text.replace('$line_length', '??')
+                text = text.replace('$length', '??')
+        if '$area' in text:
+            if type(self.data) is self.marker_handler.data_file.table_rectangle:
+                if self.data.area() is not None:
+                    text = text.replace('$area', '%.2f' % self.data.area())
+                else:
+                    text = text.replace('$area', '')
+            else:
+                text = text.replace('$area', '??')
         if '\\n' in text:
             text = text.replace('\\n', '\n')
 
@@ -1074,10 +1080,12 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
             self.data.setPos1(pos.x(), pos.y())
             self.setLine(*self.data.getPos())
             self.g1.setPos(*self.data.getPos1())
+            self.setText(self.GetText())
         if grabber == self.g2:
             self.data.setPos2(pos.x(), pos.y())
             self.setLine(*self.data.getPos())
             self.g2.setPos(*self.data.getPos2())
+            self.setText(self.GetText())
 
     def drag(self, event):
         self.graberMoved(self.g2, event.pos())
@@ -1128,6 +1136,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         self.g2.setPos(*self.data.getPos2())
         self.g3.setPos(*self.data.getPos3())
         self.g4.setPos(*self.data.getPos4())
+        self.setText(self.GetText())
 
     def CheckPositiveWidthHeight(self):
         if self.data.width < 0:
