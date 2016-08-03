@@ -120,7 +120,7 @@ def packToDictList(table, **kwargs):
         if field.default is not None:
             result = peewee.fn.COALESCE(result, field.default)
         return result
-    for key in kwargs.keys():
+    for key in list(kwargs.keys()):
         if kwargs[key] is None:
             if "id" in kwargs and kwargs["id"] is not None:
                 singles[key] = lambda i, key=key: WrapNoneID(key, i)
