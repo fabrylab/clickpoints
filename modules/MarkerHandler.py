@@ -592,6 +592,10 @@ class MarkerEditor(QtWidgets.QWidget):
             self.marker_handler.UpdateCounter()
             if self.data.mode & TYPE_Track:
                 self.marker_handler.LoadTracks()
+            elif self.data.mode & TYPE_Line:
+                self.marker_handler.LoadLines()
+            elif self.data.mode & TYPE_Rect:
+                self.marker_handler.LoadRectangles()
             else:
                 self.marker_handler.LoadPoints()
 
