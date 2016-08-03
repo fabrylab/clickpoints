@@ -589,7 +589,10 @@ class MarkerEditor(QtWidgets.QWidget):
                     return
                 else:
                     raise err
-            self.marker_handler.UpdateCounter()
+            if new_type:
+                self.marker_handler.addCounter(self.data)
+            else:
+                self.marker_handler.GetCounter(self.data).Update(self.data)
             if self.data.mode & TYPE_Track:
                 self.marker_handler.LoadTracks()
             elif self.data.mode & TYPE_Line:
@@ -697,7 +700,7 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.marker_handler.ReloadMarker()
 
             # update the counters
-            self.marker_handler.UpdateCounter()
+            self.marker_handler.removeCounter(self.data)
 
             # delete item from list
             del self.marker_type_modelitems[index]
@@ -1569,7 +1572,6 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
         self.parent = parent
         self.marker_handler = marker_handler
         self.type = type
-        self.index = index
         self.count = 0
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
@@ -1581,23 +1583,27 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
 
         self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         self.text.setFont(self.font)
+        self.text.setZValue(10)
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
+
+        self.setZValue(9)
+
+        self.setIndex(index)
+        self.AddCount(0)
+
+    def setIndex(self, index):
+        self.index = index
+        self.setPos(10, 10 + 25 * self.index)
+
+    def Update(self, type):
+        self.type = type
         if self.type is not None:
             self.color = QtGui.QColor(*HTMLColorToRGB(self.type.color))
+            print("++", self.type)
         else:
             self.color = QtGui.QColor("white")
         self.text.setBrush(QtGui.QBrush(self.color))
-        self.text.setZValue(10)
-
-        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-        self.setPos(10, 10 + 25 * self.index)
-        self.setZValue(9)
-
-        count = 0
-        if self.type:
-            for point in self.marker_handler.points:
-                if point.data.type == self.type:
-                    count += 1
-        self.AddCount(count)
+        self.AddCount(0)
 
     def AddCount(self, new_count):
         self.count += new_count
@@ -1645,6 +1651,9 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
             if self.marker_handler.marker_edit_window:
                 self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
 
+    def delete(self):
+        # delete from scene
+        self.scene().removeItem(self)
 
 class MarkerHandler:
     points = []
@@ -1729,6 +1738,23 @@ class MarkerHandler:
 
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
+
+    def removeCounter(self, type):
+        for index in self.counter:
+            if self.counter[index].type == type:
+                self.counter[index].delete()
+                del self.counter[index]
+                break
+        self.counter = {new_index: self.counter[old_index] for new_index, old_index in enumerate(self.counter)}
+        for index in self.counter:
+            self.counter[index].setIndex(index)
+        self.counter[-1] = self.counter[index]
+        del self.counter[index]
+
+    def addCounter(self, type):
+        new_index = max(self.counter.keys())+1
+        self.counter[new_index] = MyCounter(self.parent_hud, self, type, new_index)
+        self.counter[-1].setIndex(new_index + 1)
 
     def GetCounter(self, type):
         for index in self.counter:
