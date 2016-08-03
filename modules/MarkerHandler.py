@@ -831,6 +831,8 @@ class MyDisplayItem:
 
     is_new = None
 
+    default_shape = "cross"
+
     def __init__(self, marker_handler, data=None, event=None, type=None):
         # store marker handler
         self.marker_handler = marker_handler
@@ -901,10 +903,21 @@ class MyDisplayItem:
         if self.text:
             self.text.setBrush(QtGui.QBrush(self.color))
         self.setScale(None)
+        line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine,
+                           dashdotdot=Qt.DashDotDotLine)
         pen = self.pen()
         pen.setColor(self.color)
-        pen.setWidth(2)
+        pen.setWidthF(self.style.get("line-width", 2))
+        pen.setStyle(line_styles[self.style.get("line-style", "solid")])
         self.setPen(pen)
+        i = 1
+        while True:
+            grabber = getattr(self, "g%d" % i, None)
+            if grabber is None:
+                break
+            grabber.setShape(self.style.get("shape", self.default_shape))
+            grabber.setScale(self.style.get("scale", 1))
+            i += 1
 
     # update text with priorities: marker, track, label
     def GetText(self):
@@ -1058,6 +1071,8 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
 
 class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
+    default_shape = "rect"
+
     def __init__(self, marker_handler, parent, data=None, event=None, type=None):
         QtWidgets.QGraphicsLineItem.__init__(self, parent)
         MyDisplayItem.__init__(self, marker_handler, data, event, type)
@@ -1113,6 +1128,8 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
 
 
 class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
+    default_shape = "rect"
+
     def __init__(self, marker_handler, parent, data=None, event=None, type=None):
         QtWidgets.QGraphicsLineItem.__init__(self, parent)
         MyDisplayItem.__init__(self, marker_handler, data, event, type)
@@ -1188,11 +1205,6 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
 
     def drag(self, event):
         self.graberMoved(self.g3, event.pos())
-
-    def setScale(self, scale=None):
-        if scale is not None:
-            self.scale_value = scale
-        self.setPen(QtGui.QPen(self.color, 2 * self.scale_value * self.style.get("scale", 1)))
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
