@@ -424,6 +424,8 @@ class MaskTypeButton(QtWidgets.QGraphicsRectItem):
             if not self.mask_handler.mask_edit_window or not self.mask_handler.mask_edit_window.isVisible():
                 self.mask_handler.mask_edit_window = MaskEditor(self.mask_handler, self.mask_handler.mask_file)
                 self.mask_handler.mask_edit_window.show()
+            else:
+                self.mask_handler.mask_edit_window.raise_()
             # select this mask type in the menu
             self.mask_handler.mask_edit_window.setMaskType(self.type if self.index != 0 else None)
         # a left click selects this type
