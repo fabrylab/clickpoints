@@ -1360,7 +1360,7 @@ class DataFile:
 
         return query
 
-    def getImageIterator(self, start_frame=0, end_frame=None):  #TODO: end_frame
+    def getImageIterator(self, start_frame=0, end_frame=None):
         """
         Get an iterator to iterate over all :py:class:`Image` entries starting from start_frame.
 
@@ -1370,12 +1370,13 @@ class DataFile:
         ----------
         start_frame : int, optional
             start at the image with the number start_frame. Default is 0
-        end_frame
+        end_frame : int, optional
+            the last frame of the iteration (excluded). Default is None, the iteration stops when no more images are present.
 
         Returns
         -------
-        entries : array_like
-            a query object containing all the :py:class:`Image` entries in the database file.
+        image_iterator : iterator
+            an iterator object to iterate over :py:class:`Image` entries.
 
         Examples
         --------
@@ -1394,6 +1395,8 @@ class DataFile:
 
         frame = start_frame
         while True:
+            if frame == end_frame:
+                break
             try:
                 image = self.table_image.get(self.table_image.sort_index == frame)
                 yield image
