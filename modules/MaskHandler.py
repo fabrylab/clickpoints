@@ -253,9 +253,9 @@ class MaskEditor(QtWidgets.QWidget):
         self.pushbutton_Remove.pressed.connect(self.removeMarker)
         horizontal_layout.addWidget(self.pushbutton_Remove)
 
-        self.pushbutton_Cancel = QtWidgets.QPushButton('&Cancel', self)
-        self.pushbutton_Cancel.pressed.connect(self.close)
-        horizontal_layout.addWidget(self.pushbutton_Cancel)
+        self.pushbutton_Exit = QtWidgets.QPushButton('&Exit', self)
+        self.pushbutton_Exit.pressed.connect(self.close)
+        horizontal_layout.addWidget(self.pushbutton_Exit)
 
     def setMaskType(self, data):
         # check flag to prevent recursion
