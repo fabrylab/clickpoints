@@ -498,7 +498,4 @@ def main():
 
 # start the main function as entry point
 if __name__ == '__main__':
-    import shutil
-    os.chdir(r"D:\Repositories\ClickPointsExamples\TweezerVideos\001")
-    shutil.copy("test2.cdb", "test.cdb")
     main()
