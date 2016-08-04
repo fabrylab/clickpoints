@@ -1,20 +1,23 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# ImageQt_Stride.py
+
+# Copyright (c) 2015-2016, Richard Gerum, Sebastian Richter
 #
-# The Python Imaging Library.
-# $Id$
+# This file is part of ClickPoints.
 #
-# a simple Qt image interface.
+# ClickPoints is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# history:
-# 2006-06-03 fl: created
-# 2006-06-04 fl: inherit from QImage instead of wrapping it
-# 2006-06-05 fl: removed toimage helper; move string support to ImageQt
-# 2013-11-13 fl: add support for Qt5 (aurelien.ballier@cyclonit.com)
+# ClickPoints is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# Copyright (c) 2006 by Secret Labs AB
-# Copyright (c) 2006 by Fredrik Lundh
-#
-# See the README file for information on usage and redistribution.
-#
+# You should have received a copy of the GNU General Public License
+# along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 from PIL import Image
 from PIL._util import isPath

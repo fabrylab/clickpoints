@@ -1,3 +1,24 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Highlight_Objects.py
+
+# Copyright (c) 2015-2016, Richard Gerum, Sebastian Richter
+#
+# This file is part of ClickPoints.
+#
+# ClickPoints is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# ClickPoints is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
+
 """ Highlight objects: Programm to mark a clicked region. In clickpoints put a marker on several regions you want to highlight. Then start this script
 Optionally a gui opens, where you can set up some parameter and then a mask is created that (ideally) is identically to each region, on which a marker was placed.
 How does it work: The program divides the picture in superpixels  (size adjustable by input parameters) and then divides these superpixels in
