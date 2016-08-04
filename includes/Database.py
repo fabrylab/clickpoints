@@ -285,19 +285,19 @@ class DataFile(DataFileBase):
             path.save()
         return path
 
-    def add_image(self, filename, extension, external_id, frames, path, timestamp=None, commit=True):
+    def add_image(self, filename, extension, external_id, frames, path, full_path=None, timestamp=None, commit=True):
         # if no timestamp is supplied quickly get one from the filename
         if timestamp is None:
             # do we have a video? then we need two timestamps
             if frames > 1:
-                timestamp, timestamp2 = self.getTimeStamp(filename)
+                timestamp, timestamp2 = self.getTimeStamp(full_path)
                 if timestamp is not None:
                     timestamps = date_linspace(timestamp, timestamp2, frames)
                 else:
                     timestamps = itertools.repeat(None)
             # if not one is enough
             else:
-                timestamp,_ = self.getTimeStamp(filename)
+                timestamp,_ = self.getTimeStamp(full_path)
                 timestamps = itertools.repeat(timestamp)
         else:  # create an iterator from the timestamp
             timestamps = itertools.repeat(timestamp)

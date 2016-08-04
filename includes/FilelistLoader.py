@@ -266,7 +266,7 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
                     if frames == 0:
                         continue
                     # add the file to the database
-                    data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, commit=False))
+                    data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, full_path=os.path.join(path, filename), commit=False))
                     if len(data) > 100:
                         data_file.add_bulk(data)
                         data = []
@@ -302,7 +302,7 @@ def addList(data_file, path, list_filename):
                 extension = os.path.splitext(file_name)[1]
                 frames = getFrameNumber(line, extension)
                 # add the file to the database
-                data_new = data_file.add_image(file_name, extension, external_id, frames, path=paths[file_path], timestamp=timestamp, commit=False)
+                data_new = data_file.add_image(file_name, extension, external_id, frames, path=paths[file_path],full_path=os.path.join(file_path,file_name), timestamp=timestamp, commit=False)
                 data.extend(data_new)
                 if time.time()-start_time > 0.1:
                     break
