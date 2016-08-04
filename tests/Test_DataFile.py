@@ -655,7 +655,17 @@ class Test_DataFile(unittest.TestCase):
         self.assertEqual(self.db.getMarkers().count(), 1, "Setting markers does not work properly.")
         self.db.deleteMarkers()
 
+        # test set and update two tracks
+        track1 = self.db.setTrack(marker_type3)
+        track2 = self.db.setTrack(marker_type3)
+        self.db.setMarkers(image=image1, x=np.array([1, 2]), y=np.array([10, 20]), track=[track1, track2])
+        self.assertEqual(sum(m.processed == 0 for m in self.db.getMarkers(image=image1)), 2, "Setting markers does not work properly.")
+        self.db.setMarkers(frame=0, processed=1, track=[track1, track2])
+        self.assertEqual(sum(m.processed == 1 for m in self.db.getMarkers(image=image1)), 2, "Setting markers does not work properly.")
+        self.db.deleteMarkers()
+
         # test one track multiple coordinates -> should result in only one marker
+        track2 = self.db.setTrack(marker_type3)
         self.db.setMarkers(image=image1, x=[0, 1, 2], y=0, track=track2)
         self.assertEqual(self.db.getMarkers().count(), 1, "Setting markers does not work properly.")
         self.db.deleteMarkers()

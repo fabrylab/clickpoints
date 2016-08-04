@@ -131,7 +131,7 @@ def packToDictList(table, **kwargs):
             else:
                 del kwargs[key]
             continue
-        if isinstance(kwargs[key], (tuple, list)):
+        if isinstance(kwargs[key], (tuple, list, np.ndarray)):
             if max_len > 1 and max_len != len(kwargs[key]):
                 raise IndexError()
             max_len = max(max_len, len(kwargs[key]))
