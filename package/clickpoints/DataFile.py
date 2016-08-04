@@ -1452,9 +1452,8 @@ class DataFile:
         setFields(item, noNoneDict(frame=frame, path=path, external_id=external_id, timestamp=timestamp, width=width, height=height))
         if new_image:
             if self.next_sort_index is None:
-                query = self.table_image.select().order_by(-self.table_image.sort_index).limit(1)  # TODO more efficent sort index retrieval
                 try:
-                    self.next_sort_index = query[0].sort_index + 1
+                    self.next_sort_index = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
                 except IndexError:
                     self.next_sort_index = 0
             item.sort_index = self.next_sort_index
