@@ -211,10 +211,10 @@ class DataFile:
         database already exists, it will be deleted and a new database will be created.
     """
     db = None
-    reader = None
+    _reader = None
     _current_version = "15"
-    database_filename = None
-    next_sort_index = 0
+    _database_filename = None
+    _next_sort_index = 0
 
     """ Enumerations """
     TYPE_Normal = 0
@@ -225,25 +225,25 @@ class DataFile:
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
             raise TypeError("No database filename supplied.")
-        self.database_filename = database_filename
+        self._database_filename = database_filename
 
         version = self._current_version
         new_database = True
 
         # Create a new database
         if mode == "w":
-            if os.path.exists(self.database_filename):
-                os.remove(self.database_filename)
+            if os.path.exists(self._database_filename):
+                os.remove(self._database_filename)
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
             self.db.get_conn().row_factory = dict_factory
         else:  # or read an existing one
-            if not os.path.exists(self.database_filename) and mode != "r+":
-                raise Exception("DB %s does not exist!" % os.path.abspath(self.database_filename))
+            if not os.path.exists(self._database_filename) and mode != "r+":
+                raise Exception("DB %s does not exist!" % os.path.abspath(self._database_filename))
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
-            if os.path.exists(self.database_filename):
+            if os.path.exists(self._database_filename):
                 self.db.get_conn().row_factory = dict_factory
                 version = self._CheckVersion()
-                self.next_sort_index = None
+                self._next_sort_index = None
                 new_database = False
             else:
                 self.db.get_conn().row_factory = dict_factory
@@ -285,10 +285,10 @@ class DataFile:
 
             def get_data(self):
                 if self.image_data is None:
-                    if self.database_class.reader is None or self.database_class.reader.filename != self.filename:
-                        self.database_class.reader = imageio.get_reader(os.path.join(self.path.path, self.filename))
-                        self.database_class.reader.filename = self.filename
-                    self.image_data = self.database_class.reader.get_data(self.frame)
+                    if self.database_class._reader is None or self.database_class._reader.filename != self.filename:
+                        self.database_class._reader = imageio.get_reader(os.path.join(self.path.path, self.filename))
+                        self.database_class._reader.filename = self.filename
+                    self.image_data = self.database_class._reader.get_data(self.frame)
                 return self.image_data
 
             def __getattr__(self, item):
@@ -356,7 +356,7 @@ class DataFile:
         self.table_meta = Meta
         self.table_path = Path
         self.table_image = Image
-        self.tables = [Meta, Path, Image]
+        self._tables = [Meta, Path, Image]
 
         """ Offset Table """
 
@@ -379,7 +379,7 @@ class DataFile:
 
 
         self.table_offset = Offset
-        self.tables.extend([Offset])
+        self._tables.extend([Offset])
 
 
         """ Marker Tables """
@@ -685,7 +685,7 @@ class DataFile:
         self.table_rectangle = Rectangle
         self.table_track = Track
         self.table_markertype = MarkerType
-        self.tables.extend([Marker, Line, Rectangle, Track, MarkerType])
+        self._tables.extend([Marker, Line, Rectangle, Track, MarkerType])
 
         """ Mask Tables """
 
@@ -706,8 +706,7 @@ class DataFile:
 
         self.table_mask = Mask
         self.table_masktype = MaskType
-        self.tables.extend([Mask, MaskType])
-        self.mask_path = None
+        self._tables.extend([Mask, MaskType])
 
         """ Annotation Tables """
 
@@ -773,7 +772,7 @@ class DataFile:
         self.table_annotation = Annotation
         self.table_tag = Tag
         self.table_tagassociation = TagAssociation
-        self.tables.extend([Annotation, Tag, TagAssociation])
+        self._tables.extend([Annotation, Tag, TagAssociation])
 
         """ Connect """
         self.db.connect()
@@ -1079,7 +1078,7 @@ class DataFile:
                 image.save()
 
     def _CreateTables(self):
-        for table in self.tables:
+        for table in self._tables:
             table.create_table(fail_silently=True)
 
     def _processesTypeNameField(self, types):
@@ -1176,9 +1175,9 @@ class DataFile:
         kwargs = {}
         # normalize the path, making it relative to the database file
         if path_string is not None:
-            if self.database_filename:
+            if self._database_filename:
                 try:
-                    path_string = os.path.relpath(path_string, os.path.dirname(self.database_filename))
+                    path_string = os.path.relpath(path_string, os.path.dirname(self._database_filename))
                 except ValueError:
                     path_string = os.path.abspath(path_string)
             path_string = os.path.normpath(path_string)
@@ -1451,13 +1450,13 @@ class DataFile:
             path = self.getPath(path)
         setFields(item, noNoneDict(frame=frame, path=path, external_id=external_id, timestamp=timestamp, width=width, height=height))
         if new_image:
-            if self.next_sort_index is None:
+            if self._next_sort_index is None:
                 try:
-                    self.next_sort_index = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
+                    self._next_sort_index = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
                 except IndexError:
-                    self.next_sort_index = 0
-            item.sort_index = self.next_sort_index
-            self.next_sort_index += 1
+                    self._next_sort_index = 0
+            item.sort_index = self._next_sort_index
+            self._next_sort_index += 1
 
         item.save()
         return item
@@ -1510,7 +1509,7 @@ class DataFile:
         """
         Get all :py:class:`Track` entries, optional filter by type
 
-        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.setTracks`, :py:meth:`~.DataFile.deleteTracks`.
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.deleteTracks`.
 
         Parameters
         ----------
@@ -1539,7 +1538,7 @@ class DataFile:
         """
         Get a specific :py:class:`Track` entry by its database ID.
 
-        See also: :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTracks`, :py:meth:`~.DataFile.deleteTracks`.
+        See also: :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.deleteTracks`.
 
         Parameters
         ----------
@@ -1560,7 +1559,7 @@ class DataFile:
         """
         Insert or update a :py:class:`Track` object.
 
-        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.deleteTracks`.
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.deleteTracks`.
 
 
         Parameters
@@ -1583,6 +1582,7 @@ class DataFile:
         type = self._processesTypeNameField(type)
 
         item = self.table_track.insert(id=id, type=type, style=style, text=text).upsert().execute()
+        item = self.table_track.get(id=item)
 
         return item
 
@@ -1590,7 +1590,7 @@ class DataFile:
         """
         Delete a single :py:class:`Track` object specified by id or all :py:class:`Track` object of an type
 
-        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.setTracks`.
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTrack`.
 
         Parameters
         ----------
@@ -1619,7 +1619,7 @@ class DataFile:
         """
         Retreive all :py:class:`MarkerType` objects in the database.
 
-        See also: :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.deleteMarkerType`.
+        See also: :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.deleteMarkerTypes`.
 
         Parameters
         ----------
@@ -1653,7 +1653,7 @@ class DataFile:
         """
         Retrieve an :py:class:`MarkerType` object from the database.
 
-        See also: :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.deleteMarkerType`.
+        See also: :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.deleteMarkerTypes`.
 
         Parameters
         ----------
@@ -1676,7 +1676,7 @@ class DataFile:
         """
         Insert or update an :py:class:`MarkerType` object in the database.
 
-        See also: :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.deleteMarkerType`.
+        See also: :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.deleteMarkerTypes`.
 
         Parameters
         ----------
@@ -1895,7 +1895,7 @@ class DataFile:
         """
         Get the :py:class:`Mask` entry for the given image frame number or filename.
 
-        See also: :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMask`.
+        See also: :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMasks`.
 
         Parameters
         ----------
@@ -1948,7 +1948,7 @@ class DataFile:
         """
         Get all :py:class:`Mask` entries from the database, which match the given criteria. If no criteria a given, return all masks.
 
-        See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMask`.
+        See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMasks`.
 
         Parameters
         ----------
@@ -1983,7 +1983,7 @@ class DataFile:
         """
         Update or create new :py:class:`Mask` entry with the given parameters.
 
-        See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.deleteMask`.
+        See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.deleteMasks`.
 
         Parameters
         ----------
@@ -2823,16 +2823,16 @@ class DataFile:
         except peewee.DoesNotExist:
             tag = self.table_tag()
 
-        setFields(tag,dict(name=name))
+        setFields(tag, dict(name=name))
         tag.save()
 
         return tag
 
-    def getTag(self,name=None,id=None):
+    def getTag(self, name=None, id=None):
         """
         Get a specific :py:class:`Tag` entry by its name or database ID
 
-        See also: :py:meth:`~.DataFile.setTag`, :py:meth:`~.DataFile.getTags`, :py:meth:`~.DataFile.deleteTags`.
+        See also: :py:meth:`~.DataFile.getTags`, :py:meth:`~.DataFile.setTag`, :py:meth:`~.DataFile.deleteTags`.
 
         Parameters
         ----------
@@ -2885,13 +2885,12 @@ class DataFile:
 
         return query
 
-    def deleteTags(self,name=None,id=None):
+    def deleteTags(self, name=None, id=None):
         """
         Delete all :py:class:`Tag` entries from the database, which match the given criteria. If no criteria a given,
         delete all.
 
-        See also: :py:meth:`~.DataFile.getTag`, :py:meth:`~.DataFile.setTag`,
-        :py:meth:`~.DataFile.deleteTags`.
+        See also: :py:meth:`~.DataFile.getTag`, :py:meth:`~.DataFile.getTags`, :py:meth:`~.DataFile.setTag`.
 
         Parameters
         ----------
@@ -2917,7 +2916,7 @@ class DataFile:
         """
         Get the :py:class:`Annotation` entry for the given image frame number or filename.
 
-        See also: :py:meth:`~.DataFile.getAnnotations`, :py:meth:`~.DataFile.setAnnotation`, :py:meth:`~.DataFile.deleteAnnotation`.
+        See also: :py:meth:`~.DataFile.getAnnotations`, :py:meth:`~.DataFile.setAnnotation`, :py:meth:`~.DataFile.deleteAnnotations`.
 
         Parameters
         ----------
@@ -2966,7 +2965,7 @@ class DataFile:
         """
         Get all :py:class:`Annotation` entries from the database, which match the given criteria. If no criteria a given, return all masks.
 
-        See also: :py:meth:`~.DataFile.getAnnotation`, :py:meth:`~.DataFile.setAnnotation`, :py:meth:`~.DataFile.deleteAnnotation`.
+        See also: :py:meth:`~.DataFile.getAnnotation`, :py:meth:`~.DataFile.setAnnotation`, :py:meth:`~.DataFile.deleteAnnotations`.
 
         Parameters
         ----------
@@ -3010,7 +3009,7 @@ class DataFile:
         """
         Insert or update an :py:class:`Annotation` object in the database.
 
-        See also: :py:meth:`~.DataFile.getAnnotation`, :py:meth:`~.DataFile.getAnnotations`, :py:meth:`~.DataFile.deleteAnnotation`.
+        See also: :py:meth:`~.DataFile.getAnnotation`, :py:meth:`~.DataFile.getAnnotations`, :py:meth:`~.DataFile.deleteAnnotations`.
 
         Parameters
         ----------

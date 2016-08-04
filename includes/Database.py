@@ -197,7 +197,7 @@ class DataFile(DataFileBase):
     def getFilename(self):
         if not self.exists:
             return "unsaved project"
-        return os.path.basename(self.database_filename)
+        return os.path.basename(self._database_filename)
 
     def save_database(self, file=None):
         # ensure that the file ends in .cdb
@@ -211,7 +211,7 @@ class DataFile(DataFileBase):
                 SaveDB(self.db, file)
                 self.db = peewee.SqliteDatabase(file)
                 # update peewee models
-                for table in self.tables:
+                for table in self._tables:
                     table._meta.database = self.db
                 self.exists = True
             # rewrite the paths
@@ -242,7 +242,7 @@ class DataFile(DataFileBase):
                 SaveDB(self.db, self.database_filename)
                 self.db = peewee.SqliteDatabase(self.database_filename)
                 # update peewee models
-                for table in self.tables:
+                for table in self._tables:
                     table._meta.database = self.db
                 self.exists = True
 

@@ -1,46 +1,35 @@
-API
-===
+Database API
+============
 
 ClickPoints comes with a powerful API which enables access from within python to ClickPoints Projects which are stored in a ``.cdb`` ClickPoints SQLite database.
 
 To get started reading and writing to a database use:
 
->>> import clickpoints
->>> db = clickpoints.DataFile("project.cdb")
+.. code-block:: python
+    :linenos:
+
+    import clickpoints
+    db = clickpoints.DataFile("project.cdb")
 
 This will open an existing project file called ``project.cdb``.
 
-If you intend to use your python script also as an addon script, you should start with:
-
->>> import clickpoints
->>> start_frame, database, port = clickpoints.GetCommandLineArgs()
->>> db = clickpoints.DataFile(database)
->>> com = clickpoints.Commands(port, catch_terminate_signal=True)
-
-This will retrieve ``start_frame``, ``database`` and ``port`` from the command line arguments the script was started with. When executing the script through the addon interface, ClickPoints will provide these values. These can then be used to open the ClickPoints project file and establish a connection to the ClickPoints instance.
-
 .. note::
-    Please refere to the `Examples <examples.html>`_ and `Addons <addons.html>`_ section to see how this can be used.
+    The `Examples <examples.html>`_ section demonstrates the use of the API with various examples and provides a good
+    starting point to write custom evaluations.
 
 .. attention::
     To be able to use the API, the clickpoints package has to be installed!
     If a ``ImportError: No module named clickpoints`` error is raised, you have to install the package first. Go to clickpoints\package in your clickpoints directory and execute ``python setup.py develop`` there.
 
-GetCommandLineArgs
-------------------
-
-.. autofunction:: clickpoints.GetCommandLineArgs
-
-DataFile
---------
-
-.. autoclass:: clickpoints.DataFile
-   :members:
 
 Database Models
 ---------------
 
-The database contains some tables represented in the ClickPoints api as peewee models.
+The ``.cdb`` file consists of multiple SQL tables in which it stores its information. Each table is represented in the API
+as a peewee model. Users which are not familiar can use the API without any knowledge of peewee, as the API provides
+all functions necessary to access the data. For each table a ``get`` (retrieve entries), ``set`` (add and change entries)
+and ``delete`` (remove entries) function is provided. Functions with a plural name always work on multiple entries at once
+and all arguments can be provided as single values or arrays if multiple entries should be affected.
 
 .. py:class:: Meta()
 
@@ -65,7 +54,7 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
     Stores an image.
 
-    See also: :py:meth:`~.DataFile.getImages`, :py:meth:`~.DataFile.getImage`, :py:meth:`~.DataFile.getImageIterator`,
+    See also: :py:meth:`~.DataFile.getImage`, :py:meth:`~.DataFile.getImages`, :py:meth:`~.DataFile.getImageIterator`,
     :py:meth:`~.DataFile.setImage`, :py:meth:`~.DataFile.deleteImages`.
 
     Attributes:
@@ -100,7 +89,7 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
     A track containing multiple markers.
 
-    See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTracks`, :py:meth:`~.DataFile.deleteTracks`.
+    See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.getTracks`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.deleteTracks`.
 
     Attributes:
         - **style** *(str)* - the style for this track.
@@ -113,7 +102,7 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
     A marker type.
 
-    Seel also: :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.deleteMarkerType`.
+    Seel also: :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.deleteMarkerTypes`.
 
     Attributes:
         - **name** *(str, unique)* - the name of the marker type.
@@ -191,7 +180,7 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
     A mask entry.
 
-    See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMask`.
+    See also: :py:meth:`~.DataFile.getMask`, :py:meth:`~.DataFile.getMasks`, :py:meth:`~.DataFile.setMask`, :py:meth:`~.DataFile.deleteMasks`.
 
     Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
@@ -215,6 +204,8 @@ The database contains some tables represented in the ClickPoints api as peewee m
 
     An annotation.
 
+    See also: :py:meth:`~.DataFile.getAnnotation`, :py:meth:`~.DataFile.getAnnotations`, :py:meth:`~.DataFile.setAnnotation`, :py:meth:`~.DataFile.deleteAnnotations`.
+
     Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this annotation.
         - **timestamp** *(datetime)* - the timestamp of the image linked to the annotation.
@@ -226,6 +217,8 @@ The database contains some tables represented in the ClickPoints api as peewee m
 .. py:class:: Tag()
 
     A tag for an :py:class:`Annotation`.
+
+    See also: :py:meth:`~.DataFile.getTag`, :py:meth:`~.DataFile.getTags`, :py:meth:`~.DataFile.setTag`, :py:meth:`~.DataFile.deleteTags`.
 
     Attributes:
         - **name** *(str)* - the name of the tag.
@@ -240,8 +233,9 @@ The database contains some tables represented in the ClickPoints api as peewee m
         - **annotation** *(* :py:class:`Annotation` *)* - the linked annotation.
         - **tag** *(* :py:class:`Tag` *)* - the linked tag.
 
-Commands
---------   
-   
-.. autoclass:: clickpoints.Commands
-    :members:
+
+DataFile
+--------
+
+.. autoclass:: clickpoints.DataFile
+   :members:

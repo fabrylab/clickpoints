@@ -24,6 +24,7 @@ semi-automatic evaluation or display the results of automatic image evaluation.
    addons
    examples
    api
+   api_addon
 
 Note
 ----
