@@ -154,6 +154,7 @@ class DataFile(DataFileBase):
         self.exists = os.path.exists(database_filename)
         self.config = config
         self.temporary_db = None
+        self.database_filename = None
 
         # compile regexp for timestamp extraction
         self.reg_timestamp = []
