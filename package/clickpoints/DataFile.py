@@ -212,7 +212,7 @@ class DataFile:
     """
     db = None
     reader = None
-    _current_version = "14"
+    _current_version = "15"
     database_filename = None
     next_sort_index = 0
 
@@ -406,7 +406,6 @@ class DataFile:
                       .format(self.id, self.name, self.color, self.mode, self.style, self.text))
 
         class Track(BaseModel):
-            #uid = peewee.CharField() # TODO discard
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
             type = peewee.ForeignKeyField(MarkerType, related_name="tracks", on_delete='CASCADE')
@@ -698,7 +697,7 @@ class DataFile:
                 return "MaskObject id%s: image=%s, data=%s" % (self.id, self.image, self.data)
 
         class MaskType(BaseModel):
-            name = peewee.CharField()  # TODO make unique
+            name = peewee.CharField(unique=True)
             color = peewee.CharField()
             index = peewee.IntegerField(unique=True)
 
@@ -713,7 +712,7 @@ class DataFile:
         """ Annotation Tables """
 
         class Annotation(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="annotations", on_delete='CASCADE')  # TODO make unique constraint
+            image = peewee.ForeignKeyField(Image, unique=True, related_name="annotations", on_delete='CASCADE')
             timestamp = peewee.DateTimeField(null=True)
             comment = peewee.TextField(default="")
             rating = peewee.IntegerField(default=0)
@@ -1003,6 +1002,43 @@ class DataFile:
                 self.db.execute_sql('INSERT INTO rectangle SELECT m1.id, m1.image_id, m1.x, m1.y, (m2.x-m1.x) AS width, (m2.y-m1.y) AS height, m1.type_id, m1.processed, m1.style, m1.text FROM marker AS m1 JOIN markertype ON m1.type_id = markertype.id JOIN marker AS m2 ON m1.partner_id = m2.id WHERE m1.partner_id > m1.id AND mode == 1')
                 self.db.execute_sql('DELETE FROM marker WHERE marker.id IN (SELECT marker.id FROM marker JOIN markertype ON marker.type_id = markertype.id WHERE mode == 1)')
             self._SetVersion(14)
+
+        if nr_version < 15:
+            print("\tto 15")
+            with self.db.transaction():
+                # remove uid from tracks
+                self.db.execute_sql('CREATE TABLE "track_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "style" VARCHAR(255), "text" VARCHAR(255), "type_id" INTEGER NOT NULL, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('INSERT INTO track_tmp SELECT id, style, text, type_id FROM track')
+                self.db.execute_sql("DROP TABLE track")
+                self.db.execute_sql("ALTER TABLE track_tmp RENAME TO track")
+                self.db.execute_sql('CREATE INDEX "track_type_id" ON "track" ("type_id")')
+
+                # make masktype unique
+                self.db.execute_sql('CREATE TABLE "masktype_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL, "color" VARCHAR(255) NOT NULL, "index" INTEGER NOT NULL)')
+                self.db.execute_sql('CREATE UNIQUE INDEX "masktype_tmp_index" ON "masktype_tmp" ("index");')
+                self.db.execute_sql('CREATE UNIQUE INDEX "masktype_tmp_name" ON "masktype_tmp" ("name");')
+                mask_types = self.db.execute_sql('SELECT * from masktype').fetchall()
+                for mask_type in mask_types:
+                    i = 1
+                    name = mask_type["name"]
+                    while True:
+                        try:
+                            self.db.execute_sql('INSERT INTO masktype_tmp ("id", "name", "color", "index") VALUES(?, ?, ?, ?)', [mask_type["id"], name, mask_type["color"], mask_type["index"]])
+                            break
+                        except peewee.IntegrityError:
+                            i += 1
+                            name = "%s%d" % (mask_type["name"], i)
+                self.db.execute_sql("DROP TABLE masktype")
+                self.db.execute_sql("ALTER TABLE masktype_tmp RENAME TO masktype")
+                self.db.execute_sql('DROP INDEX "masktype_tmp_index"')
+                self.db.execute_sql('DROP INDEX "masktype_tmp_name"')
+                self.db.execute_sql('CREATE UNIQUE INDEX "masktype_index" ON "masktype" ("index");')
+                self.db.execute_sql('CREATE UNIQUE INDEX "masktype_name" ON "masktype" ("name");')
+
+                # make annotations unique
+                self.db.execute_sql('DROP INDEX IF EXISTS "annotation_image_id"')
+                self.db.execute_sql('CREATE UNIQUE INDEX "annotation_image_id" ON "annotation" ("image_id");')
+            self._SetVersion(15)
 
 
     def _SetVersion(self, nr_new_version):
