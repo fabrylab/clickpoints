@@ -15,34 +15,33 @@ db = clickpoints.DataFile(database)
 com = clickpoints.Commands(port, catch_terminate_signal=True)
 
 # get the images
-images = db.GetImageIterator(start_frame=start_frame)
+images = db.getImageIterator(start_frame=start_frame)
 
 # retrieve first image
 image_last = images.next()
 
 # get points and corresponding tracks
-points = db.GetMarker(image=image_last.id, processed=0)
+points = db.getMarkers(image=image_last.id, processed=0)
 p0 = np.array([[point.x, point.y] for point in points if point.track_id]).astype(np.float32)
-tracking_ids = [point.track_id for point in points if point.track_id]
-types = [point.type_id for point in points if point.track_id]
+tracks = [point.track for point in points if point.track_id]
 
 # if no tracks are supplied, stop
-if len(tracking_ids) == 0:
+if len(tracks) == 0:
     print("Nothing to track")
     sys.exit(-1)
 
 # start iterating over all images
 for image in images:
-    print("Tracking frame number %d, %d tracks" % (image.sort_index, len(tracking_ids)))
+    print("Tracking frame number %d, %d tracks" % (image.sort_index, len(tracks)), image.id, image_last.id)
 
     # calculate next positions
     p1, st, err = cv2.calcOpticalFlowPyrLK(image_last.data8, image.data8, p0, None, **lk_params)
 
     # set the new positions
-    db.SetMarker(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, type=types, track=tracking_ids)
+    db.setMarkers(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, track=tracks)
 
     # mark the marker in the last frame as processed
-    db.SetMarker(image=image_last, processed=1, type=types, track=tracking_ids)
+    db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=tracks)
 
     # update ClickPoints
     com.ReloadMarker(image.sort_index)
