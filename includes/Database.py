@@ -154,7 +154,6 @@ class DataFile(DataFileBase):
         self.exists = os.path.exists(database_filename)
         self.config = config
         self.temporary_db = None
-        self.database_filename = None
 
         # compile regexp for timestamp extraction
         self.reg_timestamp = []
@@ -226,7 +225,7 @@ class DataFile(DataFileBase):
         if not file.lower().endswith(".cdb"):
             file += ".cdb"
         # if the database hasn't been written to file, write it
-        if not self.exists or file != self.database_filename:
+        if not self.exists or file != self._database_filename:
             # if the database already exists, copy it now before changing the paths
             if self.exists:
                 # save the database and reload it
@@ -237,8 +236,8 @@ class DataFile(DataFileBase):
                     table._meta.database = self.db
                 self.exists = True
             # rewrite the paths
-            if self.database_filename:
-                old_directory = os.path.dirname(self.database_filename)
+            if self._database_filename:
+                old_directory = os.path.dirname(self._database_filename)
             else:
                 old_directory = ""
             new_directory = os.path.dirname(file)
@@ -256,13 +255,13 @@ class DataFile(DataFileBase):
                         path.path = abs_path
                 path.save()
             if file:
-                self.database_filename = file
+                self._database_filename = file
 
             # if the database did not exist, we had to change the paths before saving
             if not self.exists:
                 # save the database and reload it
-                SaveDB(self.db, self.database_filename)
-                self.db = peewee.SqliteDatabase(self.database_filename)
+                SaveDB(self.db, self._database_filename)
+                self.db = peewee.SqliteDatabase(self._database_filename)
                 # update peewee models
                 for table in self._tables:
                     table._meta.database = self.db
@@ -272,9 +271,9 @@ class DataFile(DataFileBase):
             os.chdir(new_directory)
 
     def add_path(self, path):
-        if self.database_filename and not self.temporary_db:
+        if self._database_filename and not self.temporary_db:
             try:
-                path = os.path.relpath(path, os.path.dirname(self.database_filename))
+                path = os.path.relpath(path, os.path.dirname(self._database_filename))
             except ValueError:
                 path = os.path.abspath(path)
         path = os.path.normpath(path)
