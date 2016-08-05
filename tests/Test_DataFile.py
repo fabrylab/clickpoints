@@ -42,11 +42,11 @@ class Test_DataFile(unittest.TestCase):
 
     def tearDown(self):
         self.db.db.close()
-        os.remove(self.db.database_filename)
+        os.remove(self.db._database_filename)
 
     def test_getDbVersion(self):
         """ Test if the getDbVersion function returns the version properly """
-        self.assertEqual(self.db.getDbVersion(), "14", "Database version is not returned correctly.")
+        self.assertEqual(self.db.getDbVersion(), "15", "Database version is not returned correctly.")
 
     ''' Test Path functions '''
     def test_setPath(self):
