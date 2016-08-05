@@ -165,22 +165,30 @@ class DeleteType(QtWidgets.QDialog):
         self.setModal(True)
         main_layout = QtWidgets.QVBoxLayout(self)
 
-        self.label = QtWidgets.QLabel(
-            "The type %s has %d marker. Do you want to delete all of them or assign them to another type?" % (
-            type.name, count))
-        main_layout.addWidget(self.label)
+        self.type_ids = {new_type.name: new_type.id for new_type in types if new_type.mode == type.mode}
+        self.type_names = [new_type.name for new_type in types if new_type.mode == type.mode]
 
-        self.type_ids = {type.name: type.id for type in types}
-        self.comboBox = AddQComboBox(main_layout, "New Type:", [type.name for type in types])
+        if len(self.type_ids):
+            self.label = QtWidgets.QLabel(
+                "The type %s has %d marker. Do you want to delete all of them or assign them to another type?" % (
+                type.name, count))
+        else:
+            self.label = QtWidgets.QLabel(
+                "The type %s has %d marker. Do you want to delete all of them?" % (
+                    type.name, count))
+        main_layout.addWidget(self.label)
+        if len(self.type_ids):
+            self.comboBox = AddQComboBox(main_layout, "New Type:", self.type_names)
 
         layout2 = QtWidgets.QHBoxLayout()
         main_layout.addLayout(layout2)
         button1 = QtWidgets.QPushButton("Delete")
         button1.clicked.connect(lambda: self.done(-1))
         layout2.addWidget(button1)
-        button2 = QtWidgets.QPushButton("Move")
-        button2.clicked.connect(lambda: self.done(self.type_ids[self.comboBox.currentText()]))
-        layout2.addWidget(button2)
+        if len(self.type_ids):
+            button2 = QtWidgets.QPushButton("Move")
+            button2.clicked.connect(lambda: self.done(self.type_ids[self.comboBox.currentText()]))
+            layout2.addWidget(button2)
         button3 = QtWidgets.QPushButton("Cancel")
         button3.clicked.connect(lambda: self.done(0))
         layout2.addWidget(button3)
@@ -582,9 +590,9 @@ class MarkerEditor(QtWidgets.QWidget):
                                                            QtWidgets.QMessageBox.No)
                     if reply == QtWidgets.QMessageBox.No:
                         return
+                    self.marker_handler.save()
                     if self.data.mode == TYPE_Normal:
-                        print(self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data))
-                        print(self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data).execute())
+                        self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data).execute()
                         self.marker_handler.LoadPoints()
                     elif self.data.mode & TYPE_Line:
                         self.data_file.table_line.delete().where(self.data_file.table_line.type == self.data).execute()
@@ -613,6 +621,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_handler.addCounter(self.data)
             else:
                 self.marker_handler.GetCounter(self.data).Update(self.data)
+            self.marker_handler.save()
             if self.data.mode & TYPE_Track:
                 self.marker_handler.LoadTracks()
             elif self.data.mode & TYPE_Line:
@@ -621,7 +630,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_handler.LoadRectangles()
             else:
                 self.marker_handler.LoadPoints()
-            if self.marker_handler.active_type.id == self.data.id:
+            if self.marker_handler.active_type is not None and self.marker_handler.active_type.id == self.data.id:
                 self.marker_handler.active_type = self.data
 
             # get the item from tree or insert a new one
@@ -702,24 +711,32 @@ class MarkerEditor(QtWidgets.QWidget):
                 value = self.window.exec_()
                 if value == 0:  # canceled
                     return
+                self.marker_handler.save()
                 if value == -1:  # delete all of them
                     # delete all markers from this type
-                    q = self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data.id)
-                    q.execute()
-                    # delete type
-                    self.data.delete_instance()
-                    # reload marker
-                    self.marker_handler.ReloadMarker()
+                    self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data.id).execute()
+                    self.data_file.table_line.delete().where(self.data_file.table_line.type == self.data.id).execute()
+                    self.data_file.table_rectangle.delete().where(self.data_file.table_rectangle.type == self.data.id).execute()
+                    self.data_file.table_track.delete().where(self.data_file.table_track.type == self.data.id).execute()
                 else:
                     # change the type of all markers which belonged to this type
-                    q = self.data_file.table_marker.select().where(self.data_file.table_marker.type == self.data.id)
-                    for marker in q:
-                        marker.type = value
-                        marker.save()
-                    # delete type
-                    self.data.delete_instance()
-                    # reload marker
-                    self.marker_handler.ReloadMarker()
+                    self.data_file.table_marker.update(type=value).where(self.data_file.table_marker.type == self.data.id).execute()
+                    self.data_file.table_line.update(type=value).where(self.data_file.table_line.type == self.data.id).execute()
+                    self.data_file.table_rectangle.update(type=value).where(self.data_file.table_rectangle.type == self.data.id).execute()
+                    self.data_file.table_track.update(type=value).where(self.data_file.table_track.type == self.data.id).execute()
+                # delete type
+                if self.marker_handler.active_type is not None and self.marker_handler.active_type.id == self.data.id:
+                    self.marker_handler.active_type = None
+                self.data.delete_instance()
+                # reload marker
+                if self.data.mode == TYPE_Normal:
+                    self.marker_handler.LoadPoints()
+                elif self.data.mode & TYPE_Line:
+                    self.marker_handler.LoadLines()
+                elif self.data.mode & TYPE_Rect:
+                    self.marker_handler.LoadRectangles()
+                elif self.data.mode & TYPE_Track:
+                    self.marker_handler.LoadTracks()
 
             # update the counters
             self.marker_handler.removeCounter(self.data)
@@ -1957,7 +1974,7 @@ class MarkerHandler:
     def sceneEventFilter(self, event):
         if self.hidden or self.data_file.image is None:
             return False
-        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and not event.modifiers() & Qt.ControlModifier:  # QtCore.QEvent.MouseButtonPress:
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and not event.modifiers() & Qt.ControlModifier and self.active_type is not None:
             self.active_drag = None
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
