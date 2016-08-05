@@ -1229,11 +1229,11 @@ class DataFile:
         Parameters
         ----------
         path_string : string, path_string, optional
-            the string/strings specifying the paths.
+            the string/s specifying the path/s.
         base_path : string, optional
             return only paths starting with the base_path string.
         id: int, array_like, optional
-            the id/ids of the paths.
+            the id/s of the path/s.
 
         Returns
         -------
@@ -1288,11 +1288,11 @@ class DataFile:
         Parameters
         ----------
         path_string: string, optional
-            the string/strings specifying the paths.
+            the string/s specifying the paths.
         base_path: string, optional
             return only paths starting with the base_path string.
         id: int, optional
-            the id/ids of the paths.
+            the id/s of the paths.
 
         Returns
         -------
@@ -1338,21 +1338,32 @@ class DataFile:
 
     def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, order_by="sort_index"):
         """
-        Get all :py:class:`Image` entries sorted by sort index. For large databases :py:meth:`~.DataFile.getImageIterator`, should be used
-        as it doesn't load all frames at once.
+        Get all :py:class:`Image` entries sorted by sort index. For large databases
+        :py:meth:`~.DataFile.getImageIterator`, should be used as it doesn't load all frames at once.
 
         See also: :py:meth:`~.DataFile.getImage`, :py:meth:`~.DataFile.getImageIterator`, :py:meth:`~.DataFile.setImage`,
         :py:meth:`~.DataFile.deleteImages`.
 
         Parameters
         ----------
-        frames : int, array_like, optional
-            the frame/frames of the images
-        filenames : string, array_like, optional
-            the filename/filenames of the images
-        exts : string, array_like, optional
-            the extension/extensions of the images
-        TODO
+        frame : int, array_like, optional
+            the frame number/s of the image/s as displayed in ClickPoints (sort_index in the database).
+        filename : string, array_like, optional
+            the filename/s of the image/s.
+        ext : string, array_like, optional
+            the extension/s of the image/s.
+        external_id : int, array_like, optional
+            the external id/s of the image/s.
+        timestamp : datetime, array_like, optional
+            the timestamp/s of the image/s.
+        width : int, array_like, optional
+            the width/s of the image/s.
+        height : int, array_like, optional
+            the height/s of the image/s
+        path : int, :py:class:`Path`, array_like, optional
+            the path/s (or path id/s) of the image/s
+        order_by : string, optional
+            sort by either 'sort_index' (default) or 'timestamp'.
 
         Returns
         -------
