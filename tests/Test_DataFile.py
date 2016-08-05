@@ -700,6 +700,10 @@ class Test_DataFile(unittest.TestCase):
         self.assertTrue(all(m.x >= 10 for m in markers), "Setting markers does not work properly.")
         self.db.deleteMarkers()
 
+        # test adding a lot of markers
+        self.db.setMarkers(image=image1, x=np.arange(0, 10000), y=0)
+        self.assertEqual(self.db.getMarkers().count(), 10000, "Setting markers does not work properly.")
+
     def test_deleteMarkers(self):
         """ Test the deleteMarkers function """
 
