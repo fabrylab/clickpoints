@@ -261,7 +261,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.GetModule("Timeline").ImagesAdded()
         if not self.load_thread.is_alive() and self.data_file.image is not None:
             self.load_timer.stop()
-            print("Loading finished", time.time()-self.loading_time)
+            BroadCastEvent(self.modules, "LoadingFinishedEvent")
+            print("Loading finished in %.2fs " % time.time()-self.loading_time)
+
 
     def Folder(self):
         self.folderEditor = FolderEditor(self, self.data_file)
