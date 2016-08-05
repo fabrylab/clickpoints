@@ -236,12 +236,54 @@ class DataFile:
     _current_version = "15"
     _database_filename = None
     _next_sort_index = 0
+    _SQLITE_MAX_VARIABLE_NUMBER = None
 
     """ Enumerations """
     TYPE_Normal = 0
     TYPE_Rect = 1
     TYPE_Line = 2
     TYPE_Track = 4
+
+    def max_sql_variables(self):
+        """Get the maximum number of arguments allowed in a query by the current
+        sqlite3 implementation. Based on `this question
+        `_
+
+        Returns
+        -------
+        int
+            inferred SQLITE_MAX_VARIABLE_NUMBER
+        """
+        import sqlite3
+        db = sqlite3.connect(':memory:')
+        cur = db.cursor()
+        cur.execute('CREATE TABLE t (test)')
+        low, high = 0, 100000
+        while (high - 1) > low:
+            guess = (high + low) // 2
+            query = 'INSERT INTO t VALUES ' + ','.join(['(?)' for _ in
+                                                        range(guess)])
+            args = [str(i) for i in range(guess)]
+            try:
+                cur.execute(query, args)
+            except sqlite3.OperationalError as e:
+                if "too many SQL variables" in str(e) or "too many terms in compound SELECT" in str(e):
+                    high = guess
+                else:
+                    raise
+            else:
+                low = guess
+        cur.close()
+        db.close()
+        return low
+
+    def saveUpsertMany(self, table, data):
+        if self._SQLITE_MAX_VARIABLE_NUMBER is None:
+            self._SQLITE_MAX_VARIABLE_NUMBER = self.max_sql_variables()
+        chunk_size = ((self._SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) - 1) // 2
+        with self.db.atomic():
+            for idx in range(0, len(data), chunk_size):
+                table.insert_many(data[idx:idx + chunk_size]).upsert().execute()
 
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
@@ -2118,9 +2160,6 @@ class DataFile:
         query = addFilter(query, id, self.table_mask.id)
         query.execute()
 
-
-
-
     def getMarker(self, id):
         """
         Retrieve an :py:class:`Marker` object from the database.
@@ -2285,7 +2324,7 @@ class DataFile:
 
         data = packToDictList(self.table_marker, id=id, image=image, x=x, y=y, processed=processed, type=type, track=track,
                               style=style, text=text)
-        return self.table_marker.insert_many(data).upsert().execute()
+        return self.saveUpsertMany(self.table_marker, data)
 
     def deleteMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None,
                       track=None, text=None, id=None):
@@ -2522,7 +2561,7 @@ class DataFile:
 
         data = packToDictList(self.table_line, id=id, image=image, x1=x1, y1=y1, x2=x2, y2=y2, processed=processed, type=type,
                               style=style, text=text)
-        return self.table_line.insert_many(data).upsert().execute()
+        return self.saveUpsertMany(self.table_line, data)
 
     def deleteLines(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None,
                     processed=None, text=None, id=None):
@@ -2762,7 +2801,7 @@ class DataFile:
 
         data = packToDictList(self.table_rectangle, id=id, image=image, x=x, y=y, width=width, height=height, processed=processed, type=type,
                               style=style, text=text)
-        return self.table_rectangle.insert_many(data).upsert().execute()
+        return self.saveUpsertMany(self.table_rectangle, data)
 
     def deleteRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
                     processed=None, text=None, id=None):
