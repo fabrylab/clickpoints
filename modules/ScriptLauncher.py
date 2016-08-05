@@ -356,7 +356,7 @@ class ScriptLauncher(QtCore.QObject):
             print("ERROR: script %s not found." % script)
             return
         args = [sys.executable, os.path.abspath(script_path), "--start_frame", str(self.data_file.get_current_image()),
-                "--port", str(self.PORT), "--database", str(self.data_file.database_filename)]
+                "--port", str(self.PORT), "--database", str(self.data_file._database_filename)]
         print('arags:', args)
         if hasattr(os.sys, 'winver'):
             process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
