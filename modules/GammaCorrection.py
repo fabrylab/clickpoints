@@ -109,7 +109,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-            QtWidgets.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateBrightnes(self, value):
         QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
@@ -127,7 +127,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-            QtWidgets.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def LoadImageEvent(self, filename="", frame_number=0):
         if self.image.preview_rect is not None:
@@ -146,7 +146,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.conv.setPath(QtGui.QPainterPath())
 
     def updateROI(self):
-        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        #QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.image.PreviewRect()
         self.image.Change()
         self.updateHist(self.image.hist)
