@@ -525,6 +525,7 @@ class DataFile(DataFileBase):
             self.reg_timestamp2.append(re.compile(regex))
 
     def getTimeStampQuick(self, file):
+        path, file = os.path.split(file)
         for regex in self.reg_timestamp:
             match = regex.match(file)
             if match:
@@ -545,6 +546,7 @@ class DataFile(DataFileBase):
         return None
 
     def getTimeStampsQuick(self,file):
+        path, file = os.path.split(file)
         for regex in self.reg_timestamp2:
             match = regex.match(file)
             if match:
