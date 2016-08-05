@@ -194,6 +194,11 @@ if options.release:
     for path in paths:
         CheckForUncommitedChanges(path)
     CheckForUncommitedChanges(path_to_website)
+else:
+    os.chdir("clickpoints")
+    revision = os.popen("hg id").read().strip()[:12]
+    os.chdir("..")
+    new_version = "%s (%s)" % (new_version, revision)
 
 """ Let's go """
 # write new version to version.txt
