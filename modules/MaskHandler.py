@@ -535,7 +535,7 @@ class MaskHandler:
                 if len(type_def) >= 3:
                     name = type_def[2]
                 else:
-                    name = "Color"
+                    name = "Color%d" % type_id
                 self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
 
         # update mask interface buttons
