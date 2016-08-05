@@ -327,7 +327,7 @@ def GetFilesInDirectory(root):
 
 def getFrameNumber(file, extension):
     # for image we are already done, they only contain one frame
-    if extension.lower() in imgformats:
+    if extension.lower() not in vidformats:
         frames = 1
     else:
         # for videos, we have to open them and get the length
