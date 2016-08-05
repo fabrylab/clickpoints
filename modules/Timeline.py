@@ -980,6 +980,10 @@ class Timeline(QtCore.QObject):
 
         self.frameSlider.clearTickMarker()
 
+    def LoadingFinishedEvent(self):
+        if self.config.datetimeline_show:
+            self.timeSlider.setTimes(self.data_file)
+
     def ChangedSkip(self):
         self.skip = self.spinBox_Skip.value()
 
