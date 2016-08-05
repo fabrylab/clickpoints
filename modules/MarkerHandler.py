@@ -20,7 +20,6 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 from __future__ import division, print_function
-import os
 import re
 import peewee
 
@@ -37,7 +36,6 @@ import uuid
 
 import json
 import matplotlib.pyplot as plt
-import random
 from threading import Thread
 
 from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex
@@ -1155,6 +1153,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         self.g2 = MyGrabberItem(self, self.color, *self.data.getPos2())
         self.g3 = MyGrabberItem(self, self.color, *self.data.getPos3())
         self.g4 = MyGrabberItem(self, self.color, *self.data.getPos4())
+        self.start_grabber = self.g3
         self.text_parent = self.g3
         pen = self.pen()
         pen.setWidth(2)
@@ -1219,7 +1218,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
             self.updateDisplay()
 
     def drag(self, event):
-        self.graberMoved(self.g3, event.pos())
+        self.graberMoved(self.start_grabber, event.pos())
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
