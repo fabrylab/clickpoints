@@ -172,6 +172,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.load_timer.timeout.connect(self.LoadTimer)
         self.loading_time = time.time()
         if new_database and config.srcpath != "":
+            print("Loading files ...")
             # if it is a directory add it
             if os.path.isdir(config.srcpath):
                 self.load_thread = threading.Thread(target=addPath, args=(self.data_file, config.srcpath),
@@ -262,7 +263,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if not self.load_thread.is_alive() and self.data_file.image is not None:
             self.load_timer.stop()
             BroadCastEvent(self.modules, "LoadingFinishedEvent")
-            print("Loading finished in %.2fs " % time.time()-self.loading_time)
+            print("Loading finished in %.2fs " % (time.time()-self.loading_time))
 
 
     def Folder(self):
