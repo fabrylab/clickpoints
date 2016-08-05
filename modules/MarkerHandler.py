@@ -572,7 +572,30 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.new_type.color = GetColorByIndex(len(self.marker_type_modelitems))
                 self.data = self.data_file.table_markertype()
             self.data.name = self.typeWidget.name.text()
-            self.data.mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
+            new_mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
+            if new_mode != self.data.mode:
+                count = self.data.markers.count() + self.data.lines.count() + self.data.rectangles.count()
+                if count:
+                    reply = QtWidgets.QMessageBox.question(None, 'Warning',
+                                                           'Changing the mode of this markertype will delete all %d previous markers of this type.\nDo you want to proceed?' % count,
+                                                           QtWidgets.QMessageBox.Yes,
+                                                           QtWidgets.QMessageBox.No)
+                    if reply == QtWidgets.QMessageBox.No:
+                        return
+                    if self.data.mode == TYPE_Normal:
+                        print(self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data))
+                        print(self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data).execute())
+                        self.marker_handler.LoadPoints()
+                    elif self.data.mode & TYPE_Line:
+                        self.data_file.table_line.delete().where(self.data_file.table_line.type == self.data).execute()
+                        self.marker_handler.LoadLines()
+                    elif self.data.mode & TYPE_Rect:
+                        self.data_file.table_rectangle.delete().where(self.data_file.table_rectangle.type == self.data).execute()
+                        self.marker_handler.LoadRectangles()
+                    elif self.data.mode & TYPE_Track:
+                        self.data_file.table_track.delete().where(self.data_file.table_track.type == self.data).execute()
+                        self.marker_handler.LoadTracks()
+                self.data.mode = new_mode
             self.data.style = self.typeWidget.style.text()
             self.data.color = self.typeWidget.color.getColor()
             self.data.text = self.filterText(self.typeWidget.text.text())
@@ -598,6 +621,8 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_handler.LoadRectangles()
             else:
                 self.marker_handler.LoadPoints()
+            if self.marker_handler.active_type.id == self.data.id:
+                self.marker_handler.active_type = self.data
 
             # get the item from tree or insert a new one
             if new_type:
@@ -665,7 +690,7 @@ class MarkerEditor(QtWidgets.QWidget):
             index = self.data.id
             item = self.marker_type_modelitems[index]
 
-            count = self.data.markers.count()
+            count = self.data.markers.count()+self.data.lines.count()+self.data.rectangles.count()
             # if this type doesn't have markers delete it without asking
             if count == 0:
                 self.data.delete_instance()
