@@ -37,13 +37,6 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
     def tearDown(self):
         BaseTest.tearDown(self)
 
-    def test_jumpframes(self):
-        """ Test the GUI in its default state """
-        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
-        self.window.JumpFrames(20)
-        self.wait_for_image_load()
-        self.assertFalse(os.path.exists(self.database_path))
-
     def test_createMarker(self):
         """ Test if creating marker works """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
@@ -63,7 +56,7 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
 
     def test_moveMarker(self):
         """ Test if moving marker works """
-        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "MoveMarker.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
@@ -79,21 +72,21 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
 
         # check position
-        pos = self.window.GetModule("MarkerHandler").points[0].pos()
-        self.assertTrue(45 < pos.x() < 55, "Marker x position is added wrong")
-        self.assertTrue(45 < pos.y() < 55, "Marker y position is added wrong")
+        data = self.window.GetModule("MarkerHandler").points[0].data
+        self.assertTrue(45 < data.x < 55, "Marker x position is added wrong")
+        self.assertTrue(45 < data.y < 55, "Marker y position is added wrong")
 
         # Test moving the marker
         self.mouseDrag(50, 50, 100, 100)
 
         # check position
-        pos = self.window.GetModule("MarkerHandler").points[0].pos()
-        self.assertTrue(45 < pos.x() < 105, "Marker x position move didn't work.")
-        self.assertTrue(95 < pos.y() < 105, "Marker y position move didn't work.")
+        data = self.window.GetModule("MarkerHandler").points[0].data
+        self.assertTrue(45 < data.x < 105, "Marker x position move didn't work.")
+        self.assertTrue(95 < data.y < 105, "Marker y position move didn't work.")
 
     def test_deleteMarker(self):
         """ Test if deleting marker works """
-        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"), "DeleteMarker.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
 
         # switch interface on
         self.keyPress(Qt.Key_F2)

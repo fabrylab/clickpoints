@@ -34,26 +34,19 @@ from qtpy.QtWidgets import QApplication
 app = QApplication(sys.argv)
 
 class BaseTest():
-    def createInstance(self, path, database_file=None, mask_foldername=None):
+    test_path = None
+
+    def createInstance(self, path):
         global __path__
         """ Create the GUI """
         if "__path__" in globals():
-            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", path)))
         else:
             __path__ = os.path.dirname(__file__)
-            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", "..", path)))
-        if database_file is None:
-            database_file = self.id().replace(".", "_")+".db"
-        if mask_foldername is None:
-            mask_foldername = self.id().replace(".", "_")
-        self.database_file = database_file
-        self.mask_folder = mask_foldername
-
-        self.database_path = os.path.join(self.test_path, database_file)
-        self.mask_folder_path = os.path.join(self.test_path, mask_foldername)
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", path)))
 
         print("Test Path", self.test_path)
-        sys.argv = [__file__, r"-srcpath="+self.test_path, r"-database_file="+self.database_file]
+        sys.argv = [__file__, r"-srcpath="+self.test_path]
         print(sys.argv)
         config = ClickPoints.LoadConfig()
         for addon in config.addons:
@@ -61,10 +54,8 @@ class BaseTest():
                 code = compile(f.read(), addon + ".py", 'exec')
                 exec(code)
 
-        self.database_already_existed = os.path.exists(self.database_path)
-        self.maskfolder_already_existed = os.path.exists(self.mask_folder_path)
-
         self.window = ClickPoints.ClickPointsWindow(config)
+        #self.window.show()
 
     def mouseMove(self, x, y, delay=10, coordinates="origin"):
         v = self.window.view
@@ -131,12 +122,7 @@ class BaseTest():
         # close window
         QTest.qWait(100)
         if "window" in dir(self):
+            self.window.data_file.exists = True  # to prevent the "do you want to save" window
             self.window.close()
             QTest.qWait(100)
             self.window.data_file.db.close()
-
-        # remove database
-        if os.path.exists(self.database_path) and not self.database_already_existed:
-            os.remove(self.database_path)
-        if os.path.exists(self.mask_folder_path) and not self.maskfolder_already_existed:
-            shutil.rmtree(self.mask_folder_path)
