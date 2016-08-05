@@ -548,7 +548,10 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
             self.min_value = datetime.datetime.today()
             self.max_value = datetime.datetime.today()+datetime.timedelta(hours=1)
             self.slider_position.setValueRange(self.min_value, self.max_value)
+            self.hide()
             return
+
+        self.show()
         # get min/max values
         self.min_value = np.amin(timestamps)
         self.max_value = np.amax(timestamps)
