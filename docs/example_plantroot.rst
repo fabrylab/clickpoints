@@ -9,7 +9,7 @@ Flourescence intensities in plant roots
 In the example, we show how the mask panting feature of ClickPoints can be used to evaluate fluorescence intensities in
 microscope recordings.
 
-Images of an *Arabidopsis thaliana* root tip, obtained using a two-photon confocal microscope [Gerlitz16], recorded at
+Images of an *Arabidopsis thaliana* root tip, obtained using a two-photon confocal microscope :cite:`gerliz2016`, recorded at
 1 min time intervals are used. The plant roots expressed a photoactivatable green fluorescent protein, which after
 activation with a UV pulse diffuses from the activated cells to the neighbouring cells.
 
@@ -69,3 +69,9 @@ The fluorescence intensities be evaluated using a small script:
     plt.ylabel("mean intensity")
     # display the plot
     plt.show()
+
+.. rubric:: References
+
+.. bibliography:: refs.bib
+   :style: plain
+   :filter: docname in docnames

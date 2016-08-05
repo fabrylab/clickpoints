@@ -8,7 +8,7 @@ Count Penguins
 
 In the example, we show how the ClickPoints can be used to count penguins animals in an image.
 
-The example contains some images recorded with a GoPro Hero 2 camera, located at the Baie du Marin King penguin colony on Possession Island of the Crozet Archipelago [Weimerskirch et al. 1992].
+The example contains some images recorded with a GoPro Hero 2 camera, located at the Baie du Marin King penguin colony on Possession Island of the Crozet Archipelago :cite:`BohecIPEV`.
 Two marker types where added in ClickPoints to count the adult and juvenile animals.
 
 The the counts can be evaluated using a small script:
@@ -34,3 +34,9 @@ The the counts can be evaluated using a small script:
 
     # display the plot
     plt.show()
+
+.. rubric:: References
+
+.. bibliography:: refs.bib
+   :style: plain
+   :filter: docname in docnames
