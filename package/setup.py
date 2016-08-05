@@ -44,5 +44,6 @@ setup(name='clickpoints',
           'peewee',
           'pillow',
           'imageio',
+          'sphinxcontrib-bibtex',
       ],
       zip_safe=False)
