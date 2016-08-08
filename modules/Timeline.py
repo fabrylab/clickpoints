@@ -179,7 +179,7 @@ class TimeLineGrabberTime(TimeLineGrabber):
             self.setValue(self.pixel_to_value(x))
 
     def setValue(self, value):
-        self.value = value
+        self.value = BoundBy(value, *self.value_range)
         self.updatePos()
 
 class TimeLineSlider(QtWidgets.QGraphicsView):
@@ -760,6 +760,11 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         super(RealTimeSlider, self).mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if event.button() == 1:
+            pos = (self.slider_line.mapFromScene(self.mapToScene(event.pos())) - self.markerParent.pos())/self.scale
+            pos = self.mapFromScene(self.slider_line.mapToScene(pos))
+            self.setValue(self.PixelToValue(pos.x()))
+            self.slider_position.signal.sliderReleased.emit()
         if event.button() == 2:
             self.scene_panning = False
         super(RealTimeSlider, self).mouseReleaseEvent(event)
