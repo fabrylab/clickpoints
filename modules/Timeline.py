@@ -548,10 +548,13 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
             self.min_value = datetime.datetime.today()
             self.max_value = datetime.datetime.today()+datetime.timedelta(hours=1)
             self.slider_position.setValueRange(self.min_value, self.max_value)
-            self.hide()
+            self.is_hidden = True
+            self.setHidden(True)
             return
 
-        self.show()
+        self.is_hidden = False
+        self.setHidden(False)
+
         # get min/max values
         self.min_value = np.amin(timestamps)
         self.max_value = np.amax(timestamps)
@@ -882,6 +885,13 @@ class Timeline(QtCore.QObject):
         else:
             self.timeSlider = None
 
+        self.layoutCtrl3 = QtWidgets.QHBoxLayout()
+        self.layoutCtrlParent.addLayout(self.layoutCtrl3)
+        self.progress_bar = QtWidgets.QProgressBar()
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setVisible(False)
+        self.layoutCtrl3.addWidget(self.progress_bar)
+
         # frame control
         self.button_play = QtWidgets.QPushButton()
         self.button_play.setCheckable(True)
@@ -959,6 +969,9 @@ class Timeline(QtCore.QObject):
         return self.data_file.get_image_count()
 
     def ImagesAdded(self):
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(0)
+        self.progress_bar.setVisible(True)
         self.images_added_signal.emit()
 
     def ImagesAddedMain(self):
@@ -984,6 +997,9 @@ class Timeline(QtCore.QObject):
         self.frameSlider.clearTickMarker()
 
     def LoadingFinishedEvent(self):
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setHidden(True)
         if self.config.datetimeline_show:
             self.timeSlider.setTimes(self.data_file)
 
@@ -1108,6 +1124,8 @@ class Timeline(QtCore.QObject):
                 widget.setHidden(False)
             self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
         self.button.setChecked(not self.hidden)
+        if hide is False:
+            self.timeSlider.setHidden(self.timeSlider.is_hidden)
 
     def keyPressEvent(self, event):
         # @key H: hide control elements
