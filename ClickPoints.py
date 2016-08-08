@@ -105,6 +105,7 @@ def GetModuleInitArgs(mod):
 
 class ClickPointsWindow(QtWidgets.QWidget):
     folderEditor = None
+    first_frame = 0
 
     def __init__(self, my_config, parent=None):
         global config
@@ -185,7 +186,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 # for images load the folder
                 if ext.lower() in imgformats:
                     self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                                                        kwargs=dict(use_natsort=config.use_natsort))
+                                                        kwargs=dict(use_natsort=config.use_natsort, window=self, select_file=filename))
+                    self.first_frame = None
                     #addPath(self.data_file, directory, use_natsort=config.use_natsort)
                 # for videos just load the file
                 elif ext.lower() in vidformats:
@@ -254,8 +256,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.load_timer.start()
 
     def LoadTimer(self):
-        if self.data_file.image is None and self.data_file.get_image_count():
-            self.JumpToFrame(0)
+        if self.data_file.image is None and self.data_file.get_image_count() and self.first_frame is not None:
+            self.JumpToFrame(self.first_frame)
             self.view.fitInView()
             self.GetModule("Timeline").ImagesAdded()
         else:

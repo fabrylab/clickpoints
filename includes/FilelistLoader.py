@@ -227,7 +227,7 @@ class FolderEditor(QtWidgets.QWidget):
         self.window.ImagesAdded()
 
 
-def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=False):
+def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=False, select_file=None, window=None):
     # if we should add subdirectories, add them or create a list with only one path
     if subdirectories:
         path_list = iter(sorted(GetSubdirectories(path)))
@@ -267,9 +267,14 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
                         continue
                     # add the file to the database
                     data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, full_path=os.path.join(path, filename), commit=False))
-                    if len(data) > 100:
+                    if len(data) > 100 or filename == select_file:
                         data_file.add_bulk(data)
                         data = []
+                        # if the file is the file which should be selected jump to that frame
+                        if filename == select_file:
+                            file = data_file.table_image.get(filename=select_file)
+                            window.first_frame = file.sort_index
+                            select_file = None
                         break
                 else:
                     break
