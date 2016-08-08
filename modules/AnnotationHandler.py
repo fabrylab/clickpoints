@@ -321,6 +321,8 @@ class AnnotationEditor(QtWidgets.QWidget):
         self.db.annotation.tags = ",".join(self.leTag.getTagList())
         self.close()
         BroadCastEvent(self.modules, "AnnotationAdded", self.db.annotation)
+        # set the database changed flag
+        self.db.data_file.setChangesMade()
 
     def removeAnnotation(self):
         self.annotation_handler.db.remove_annotation(self.annotation)

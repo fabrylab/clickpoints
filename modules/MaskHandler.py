@@ -345,6 +345,8 @@ class MaskEditor(QtWidgets.QWidget):
         # if a new type was created switch selection to create a new type
         if new_type:
             self.setMaskType(None)
+        # set the database changed flag
+        self.data_file.data_file.setChangesMade()
 
     def removeMarker(self):
         # get the tree view item (don't delete it right away because this changes the selection)
@@ -741,6 +743,8 @@ class MaskHandler:
             self.last_y = event.pos().y()
             # add a first circle (so that even if the mouse isn't moved something is drawn)
             self.DrawLine(self.last_x, self.last_x + 0.00001, self.last_y, self.last_y)
+            # set the changed flag for the database
+            self.data_file.setChangesMade()
             # accept the event
             return True
         # Mouse move event to draw the stroke
