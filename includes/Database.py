@@ -183,6 +183,9 @@ class DataFile(DataFileBase):
         self.next_sort_index = 0
         self.image_count = None
 
+        # flag for "ask to save" dialog when closing
+        self.made_changes = False
+
         # image data loading buffer and thread
         self.buffer = FrameBuffer(self.config.buffer_size)
         self.thread = None
@@ -194,6 +197,9 @@ class DataFile(DataFileBase):
         class DataFileSignals(QtCore.QObject):
             loaded = QtCore.pyqtSignal(int, int)
         self.signals = DataFileSignals()
+
+    def setChangesMade(self):
+        self.made_changes = True
 
     def start_adding_timestamps(self):
         if self.timestamp_thread:

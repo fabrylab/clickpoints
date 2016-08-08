@@ -651,6 +651,7 @@ class MarkerEditor(QtWidgets.QWidget):
             # if a new type was created switch selection to create a new type
             if new_type:
                 self.setMarker(self.new_type)
+        self.data_file.data_file.setChangesMade()
 
     def removeMarker(self):
         print("Remove ...")
@@ -1997,6 +1998,7 @@ class MarkerHandler:
                 self.active_drag = self.rectangles[-1]
             else:
                 self.points.append(MyMarkerItem(self, self.MarkerParent, event=event, type=self.active_type))
+            self.data_file.setChangesMade()
             return True
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.active_drag:
             self.active_drag.drag(event)
