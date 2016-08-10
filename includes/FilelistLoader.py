@@ -52,6 +52,7 @@ vidformats = [fmt if fmt[0] == "." else "."+fmt for fmt in vidformats]
 
 formats = tuple(imgformats+vidformats)
 imgformats = tuple(imgformats)
+specialformats = ['.gif']   # potential animated gif = video or gif = image
 
 
 class FolderEditor(QtWidgets.QWidget):
@@ -332,7 +333,7 @@ def GetFilesInDirectory(root):
 
 def getFrameNumber(file, extension):
     # for image we are already done, they only contain one frame
-    if extension.lower() not in vidformats:
+    if extension.lower() in imgformats and  extension.lower() not in specialformats:
         frames = 1
     else:
         # for videos, we have to open them and get the length
