@@ -2,55 +2,64 @@ General
 =======
 
 Once ClickPoints has been `installed <installation.html>`_ it can be started directly from the Start Menu/Program launcher
-or by using the ``ClickPoints.bat``, or respectively ``ClickPoints`` in Linux.
-
-This will open ClickPoints with an empty project. The project can be saved by clicking on |the save button|. Images can be
-added to the project by using |the folder button|.
+or by running the ``ClickPoints.bat``, or respectively ``ClickPoints`` in Linux.
 
 .. attention::
     If the ``ClickPoints.bat`` file isn't present in the ClickPoints directory the ``install_bat.py`` script needs to be
     executed first.
 
+This will open ClickPoints with an empty project.
+
+Images can be added to the project by using |the folder button|.
+
+The project can be saved by clicking on |the save button|.
+
 ClickPoints can also be used to directly open images, videos or folder by right clicking on them, which will open an
-unsaved project which already contains some images. This feature also allows to use ClickPoints as an image viewing tool.
+unsaved project which already contains some images. This way ClickPoints functions as an image viewing tool.
 
-ClickPoints can be opened with
+ClickPoints can be opened with various files as target:
 
--  an **image**, then ClickPoints loads all images in the folder of this
-   image.
--  a **video** file, then ClickPoints loads only this video.
--  a **folder**, then ClickPoints loads all image and video files of the
-   folder and its sub folders, which are concatenated to one single
-   image stream.
--  a previously saved ``.cdb`` **ClickPoints Project** file.
+-  an **image**, loading all images in the folder of the target image.
+-  a **video** file, loading only this video.
+-  a **folder**, loading all image and video files of the folder and its sub folders, which are concatenated to one single image stream.
+-  a previously saved ``.cdb`` **ClickPoints Project** file, loading the project as it was saved.
 
-``Esc`` closes ClickPoints. If you want to process the data afterwards, you can refere to the `API <api.html>`_ for a
-python interface to read the ``.cdb`` ClickPoints Project files.
+Pressing ``Esc`` closes ClickPoints.
+
+To easily access marker, masks, track or other information, stored in the ``.cdb`` ClickPoints Project file,
+we provide a python based `API <api.html>`_
+
 
 .. attention::
-    If no project has been specified (once saved as a ``.cdb`` file), all changes are lost! If a project was specified,
-    the changes will always be saved.
+    If you plan to evaluate your data set or continue working on the same data set you must save the project -
+    otherwise all changes will be lost upon closing the program. If a project was saved, all changes are saved
+    automatically upon frame change or  by pressing ``S``
 
 Zooming, Panning, Rotating
 --------------------------
 
-ClickPoints opens with a display of the current image fit to the window. The display can be zoomed using the mouse wheel
-and panned holding down the right mouse button. To fit the image to the view again press ``F``.
-The display can be set to full screen pressing ``W``. The image can be rotated using ``R``.
+ClickPoints opens with a display of the current image fit to the window. The display can be
+
+- zoomed, using the mouse wheel
+- panned, holding down the right mouse button
+- rotated using ``R``.
+
+To fit the image into the window press ``F`` and switch to full screen mode by pressing ``W``.
 
 .. note::
-    How much the image is rotated at the beginning or how much to rotate with each press of ``R`` can be defined in the
+    Default rotation on startup or and rotation steps with each press of ``R`` can be defined in the
     ``ConfigClickPoints.txt`` with the entries ``rotation =`` and ``rotation_steps =``.
 
 Jumping frames
 --------------
 
-Changing frames is a key element of ClickPoints and therefore various possibilities exists to change the current frame.
+ClickPoints provides various options to change the current frame.
 
 - The keys ``Left`` and ``Right`` go to the previous or next frame.
 - The keys ``Home`` and ``End`` jump to the first or last frame.
+- Click or Drag & Drop the `timeline <timeline.html>`_  slider
 
-Key pairs on the numpad allow for jumps of
+Key pairs on the numpad allow for jumps of speciefied
 
 - ``Numpad 2``, ``Numpad 3``:  -/+ 1
 - ``Numpad 5``, ``Numpad 6``:  -/+ 10
@@ -59,19 +68,19 @@ Key pairs on the numpad allow for jumps of
 
 Be sure to have the numpad activated, or the keys won't work.
 
-For continuous playback of frames see `timeline <timeline.html>`_.
-
 .. note::
-    If other jumps are required, the entry ``jumps =`` in the ``ConfigClickPoints.txt`` can redefine
-    these jumps, by giving a list of a new definition of these 8 jumps.
+    The step size of the jump keys can be redefined by the ``jumps =`` variable in the ``ConfigClickPoints.txt``
+
+
+For continuous playback of frames see `timeline <timeline.html>`_ module.
+
+
 
 Interfaces
 ----------
 
 The interfaces for Marker, Mask and GammaCorretion can be shown/hidden
-pressing ``F2``. Marker and Masks are saved by pressing ``S`` or
-changing the current frame.
-
+pressing ``F2``.
 
 .. |the save button| image:: images/IconSave.png
 .. |the folder button| image:: images/IconFolder.png
