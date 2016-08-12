@@ -618,7 +618,7 @@ class DataFile(DataFileBase):
                 if k in PIL.ExifTags.TAGS
                 }
             return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
-        except (AttributeError, ValueError):
+        except (AttributeError, ValueError, KeyError):
             return None
 
     def get_meta(self, file):
