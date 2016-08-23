@@ -1101,6 +1101,7 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def updateDisplay(self):
         # update marker display
         self.g1.setPos(self.data.x, self.data.y)
+        self.setText(self.GetText())
 
     def graberMoved(self, grabber, pos):
         self.data.x = pos.x()
