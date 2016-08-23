@@ -1129,7 +1129,7 @@ class Timeline(QtCore.QObject):
                 widget.setHidden(False)
             self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
         self.button.setChecked(not self.hidden)
-        if hide is False:
+        if hide is False and not self.timeSlider is None:
             self.timeSlider.setHidden(self.timeSlider.is_hidden)
 
     def keyPressEvent(self, event):
