@@ -93,8 +93,10 @@ and all arguments can be provided as single values or arrays if multiple entries
 
     Attributes:
         - **style** *(str)* - the style for this track.
+        - **text** *(str)* - an additional text associated with this track. It is displayed next to the markers of this track in ClickPoints.
         - **points** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers.
-        - **marker** *(list of* :py:class:`Marker` *)* - a list containing all the associated markers.
+        - **points_corrected** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers corrected by the offsets of the images.
+        - **markers** *(list of* :py:class:`Marker` *)* - a list containing all the associated markers.
         - **times** *(list of datetime)* - a list containing the timestamps for the images of the associated markers.
         - **frames** *(list of int)* - a list containing all the frame numbers for the images of the associated markers.
 
@@ -108,7 +110,8 @@ and all arguments can be provided as single values or arrays if multiple entries
         - **name** *(str, unique)* - the name of the marker type.
         - **color** *(str)* - the color of the marker in HTML format, e.g. #FF0000 (red).
         - **mode** *(int)* - the mode, hast to be either: TYPE_Normal, TYPE_Rect, TYPE_Line or TYPE_Track
-        - **style** *(str)* - the style of the marker.
+        - **style** *(str)* - the style of the marker type.
+        - **text** *(str)* - an additional text associated with the marker type. It is displayed next to the markers of this type in ClickPoints.
         - **markers** *(list of* :py:class:`Marker` *)* - a list containing all markers of this type. Only for TYPE_Normal and TYPE_Track.
         - **lines** *(list of* :py:class:`Line` *)* - a list containing all lines of this type. Only for TYPE_Line.
         - **markers** *(list of* :py:class:`Rectangle` *)* - a list containing all rectangles of this type. Only for TYPE_Rect.
