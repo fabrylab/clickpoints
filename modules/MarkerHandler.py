@@ -454,7 +454,8 @@ class MarkerEditor(QtWidgets.QWidget):
             self.StackedWidget.setCurrentIndex(0)
             for widget in self.markerWidget.special_widgets:
                 widget.setHidden(True)
-            for widget in self.markerWidget.widget_types[data.type.mode]:
+            marker_type = data.type if data.type is not None else data.track.type
+            for widget in self.markerWidget.widget_types[marker_type.mode]:
                 widget.setHidden(False)
             self.markerWidget.setTitle("Marker #%d" % data.id)
 
@@ -464,8 +465,8 @@ class MarkerEditor(QtWidgets.QWidget):
             # get the tree view item (don't delete it right away because this changes the selection)
             index = data_string[type(self.data)] % self.data.id
 
-            self.ExpandType(self.marker_type_modelitems[self.data.type.id], self.data.type)
-            if self.data.type.mode & TYPE_Track:
+            self.ExpandType(self.marker_type_modelitems[marker_type.id], marker_type)
+            if marker_type.mode & TYPE_Track:
                 item_track = self.marker_modelitems["T%d" % self.data.track.id]
                 self.ExpandTrack(item_track, self.data.track)
             item = self.marker_modelitems[index]
@@ -477,12 +478,12 @@ class MarkerEditor(QtWidgets.QWidget):
 
             text = ''
 
-            if data.type.mode & TYPE_Line:
+            if marker_type.mode & TYPE_Line:
                 self.markerWidget.x1.setValue(data.x1)
                 self.markerWidget.y1.setValue(data.y1)
                 self.markerWidget.x2.setValue(data.x2)
                 self.markerWidget.y2.setValue(data.y2)
-            elif data.type.mode & TYPE_Rect:
+            elif marker_type.mode & TYPE_Rect:
                 self.markerWidget.x.setValue(data.x)
                 self.markerWidget.y.setValue(data.y)
                 self.markerWidget.width.setValue(data.width)
@@ -494,7 +495,7 @@ class MarkerEditor(QtWidgets.QWidget):
 
             self.markerWidget.label.setText(text)
 
-            self.markerWidget.type.setCurrentIndex(self.markerWidget.type_indices[data.type.id])
+            self.markerWidget.type.setCurrentIndex(self.markerWidget.type_indices[marker_type.id])
             self.markerWidget.style.setText(data.style if data.style else "")
             self.markerWidget.text.setText(data.text if data.text else "")
 
@@ -542,12 +543,13 @@ class MarkerEditor(QtWidgets.QWidget):
         print("Saving changes...")
         # set parameters
         if type(self.data) == self.data_file.table_marker or type(self.data) == self.data_file.table_line or type(self.data) == self.data_file.table_rectangle:
-            if self.data.type.mode & TYPE_Line:
+            marker_type = self.data.type if self.data.type else self.data.track.type
+            if marker_type.mode & TYPE_Line:
                 self.data.x1 = self.markerWidget.x1.value()
                 self.data.y1 = self.markerWidget.y1.value()
                 self.data.x2 = self.markerWidget.x2.value()
                 self.data.y2 = self.markerWidget.y2.value()
-            elif self.data.type.mode & TYPE_Rect:
+            elif marker_type.mode & TYPE_Rect:
                 self.data.x = self.markerWidget.x.value()
                 self.data.y = self.markerWidget.y.value()
                 self.data.width = self.markerWidget.width.value()
@@ -561,7 +563,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.data.save()
 
             # load updated data
-            if self.data.type.mode & TYPE_Track:
+            if marker_type.mode & TYPE_Track:
                 track_item = self.marker_handler.GetMarkerItem(self.data.track)
                 track_item.update(self.data.image.sort_index, self.data)
             else:
@@ -967,23 +969,18 @@ class MyDisplayItem:
 
     # update text with priorities: marker, track, label
     def GetText(self):
-        # check for marker text entry
+        # check for track marker text entry (only applicable for tracks)
+        if isinstance(self.data, self.marker_handler.data_file.table_track) and \
+                        self.marker is not None and self.marker.text is not None:
+            return self.marker.text
+
+        # check for self text entry (this should be a single marker or the track)
         if self.data.text is not None:
             return self.data.text
-
-        # check for track text entry
-        if isinstance(self.data,
-                      self.marker_handler.data_file.table_marker) and self.data.track is not None and self.data.track.text is not None:
-            return self.data.track.text
 
         # check for type text entry
         if self.data.type and self.data.type.text is not None:
             return self.data.type.text
-
-        # check for type text entry
-        if isinstance(self.data,
-                      self.marker_handler.data_file.table_marker) and self.data.track and self.data.track.type.text is not None:
-            return self.data.track.type.text
 
         # if there are no text entries return an empty string
         return ""
@@ -1014,9 +1011,15 @@ class MyDisplayItem:
             else:
                 text = text.replace('$marker_id', '??')
         if '$x_pos' in text:
-            text = text.replace('$x_pos', '%.2f' % self.data.x)
+            try:
+                text = text.replace('$x_pos', '%.2f' % self.data.x)
+            except TypeError:
+                text = text.replace('$x_pos', '%.2f' % self.marker.x)
         if '$y_pos' in text:
-            text = text.replace('$y_pos', '%.2f' % self.data.y)
+            try:
+                text = text.replace('$y_pos', '%.2f' % self.data.y)
+            except TypeError:
+                text = text.replace('$y_pos', '%.2f' % self.marker.y)
         if '$length' in text:
             if type(self.data) is self.marker_handler.data_file.table_line:
                 if self.data.length() is not None:
