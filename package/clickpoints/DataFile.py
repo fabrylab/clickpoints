@@ -476,6 +476,8 @@ class DataFile:
             def __getattr__(self, item):
                 if item == "points":
                     return np.array([[point.x, point.y] for point in self.markers])
+                if item == "points_corrected":
+                    return np.array([point.correctedXY() for point in self.markers])
                 if item == "markers":
                     return self.track_markers.join(Image).order_by(Image.sort_index)
                 if item == "times":
