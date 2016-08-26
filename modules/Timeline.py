@@ -882,6 +882,10 @@ class Timeline(QtCore.QObject):
             self.timeSlider = RealTimeSlider()
             self.timeSlider.setTimes(self.data_file)
             self.layoutCtrl2.addWidget(self.timeSlider)
+            empty_space_keeper = QtWidgets.QLabel()
+            empty_space_keeper.setMaximumHeight(0)
+            empty_space_keeper.setMaximumWidth(0)
+            self.layoutCtrl2.addWidget(empty_space_keeper)
 
             self.timeSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
             self.timeSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider2)
@@ -896,6 +900,10 @@ class Timeline(QtCore.QObject):
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setVisible(False)
         self.layoutCtrl3.addWidget(self.progress_bar)
+        self.empty_space_keeper = QtWidgets.QLabel()
+        self.empty_space_keeper.setMaximumHeight(0)
+        self.empty_space_keeper.setMaximumWidth(0)
+        self.layoutCtrl3.addWidget(self.empty_space_keeper)
 
         # frame control
         self.button_play = QtWidgets.QPushButton()
@@ -977,6 +985,7 @@ class Timeline(QtCore.QObject):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)
         self.progress_bar.setVisible(True)
+        self.empty_space_keeper.setVisible(False)
         self.images_added_signal.emit()
 
     def ImagesAddedMain(self):
@@ -1128,6 +1137,7 @@ class Timeline(QtCore.QObject):
             for widget in control_widgets:
                 widget.setHidden(False)
             self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
+        self.empty_space_keeper.setHidden(hide or self.progress_bar.isVisible())
         self.button.setChecked(not self.hidden)
         if hide is False and not self.timeSlider is None:
             self.timeSlider.setHidden(self.timeSlider.is_hidden)
