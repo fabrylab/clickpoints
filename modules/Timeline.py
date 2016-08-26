@@ -1014,6 +1014,7 @@ class Timeline(QtCore.QObject):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(100)
         self.progress_bar.setHidden(True)
+        self.empty_space_keeper.setHidden(False)
         if self.config.datetimeline_show:
             self.timeSlider.setTimes(self.data_file)
 
