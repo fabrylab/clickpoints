@@ -296,20 +296,32 @@ def addList(data_file, path, list_filename):
         while True:
             start_time = time.time()
             for line in fp:  # continue with the iteration over the file iterator where we stopped last time
-                line, timestamp, external_id, annotation_id = line.strip().split()
-
-                timestamp = datetime.strptime(timestamp, '%Y%m%d-%H%M%S')
+                timestamp = None
+                external_id = None
+                annotation_id = None
+                try:
+                    line, timestamp, external_id, annotation_id = line.strip().split()
+                except:
+                    line = line.strip().split()[0]
 
                 file_path, file_name = os.path.split(line)
                 if file_path not in paths.keys():
                     paths[file_path] = data_file.table_path(path=file_path)
                     paths[file_path].save()
+
+                if timestamp:
+                    timestamp = datetime.strptime(timestamp, '%Y%m%d-%H%M%S')
+                    # TODO implement getting time stamps from file for file lists
+                else:
+                    data_file.getTimeStamp(file_name)
+
                 # extract the extension and frame number
                 extension = os.path.splitext(file_name)[1]
                 frames = getFrameNumber(line, extension)
                 # add the file to the database
                 data_new = data_file.add_image(file_name, extension, external_id, frames, path=paths[file_path],full_path=os.path.join(file_path,file_name), timestamp=timestamp, commit=False)
                 data.extend(data_new)
+
                 if time.time()-start_time > 0.1:
                     break
             else:  # break if we have reached the end of the file
