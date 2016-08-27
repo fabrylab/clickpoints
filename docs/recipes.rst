@@ -10,3 +10,4 @@ and explains different wa for different tasks.
 
     recipes_openingfiles
     recipes_configfiles
+    recipes_tracking
