@@ -23,3 +23,9 @@ which features to use or which add-ons to include.
 
    Scope of ConfigFiles
 
+
+.. note::
+
+	A graphical user interface to view and change config values as well as the storage of config values
+	in the project file ``.cdb``  are under development and should be released soon.
+
