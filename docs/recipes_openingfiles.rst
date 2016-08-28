@@ -44,6 +44,11 @@ or
 
    python ClickPoints.py -srcfile="C:\Images"
 
+.. note::
+
+	To use the short version of calling ClickPoints without the path, you have to add ClickPoints base path to
+	the systems or users ``PATH`` variable (Windows) or create an alias (Linux).
+
 via .txt File
 -------------
 Furthermore it is possible to supply a text file where each line contains the path to an image or video file.
@@ -58,9 +63,9 @@ This is useful e.g. to open a fixed set of files, a list of files extract by ano
    :name: sample.txt
    :linenos:
 
-     20120919_colonydensity.gif    # relativ path to txt file
-     C:\Users\Desktop\images\20160601-141408_GE4000.jpg  # absolut path
-     \\192.168.0.99\2014\20140323\03\20140323-030151_31n2.JPG # network path
+     20120919_colonydensity.gif   								# relativ path (to txt file)
+     C:\Users\Desktop\images\20160601-141408_GE4000.jpg  		# absolut path
+     \\192.168.0.99\2014\20140323\03\20140323-030151_31n2.JPG 	# network path
 
 .. note::
 

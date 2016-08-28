@@ -42,32 +42,39 @@ Getting started
        Defining a marker for tracking
 
 
-3. Navigating the dataset
+4. Navigating the dataset
 *************************
     * Navigating the current frame:
 
-        `` right mouse button (hold)`` - to pan the image
+        ``right mouse button (hold)`` - to pan the image
 
-        `` mouse wheel `` - zoom the image
+        ``mouse wheel`` - zoom the image
 
-        `` F `` - fit to view
+        ``F`` - fit to view
 
-        `` W `` - full screen mode
+        ``W`` - full screen mode
 
-        `` H `` - hide time line
+        ``H`` - hide time line
 
     * Navigating the dataset:
 
-        * Press |the play icon| to play the dataset with the specifed frame rate or as fast as feasible.
+    	``left`` & ``right`` cursor keys to go one frame forward and backward
+
+        * Jump a specified set of frames with the numbad keys. See `Jumping Frames <general.html#jumping-frames>`_
 
         * Use the frame and time navigation slider to by clicking or dragging the cursor to the desired position.
 
         * Jump to a specific frame by clicking on the frame counter and entering the desired frame number
 
-        `` left `` & ``right`` cursor keys to go one frame forward and backward
+        * Press |the play icon| to play the dataset with the specifed frame rate or as fast as feasible.
 
-        * Jump a specified set of frames with the numbad keys. See
+.. note::
+	Due to the sequential compression of videos, traversing a video backwards is computational expensive. ClickPoints provides a
+	buffer so that the last N frames are stored and can be retrieved without any further computational cost. The default buffer size
+	can be specified in the config.
 
+.. warning::
+	Be carefull not to reserve too much RAM for the frame buffer as it will drastically reduce performance!
 
 .. |the save button| image:: images/IconSave.png
 .. |the marker button| image:: images/IconMarker.png
