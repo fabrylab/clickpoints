@@ -39,7 +39,7 @@ class ImageDisplaySignal(QtCore.QObject):
     display = QtCore.pyqtSignal()
 
 class BigImageDisplay:
-    def __init__(self, origin, window, config):
+    def __init__(self, origin, window, config, data_file):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
@@ -48,6 +48,7 @@ class BigImageDisplay:
         self.ImageSlices = []
         self.origin = origin
         self.window = window
+        self.data_file = data_file
         self.config = config
 
         self.image = None
@@ -120,14 +121,14 @@ class BigImageDisplay:
 
         # call PrepareImageDisplay threaded or directly
         offset = np.array(offset)
-        if self.config.threaded_image_display and threaded:
+        if self.data_file.getOption("threaded_image_display") and threaded:
             self.thread = Thread(target=self.PrepareImageDisplay, args=(image, offset))
             self.thread.start()
         else:
             self.PrepareImageDisplay(image, offset)
 
     def closeEvent(self, QCloseEvent):
-        if self.config.threaded_image_display and self.thread:
+        if self.data_file.getOption("threaded_image_display") and self.thread:
             self.thread.join()
 
     def PrepareImageDisplay(self, image, offset):

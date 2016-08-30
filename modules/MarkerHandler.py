@@ -1365,9 +1365,9 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         last_frame = None
         shape = self.style.get("track-point-shape", "circle")
         for frame in self.points_data:
-            if self.marker_handler.config.tracking_show_trailing != -1 and frame < self.current_frame - self.marker_handler.config.tracking_show_trailing:
+            if self.marker_handler.data_file.getOption("tracking_show_trailing") != -1 and frame < self.current_frame - self.marker_handler.data_file.getOption("tracking_show_trailing"):
                 continue
-            if self.marker_handler.config.tracking_show_leading != -1 and frame > self.current_frame + self.marker_handler.config.tracking_show_leading:
+            if self.marker_handler.data_file.getOption("tracking_show_leading") != -1 and frame > self.current_frame + self.marker_handler.data_file.getOption("tracking_show_leading"):
                 break
             point = self.points_data[frame]
             if last_frame == frame - 1:
@@ -1459,13 +1459,13 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.active = False
             self.setOpacity(0.25)
             #self.g1.setOpacity(0.5)
-            if self.marker_handler.config.tracking_connect_nearest:
+            if self.marker_handler.data_file.getOption("tracking_connect_nearest"):
                 self.setAcceptedMouseButtons(Qt.MouseButtons(0))
         else:
             self.active = True
             self.setOpacity(1)
             #self.g1.setOpacity(2)
-            if self.marker_handler.config.tracking_connect_nearest:
+            if self.marker_handler.data_file.getOption("tracking_connect_nearest"):
                 self.setAcceptedMouseButtons(Qt.MouseButtons(3))
 
     def CheckToDisplay(self):
@@ -1482,9 +1482,9 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         last_point = np.array([0, 0])
         offset = np.array([start_x, start_y])
         for frame in self.points_data:
-            if self.marker_handler.config.tracking_show_trailing != -1 and frame < self.current_frame - self.marker_handler.config.tracking_show_trailing:
+            if self.marker_handler.data_file.getOption("tracking_show_trailing") != -1 and frame < self.current_frame - self.marker_handler.data_file.getOption("tracking_show_trailing"):
                 continue
-            if self.marker_handler.config.tracking_show_leading != -1 and frame > self.current_frame + self.marker_handler.config.tracking_show_leading:
+            if self.marker_handler.data_file.getOption("tracking_show_leading") != -1 and frame > self.current_frame + self.marker_handler.data_file.getOption("tracking_show_leading"):
                 break
             point = self.points_data[frame]
             point = np.array([point.x, point.y]) - offset
@@ -1751,7 +1751,7 @@ class MarkerHandler:
 
         self.marker_file = MarkerFile(datafile)
 
-        if self.config.hide_interfaces:
+        if self.data_file.getOption("hide_interfaces"):
             self.hidden = True
 
         self.MarkerParent = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
@@ -1984,7 +1984,7 @@ class MarkerHandler:
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
             tracks = [track for track in self.tracks if track.data.type.id == self.active_type.id]
-            if self.active_type.mode & TYPE_Track and self.config.tracking_connect_nearest and \
+            if self.active_type.mode & TYPE_Track and self.data_file.getOption("tracking_connect_nearest") and \
                     len(tracks) and not event.modifiers() & Qt.AltModifier:
                 distances = [np.linalg.norm(PosToArray(point.g1.pos() - event.pos())) for point in tracks]
                 index = np.argmin(distances)
