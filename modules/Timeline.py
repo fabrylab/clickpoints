@@ -854,9 +854,9 @@ class Timeline(QtCore.QObject):
         self.fps = 0
         if self.fps == 0:
             self.fps = 25
-        if self.config.fps != 0:
-            self.fps = self.config.fps
-        self.skip = 0
+        if self.data_file.getOption("fps") != 0:
+            self.fps = self.data_file.getOption("fps")
+        self.skip = self.data_file.getOption("skip")
 
         self.images_added_signal.connect(self.ImagesAddedMain)
 
@@ -875,7 +875,7 @@ class Timeline(QtCore.QObject):
         self.layoutCtrlParent.addLayout(self.layoutCtrl)
 
         # second
-        if self.config.datetimeline_show:
+        if self.data_file.getOption("datetimeline_show"):
             self.layoutCtrl2 = QtWidgets.QHBoxLayout()
             self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 
@@ -922,7 +922,7 @@ class Timeline(QtCore.QObject):
         # detect %*f marker get number form 1 to 6 as *
         self.subsecond_decimals = 0
         regexp = re.compile('.*.%(\d)f.*')
-        match = regexp.match(self.config.display_timeformat)
+        match = regexp.match(self.data_file.getOption("display_timeformat"))
         if match:
             self.subsecond_decimals = match.group(1)
 
@@ -1020,9 +1020,11 @@ class Timeline(QtCore.QObject):
 
     def ChangedSkip(self):
         self.skip = self.spinBox_Skip.value()
+        self.data_file.setOption("skip", self.skip)
 
     def ChangedFPS(self):
         self.fps = self.spinBox_FPS.value()
+        self.data_file.setOption("fps", self.fps)
         if self.playing:
             self.timer.start(1000 / self.fps)
 

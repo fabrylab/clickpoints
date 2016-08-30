@@ -73,6 +73,7 @@ from includes import BigImageDisplay
 from includes import QExtendedGraphicsView
 from includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats
 from includes import DataFile
+from includes import OptionEditor
 
 from modules import MaskHandler
 from modules import MarkerHandler
@@ -156,15 +157,15 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.origin = self.view.origin
         self.layout.addWidget(self.view)
 
-        # init image display
-        self.ImageDisplay = BigImageDisplay(self.origin, self, config)
-
         # init DataFile for storage
         new_database = True
         if os.path.splitext(config.srcpath)[1] == ".cdb":
             config.database_file = config.srcpath
             new_database = False
         self.data_file = DataFile(config.database_file, config, storage_path=storage_path)
+
+        # init image display
+        self.ImageDisplay = BigImageDisplay(self.origin, self, config, self.data_file)
 
         # init media handler
         self.load_thread = None
@@ -227,6 +228,14 @@ class ClickPointsWindow(QtWidgets.QWidget):
             if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
                 break
 
+        self.button_options = QtWidgets.QPushButton()
+        self.button_options.clicked.connect(self.Options)
+        self.button_options.setIcon(qta.icon("fa.gears"))
+        #self.button_options.setToolTip("add/remove folder from the current project")
+        self.layoutButtons.addWidget(self.button_options)
+
+        self.layout.addLayout(self.layoutButtons)
+
         # initialize some variables
         self.new_filename = None
         self.new_frame_number = None
@@ -245,8 +254,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 self.layoutButtons.itemAt(i).widget().setFocusPolicy(Qt.NoFocus)
 
         # apply image rotation from config
-        if config.rotation != 0:
-            self.view.rotate(config.rotation)
+        if self.data_file.getOption("rotation") != 0:
+            self.view.rotate(self.data_file.getOption("rotation"))
 
         self.setFocus()
 
@@ -267,6 +276,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
             BroadCastEvent(self.modules, "LoadingFinishedEvent")
             print("Loading finished in %.2fs " % (time.time()-self.loading_time))
 
+    def Options(self):
+        self.folderEditor = OptionEditor(self, self.data_file)
+        self.folderEditor.show()
 
     def Folder(self):
         self.folderEditor = FolderEditor(self, self.data_file)
@@ -330,7 +342,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         else:
             self.loading_image += 1
 
-        if config.threaded_image_load and threaded:
+        if self.data_file.getOption("threaded_image_load") and threaded:
             self.data_file.load_frame(target_id, threaded=1)
         else:
             self.data_file.load_frame(target_id, threaded=0)
@@ -416,7 +428,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         # @key R: rotate the image
         if event.key() == QtCore.Qt.Key_R:
-            self.view.rotate(config.rotation_steps)
+            step = self.data_file.getOption("rotation_steps")
+            self.data_file.setOption("rotation", (self.data_file.getOption("rotation")+step) % 360)
+            self.view.rotate(step)
 
         if event.key() == QtCore.Qt.Key_S:
             # @key S: save marker and mask
@@ -466,7 +480,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # @key Numpad 8,9: Jump -/+ 100 frames
         # @key Numpad /,*: Jump -/+ 100 frames
         keys = [Qt.Key_2, Qt.Key_3, Qt.Key_5, Qt.Key_6, Qt.Key_8, Qt.Key_9, Qt.Key_Slash, Qt.Key_Asterisk]
-        for key, jump in zip(keys, config.jumps):
+        for key, jump in zip(keys, self.data_file.getOption("jumps")):
             if event.key() == key and event.modifiers() == Qt.KeypadModifier:
                 self.JumpFrames(jump)
 

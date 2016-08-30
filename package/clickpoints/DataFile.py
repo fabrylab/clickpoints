@@ -165,6 +165,19 @@ def packToDictList(table, **kwargs):
         dict_list.append({key: singles[key](i) for key in kwargs})
     return dict_list
 
+class Option:
+    key = ""
+    value = None
+    default = ""
+    value_type = ""
+    value_count = 1
+    category = ""
+    hidden = False
+
+    def __init__(self, **kwargs):
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
 def VerboseDict(dictionary):
     return " and ".join("%s=%s" % (key, dictionary[key]) for key in dictionary)
 
@@ -323,6 +336,10 @@ class DataFile:
             key = peewee.CharField(unique=True)
             value = peewee.CharField()
 
+        class Option(BaseModel):
+            key = peewee.CharField(unique=True)
+            value = peewee.CharField(null=True)
+
         class Path(BaseModel):
             path = peewee.CharField(unique=True)
 
@@ -419,7 +436,8 @@ class DataFile:
         self.table_meta = Meta
         self.table_path = Path
         self.table_image = Image
-        self._tables = [Meta, Path, Image]
+        self.table_option = Option
+        self._tables = [Meta, Path, Image, Option]
 
         """ Offset Table """
 
@@ -857,6 +875,93 @@ class DataFile:
         # second migration part which needs the peewee model
         if version is not None and int(version) < int(self._current_version):
             self._migrateDBFrom2(version)
+
+        self._InitOptions()
+
+    def _InitOptions(self):
+        self._options = {}
+        self._options_by_key = {}
+        self._last_category = "General"
+        self._AddOption(key="jumps", default=[-1, +1, -10, +10, -100, +100, -1000, +1000], value_type="int", value_count=8)
+        self._AddOption(key="rotation", default=0, value_type="int", hidden=True)
+        self._AddOption(key="rotation_steps", default=90, value_type="int", hidden=True)
+        self._AddOption(key="hide_interfaces", default=True, value_type="bool")
+        self._AddOption(key="threaded_image_display", default=True, value_type="bool")
+        self._AddOption(key="threaded_image_load", default=True, value_type="bool")
+
+        self._last_category = "Marker"
+        self._AddOption(key="tracking_connect_nearest", default=False, value_type="bool")
+        self._AddOption(key="tracking_show_trailing", default=-1, value_type="int")
+        self._AddOption(key="tracking_show_leading", default=0, value_type="int")
+
+        self._last_category = "Mask"
+        self._AddOption(key="auto_mask_update", default=True, value_type="bool")
+
+        self._last_category = "Timeline"
+        self._AddOption(key="fps", default=0, value_type="int", hidden=True)
+        self._AddOption(key="skip", default=0, value_type="int", hidden=True)
+        self._AddOption(key="play_start", default=0.0, value_type="float", hidden=True)
+        self._AddOption(key="play_end", default=1.0, value_type="float", hidden=True)
+        self._AddOption(key="playing", default=False, value_type="bool", hidden=True)
+        self._AddOption(key="timeline_hide", default=False, value_type="bool", hidden=True)
+        self._AddOption(key="datetimeline_show", default=True, value_type="bool")
+        self._AddOption(key="display_timeformat", default=r'%Y-%m-%d %H:%M:%S.%2f', value_type="string")
+
+    def _AddOption(self, **kwargs):
+        category = kwargs["category"] if "category" in kwargs else self._last_category
+        option = Option(**kwargs)
+        if category not in self._options:
+            self._options[category] = []
+        try:
+            entry = self.table_option.get(key=option.key)
+            if option.value_type == "int":
+                if option.value_count > 1:
+                    option.value = self._stringToList(entry.value)
+                else:
+                    option.value = int(entry.value)
+            if option.value_type == "float":
+                option.value = float(entry.value)
+            if option.value_type == "bool":
+                option.value = bool(entry.value)
+            if option.value_type == "string":
+                option.value = str(entry.value)
+        except peewee.DoesNotExist:
+            pass
+        self._options[category].append(option)
+        self._options_by_key[option.key] = option
+
+    def _stringToList(self, value):
+        value = value.strip()
+        if (value.startswith("(") and value.endswith(")")) or (value.startswith("[") and value.endswith("]")):
+            value = value[1:-1].strip()
+        try:
+            value = [int(v) for v in value.split(",")]
+        except ValueError:
+            raise ValueError()
+        return value
+
+    def setOption(self, key, value):
+        option = self._options_by_key[key]
+        option.value = value
+        value = str(value)
+        if str(option.default) == value:
+            try:
+                self.table_option.get(key=option.key).delete_instance()
+            except peewee.DoesNotExist:
+                return
+        else:
+            try:
+                entry = self.table_option.get(key=option.key)
+                entry.value = value
+                entry.save()
+            except peewee.DoesNotExist:
+                self.table_option(key=option.key, value=value).save(force_insert=True)
+
+    def getOption(self, key):
+        option = self._options_by_key[key]
+        if option.value is None:
+            return option.default
+        return option.value
 
     def _CheckVersion(self):
         try:
