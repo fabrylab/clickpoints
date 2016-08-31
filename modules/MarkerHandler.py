@@ -1010,16 +1010,22 @@ class MyDisplayItem:
                 text = text.replace('$marker_id', '%d' % data.id)
             else:
                 text = text.replace('$marker_id', '??')
-        if '$x_pos' in text:
-            try:
-                text = text.replace('$x_pos', '%.2f' % self.data.x)
-            except TypeError:
-                text = text.replace('$x_pos', '%.2f' % self.marker.x)
-        if '$y_pos' in text:
-            try:
-                text = text.replace('$y_pos', '%.2f' % self.data.y)
-            except TypeError:
-                text = text.replace('$y_pos', '%.2f' % self.marker.y)
+        if '$x' in text:
+            if type(self.data) is self.marker_handler.data_file.table_line:
+                text = text.replace('$x', '%.2f' % self.data.x1)
+            else:
+                try:
+                    text = text.replace('$x', '%.2f' % self.data.x)
+                except TypeError:
+                    text = text.replace('$x', '%.2f' % self.marker.x)
+        if '$y' in text:
+            if type(self.data) is self.marker_handler.data_file.table_line:
+                text = text.replace('$y', '%.2f' % self.data.y1)
+            else:
+                try:
+                    text = text.replace('$y', '%.2f' % self.data.y)
+                except TypeError:
+                    text = text.replace('$y', '%.2f' % self.marker.y)
         if '$length' in text:
             if type(self.data) is self.marker_handler.data_file.table_line:
                 if self.data.length() is not None:
