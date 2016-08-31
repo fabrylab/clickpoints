@@ -17,7 +17,7 @@ Allowing the user to define a preferred setup. In addition we can add a second c
 a specific setup for all files that were stored under "Experiment_3". This can contain a set of default marker names,
 which features to use or which add-ons to include.
 
-.. figure:: images/recipes_configfiles.png
+.. figure:: images/tutorial_configfiles.png
    :alt: ConfigFile scope
    :scale: 40%
 
