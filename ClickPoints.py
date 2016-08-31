@@ -106,6 +106,7 @@ def GetModuleInitArgs(mod):
 
 class ClickPointsWindow(QtWidgets.QWidget):
     folderEditor = None
+    optionEditor = None
     first_frame = 0
 
     def __init__(self, my_config, parent=None):
@@ -277,8 +278,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
             print("Loading finished in %.2fs " % (time.time()-self.loading_time))
 
     def Options(self):
-        self.folderEditor = OptionEditor(self, self.data_file)
-        self.folderEditor.show()
+        if self.optionEditor is not None:
+            self.optionEditor.close()
+        self.optionEditor = OptionEditor(self, self.data_file)
+        self.optionEditor.show()
 
     def Folder(self):
         self.folderEditor = FolderEditor(self, self.data_file)
@@ -390,6 +393,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # close the folder editor
         if self.folderEditor is not None:
             self.folderEditor.close()
+        if self.optionEditor is not None:
+            self.optionEditor.close()
         # save the data
         self.Save()
         # broadcast event the image display and the mediahandler (so that they can terminate their threads)

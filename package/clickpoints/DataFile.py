@@ -167,12 +167,14 @@ def packToDictList(table, **kwargs):
 
 class Option:
     key = ""
+    display_name = ""
     value = None
     default = ""
     value_type = ""
     value_count = 1
     category = ""
     hidden = False
+    tooltip = ""
 
     def __init__(self, **kwargs):
         for key in kwargs:
@@ -882,20 +884,45 @@ class DataFile:
         self._options = {}
         self._options_by_key = {}
         self._last_category = "General"
-        self._AddOption(key="jumps", default=[-1, +1, -10, +10, -100, +100, -1000, +1000], value_type="int", value_count=8)
+        self._AddOption(key="jumps", display_name="Frame Jumps", default=[-1, +1, -10, +10, -100, +100, -1000, +1000], value_type="int", value_count=8,
+                        tooltip="How many frames to jump\n"
+                                "for the keys on the numpad:\n"
+                                "2, 3, 5, 6, 8, 9, /, *")
         self._AddOption(key="rotation", default=0, value_type="int", hidden=True)
         self._AddOption(key="rotation_steps", default=90, value_type="int", hidden=True)
-        self._AddOption(key="hide_interfaces", default=True, value_type="bool")
-        self._AddOption(key="threaded_image_display", default=True, value_type="bool")
-        self._AddOption(key="threaded_image_load", default=True, value_type="bool")
+        self._AddOption(key="hide_interfaces", default=True, value_type="bool", hidden=True)
+        self._AddOption(key="threaded_image_display", display_name="Thread image display", default=True, value_type="bool",
+                        tooltip="Whether to do image display\n"
+                                "preparation in a separate thread.")
+        self._AddOption(key="threaded_image_load", display_name="Thread image load", default=True, value_type="bool",
+                        tooltip="Whether to do image loading\n"
+                                "in a separate thread.\n"
+                                "Should only be altered if threading\n"
+                                "causes issues.")
 
         self._last_category = "Marker"
-        self._AddOption(key="tracking_connect_nearest", default=False, value_type="bool")
-        self._AddOption(key="tracking_show_trailing", default=-1, value_type="int")
-        self._AddOption(key="tracking_show_leading", default=0, value_type="int")
+        self._AddOption(key="tracking_connect_nearest", display_name="Track Auto-Connect", default=False, value_type="bool",
+                        tooltip="When Auto-Connect is turned on,\n"
+                                "clicking in the image will always\n"
+                                "move the current point of the nearest track\n"
+                                "instead of starting a new track.\n"
+                                "To start a new track while Auto-Connect\n"
+                                "is turned on, hold down the 'alt' key")
+        self._AddOption(key="tracking_show_trailing", display_name="Track show trailing", default=-1, value_type="int",
+                        tooltip="How many frames to display\n"
+                                "before the current frame.\n"
+                                "-1 for all.")
+        self._AddOption(key="tracking_show_leading", display_name="Track show leading", default=0, value_type="int",
+                        tooltip="How many frames to display\n"
+                                "after the current frame.\n"
+                                "-1 for all.")
 
         self._last_category = "Mask"
-        self._AddOption(key="auto_mask_update", default=True, value_type="bool")
+        self._AddOption(key="auto_mask_update", display_name="Auto Mask Update", default=True, value_type="bool",
+                        tooltip="When turned on, mask changes\n"
+                                "are directly displayed as the mask\n"
+                                "if not, it is first displayed\n"
+                                "separately to increase speed.")
 
         self._last_category = "Timeline"
         self._AddOption(key="fps", default=0, value_type="int", hidden=True)
@@ -904,11 +931,25 @@ class DataFile:
         self._AddOption(key="play_end", default=1.0, value_type="float", hidden=True)
         self._AddOption(key="playing", default=False, value_type="bool", hidden=True)
         self._AddOption(key="timeline_hide", default=False, value_type="bool", hidden=True)
-        self._AddOption(key="datetimeline_show", default=True, value_type="bool")
-        self._AddOption(key="display_timeformat", default=r'%Y-%m-%d %H:%M:%S.%2f', value_type="string")
+        self._AddOption(key="datetimeline_show", display_name="Show Datetimeline", default=True, value_type="bool",
+                        tooltip="Whether to display the slider with dates.\n"
+                                "Changes are only displayed after restart.")
+        self._AddOption(key="display_timeformat", display_name="Timeformat for Display", default=r'%Y-%m-%d %H:%M:%S.%2f', value_type="string",
+                        tooltip="How the time of the current frame\n"
+                                "should be displayed.\n"
+                                "Use %Y for year\n"
+                                "%m for month\n"
+                                "%d for day\n"
+                                "%H for hour\n"
+                                "%M for minute\n"
+                                "%S for second\n"
+                                "%2f for milliseconds\n"
+                                "%6f for nanoseconds")
 
     def _AddOption(self, **kwargs):
         category = kwargs["category"] if "category" in kwargs else self._last_category
+        if "display_name" not in kwargs:
+            kwargs["display_name"] = kwargs["key"]
         option = Option(**kwargs)
         if category not in self._options:
             self._options[category] = []
@@ -934,6 +975,8 @@ class DataFile:
         value = value.strip()
         if (value.startswith("(") and value.endswith(")")) or (value.startswith("[") and value.endswith("]")):
             value = value[1:-1].strip()
+        if value.endswith(","):
+            value[:-1].strip()
         try:
             value = [int(v) for v in value.split(",")]
         except ValueError:
