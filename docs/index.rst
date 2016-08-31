@@ -20,7 +20,7 @@ semi-automatic evaluation or display the results of automatic image evaluation.
 
    installation
    general
-   recipes
+   tutorial
    modules
    addons
    examples

@@ -1,5 +1,5 @@
-Tutorials
-=========
+Tutorial
+========
 
 The recipes section contains some basic usage examples on how to get started using ClickPoints
 and explains different wa for different tasks.
@@ -12,4 +12,4 @@ and explains different wa for different tasks.
     tutorial_configfiles
     tutorial_tracking
     tutorial_measurement
-    recipes_
+
