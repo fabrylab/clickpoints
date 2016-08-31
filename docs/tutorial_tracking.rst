@@ -1,7 +1,7 @@
 Manual Tracking
 ===============
-This recepies gives a shot introduction how to get started manually labeling your own tracks,
-for a quick evaluation or groundtruths for the evaluation of automated algorithms.
+This tutorial gives a shot introduction how to get started manually labeling your own tracks,
+for a quick evaluation or ground truths for the evaluation of automated algorithms.
 
 
 Getting started
@@ -21,7 +21,7 @@ Getting started
    .. note::
 
         Reference to images and video is stored relative as long a the files reside parallel or below in the path tree.
-        If the files reside above or on a different branch, drive, or network location, the absolut path is stored.
+        If the files reside above or on a different branch, drive, or network location, the absolute path is stored.
 
 3. Define Marker types
 **********************
@@ -30,12 +30,12 @@ Getting started
     a class for birds and another one for ships. Every marker type can have multible tracks.
 
     To open the marker menu either press ``F2`` or click on the Marker button |the marker button| to switch to edit mode (Fig. A).
-    Then right click onto the marker list to open the marker menue (Fig. B). You can reuse the default marker or create a new marker
+    Then right click onto the marker list to open the marker menu (Fig. B). You can reuse the default marker or create a new marker
     by selecting ``+ add type``. Choose a name and color for your new marker type and make sure to set the type to ``TYPE_track``.
     Confirm your changes by pressing ``save``.
     To add more tracking types select  ``+ add type`` and repeat the procedure.
 
-    .. figure:: images/recipes_tracking_marker.png
+    .. figure:: images/tutorial_tracking_marker.png
        :alt: Defining a marker for tracking
        :scale: 60%
 
@@ -99,7 +99,7 @@ The setup steps are completed, we can begin to mark some tracks.
 
     #. Markers are automatically save upon frame change or by pressing the ``S`` key.
 
-    .. figure:: images/recipes_tracking_tracks.jpg
+    .. figure:: images/tutorial_tracking_tracks.jpg
        :alt: Track states
        :scale: 60%
 
@@ -126,7 +126,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
 * default
     ``left click`` - create new track (default mode)
     ``ctrl`` + ``left click`` - remove marker
-    ``right click`` - open marker menue, see XXXXX
+    ``right click`` - open marker menu, see XXXXX
 
 * connect-nearest mode
     ``left click`` - place marker, autoconnect to nearest track
@@ -144,7 +144,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
   Example:
     **Display Track IDs**
 
-    * open the marker menue
+    * open the marker menu
 
     * navigate to "bird" marker type
 
@@ -156,7 +156,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
 
     All current markers of the type ``bird`` now display their internal track ID
 
-    .. figure:: images/recipes_tracking_smarttext.png
+    .. figure:: images/tutorial_tracking_smarttext.png
        :alt: Tracks with SmartText ID
        :scale: 60%
 
@@ -169,7 +169,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
   Example:
     **Change track point display**
 
-    * open the marker menue
+    * open the marker menu
 
     * navigate to "bird" marker type
 
@@ -181,7 +181,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
 
     All tracks of the type ``bird`` now are displayed with dashed lines and without track points
 
-    .. figure:: images/recipes_tracking_styles.png
+    .. figure:: images/tutorial_tracking_styles.png
        :alt: Tracks with modified style
        :scale: 60%
 
