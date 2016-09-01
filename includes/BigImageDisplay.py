@@ -74,6 +74,7 @@ class BigImageDisplay:
         self.thread = None
 
         self.last_offset = np.array([0, 0])
+        self.new_offset = np.array([0, 0])
 
     def AddEventFilter(self, event_filter):
         # add a new event filter to the pixmaps
@@ -120,24 +121,18 @@ class BigImageDisplay:
         self.image = image
 
         # call PrepareImageDisplay threaded or directly
-        offset = np.array(offset)
+        self.new_offset = np.array(offset)
         if self.data_file.getOption("threaded_image_display") and threaded:
-            self.thread = Thread(target=self.PrepareImageDisplay, args=(image, offset))
+            self.thread = Thread(target=self.PrepareImageDisplay, args=(image, ))
             self.thread.start()
         else:
-            self.PrepareImageDisplay(image, offset)
+            self.PrepareImageDisplay(image)
 
     def closeEvent(self, QCloseEvent):
         if self.data_file.getOption("threaded_image_display") and self.thread:
             self.thread.join()
 
-    def PrepareImageDisplay(self, image, offset):
-
-        # revert last offset and apply new one
-        self.window.view.DoTranslateOrigin(-self.last_offset)
-        self.window.view.DoTranslateOrigin(offset)
-        self.last_offset = offset
-
+    def PrepareImageDisplay(self, image):
         # iterate over tiles
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
@@ -158,6 +153,11 @@ class BigImageDisplay:
         self.signal_images_prepared.display.emit()
 
     def UpdatePixmaps(self):
+        # revert last offset and apply new one
+        self.window.view.DoTranslateOrigin(-self.last_offset)
+        self.window.view.DoTranslateOrigin(self.new_offset)
+        self.last_offset = self.new_offset
+
         # fill all pixmaps with the corresponding qimages
         for i in range(len(self.pixMapItems)):
             self.pixMapItems[i].setPixmap(QtGui.QPixmap(self.QImages[i]))
