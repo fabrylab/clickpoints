@@ -172,6 +172,8 @@ class Option:
     default = ""
     value_type = ""
     value_count = 1
+    min_value = None
+    max_value = None
     category = ""
     hidden = False
     tooltip = ""
@@ -930,6 +932,10 @@ class DataFile:
                                 "in a separate thread.\n"
                                 "Should only be altered if threading\n"
                                 "causes issues.")
+        self._AddOption(key="buffer_size", display_name="Buffer Frame Count", default=300, value_type="int", min_value=0,
+                        tooltip="How many frames to keep in buffer.\n"
+                                "The buffer should be only as big as the\n"
+                                "RAM has space to prevent swapping.")
 
         self._last_category = "Marker"
         self._AddOption(key="tracking_connect_nearest", display_name="Track Auto-Connect", default=False, value_type="bool",
@@ -939,14 +945,20 @@ class DataFile:
                                 "instead of starting a new track.\n"
                                 "To start a new track while Auto-Connect\n"
                                 "is turned on, hold down the 'alt' key")
-        self._AddOption(key="tracking_show_trailing", display_name="Track show trailing", default=-1, value_type="int",
+        self._AddOption(key="tracking_show_trailing", display_name="Track show trailing", default=-1, value_type="int", min_value=-1,
                         tooltip="How many frames to display\n"
                                 "before the current frame.\n"
                                 "-1 for all.")
-        self._AddOption(key="tracking_show_leading", display_name="Track show leading", default=0, value_type="int",
+        self._AddOption(key="tracking_show_leading", display_name="Track show leading", default=0, value_type="int", min_value=-1,
                         tooltip="How many frames to display\n"
                                 "after the current frame.\n"
                                 "-1 for all.")
+        self._AddOption(key="tracking_hide_trailing", display_name="Track hide trailing", default=2, value_type="int", min_value=0,
+                        tooltip="How many frames before the first active\n"
+                                "frame to hide the track.")
+        self._AddOption(key="tracking_hide_leading", display_name="Track hide leading", default=2, value_type="int", min_value=0,
+                        tooltip="How many frames after the last active\n"
+                                "frame to hide the track")
 
         self._last_category = "Mask"
         self._AddOption(key="auto_mask_update", display_name="Auto Mask Update", default=True, value_type="bool",

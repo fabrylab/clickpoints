@@ -1484,7 +1484,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                 self.setAcceptedMouseButtons(Qt.MouseButtons(3))
 
     def CheckToDisplay(self):
-        if self.min_frame - 2 <= self.current_frame <= self.max_frame + 100:
+        if self.min_frame - self.marker_handler.data_file.getOption("tracking_hide_trailing") <= self.current_frame <= self.max_frame + self.marker_handler.data_file.getOption("tracking_hide_leading"):
             return True
         return False
 

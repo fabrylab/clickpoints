@@ -95,9 +95,17 @@ class OptionEditor(QtWidgets.QWidget):
                         QtWidgets.QToolTip.showText(QtCore.QPoint(0, 0), "heyho", edit)
                     else:
                         edit = AddQSpinBox(self.layout, option.display_name, int(value), float=False)
+                        if option.min_value is not None:
+                            edit.setMinimum(option.min_value)
+                        if option.max_value is not None:
+                            edit.setMaximum(option.max_value)
                         edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
                 if option.value_type == "float":
                     edit = AddQSpinBox(self.layout, option.display_name, float(value), float=True)
+                    if option.min_value is not None:
+                        edit.setMinimum(option.min_value)
+                    if option.max_value is not None:
+                        edit.setMaximum(option.max_value)
                     edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
                 if option.value_type == "bool":
                     edit = AddQCheckBox(self.layout, option.display_name, value)
