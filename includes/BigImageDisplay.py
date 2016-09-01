@@ -121,18 +121,17 @@ class BigImageDisplay:
         self.image = image
 
         # call PrepareImageDisplay threaded or directly
-        self.new_offset = np.array(offset)
         if self.data_file.getOption("threaded_image_display") and threaded:
-            self.thread = Thread(target=self.PrepareImageDisplay, args=(image, ))
+            self.thread = Thread(target=self.PrepareImageDisplay, args=(image, np.array(offset)))
             self.thread.start()
         else:
-            self.PrepareImageDisplay(image)
+            self.PrepareImageDisplay(image, np.array(offset))
 
     def closeEvent(self, QCloseEvent):
         if self.data_file.getOption("threaded_image_display") and self.thread:
             self.thread.join()
 
-    def PrepareImageDisplay(self, image):
+    def PrepareImageDisplay(self, image, offset):
         # iterate over tiles
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
@@ -148,6 +147,7 @@ class BigImageDisplay:
                 self.QImageViews[i] = rgb_view(self.QImages[i])
                 # set the offset for the tile
                 self.pixMapItems[i].setOffset(start_x, start_y)
+        self.new_offset = offset
 
         # emmit signal which calls UpdatePixmaps
         self.signal_images_prepared.display.emit()
