@@ -1291,7 +1291,9 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     active = False
     hidden = False
 
-    points_data = []
+    points_data = None
+    offsets = None
+    current_offset = [0, 0]
     min_frame = 0
     max_frame = 0
     g1 = None
@@ -1311,10 +1313,15 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
     def init2(self):
         self.points_data = SortedDict()
+        self.offsets = SortedDict()
         for point in self.data.markers:
             self.points_data[point.image.sort_index] = point
+            self.offsets[point.image.sort_index] = point.image.offset if point.image.offset is not None else np.zeros(2)
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
+        self.current_offset = self.marker_handler.marker_file.data_file.image.offset
+        if self.current_offset is None:
+            self.current_offset = np.zeros(2)
         self.g1 = MyGrabberItem(self, self.color, 0, 0, shape="cross")
         self.text_parent = self.g1
         if self.marker is None:
@@ -1339,12 +1346,14 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
     def graberMoved(self, grabber, pos):
         if self.marker is None:
-            self.marker = self.marker_handler.marker_file.table_marker(image=self.marker_handler.marker_file.data_file.image,
+            image = self.marker_handler.marker_file.data_file.image
+            self.marker = self.marker_handler.marker_file.table_marker(image=image,
                                                                        x=pos.x(), y=pos.y(),
                                                                      type=self.data.type,
                                                                      track=self.data, text=None)
             self.marker.save()
             self.points_data[self.current_frame] = self.marker
+            self.offsets[self.current_frame] = image.offset if image.offset else np.zeros(2)
             self.min_frame = min(self.points_data.keys())
             self.max_frame = max(self.points_data.keys())
             self.SetTrackActive(True)
@@ -1371,18 +1380,18 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                 continue
             if self.marker_handler.data_file.getOption("tracking_show_leading") != -1 and frame > self.current_frame + self.marker_handler.data_file.getOption("tracking_show_leading"):
                 break
-            point = self.points_data[frame]
+            x, y = self.points_data[frame] + self.current_offset - self.offsets[frame]
             if last_frame == frame - 1:
-                path.lineTo(point.x, point.y)
+                path.lineTo(x, y)
             else:
-                path.moveTo(point.x, point.y)
+                path.moveTo(x, y)
             last_frame = frame
             if shape == "circle":
-                path.addEllipse(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width,
+                path.addEllipse(x - .5 * circle_width, y - .5 * circle_width, circle_width,
                                 circle_width)
             if shape == "rect":
-                path.addRect(point.x - .5 * circle_width, point.y - .5 * circle_width, circle_width, circle_width)
-            path.moveTo(point.x, point.y)
+                path.addRect(x - .5 * circle_width, y - .5 * circle_width, circle_width, circle_width)
+            path.moveTo(x, y)
         self.setPath(path)
         if self.marker is not None:
             self.g1.setPos(*self.marker.pos())
@@ -1390,6 +1399,9 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def FrameChanged(self, frame):
 
         self.current_frame = frame
+        self.current_offset = self.marker_handler.marker_file.data_file.image.offset
+        if self.current_offset is None:
+            self.current_offset = np.zeros(2)
         hide = not self.CheckToDisplay()
         if hide != self.hidden:
             self.hidden = hide
@@ -1425,6 +1437,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         if point is None:
             point = self.data
         self.points_data[frame] = point
+        self.offsets[frame] = point.image.offset if point.image.offset is not None else np.zeros(2)
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
         if frame == self.current_frame:

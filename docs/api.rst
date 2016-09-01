@@ -31,6 +31,10 @@ all functions necessary to access the data. For each table a ``get`` (retrieve e
 and ``delete`` (remove entries) function is provided. Functions with a plural name always work on multiple entries at once
 and all arguments can be provided as single values or arrays if multiple entries should be affected.
 
+The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class:`Offset`, :py:class:`Track`, :py:class:`MarkerType`,
+:py:class:`Marker`, :py:class:`Line`, :py:class:`Rectangle`, :py:class:`Mask`, :py:class:`MaskType`, :py:class:`Annotation`,
+:py:class:`Tag`, :py:class:`TagAssociation`.
+
 .. py:class:: Meta()
 
     Stores key value pairs containing meta information for the ClickPoints project.
@@ -99,12 +103,13 @@ and all arguments can be provided as single values or arrays if multiple entries
         - **markers** *(list of* :py:class:`Marker` *)* - a list containing all the associated markers.
         - **times** *(list of datetime)* - a list containing the timestamps for the images of the associated markers.
         - **frames** *(list of int)* - a list containing all the frame numbers for the images of the associated markers.
+        - **image_ids** *(list of int)* - a list containing all the ids for the images of the associated markers.
 
 .. py:class:: MarkerType()
 
     A marker type.
 
-    Seel also: :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.deleteMarkerTypes`.
+    See also: :py:meth:`~.DataFile.getMarkerTypes`, :py:meth:`~.DataFile.getMarkerType`, :py:meth:`~.DataFile.setMarkerType`, :py:meth:`~.DataFile.deleteMarkerTypes`.
 
     Attributes:
         - **name** *(str, unique)* - the name of the marker type.
