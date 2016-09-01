@@ -1345,6 +1345,8 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                                                                      track=self.data, text=None)
             self.marker.save()
             self.points_data[self.current_frame] = self.marker
+            self.min_frame = min(self.points_data.keys())
+            self.max_frame = max(self.points_data.keys())
             self.SetTrackActive(True)
         else:
             self.marker.x = pos.x()
