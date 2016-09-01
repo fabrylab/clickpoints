@@ -460,6 +460,20 @@ class DataFile:
                       "image:\t{3}\n"
                       .format(self.id, self.x, self.y, self.image))
 
+            def __add__(self, other):
+                try:
+                    return np.array([self.x, self.y]) + other
+                except TypeError:
+                    return np.array([self.x, self.y]) + np.array([other.x, other.y])
+
+            def __sub__(self, other):
+                try:
+                    return np.array([self.x, self.y]) - other
+                except TypeError:
+                    return np.array([self.x, self.y]) - np.array([other.x, other.y])
+
+            def __array__(self):
+                return np.array([self.x, self.y])
 
         self.table_offset = Offset
         self._tables.extend([Offset])
@@ -504,6 +518,8 @@ class DataFile:
                     return np.array([point.image.timestamp for point in self.markers])
                 if item == "frames":
                     return np.array([point.image.sort_index for point in self.markers])
+                if item == "image_ids":
+                    return np.array([point.image.id for point in self.markers])
                 return BaseModel(self, item)
 
             def __str__(self):
@@ -576,6 +592,21 @@ class DataFile:
                 return pt
 
             def pos(self):
+                return np.array([self.x, self.y])
+
+            def __add__(self, other):
+                try:
+                    return np.array([self.x, self.y]) + other
+                except TypeError:
+                    return np.array([self.x, self.y]) + np.array([other.x, other.y])
+
+            def __sub__(self, other):
+                try:
+                    return np.array([self.x, self.y]) - other
+                except TypeError:
+                    return np.array([self.x, self.y]) - np.array([other.x, other.y])
+
+            def __array__(self):
                 return np.array([self.x, self.y])
 
 
