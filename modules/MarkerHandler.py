@@ -1386,7 +1386,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                 continue
             if self.marker_handler.data_file.getOption("tracking_show_leading") != -1 and frame > self.current_frame + self.marker_handler.data_file.getOption("tracking_show_leading"):
                 break
-            x, y = self.points_data[frame] + self.current_offset - self.offsets[frame]
+            x, y = self.points_data[frame] + self.offsets[frame] - self.current_offset
             if last_frame == frame - 1:
                 path.lineTo(x, y)
             else:
