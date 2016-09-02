@@ -1,8 +1,8 @@
 Using ConfigFiles
 =================
-
 The config file contains parameters to adjust ClickPoints to the users needs,
-adjusts default behaviour or configure key bindings.
+adjusts default behaviour or configure key bindings. A GUI is available to
+set parameters during runtime, the ConfigFile is used to set default behaviour.
 
 Scope
 -----
@@ -26,6 +26,5 @@ which features to use or which add-ons to include.
 
 .. note::
 
-	A graphical user interface to view and change config values as well as the storage of config values
-	in the project file ``.cdb``  are under development and should be released soon.
+	A graphical user interface to view and change config values is available too.
 
