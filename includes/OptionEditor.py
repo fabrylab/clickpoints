@@ -31,6 +31,17 @@ from qtpy import QtGui, QtCore, QtWidgets
 import qtawesome as qta
 from QtShortCuts import AddQLabel, AddQSpinBox, AddQCheckBox, AddQHLine, AddQLineEdit
 
+
+def PrittyPrintSize(bytes):
+    if bytes > 1e9:
+        return "%.1f GB" % ( bytes / 1e8)
+    if bytes > 1e6:
+        return "%.1f MB" % ( bytes / 1e6)
+    if bytes > 1e3:
+        return "%.1f kB" % ( bytes / 1e3)
+    return "%d bytes" % (bytes)
+
+
 class OptionEditor(QtWidgets.QWidget):
     def __init__(self, window, data_file):
         QtWidgets.QWidget.__init__(self)
@@ -100,6 +111,7 @@ class OptionEditor(QtWidgets.QWidget):
                         if option.max_value is not None:
                             edit.setMaximum(option.max_value)
                         edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
+                    edit.editingFinished.connect(lambda edit=edit, option=option: self.ChangeFinished(edit, option))
                 if option.value_type == "float":
                     edit = AddQSpinBox(self.layout, option.display_name, float(value), float=True)
                     if option.min_value is not None:
@@ -125,14 +137,23 @@ class OptionEditor(QtWidgets.QWidget):
     def list_selected(self):
         pass
 
-    def ShowFieldError(self, field, error):
+    def ShowFieldError(self, field, error, width=180, normal_msg=False):
         if field.error is None:
             field.error = QtWidgets.QLabel(error, self)
-            field.error.setStyleSheet("background-color: #FDD; border-width: 1px; border-color: black; border-style: outset;")
             field.error.move(field.pos().x() + field.error.width(), field.pos().y() + field.error.height() + 5)
-            field.error.setMinimumWidth(180)
+            field.error.setMinimumWidth(width)
+        if normal_msg:
+            field.error.setStyleSheet(
+                "background-color: #FFF; border-width: 1px; border-color: black; border-style: outset;")
+        else:
+            field.error.setStyleSheet(
+                "background-color: #FDD; border-width: 1px; border-color: black; border-style: outset;")
         field.error.setText(error)
         field.error.show()
+
+    def ChangeFinished(self, field, option):
+        if field.error is not None:
+            field.error.hide()
 
     def Changed(self, field, value, option):
         if field.error is not None:
@@ -169,6 +190,8 @@ class OptionEditor(QtWidgets.QWidget):
             value = float(value)
         if option.value_type == "bool":
             value = bool(value)
+        if option.key == "buffer_size":
+            self.ShowFieldError(field, "Estimated memory usage:<br/>%s" % PrittyPrintSize(value*self.window.im.nbytes), width=140, normal_msg=True)
         field.current_value = value
         self.button_apply.setDisabled(False)
 
