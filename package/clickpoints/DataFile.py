@@ -924,14 +924,15 @@ class DataFile:
         self._AddOption(key="rotation", default=0, value_type="int", hidden=True)
         self._AddOption(key="rotation_steps", default=90, value_type="int", hidden=True)
         self._AddOption(key="hide_interfaces", default=True, value_type="bool", hidden=True)
-        self._AddOption(key="threaded_image_display", display_name="Thread image display", default=True, value_type="bool",
-                        tooltip="Whether to do image display\n"
-                                "preparation in a separate thread.")
         self._AddOption(key="threaded_image_load", display_name="Thread image load", default=True, value_type="bool",
                         tooltip="Whether to do image loading\n"
                                 "in a separate thread.\n"
                                 "Should only be altered if threading\n"
                                 "causes issues.")
+        self._AddOption(key="threaded_image_display", display_name="Thread image display", default=True,
+                        value_type="bool",
+                        tooltip="Whether to do image display\n"
+                                "preparation in a separate thread.")
         self._AddOption(key="buffer_size", display_name="Buffer Frame Count", default=300, value_type="int", min_value=0,
                         tooltip="How many frames to keep in buffer.\n"
                                 "The buffer should be only as big as the\n"
