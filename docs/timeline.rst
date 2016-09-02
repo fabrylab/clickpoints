@@ -29,7 +29,7 @@ red tick. To jump to the next annotated frame press ``Ctrl``\ +\ ``Left`` or ``C
 Config Parameter
 ****************
 
--  ``fps =`` (int, value)
+-  ``fps =`` (int, value >= 0)
         if not 0 overwrite the frame rate of the video
 -  ``play_start =`` (float)
         -  > 1: at which frame to start playback  at what
@@ -58,10 +58,10 @@ Keys
 Date Timeline
 ------------------
 .. figure:: images/ModulesDateTimeline.png
-   :alt: Timestamp Timeline Example
+   :alt: Date Timeline Example
    :scale: 60
 
-   Timestamp Timeline example
+   Date Timeline example
 
 The date timeline displays the timestamps of the loaded data set.
 To navigate to desired time point simply drag the current position marker or click on the point on the date timeline.
