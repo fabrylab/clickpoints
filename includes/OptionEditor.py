@@ -107,7 +107,6 @@ class OptionEditor(QtWidgets.QWidget):
                     if option.value_count > 1:
                         edit = AddQLineEdit(self.layout, option.display_name, ", ".join(str(v) for v in value))
                         edit.textChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
-                        QtWidgets.QToolTip.showText(QtCore.QPoint(0, 0), "heyho", edit)
                     else:
                         edit = AddQSpinBox(self.layout, option.display_name, int(value), float=False)
                         if option.min_value is not None:
@@ -142,8 +141,8 @@ class OptionEditor(QtWidgets.QWidget):
         pass
 
     def Export(self):
-        export_path = str(QtWidgets.QFileDialog.getSaveFileName(None, "Export config - ClickPoints", os.getcwd(), "ClickPoints Config *.txt"))
-        if export_path is None:
+        export_path = str(QtWidgets.QFileDialog.getSaveFileName(self.window, "Export config - ClickPoints", os.path.join(os.getcwd(), "ConfigClickPoints.txt"), "ClickPoints Config *.txt"))
+        if not export_path:
             return
         with open(export_path, "w") as fp:
             for category in self.data_file._options:
@@ -155,7 +154,10 @@ class OptionEditor(QtWidgets.QWidget):
                 for option in self.data_file._options[category]:
                     if option.value is None:
                         continue
-                    fp.write("%s = %s\n" % (option.key, option.value))
+                    if option.value_type == "string":
+                        fp.write("%s = \"%s\"\n" % (option.key, option.value))
+                    else:
+                        fp.write("%s = %s\n" % (option.key, option.value))
                 fp.write("\n")
 
     def ExportMarkerTypes(self, fp):
@@ -243,6 +245,7 @@ class OptionEditor(QtWidgets.QWidget):
                 self.data_file.setOption(edit.option.key, edit.current_value)
         self.button_apply.setDisabled(True)
         self.data_file.optionsChanged()
+        BroadCastEvent(self.window.modules, "optionsChanged")
         self.window.JumpFrames(0)
         return True
 

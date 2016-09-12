@@ -261,6 +261,7 @@ class DataFile:
     _database_filename = None
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
+    _config = None
 
     """ Enumerations """
     TYPE_Normal = 0
@@ -982,6 +983,20 @@ class DataFile:
                                 "if not, it is first displayed\n"
                                 "separately to increase speed.")
 
+        self._last_category = "InfoHud"
+        self._AddOption(key="info_hud_string", display_name="Info Text", default="", value_type="string",
+                        tooltip="Can display extra information of the image.\n"
+                                "Supports the following types:\n"
+                                "exif[] exit information from jpeg files.\n"
+                                "regex[] information from the filename.\n"
+                                "meta[] meta information from tiff images.")
+        self._AddOption(key="filename_data_regex", display_name="Filename Regex", default="", value_type="string",
+                        tooltip="Can display extra information of the image.\n"
+                                "Supports the following types:\n"
+                                "exif[] exit information from jpeg files.\n"
+                                "regex[] information from the filename.\n"
+                                "meta[] meta information from tiff images.")
+
         self._last_category = "Timeline"
         self._AddOption(key="fps", default=0, value_type="int", hidden=True)
         self._AddOption(key="skip", default=0, value_type="int", hidden=True)
@@ -1013,6 +1028,7 @@ class DataFile:
             self._options[category] = []
         try:
             entry = self.table_option.get(key=option.key)
+            entry_found = True
             if option.value_type == "int":
                 if option.value_count > 1:
                     option.value = self._stringToList(entry.value)
@@ -1024,12 +1040,16 @@ class DataFile:
                 option.value = bool(entry.value)
             if option.value_type == "string":
                 option.value = str(entry.value)
+                print("STRING", option.key, option.value)
             if option.value_type == "array":
                 option.value = [value.strip()[1:-1] if value.strip()[0] != "u" else value.strip()[2:-1] for value in entry.value[1:-1].split(",")]
         except peewee.DoesNotExist:
-            pass
+            entry_found = False
         self._options[category].append(option)
         self._options_by_key[option.key] = option
+        if self._config is not None and option.key in self._config and not entry_found:
+            self.setOption(option.key, self._config[option.key])
+            print("Config", option.key, self._config[option.key])
 
     def _stringToList(self, value):
         value = value.strip()
@@ -1048,16 +1068,20 @@ class DataFile:
         option.value = value
         value = str(value)
         if str(option.default) == value:
+            print("default", value)
             try:
                 self.table_option.get(key=option.key).delete_instance()
             except peewee.DoesNotExist:
                 return
         else:
+
             try:
                 entry = self.table_option.get(key=option.key)
                 entry.value = value
                 entry.save()
+                print("change", value)
             except peewee.DoesNotExist:
+                print("new", value)
                 self.table_option(key=option.key, value=value).save(force_insert=True)
 
     def getOption(self, key):
