@@ -82,9 +82,9 @@ def get_meta(file):
         return json.loads(metadata.decode('utf-8'))
 
 class InfoHud(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent_hud, window, config):
+    def __init__(self, parent_hud, window, data_file):
         QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
-        self.config = config
+        self.data_file = data_file
 
         self.window = window
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -109,29 +109,36 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
         self.dragged = False
 
         self.hidden = False
-        if self.config.hide_interfaces:
+        if self.data_file.getOption("info_hud_string") == "":
             self.setVisible(False)
             self.hidden = True
 
     def LoadImageEvent(self, filename="", frame_number=0):
-        if not self.config.info_hud_string=="@script":
-            file = os.path.join(*self.window.data_file.image.filename)
-            regex = re.match(self.config.filename_data_regex, file)
+        if not self.data_file.getOption("info_hud_string") == "@script":
+            file = self.window.data_file.image.filename
+            regex = re.match(self.data_file.getOption("filename_data_regex"), file)
             if regex:
                 regex = regex.groupdict()
             else:
                 regex = dict()
             values = dict(exif=get_exif(file), regex=regex, meta=get_meta(file))
-            fmt=PartialFormatter()
-            self.text.setText(fmt.format(self.config.info_hud_string, **values))
+            fmt = PartialFormatter()
+            self.text.setText(fmt.format(self.data_file.getOption("info_hud_string"), **values))
             rect = self.text.boundingRect()
             rect.setWidth(rect.width() + 10)
             rect.setHeight(rect.height() + 10)
             self.setRect(rect)
 
+    def optionsChanged(self):
+        if not self.hidden and self.data_file.getOption("info_hud_string") == "":
+            self.ToggleInterfaceEvent()
+        elif self.hidden and self.data_file.getOption("info_hud_string") != "":
+            self.ToggleInterfaceEvent()
+
     def ToggleInterfaceEvent(self):
-        self.setVisible(self.hidden)
-        self.hidden = not self.hidden
+        if self.data_file.getOption("info_hud_string") != "" or not self.hidden:
+            self.setVisible(self.hidden)
+            self.hidden = not self.hidden
 
     def updateHUD(self,info_string):
         fmt=PartialFormatter()
@@ -140,10 +147,6 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
         rect.setWidth(rect.width() + 10)
         rect.setHeight(rect.height() + 10)
         self.setRect(rect)
-
-    @staticmethod
-    def can_create_module(config):
-        return len(config.info_hud_string) > 0
 
     @staticmethod
     def file():
