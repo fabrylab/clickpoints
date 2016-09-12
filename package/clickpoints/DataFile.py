@@ -951,6 +951,8 @@ class DataFile:
                         tooltip="How many frames to keep in buffer.\n"
                                 "The buffer should be only as big as the\n"
                                 "RAM has space to prevent swapping.")
+
+        self._last_category = "Script Launcher"
         self._AddOption(key="scripts", hidden=True, default=[], value_type="array")
 
         self._last_category = "Marker"
@@ -983,7 +985,7 @@ class DataFile:
                                 "if not, it is first displayed\n"
                                 "separately to increase speed.")
 
-        self._last_category = "InfoHud"
+        self._last_category = "Info Hud"
         self._AddOption(key="info_hud_string", display_name="Info Text", default="", value_type="string",
                         tooltip="Can display extra information of the image.\n"
                                 "Supports the following types:\n"

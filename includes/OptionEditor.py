@@ -91,6 +91,9 @@ class OptionEditor(QtWidgets.QWidget):
         self.edits = []
 
         for category in self.data_file._options:
+            count = len([option for option in self.data_file._options[category] if not option.hidden])
+            if count == 0:
+                continue
             item = QtWidgets.QListWidgetItem(category, self.list)
 
             group = QtWidgets.QGroupBox(category)
@@ -146,6 +149,11 @@ class OptionEditor(QtWidgets.QWidget):
             return
         with open(export_path, "w") as fp:
             for category in self.data_file._options:
+                count = len([option for option in self.data_file._options[category] if option.value is not None])
+                if category == "Marker" or category == "Mask":
+                    count += 1
+                if count == 0:
+                    continue
                 fp.write('""" %s """\n\n' % category)
                 if category == "Marker":
                     self.ExportMarkerTypes(fp)
