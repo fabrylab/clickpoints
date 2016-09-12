@@ -933,17 +933,17 @@ class Timeline(QtCore.QObject):
         self.frameSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider)
         self.frameSlider.setToolTip("current frame, drag to change current frame\n[b], [n] to set start/end marker")
         self.frameSlider.setValue(self.get_frame_count())
-        if self.config.play_start is not None:
+        if self.data_file.getOption("play_start") is not None:
             # if >1 its a frame nr if < 1 its a fraction
-            if self.config.play_start >= 1:
-                self.frameSlider.setStartValue(self.config.play_start)
+            if self.data_file.getOption("play_start") >= 1:
+                self.frameSlider.setStartValue(self.data_file.getOption("play_start"))
             else:
-                self.frameSlider.setStartValue(int(self.get_frame_count()*self.config.play_start))
-        if self.config.play_end is not None:
-            if self.config.play_end > 1:
-                self.frameSlider.setEndValue(self.config.play_end)
+                self.frameSlider.setStartValue(int(self.get_frame_count()*self.data_file.getOption("play_start")))
+        if self.data_file.getOption("play_end") is not None:
+            if self.data_file.getOption("play_end") > 1:
+                self.frameSlider.setEndValue(self.data_file.getOption("play_end"))
             else:
-                self.frameSlider.setEndValue(int(self.get_frame_count()*self.config.play_end))
+                self.frameSlider.setEndValue(int(self.get_frame_count()*self.data_file.getOption("play_end")))
         self.slider_update = True
         self.layoutCtrl.addWidget(self.frameSlider)
 
@@ -969,9 +969,9 @@ class Timeline(QtCore.QObject):
         self.timer = PreciseTimer()
         self.timer.timeout.connect(self.updateFrame)
 
-        self.Play(self.config.playing)
+        self.Play(self.data_file.getOption("playing"))
         self.hidden = True
-        self.HideInterface(self.config.timeline_hide)
+        self.HideInterface(self.data_file.getOption("timeline_hide"))
 
         self.FolderChangeEvent()
 
@@ -999,11 +999,11 @@ class Timeline(QtCore.QObject):
 
     def FolderChangeEvent(self):
         self.data_file = self.window.data_file
-        if self.config.play_end is not None:
-            if self.config.play_end > 1:
-                self.frameSlider.setEndValue(self.config.play_end)
+        if self.data_file.getOption("play_end") is not None:
+            if self.data_file.getOption("play_end") > 1:
+                self.frameSlider.setEndValue(self.data_file.getOption("play_end"))
             else:
-                self.frameSlider.setEndValue(int(self.get_frame_count()*self.config.play_end))
+                self.frameSlider.setEndValue(int(self.get_frame_count()*self.data_file.getOption("play_end")))
         else:
             self.frameSlider.setMaximum(self.get_frame_count() - 1)
         self.updateLabel()
@@ -1015,7 +1015,7 @@ class Timeline(QtCore.QObject):
         self.progress_bar.setMaximum(100)
         self.progress_bar.setHidden(True)
         self.empty_space_keeper.setHidden(False)
-        if self.config.datetimeline_show:
+        if self.data_file.getOption("datetimeline_show"):
             self.timeSlider.setTimes(self.data_file)
 
     def ChangedSkip(self):
@@ -1143,7 +1143,10 @@ class Timeline(QtCore.QObject):
         self.empty_space_keeper.setHidden(hide or self.progress_bar.isVisible())
         self.button.setChecked(not self.hidden)
         if hide is False and not self.timeSlider is None:
-            self.timeSlider.setHidden(self.timeSlider.is_hidden)
+            self.timeSlider.setHidden(self.timeSlider.is_hidden | (not self.data_file.getOption("datetimeline_show")))
+
+    #def optionsChanged(self):
+    #    if self.hidden is False self.timeSlider.setHidden(self.timeSlider.is_hidden | (not self.data_file.getOption("datetimeline_show")))
 
     def keyPressEvent(self, event):
         # @key H: hide control elements

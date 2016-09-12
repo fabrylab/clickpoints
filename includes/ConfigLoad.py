@@ -39,30 +39,11 @@ srcpath = ""
 database_file = ""
 
 """ @config General """
-# @config `filename_data_regex = ` specify a regular expression to obtain meta-data from filenames
-filename_data_regex = r'.*(?P<timestamp>\d{8}-\d{6})_(?P<system>.+?[^_])_(?P<camera>.+)'
 # @config `filterparam =` specify additional filters for the files to use
 filterparam = {}
 
-# @config `jumps =` specify how many frames the numpad keys `2`,`3`,`5`,`6`,`8`,`9`,`/`,`*` should jump
-jumps = (-1, +1, -10, +10, -100, +100, -1000, +1000)
-
 # @config `max_image_size = ` the maximum size of one image before it is internally split into tiles
 max_image_size = 2 ** 14
-
-# @config `rotation =` the rotation of the image when starting
-rotation = 0
-# @config `rotation_steps =` how much to rotate time image when `r` is pressed
-rotation_steps = 90
-
-# @config `hide_interfaces =` whether to hide the interfaces a program start. Press F2 to show it again.
-hide_interfaces = True
-
-# @config `addons =` a list of additional python files to load
-addons = []
-
-threaded_image_display = True
-threaded_image_load = True
 
 """ @config Marker """
 TYPE_Normal = 0
@@ -73,36 +54,13 @@ TYPE_Track = 4
 # @config `types = {0: ["marker", [255, 0, 0], TYPE_Normal]}` specifies what categories to use. Every category is an array with three entires. Name, Color and Type. Types can be 0: normal marker, 1: rectangle markers, 2: line markers
 types = {0: ["marker", [255, 0, 0], TYPE_Normal]}
 
-# @config `tracking = ` specify whether to use tracking mode
-tracking = False
-# @config `tracking_connect_nearest =` if set to true, a new marker will always be connected to the nearest track
-tracking_connect_nearest = False
-# @config `tracking_show_trailing =` how many track points to show before the current frame, to show all use -1
-tracking_show_trailing = -1
-# @confing `tracking_show_leading =` how many track points to show after the current frame, to show all use -1
-tracking_show_leading = 0
 
 """ @config Mask """
-# @config `auto_mask_update =` whether to update the mask display after each stroke or manually by key press
-auto_mask_update = True
 # @config `draw_types = [[0,[255,0,0]]` specifies what categories to use for mask drawing. Every category is an array with two entires. Index and Color.
 draw_types = [[1, [124, 124, 255], "mask"]]
 
 """ @config GammaCorrection """
 
-
-""" @config Timeline """
-# @config `fps =` if not 0 overwrite the frame rate of the video
-fps = 0
-# @config `play_start =` at which frame to start playback (if > 1) or at what fraction of the video to start playback (if > 0 and < 1)
-play_start = 0.0
-# @config `playing =` whether to start playback at the program start
-play_end = 1.0
-# @config `playing =` whether to start playback at the program start
-playing = False
-# @config `timeline_hide =` whether to hide the timeline at the program start
-timeline_hide = False
-datetimeline_show = True
 
 """ @config Annotations """
 # @config `server_annotations=` weather to use local or sql based annotation stoarage
@@ -118,33 +76,16 @@ sql_user = 'clickpoints'
 # @config `sql_pwd =`  password for mySQL database
 sql_pwd = '123456'
 
-""" @config FolderBrowser """
-# @config `folder_list =` specify a lists of folder which can be switched with the `path_up` and `page_down` keys.
-folder_list = []
-
-""" @config ScriptLauncher """
-# @config `launch_scripts = ` specify a list of scripts which can be started by pressing `F12` to `F9`
-launch_scripts = []
-
-""" @config InfoHud """
-# @config `info_hud_string = ` specify string to display in the hud
-info_hud_string = ""
-
 """ @config MediaHandler """
 # @config `use_natsort = ` sort the images naturally e.g. 1 before 10 not "10" before "1"
 use_natsort = False
 auto_contrast = False
-buffer_size = 300
 
 """ @config Timestamp Extraction """
 # @config `timestamp_formats` and `timestamp_fromats2` lists of timestamp foramts to match
 timestamp_formats = [r'%Y%m%d-%H%M%S-%f',
                      r'%Y%m%d-%H%M%S']
 timestamp_formats2 = [r'%Y%m%d-%H%M%S_%Y%m%d-%H%M%S']
-
-display_timeformat = r'%Y-%m-%d %H:%M:%S.%2f'
-
-dimension_template = "Recording(?P<recording>\d*)_FoW(?P<fov>\d*)_Mode(?P<mode>.*)_z(?P<z>\d*).tif"
 
 # enables .access on dicts
 class dotdict(dict):

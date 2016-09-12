@@ -235,8 +235,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
         #self.button_options.setToolTip("add/remove folder from the current project")
         self.layoutButtons.addWidget(self.button_options)
 
-        self.layout.addLayout(self.layoutButtons)
-
         # initialize some variables
         self.new_filename = None
         self.new_frame_number = None
@@ -508,10 +506,10 @@ def main():
 
     # load config and exec addon code
     config = LoadConfig()
-    for addon in config.addons:
-        with open(addon + ".py") as f:
-            code = compile(f.read(), addon + ".py", 'exec')
-            exec(code)
+    #for addon in config.addons:
+    #    with open(addon + ".py") as f:
+    #        code = compile(f.read(), addon + ".py", 'exec')
+    #        exec(code)
 
     # init and open the ClickPoints window
     window = ClickPointsWindow(config)

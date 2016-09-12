@@ -152,7 +152,7 @@ def date_linspace(start_date, end_date, frames):
 class DataFile(DataFileBase):
     def __init__(self, database_filename=None, config=None, storage_path=None):
         self.exists = os.path.exists(database_filename)
-        self.config = config
+        self._config = config
         self.temporary_db = None
 
         # compile regexp for timestamp extraction
@@ -419,7 +419,7 @@ class DataFile(DataFileBase):
             height = image.height if image.height is not None else 480
             image_data = np.zeros((height, width))
         # do an automatic contrast enhancement
-        if self.config.auto_contrast:
+        if self._config.auto_contrast:
             image_data = image_data-np.amin(image_data)
             image_data = (image_data/np.amax(image_data)*256).astype(np.uint8)
         # scale 12 bit images
@@ -495,7 +495,7 @@ class DataFile(DataFileBase):
 
     def initTimeStampRegEx(self):
         # extract and compile regexp for timestamp and timestamp2 lists
-        for regex in self.config.timestamp_formats:
+        for regex in self._config.timestamp_formats:
             # replace strings with regexp
             regex = regex.replace('%Y','(?P<Y>\d{4})',1)
             regex = regex.replace('%y', '(?P<y>\d{2})', 1)
@@ -509,7 +509,7 @@ class DataFile(DataFileBase):
 
             self.reg_timestamp.append(re.compile(regex))
 
-        for regex in self.config.timestamp_formats2:
+        for regex in self._config.timestamp_formats2:
             # replace strings with regexp
             # timestamp 1
             regex = regex.replace('%Y','(?P<Y>\d{4})',1)
