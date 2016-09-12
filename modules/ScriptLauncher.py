@@ -204,13 +204,14 @@ class ScriptLauncher(QtCore.QObject):
         self.script_buttons = []
         self.window.layoutButtons.addLayout(self.button_group_layout)
 
-        self.scripts = self.config.launch_scripts
+        self.scripts = self.data_file.getOption("scripts")[:]
         self.script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "addons"))
 
         #self.running_processes = [None]*len(self.config.launch_scripts)
         self.updateScripts()
 
     def updateScripts(self):
+        self.data_file.setOption("scripts", self.scripts)
         for button in self.script_buttons:
             self.button_group_layout.removeWidget(button)
         self.script_buttons = []
@@ -229,7 +230,6 @@ class ScriptLauncher(QtCore.QObject):
                     if line.startswith("__icon__"):
                         match = re.match(r"__[^_]*__\s*=\s*\"(.*)\"\s*$", line)
                         if match:
-                            print(match.groups())
                             button.icon_name = match.groups()[0]
                         break
             button.setIcon(qta.icon(button.icon_name))

@@ -937,6 +937,7 @@ class DataFile:
                         tooltip="How many frames to keep in buffer.\n"
                                 "The buffer should be only as big as the\n"
                                 "RAM has space to prevent swapping.")
+        self._AddOption(key="scripts", hidden=True, default=[], value_type="array")
 
         self._last_category = "Marker"
         self._AddOption(key="tracking_connect_nearest", display_name="Track Auto-Connect", default=False, value_type="bool",
@@ -1010,6 +1011,8 @@ class DataFile:
                 option.value = bool(entry.value)
             if option.value_type == "string":
                 option.value = str(entry.value)
+            if option.value_type == "array":
+                option.value = [value.strip()[1:-1] if value.strip()[0] != "u" else value.strip()[2:-1] for value in entry.value[1:-1].split(",")]
         except peewee.DoesNotExist:
             pass
         self._options[category].append(option)
