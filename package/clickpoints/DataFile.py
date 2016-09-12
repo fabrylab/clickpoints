@@ -1040,7 +1040,6 @@ class DataFile:
                 option.value = bool(entry.value)
             if option.value_type == "string":
                 option.value = str(entry.value)
-                print("STRING", option.key, option.value)
             if option.value_type == "array":
                 option.value = [value.strip()[1:-1] if value.strip()[0] != "u" else value.strip()[2:-1] for value in entry.value[1:-1].split(",")]
         except peewee.DoesNotExist:
@@ -1068,7 +1067,6 @@ class DataFile:
         option.value = value
         value = str(value)
         if str(option.default) == value:
-            print("default", value)
             try:
                 self.table_option.get(key=option.key).delete_instance()
             except peewee.DoesNotExist:
@@ -1079,9 +1077,7 @@ class DataFile:
                 entry = self.table_option.get(key=option.key)
                 entry.value = value
                 entry.save()
-                print("change", value)
             except peewee.DoesNotExist:
-                print("new", value)
                 self.table_option(key=option.key, value=value).save(force_insert=True)
 
     def getOption(self, key):
