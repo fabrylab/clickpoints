@@ -30,6 +30,7 @@ from includes import BroadCastEvent2
 from qtpy import QtGui, QtCore, QtWidgets
 import qtawesome as qta
 from QtShortCuts import AddQLabel, AddQSpinBox, AddQCheckBox, AddQHLine, AddQLineEdit
+from includes import BroadCastEvent
 
 
 def PrittyPrintSize(bytes):
@@ -206,6 +207,7 @@ class OptionEditor(QtWidgets.QWidget):
             if edit.current_value is not None:
                 self.data_file.setOption(edit.option.key, edit.current_value)
         self.button_apply.setDisabled(True)
+        self.data_file.optionsChanged()
         self.window.JumpFrames(0)
         return True
 
