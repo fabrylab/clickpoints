@@ -63,6 +63,9 @@ class OptionEditor(QtWidgets.QWidget):
         self.main_layout.addLayout(self.top_layout)
 
         layout = QtWidgets.QHBoxLayout()
+        self.button_export = QtWidgets.QPushButton("Export")
+        self.button_export.clicked.connect(self.Export)
+        layout.addWidget(self.button_export)
         layout.addStretch()
         self.button_ok = QtWidgets.QPushButton("Ok")
         self.button_ok.clicked.connect(self.Ok)
@@ -137,6 +140,38 @@ class OptionEditor(QtWidgets.QWidget):
 
     def list_selected(self):
         pass
+
+    def Export(self):
+        export_path = str(QtWidgets.QFileDialog.getSaveFileName(None, "Export config - ClickPoints", os.getcwd(), "ClickPoints Config *.txt"))
+        if export_path is None:
+            return
+        with open(export_path, "w") as fp:
+            for category in self.data_file._options:
+                fp.write('""" %s """\n\n' % category)
+                if category == "Marker":
+                    self.ExportMarkerTypes(fp)
+                elif category == "Mask":
+                    self.ExportMaskTypes(fp)
+                for option in self.data_file._options[category]:
+                    if option.value is None:
+                        continue
+                    fp.write("%s = %s\n" % (option.key, option.value))
+                fp.write("\n")
+
+    def ExportMarkerTypes(self, fp):
+        types = []
+        modes = {0: "TYPE_Normal", 1: "TYPE_Line", 2: "TYPE_Rect", 3: "TYPE_Track"}
+        for index, type in enumerate(self.data_file.getMarkerTypes()):
+            color = type.getColorRGB()
+            types.append("%d: [\"%s\", [%d, %d, %d], %s]" % (index, type.name, color[0], color[1], color[2], modes[type.mode]))
+        fp.write("types = {%s}\n" % ",\n         ".join(types))
+
+    def ExportMaskTypes(self, fp):
+        types = []
+        for type in self.data_file.getMaskTypes():
+            color = type.getColorRGB()
+            types.append("[%d, [%d, %d, %d], \"%s\"]" % (type.index, color[0], color[1], color[2], type.name))
+        fp.write("draw_types = [%s]\n" % ",\n             ".join(types))
 
     def ShowFieldError(self, field, error, width=180, normal_msg=False):
         if field.error is None:
