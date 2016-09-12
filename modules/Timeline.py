@@ -880,8 +880,8 @@ class Timeline(QtCore.QObject):
             self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 
             self.timeSlider = RealTimeSlider()
-            self.timeSlider.setTimes(self.data_file)
             self.layoutCtrl2.addWidget(self.timeSlider)
+            self.timeSlider.setTimes(self.data_file)
             empty_space_keeper = QtWidgets.QLabel()
             empty_space_keeper.setMaximumHeight(0)
             empty_space_keeper.setMaximumWidth(0)
