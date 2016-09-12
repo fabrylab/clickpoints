@@ -35,6 +35,19 @@ from Tools import HTMLColorToRGB, BoundBy
 from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox, AddQColorChoose
 
 
+def MakePathRelative(abs_path):
+    try:
+        path = os.path.relpath(abs_path)
+    except ValueError:
+        path = abs_path
+    else:
+        # not more than one path up, the rest should stay with an absolute path
+        if path.find("../..") != -1 or path.find("..\\..") != -1:
+            path = abs_path
+    path = path.replace("\\", "/")
+    return path
+
+
 class VideoExporterDialog(QtWidgets.QWidget):
     def __init__(self, parent, window, data_file, config, modules):
         QtWidgets.QWidget.__init__(self)
@@ -43,6 +56,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.data_file = data_file
         self.config = config
         self.modules = modules
+        options = data_file.getOptionAccess()
+        self.options = options
 
         # widget layout and elements
         self.setMinimumWidth(700)
@@ -72,9 +87,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(videoWidget)
         Vlayout = QtWidgets.QVBoxLayout(videoWidget)
 
-        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/export.avi"), "Choose Video - ClickPoints", "Videos (*.avi)")
-        self.leCodec = AddQLineEdit(Vlayout, "Codec:", "libx264", strech=True)
-        self.sbQuality = AddQSpinBox(Vlayout, 'Quality (0 lowest, 10 highest):', 5, float=False, strech=True)
+        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename), "Choose Video - ClickPoints", "Videos (*.avi)")
+        self.leCodec = AddQLineEdit(Vlayout, "Codec:", options.video_codec, strech=True)
+        self.sbQuality = AddQSpinBox(Vlayout, 'Quality (0 lowest, 10 highest):', options.video_quality, float=False, strech=True)
         self.sbQuality.setRange(0, 10)
 
         Vlayout.addStretch()
@@ -84,7 +99,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
-        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/images%d.jpg"), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
+        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_image_filename), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
         AddQLabel(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
 
         Vlayout.addStretch()
@@ -94,7 +109,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(gifWidget)
         Vlayout = QtWidgets.QVBoxLayout(gifWidget)
 
-        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.join(os.getcwd(), "export/export.gif"), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)")
+        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_gif_filename), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)")
 
         Vlayout.addStretch()
 
@@ -103,10 +118,10 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.layout.addWidget(timeWidget)
         Vlayout = QtWidgets.QVBoxLayout(timeWidget)
 
-        self.cbTime = AddQCheckBox(Vlayout, 'Display time:', True, strech=True)
-        self.cbTimeZero = AddQCheckBox(Vlayout, 'Start from zero:', True, strech=True)
-        self.cbTimeFontSize = AddQSpinBox(Vlayout, 'Font size:', 50, float=False, strech=True)
-        self.cbTimeColor = AddQColorChoose(Vlayout, "Color:", "#FFFFFF", strech=True)
+        self.cbTime = AddQCheckBox(Vlayout, 'Display time:', options.export_display_time, strech=True)
+        self.cbTimeZero = AddQCheckBox(Vlayout, 'Start from zero:', options.export_time_from_zero, strech=True)
+        self.cbTimeFontSize = AddQSpinBox(Vlayout, 'Font size:', options.export_time_font_size, float=False, strech=True)
+        self.cbTimeColor = AddQColorChoose(Vlayout, "Color:", options.export_time_font_color, strech=True)
 
         Vlayout.addStretch()
 
@@ -115,10 +130,12 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.layout.addWidget(scaleWidget)
         Vlayout = QtWidgets.QVBoxLayout(scaleWidget)
 
-        self.cbImageScaleSize = AddQSpinBox(Vlayout, 'Image scale:', 1.00, float=True, strech=True)
-        self.cbMarkerScaleSize = AddQSpinBox(Vlayout, 'Marker scale:', 1.00, float=True, strech=True)
+        self.cbImageScaleSize = AddQSpinBox(Vlayout, 'Image scale:', options.export_image_scale, float=True, strech=True)
+        self.cbMarkerScaleSize = AddQSpinBox(Vlayout, 'Marker scale:', options.export_marker_scale, float=True, strech=True)
 
         Vlayout.addStretch()
+
+        self.cbType.setCurrentIndex(options.export_type)
 
         """ Progress bar """
 
@@ -157,6 +174,21 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.button_start.setHidden(True)
         self.button_stop.setHidden(False)
 
+        # save options
+        options = self.options
+        options.export_video_filename = MakePathRelative(str(self.leAName.text()))
+        options.export_image_filename = MakePathRelative(str(self.leANameI.text()))
+        options.export_gif_filename = MakePathRelative(str(self.leANameG.text()))
+        options.export_type = self.cbType.currentIndex()
+        options.video_codec = str(self.leCodec.text())
+        options.video_quality = self.sbQuality.value()
+        options.export_display_time = self.cbTime.isChecked()
+        options.export_time_from_zero = self.cbTimeZero.isChecked()
+        options.export_time_font_size = self.cbTimeFontSize.value()
+        options.export_time_font_color = self.cbTimeColor.getColor()
+        options.export_image_scale = self.cbImageScaleSize.value()
+        options.export_marker_scale = self.cbMarkerScaleSize.value()
+
         # get the marker handler for marker drawing
         marker_handler = self.window.GetModule("MarkerHandler")
 
@@ -171,7 +203,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         writer = None
         if self.cbType.currentIndex() == 0:  # video
             path = str(self.leAName.text())
-            writer_params = dict(format="avi", mode="I", fps=timeline.fps, codec=str(self.leCodec.text()), quality=self.sbQuality.value())
+            writer_params = dict(format="avi", mode="I", fps=timeline.fps, codec=options.video_codec, quality=options.video_quality)
         elif self.cbType.currentIndex() == 1:  # image
             path = str(self.leANameI.text())
         elif self.cbType.currentIndex() == 2:  # gif
@@ -187,17 +219,17 @@ class VideoExporterDialog(QtWidgets.QWidget):
                 return
         # get timestamp draw parameter
         self.time_drawing = None
-        if self.cbTime.isChecked():
+        if options.export_display_time:
             class TimeDrawing: pass
             self.time_drawing = TimeDrawing()
             try:
-                self.time_drawing.font = ImageFont.truetype("arial.ttf", self.cbTimeFontSize.value())
+                self.time_drawing.font = ImageFont.truetype("arial.ttf", options.export_time_font_size)
             except IOError:
                 self.time_drawing.font = ImageFont.truetype(os.path.join(self.window.icon_path, "FantasqueSansMono-Regular.ttf"), self.cbTimeFontSize.value())
             self.time_drawing.start = None
             self.time_drawing.x = 15
             self.time_drawing.y = 10
-            self.time_drawing.color = tuple(HTMLColorToRGB(self.cbTimeColor.getColor()))
+            self.time_drawing.color = tuple(HTMLColorToRGB(options.export_time_font_color))
 
         # initialize progress bar
         self.progressbar.setMinimum(start)
@@ -254,18 +286,18 @@ class VideoExporterDialog(QtWidgets.QWidget):
 
             # convert image to PIL draw object
             pil_image = Image.fromarray(self.preview_slice)
-            if self.cbImageScaleSize.value() != 1:
-                shape = np.array([self.preview_slice.shape[1], self.preview_slice.shape[0]])*self.cbImageScaleSize.value()
+            if options.export_image_scale != 1:
+                shape = np.array([self.preview_slice.shape[1], self.preview_slice.shape[0]])*options.export_image_scale
                 pil_image = pil_image.resize(shape.astype(int), Image.ANTIALIAS)
             draw = ImageDraw.Draw(pil_image)
             # draw marker on the image
             if marker_handler:
-                marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1], self.cbMarkerScaleSize.value(), self.cbImageScaleSize.value())
+                marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1], options.export_marker_scale, options.export_image_scale)
             # draw timestamp
-            if self.time_drawing is not None or 0:  # TODO
+            if self.time_drawing is not None:
                 time = self.window.data_file.image.timestamp
                 if time is not None:
-                    if frame == start and self.cbTimeZero.isChecked():
+                    if frame == start and options.export_time_from_zero:
                         self.time_drawing.start = time
                     if self.time_drawing.start is not None:
                         text = str(time-self.time_drawing.start)

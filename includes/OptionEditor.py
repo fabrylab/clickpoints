@@ -170,7 +170,7 @@ class OptionEditor(QtWidgets.QWidget):
 
     def ExportMarkerTypes(self, fp):
         types = []
-        modes = {0: "TYPE_Normal", 1: "TYPE_Line", 2: "TYPE_Rect", 3: "TYPE_Track"}
+        modes = {0: "TYPE_Normal", 1: "TYPE_Rect", 2: "TYPE_Line", 3: "TYPE_Track"}
         for index, type in enumerate(self.data_file.getMarkerTypes()):
             color = type.getColorRGB()
             types.append("%d: [\"%s\", [%d, %d, %d], %s]" % (index, type.name, color[0], color[1], color[2], modes[type.mode]))

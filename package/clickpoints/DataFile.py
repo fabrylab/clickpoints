@@ -189,6 +189,20 @@ class Option:
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
+class OptionAccess(object):
+    def __init__(self, data_file):
+        self.data_file = data_file
+
+    def __getattr__(self, key):
+        if key != "data_file":
+            return self.data_file.getOption(key)
+        return object.__getattr__(self, key)
+
+    def __setattr__(self, key, value):
+        if key != "data_file":
+            return self.data_file.setOption(key, value)
+        return object.__setattr__(self, key, value)
+
 def VerboseDict(dictionary):
     return " and ".join("%s=%s" % (key, dictionary[key]) for key in dictionary)
 
@@ -1021,6 +1035,21 @@ class DataFile:
                                 "%2f for milliseconds\n"
                                 "%6f for nanoseconds")
 
+        self._last_category = "Video Exporter"
+        self._AddOption(key="export_video_filename", default="export/export.avi", value_type="string", hidden=True)
+        self._AddOption(key="export_image_filename", default="export/images%d.jpg", value_type="string", hidden=True)
+        self._AddOption(key="export_gif_filename", default="export/images%d.jpg", value_type="string", hidden=True)
+        self._AddOption(key="export_type", default=0, value_type="int", hidden=True)
+        self._AddOption(key="video_codec", default="libx264", value_type="string", hidden=True)
+        self._AddOption(key="video_quality", default=5, value_type="int", hidden=True)
+        self._AddOption(key="export_display_time", default=True, value_type="bool", hidden=True)
+        self._AddOption(key="export_time_from_zero", default=True, value_type="bool", hidden=True)
+        self._AddOption(key="export_time_font_size", default=50, value_type="int", hidden=True)
+        self._AddOption(key="export_time_font_color", default="#FFFFFF", value_type="string", hidden=True)
+
+        self._AddOption(key="export_image_scale", default=1.0, value_type="float", hidden=True)
+        self._AddOption(key="export_marker_scale", default=1.0, value_type="float", hidden=True)
+
     def _AddOption(self, **kwargs):
         category = kwargs["category"] if "category" in kwargs else self._last_category
         if "display_name" not in kwargs:
@@ -1087,6 +1116,9 @@ class DataFile:
         if option.value is None:
             return option.default
         return option.value
+
+    def getOptionAccess(self):
+        return OptionAccess(self)
 
     def _CheckVersion(self):
         try:
