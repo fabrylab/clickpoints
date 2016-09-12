@@ -95,6 +95,13 @@ def NormalizeColor(color):
     color = [CheckValidColor(col.upper()) for col in color]
     return color
 
+def HTMLColorToRGB(colorstring):
+    """ convert #RRGGBB to an (R, G, B) tuple """
+    colorstring = str(colorstring).strip()
+    if colorstring[0] == '#': colorstring = colorstring[1:]
+    if len(colorstring) != 6 and len(colorstring) != 8:
+        raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
+    return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
 
 def addFilter(query, parameter, field):
     if parameter is None:
@@ -504,6 +511,9 @@ class DataFile:
                       "text:\t{5}\n"
                       .format(self.id, self.name, self.color, self.mode, self.style, self.text))
 
+            def getColorRGB(self):
+                return HTMLColorToRGB(self.color)
+
         class Track(BaseModel):
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
@@ -821,6 +831,9 @@ class DataFile:
 
             def __str__(self):
                 return "MasktypeObject id%s: name=%s, color=%s, index=%s" % (self.id, self.name, self.color, self.index)
+
+            def getColorRGB(self):
+                return HTMLColorToRGB(self.color)
 
         self.table_mask = Mask
         self.table_masktype = MaskType
