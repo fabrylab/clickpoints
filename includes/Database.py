@@ -187,7 +187,7 @@ class DataFile(DataFileBase):
         self.made_changes = False
 
         # image data loading buffer and thread
-        self.buffer = FrameBuffer(self.config.buffer_size)
+        self.buffer = FrameBuffer(self.getOption("buffer_size"))
         self.thread = None
 
         self.last_added_timestamp = -1
@@ -197,6 +197,9 @@ class DataFile(DataFileBase):
         class DataFileSignals(QtCore.QObject):
             loaded = QtCore.pyqtSignal(int, int)
         self.signals = DataFileSignals()
+
+    def optionsChanged(self):
+        self.buffer.setBufferCount(self.getOption("buffer_size"))
 
     def setChangesMade(self):
         self.made_changes = True
@@ -645,6 +648,11 @@ class FrameBuffer:
     def __init__(self, buffer_count):
         self.buffer_count = buffer_count
         self.reset()
+
+    def setBufferCount(self, buffer_count):
+        if self.buffer_count != buffer_count:
+            self.buffer_count = buffer_count
+            self.reset()
 
     def reset(self):
         self.slots = [[]]*self.buffer_count
