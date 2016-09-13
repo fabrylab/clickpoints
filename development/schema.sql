@@ -5,6 +5,8 @@ CREATE UNIQUE INDEX "path_path" ON "path" ("path");
 CREATE TABLE "image" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);
 CREATE INDEX "image_path_id" ON "image" ("path_id");
 CREATE UNIQUE INDEX "image_filename_path_id_frame" ON "image" ("filename", "path_id", "frame");
+CREATE TABLE "option" ("id" INTEGER NOT NULL PRIMARY KEY, "key" VARCHAR(255) NOT NULL, "value" VARCHAR(255));
+CREATE UNIQUE INDEX "option_key" ON "option" ("key");
 CREATE TABLE "offset" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);
 CREATE UNIQUE INDEX "offset_image_id" ON "offset" ("image_id");
 CREATE TABLE "marker" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL, "x" REAL NOT NULL, "y" REAL NOT NULL, "type_id" INTEGER, "processed" INTEGER NOT NULL, "track_id" INTEGER, "style" VARCHAR(255), "text" VARCHAR(255), FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE, FOREIGN KEY ("track_id") REFERENCES "track" ("id") ON DELETE CASCADE);
@@ -34,4 +36,4 @@ CREATE TABLE "tagassociation" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id
 CREATE INDEX "tagassociation_tag_id" ON "tagassociation" ("tag_id");
 CREATE INDEX "tagassociation_annotation_id" ON "tagassociation" ("annotation_id");
 CREATE TRIGGER no_empty_tracks                                AFTER DELETE ON marker                                BEGIN                                  DELETE FROM track WHERE id = OLD.track_id AND (SELECT COUNT(marker.id) FROM marker WHERE marker.track_id = track.id) = 0;                                END;
-INSERT OR REPLACE INTO meta (id,key,value) VALUES            ((SELECT id FROM meta WHERE key='version'),'version',15);
+INSERT OR REPLACE INTO meta (id,key,value) VALUES            ((SELECT id FROM meta WHERE key='version'),'version',16);
