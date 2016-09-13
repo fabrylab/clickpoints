@@ -28,34 +28,41 @@ from Tools import BoxGrabber
 from PIL import Image
 from PIL.ExifTags import TAGS
 import os, re, json
+
 try:
     import tifffile
+
     tifffile_loaded = True
 except ImportError:
     tifffile_loaded = False
 
 import string
+
+
 class PartialFormatter(string.Formatter):
     def __init__(self, missing='~', bad_fmt='!!'):
-        self.missing, self.bad_fmt=missing, bad_fmt
+        self.missing, self.bad_fmt = missing, bad_fmt
 
     def get_field(self, field_name, args, kwargs):
         # Handle a key not found
         try:
-            val=super(PartialFormatter, self).get_field(field_name, args, kwargs)
+            val = super(PartialFormatter, self).get_field(field_name, args, kwargs)
             # Python 3, 'super().get_field(field_name, args, kwargs)' works
         except (KeyError, AttributeError):
-            val=None,field_name
+            val = None, field_name
         return val
 
     def format_field(self, value, spec):
         # handle an invalid format
-        if value==None: return self.missing
+        if value == None: return self.missing
         try:
             return super(PartialFormatter, self).format_field(value, spec)
         except ValueError:
-            if self.bad_fmt is not None: return self.bad_fmt
-            else: raise
+            if self.bad_fmt is not None:
+                return self.bad_fmt
+            else:
+                raise
+
 
 def get_exif(file):
     if not file.lower().endswith((".jpg", ".jpeg")):
@@ -69,6 +76,7 @@ def get_exif(file):
             ret[decoded] = value
     return ret
 
+
 def get_meta(file):
     if not file.lower().endswith((".tif", ".tiff")):
         return {}
@@ -80,6 +88,7 @@ def get_meta(file):
         except AttributeError:
             return {}
         return json.loads(metadata.decode('utf-8'))
+
 
 class InfoHud(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent_hud, window, data_file):
@@ -123,7 +132,9 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
                 regex = dict()
             values = dict(exif=get_exif(file), regex=regex, meta=get_meta(file))
             fmt = PartialFormatter()
-            self.text.setText(fmt.format(self.data_file.getOption("info_hud_string"), **values))
+            text = fmt.format(self.data_file.getOption("info_hud_string"), **values)
+            text = text.replace("\\n", "\n")
+            self.text.setText(text)
             rect = self.text.boundingRect()
             rect.setWidth(rect.width() + 10)
             rect.setHeight(rect.height() + 10)
@@ -140,8 +151,8 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             self.setVisible(self.hidden)
             self.hidden = not self.hidden
 
-    def updateHUD(self,info_string):
-        fmt=PartialFormatter()
+    def updateHUD(self, info_string):
+        fmt = PartialFormatter()
         self.text.setText(fmt.format(info_string))
         rect = self.text.boundingRect()
         rect.setWidth(rect.width() + 10)
