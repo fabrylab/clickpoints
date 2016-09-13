@@ -271,7 +271,7 @@ class DataFile:
     """
     db = None
     _reader = None
-    _current_version = "15"
+    _current_version = "16"
     _database_filename = None
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
@@ -435,8 +435,6 @@ class DataFile:
                         return self.data.shape[:2]
                     except:
                         raise IOError("Can't retrieve image dimensions for %s" % self.filename)
-
-
 
             def __str__(self):
                 return "ImageObject id%s:\tfilename=%s\text=%s\tframe=%s\texternal_id=%s\ttimestamp=%s\tsort_index=%s," \
@@ -1365,6 +1363,16 @@ class DataFile:
                 self.db.execute_sql('DROP INDEX IF EXISTS "annotation_image_id"')
                 self.db.execute_sql('CREATE UNIQUE INDEX "annotation_image_id" ON "annotation" ("image_id");')
             self._SetVersion(15)
+
+        if nr_version < 16:
+            print("\tto 16")
+            with self.db.transaction():
+                try:
+                    self.db.execute_sql('CREATE TABLE "option" ("id" INTEGER NOT NULL PRIMARY KEY, "key" VARCHAR(255) NOT NULL, "value" VARCHAR(255))')
+                    self.db.execute_sql('CREATE UNIQUE INDEX "option_key" ON "option" ("key")')
+                except peewee.OperationalError:
+                    pass
+            self._SetVersion(16)
 
 
     def _SetVersion(self, nr_new_version):
