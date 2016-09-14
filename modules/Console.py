@@ -97,6 +97,9 @@ class Console(QtWidgets.QTextEdit):
         c.movePosition(QtGui.QTextCursor.End)
         self.setTextCursor(c)
 
+    def closeEvent(self, QCloseEvent):
+        self.close()
+
     @staticmethod
     def file():
         return __file__
