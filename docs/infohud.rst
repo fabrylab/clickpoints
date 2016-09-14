@@ -44,6 +44,8 @@ Data from exif
 
     Output: "Recording Time: 2016:09:13 10:31:13 Exposure: (10, 2360)"
 
+The keys can be any field of the jpeg exif header as e.g. shown at http://www.exiv2.org/tags.html
+
 Data from meta
 ~~~~~~~~~~~~~~
 
@@ -54,6 +56,9 @@ Data from meta
     Info Text: "Magnification: {meta[magnification]} PixelSize: {meta[pixelsize]}"
 
     Output: "Magnification: 10 PixelSize: 6.45"
+
+The values presented in the meta field of tiff files varies by the tiff writer. ClickPoints can only access tiff meta data
+written in the json format in the tiff meta header field, as done by the ``tifffile`` python package.
 
 Data from script
 ~~~~~~~~~~~~~~~~

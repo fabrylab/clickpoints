@@ -22,6 +22,9 @@ from __future__ import division, print_function
 import sys
 import os
 
+from includes import StartHooks
+StartHooks(reset=True)
+
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
 if not os.path.exists(icon_path):  # different position if installed with the installer
@@ -83,6 +86,7 @@ from modules import GammaCorrection
 from modules import ScriptLauncher
 from modules import VideoExporter
 from modules import InfoHud
+from modules import Console
 
 class AddVLine():
     def __init__(self, window):
@@ -95,8 +99,8 @@ class AddStrech():
     def __init__(self, window):
         window.layoutButtons.addStretch()
 
-used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText]
-used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", ""]
+used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, Console]
+used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", "", ""]
 
 
 def GetModuleInitArgs(mod):

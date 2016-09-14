@@ -26,6 +26,7 @@ from qtpy import QtGui, QtCore, QtWidgets
 
 import numpy as np
 import os
+import sys
 
 
 def disk(radius):
@@ -334,3 +335,47 @@ def BoundBy(value, min, max):
     if value > max:
         return max
     return value
+
+
+class PrintHook:
+    def __init__(self, out, storage_path, func, reset=False):
+        self.func = func
+        self.origOut = None
+
+        if out:
+            sys.stdout = self
+            self.origOut = sys.__stdout__
+        else:
+            sys.stderr = self
+            self.origOut = sys.__stderr__
+
+        self.path = os.path.join(storage_path, "ClickPoints_%d.log" % os.getpid())
+        if reset:
+            with open(self.path, "w") as fp:
+                fp.write("")
+
+    def write(self, text):
+        # write to stdout, file and call the function
+        self.origOut.write(text)
+        with open(self.path, "a") as fp:
+            fp.write(text)
+        if self.func:
+            self.func(text)
+
+    def __getattr__(self, name):
+        # pass the rest to the original output
+        return self.origOut.__getattr__(name)
+
+global hook1, hook2
+def StartHooks(reset=False):
+    global hook1, hook2
+    if sys.platform[:3] == 'win':
+        storage_path = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
+    else:
+        storage_path = os.path.expanduser("~/.clickpoints/")
+    hook1 = PrintHook(1, storage_path, None, reset)
+    hook2 = PrintHook(0, storage_path, None, reset)
+
+def GetHooks():
+    global hook1, hook2
+    return hook1, hook2
