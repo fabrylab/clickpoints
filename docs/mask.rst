@@ -13,6 +13,7 @@ A list of available mask colors is displayed in the top right corner. Switching 
 ``P``, pressing it again switches back to marker mode. Colors can be selected by clicking on its name or pressing the
 corresponding number key. Holding the left mouse button down draws a line in the mask using the selected color. To
 save the mask press ``S`` or change to the next image, which automatically saves the current mask.
+Drawing the the mask type ``delete`` acts as an eraser and allows to remove labeled regions.
 
 Define colors
 -------------
@@ -40,13 +41,12 @@ Mask update
 -----------
 
 Updating masks can be slow if the images are very large. To enable fast painting of large masks, ClickPoints can disable
-the automatic updates of the mask by the config parameter ``auto_mask_update = False``. If automatic updates are disabled
+the automatic updates of the mask by disabling the option ``Auto Mask Update``. If automatic updates are disabled
 the key ``M`` redraws the currently displayed mask.
 
 Config Parameter
 ----------------
 
--  ``maskname_tag =`` specifies what to append to the mask file.
 -  ``auto_mask_update =`` whether to update the mask display after each stroke or manually by key press
 -  ``draw_types = [[0,[255,0,0]]`` specifies what categories to use for
    mask drawing. Every category is an array with two entries: index and color.
