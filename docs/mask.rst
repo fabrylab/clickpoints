@@ -13,7 +13,7 @@ A list of available mask colors is displayed in the top right corner. Switching 
 ``P``, pressing it again switches back to marker mode. Colors can be selected by clicking on its name or pressing the
 corresponding number key. Holding the left mouse button down draws a line in the mask using the selected color. To
 save the mask press ``S`` or change to the next image, which automatically saves the current mask.
-Drawing the the mask type ``delete`` acts as an eraser and allows to remove labeled regions.
+The mask type ``delete`` acts as an eraser and allows to remove labeled regions.
 
 Define colors
 -------------

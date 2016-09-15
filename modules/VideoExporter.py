@@ -73,6 +73,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.cbType.insertItem(0, "Video")
         self.cbType.insertItem(1, "Images")
         self.cbType.insertItem(2, "Gif")
+        self.cbType.insertItem(3, "Single Image")
         Hlayout.addWidget(self.cbType)
         self.layout.addLayout(Hlayout)
 
@@ -110,6 +111,17 @@ class VideoExporterDialog(QtWidgets.QWidget):
         Vlayout = QtWidgets.QVBoxLayout(gifWidget)
 
         self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_gif_filename), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)")
+
+        Vlayout.addStretch()
+
+        """ Single Image """
+        imageWidget = QtWidgets.QGroupBox("Single Image Settings")
+        self.StackedWidget.addWidget(imageWidget)
+        Vlayout = QtWidgets.QVBoxLayout(imageWidget)
+
+        self.leANameIS = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_single_image_filename),
+                                           "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)")
+        AddQLabel(Vlayout, 'Single Image will only export the current frame. Optionally, a %d placeholder will be filled with the frame number')
 
         Vlayout.addStretch()
 
@@ -179,6 +191,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         options.export_video_filename = MakePathRelative(str(self.leAName.text()))
         options.export_image_filename = MakePathRelative(str(self.leANameI.text()))
         options.export_gif_filename = MakePathRelative(str(self.leANameG.text()))
+        options.export_single_image_filename = MakePathRelative(str(self.leANameIS.text()))
         options.export_type = self.cbType.currentIndex()
         options.video_codec = str(self.leCodec.text())
         options.video_quality = self.sbQuality.value()
@@ -209,6 +222,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
         elif self.cbType.currentIndex() == 2:  # gif
             path = str(self.leANameG.text())
             writer_params = dict(format="gif", mode="I", fps=timeline.fps)
+        elif self.cbType.currentIndex() == 3:  # single image
+            path = str(self.leANameIS.text())
 
         # create the output path if it doesn't exist
         if not os.path.exists(os.path.dirname(path)):
@@ -250,7 +265,10 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.preview_slice = np.zeros((end_y-start_y, end_x-start_x, 3), "uint8")
 
         # iterate over frames
-        for frame in range(start, end+1, skip):
+        iter_range = range(start, end+1, skip)
+        if self.cbType.currentIndex() == 3:
+            iter_range = [self.window.target_frame]
+        for frame in iter_range:
             # advance progress bar and load next image
             self.progressbar.setValue(frame)
             self.window.JumpToFrame(frame, threaded=False)
@@ -312,6 +330,11 @@ class VideoExporterDialog(QtWidgets.QWidget):
             # ... or save image ...
             elif self.cbType.currentIndex() == 1:
                 pil_image.save(path % (frame-start))
+            elif self.cbType.currentIndex() == 3:
+                try:
+                    pil_image.save(path % frame)
+                except TypeError:
+                    pil_image.save(path)
             # ... or add to gif
             elif self.cbType.currentIndex() == 0 or self.cbType.currentIndex() == 2:
                 if writer is None:

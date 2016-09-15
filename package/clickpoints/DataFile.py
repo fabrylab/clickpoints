@@ -1036,6 +1036,7 @@ class DataFile:
         self._last_category = "Video Exporter"
         self._AddOption(key="export_video_filename", default="export/export.avi", value_type="string", hidden=True)
         self._AddOption(key="export_image_filename", default="export/images%d.jpg", value_type="string", hidden=True)
+        self._AddOption(key="export_single_image_filename", default="export/images%d.jpg", value_type="string", hidden=True)
         self._AddOption(key="export_gif_filename", default="export/images%d.jpg", value_type="string", hidden=True)
         self._AddOption(key="export_type", default=0, value_type="int", hidden=True)
         self._AddOption(key="video_codec", default="libx264", value_type="string", hidden=True)
