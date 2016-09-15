@@ -53,7 +53,7 @@ if reload_types:
     com.ReloadTypes()
 
 # get the current image
-image = db.getImageIterator(start_frame).next()
+image = next(db.getImageIterator(start_frame))
 
 # try to load axis
 x_axis = db.getLines(image=image, type="x_axis")

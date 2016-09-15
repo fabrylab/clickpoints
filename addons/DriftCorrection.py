@@ -58,7 +58,7 @@ rect = rect[0]
 images = db.getImageIterator(start_frame=start_frame)
 print('slices:',rect.slice_y(), rect.slice_x)
 print(rect.slice_y().start - border_y, rect.slice_y().stop + border_y , rect.slice_x().start - border_x, rect.slice_x().stop + border_x)
-template = images.next().data[rect.slice_y().start - border_y: rect.slice_y().stop + border_y , rect.slice_x().start - border_x: rect.slice_x().stop + border_x]
+template = next(images).data[rect.slice_y().start - border_y: rect.slice_y().stop + border_y , rect.slice_x().start - border_x: rect.slice_x().stop + border_x]
 
 # start iteration
 last_shift = np.array([0, 0])
