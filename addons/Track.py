@@ -39,7 +39,7 @@ com = clickpoints.Commands(port, catch_terminate_signal=True)
 images = db.getImageIterator(start_frame=start_frame)
 
 # retrieve first image
-image_last = images.next()
+image_last = next(images)
 
 # get points and corresponding tracks
 points = db.getMarkers(image=image_last.id, processed=0)
