@@ -213,6 +213,7 @@ fps = 0
 delta_t = 0
 system_name = ""
 device_name = ""
+device_prefix ="cam_"
 ignore=False
 mode="add"
 start_path=""
@@ -379,16 +380,29 @@ if mode=='add':
                 tstamp2 = tstamp + timedelta(seconds=delta_t)*frames
 
             # System id
-            try:
-                system_id = database.getSystemId(system_name)
-            except KeyError:
-                system_id = database.newSystem(system_name)
+            if not system_name == "":
+                try:
+                    system_id = database.getSystemId(system_name)
+                except KeyError:
+                    system_id = database.newSystem(system_name)
+            else:
+                raise Exception("No system name available!\n"
+                                "Please either add a 'system' field in the regexp expresseion\r"
+                                "or define a default system_name= in ConfigPathWalker.txt")
 
             # Device id
-            try:
-                device_id = database.getDeviceId(system_name, device_name)
-            except KeyError:
-                device_id = database.newDevice(system_id, device_name)
+            if "device_id" in data:
+                device_name = device_prefix + data['device_id']
+
+            if not device_name == "":
+                try:
+                    device_id = database.getDeviceId(system_name, device_name)
+                except KeyError:
+                    device_id = database.newDevice(system_id, device_name)
+            else:
+                raise Exception("No device name available!\n"
+                                "Please either add a 'device' or 'device_id' field in the regexp expresseion\r"
+                                "or define a default device_name= in ConfigPathWalker.txt")
 
             # Append to list
             if verbose:

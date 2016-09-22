@@ -95,14 +95,14 @@ extensions = ['.jpg', '.png', '.tif', '.tiff']
 
 extensions_vid = ['.mp4']
 
-basepath = 'E:\\' #'\\\\131.188.117.94\data'
-meta = DotDict({'system': 'microbsGoPro',
-                'device': 'GoPro',
+basepath = r'/mnt/data1/data/' #'\\\\131.188.117.94\data'
+meta = DotDict({'system': 'microbsRAT',
+                'device': 'D10',
                 'timestamp': None,
                 'ext': ''})
 
 
-start_path = r'F:\MicrObs Go-Pro 2015'
+start_path = r'/media/pengu/microbs_data/microbsRAT/2011/20111126#/jpg/'
 
 # get list of files
 
