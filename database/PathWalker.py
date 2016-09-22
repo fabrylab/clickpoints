@@ -77,7 +77,9 @@ def getExifTime(path):
 
 def getFrameNumber(path):
     if imageio_loaded:
-        reader = imageio.get_reader(path)
+        reader = imageio.get_reader(path, format="AVBin")
+        if reader.get_length <= 2:
+            reader = imageio.get_reader(path)
         nrframes = reader.get_length()
         reader.close()
         return nrframes
