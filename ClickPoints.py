@@ -22,9 +22,6 @@ from __future__ import division, print_function
 import sys
 import os
 
-from includes import StartHooks
-StartHooks(reset=True)
-
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
 if not os.path.exists(icon_path):  # different position if installed with the installer
@@ -36,6 +33,9 @@ else:
     storage_path = os.path.expanduser("~/.clickpoints/")
 if not os.path.exists(storage_path):
     os.makedirs(storage_path)
+
+from includes import StartHooks
+StartHooks(reset=True)
 
 print(os.path.join(storage_path, "checked"))
 if not os.path.exists(os.path.join(storage_path, "checked")):
