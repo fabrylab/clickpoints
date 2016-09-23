@@ -29,6 +29,9 @@ from includes import GetHooks
 
 
 class Console(QtWidgets.QTextEdit):
+    update_normal = QtCore.pyqtSignal(str)
+    update_error = QtCore.pyqtSignal(str)
+
     def __init__(self, window, data_file):
         QtWidgets.QTextEdit.__init__(self)
         self.data_file = data_file
@@ -47,7 +50,7 @@ class Console(QtWidgets.QTextEdit):
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.addWidget(w)
 
-        font = QtGui.QFont("Miriam Fixed", 12)
+        font = QtGui.QFont("Miriam Fixed", 10)
         self.setReadOnly(True)
         self.setFont(font)
         self.setTextColor(QtGui.QColor(192, 192, 192))
@@ -59,9 +62,12 @@ class Console(QtWidgets.QTextEdit):
 
         self.splitter.addWidget(self)
 
+        self.update_normal.connect(self.add_text)
+        self.update_error.connect(self.add_textE)
+
         h1, h2 = GetHooks()
-        h1.func = self.add_text
-        h2.func = self.add_textE
+        h1.func = lambda s: self.update_normal.emit(s)
+        h2.func = lambda s: self.update_error.emit(s)
         with open(h1.path, "r") as fp:
             self.add_text(fp.read())
         self.add_text("")
@@ -82,16 +88,12 @@ class Console(QtWidgets.QTextEdit):
             self.setVisible(True)
 
     def add_textE(self, text, clear=False):
-        if clear:
-            self.setText("")
         self.insertHtml("<p style='color: #ff6b68'>"+text.replace("\n", "<br/>").replace(" ", "&nbsp;")+"</p>")#<p style='color: #c0c0c0'></p>")
         c = self.textCursor()
         c.movePosition(QtGui.QTextCursor.End)
         self.setTextCursor(c)
 
     def add_text(self, text, clear=False):
-        if clear:
-            self.setText("")
         self.insertHtml("<p style='color: #c0c0c0'>" + text.replace("\n", "<br/>").replace(" ", "&nbsp;") + "</p>")  # <p style='color: #c0c0c0'></p>")
         c = self.textCursor()
         c.movePosition(QtGui.QTextCursor.End)
