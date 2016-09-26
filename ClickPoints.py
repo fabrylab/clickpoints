@@ -421,6 +421,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if event.key() == QtCore.Qt.Key_F:
             # @key F: fit image to view
             self.view.fitInView()
+
+        if event.key() == QtCore.Qt.Key_T:
+            # @key T: set pixel scale to 1
+            self.view.scaleOrigin(1./self.view.getOriginScale(), QtCore.QPoint(0, 0))
             
         if event.key() == Qt.Key_F2:
             # @key F2: hide/show interfaces
