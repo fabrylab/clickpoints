@@ -111,9 +111,9 @@ class SelectFrame(QtWidgets.QDialog):
         
 
 class TimeLineGrabberSignal(QtCore.QObject):
-    sliderPressed = QtCore.pyqtSignal()
-    sliderMoved = QtCore.pyqtSignal()
-    sliderReleased = QtCore.pyqtSignal()
+    sliderPressed = QtCore.Signal()
+    sliderMoved = QtCore.Signal()
+    sliderReleased = QtCore.Signal()
 
 class TimeLineGrabber(QtWidgets.QGraphicsPathItem):
     def __init__(self, parent, value, path, gradient, parent_item=None):
@@ -799,7 +799,7 @@ def PosToArray(pos):
     return np.array([pos.x(), pos.y()])
 
 class PreciseTimer(QtCore.QObject):
-    timeout = QtCore.pyqtSignal()
+    timeout = QtCore.Signal()
     thread = None
     timer_start = None
     delta = 1
@@ -841,7 +841,7 @@ class PreciseTimer(QtCore.QObject):
 
 
 class Timeline(QtCore.QObject):
-    images_added_signal = QtCore.pyqtSignal()
+    images_added_signal = QtCore.Signal()
 
     def __init__(self, window, data_file, layout, outputpath, config, modules):
         QtCore.QObject.__init__(self)

@@ -41,7 +41,7 @@ logfile = os.path.join(os.path.dirname(__file__), "lastnotified.log")
 timeformat='%Y%m%d-%H%M%S'
 
 class updaterSignals(QObject):
-        sig = pyqtSignal(str,str)
+        sig = Signal(str,str)
 
 class checkUpdateThread(QThread):
     def __init__(self):

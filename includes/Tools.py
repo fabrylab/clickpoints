@@ -251,7 +251,7 @@ class BoxGrabber(QtWidgets.QGraphicsRectItem):
 
 
 class TextButtonSignals(QtCore.QObject):
-    clicked = QtCore.pyqtSignal()
+    clicked = QtCore.Signal()
 
 class TextButton(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, width, text="", font=None):
