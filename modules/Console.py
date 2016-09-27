@@ -29,8 +29,8 @@ from includes import GetHooks
 
 
 class Console(QtWidgets.QTextEdit):
-    update_normal = QtCore.pyqtSignal(str)
-    update_error = QtCore.pyqtSignal(str)
+    update_normal = QtCore.Signal(str)
+    update_error = QtCore.Signal(str)
 
     def __init__(self, window, data_file):
         QtWidgets.QTextEdit.__init__(self)

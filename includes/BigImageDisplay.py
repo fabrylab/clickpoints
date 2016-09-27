@@ -36,7 +36,7 @@ def BoundBy(value, min, max):
     return value
 
 class ImageDisplaySignal(QtCore.QObject):
-    display = QtCore.pyqtSignal()
+    display = QtCore.Signal()
 
 class BigImageDisplay:
     def __init__(self, origin, window, config, data_file):

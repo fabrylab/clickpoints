@@ -156,7 +156,7 @@ class ScriptEditor(QtWidgets.QWidget):
 
 
 class ScriptLauncher(QtCore.QObject):
-    signal = QtCore.pyqtSignal(str, socketobject, tuple)
+    signal = QtCore.Signal(str, socketobject, tuple)
 
     scriptSelector = None
 

@@ -195,7 +195,7 @@ class DataFile(DataFileBase):
 
         # signals to notify others when a frame is loaded
         class DataFileSignals(QtCore.QObject):
-            loaded = QtCore.pyqtSignal(int, int)
+            loaded = QtCore.Signal(int, int)
         self.signals = DataFileSignals()
 
     def optionsChanged(self):

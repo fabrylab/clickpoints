@@ -21,14 +21,7 @@
 
 from __future__ import division, print_function
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QGraphicsRectItem, QCursor, QBrush, QColor, QGraphicsSimpleTextItem, QFont, QGraphicsPixmapItem, QPixmap
-    from PyQt5.QtCore import QRectF, Qt
-except ImportError:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QGraphicsRectItem, QCursor, QBrush, QColor, QGraphicsSimpleTextItem, QFont, QGraphicsPixmapItem, QPixmap, QImage
-    from PyQt4.QtCore import QRectF, Qt, pyqtSignal, QThread, QObject
+from qtpy import QtCore, QtGui, QtWidgets
 
 from qimage2ndarray import array2qimage, rgb_view
 from Tools import BoxGrabber
@@ -55,12 +48,12 @@ def get_exif(fn):
         ret[decoded] = value
     return ret
 
-class loaderSignals(QObject):
-    sig = pyqtSignal(int)
+class loaderSignals(QtCore.QObject):
+    sig = QtCore.Signal(int)
 
-class checkUpdateThread(QThread):
+class checkUpdateThread(QtCore.QThread):
     def __init__(self, parent):
-        super(QThread, self).__init__()
+        super(QtCore.QThread, self).__init__()
         self.exiting = False
         self.signal = loaderSignals()
         self.parent = parent
@@ -76,18 +69,18 @@ class checkUpdateThread(QThread):
             self.signal.sig.emit(i)
             time.sleep(0.06)
 
-class Overview(QGraphicsRectItem):
+class Overview(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent_hud, window, image_display, config):
-        QGraphicsRectItem.__init__(self, parent_hud)
+        QtGui.QGraphicsRectItem.__init__(self, parent_hud)
         self.config = config
 
         self.window = window
-        self.setCursor(QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
-        self.setBrush(QBrush(QColor(0, 0, 0, 250)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 250)))
         self.setZValue(30)
 
-        self.setRect(QRectF(0, 0, 110, 110))
+        self.setRect(QtGui.QRectF(0, 0, 110, 110))
         BoxGrabber(self)
         self.dragged = False
 
@@ -100,8 +93,8 @@ class Overview(QGraphicsRectItem):
         self.pixmaps = []
         self.shapes = []
         for i in xrange(600):
-            self.pixmaps.append(QGraphicsPixmapItem(self))
-            self.qimages.append(QImage())
+            self.pixmaps.append(QtGui.QGraphicsPixmapItem(self))
+            self.qimages.append(QtGui.QImage())
             self.shapes.append((0, 0))
 
         self.offset = [0,0]
@@ -111,12 +104,12 @@ class Overview(QGraphicsRectItem):
         self.started = False
 
     def updatePixmap(self, index):
-        self.pixmaps[index].setPixmap(QPixmap(self.qimages[index]))
+        self.pixmaps[index].setPixmap(QtGui.QPixmap(self.qimages[index]))
         self.pixmaps[index].mousePressEvent = lambda event, index=index: (self.ToggleOverviewInterfaceEvent(), self.window.JumpToFrame(index))
         self.resizeEvent(())
 
     def resizeEvent(self, event=None):
-        self.setRect(QRectF(0, 0, self.window.view.size().width(), self.window.view.size().height()))
+        self.setRect(QtGui.QRectF(0, 0, self.window.view.size().width(), self.window.view.size().height()))
         x = 0
         y = 0
         for i in xrange(len(self.pixmaps)):
@@ -154,7 +147,7 @@ class Overview(QGraphicsRectItem):
         pass
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_F3:
+        if event.key() == QtCore.Qt.Key_F3:
             # @key F3: toggle Overview
             if self.started == False:
                 self.t.start()
