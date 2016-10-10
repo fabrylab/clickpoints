@@ -586,7 +586,7 @@ class MarkerEditor(QtWidgets.QWidget):
             if new_mode != self.data.mode:
                 count = self.data.markers.count() + self.data.lines.count() + self.data.rectangles.count()
                 if count:
-                    reply = QtWidgets.QMessageBox.question(None, 'Warning',
+                    reply = QtWidgets.QMessageBox.question(self, 'Warning',
                                                            'Changing the mode of this markertype will delete all %d previous markers of this type.\nDo you want to proceed?' % count,
                                                            QtWidgets.QMessageBox.Yes,
                                                            QtWidgets.QMessageBox.No)

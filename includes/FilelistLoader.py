@@ -212,7 +212,7 @@ class FolderEditor(QtWidgets.QWidget):
         if query.count() == 0:
             path.delete_instance()
         else:
-            reply = QtWidgets.QMessageBox.question(None, 'Delete Folder',
+            reply = QtWidgets.QMessageBox.question(self, 'Delete Folder',
                 "Do you really want to remove folder %s with %d images?" % (path.path, query.count()), QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Cancel)
             if reply == QtWidgets.QMessageBox.Yes:
                 self.data_file.table_image.delete().where(self.data_file.table_image.path == path).execute()

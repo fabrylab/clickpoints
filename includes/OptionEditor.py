@@ -261,7 +261,7 @@ class OptionEditor(QtWidgets.QWidget):
     def Apply(self):
         for edit in self.edits:
             if edit.has_error:
-                QtWidgets.QMessageBox.critical(None, 'Error',
+                QtWidgets.QMessageBox.critical(self, 'Error',
                                                'Input field \'%s\' contain errors, settings can\'t be saved.' % edit.option.display_name,
                                                QtWidgets.QMessageBox.Ok)
                 return False
