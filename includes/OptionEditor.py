@@ -29,7 +29,7 @@ from includes import BroadCastEvent2
 
 from qtpy import QtGui, QtCore, QtWidgets
 import qtawesome as qta
-from QtShortCuts import AddQLabel, AddQSpinBox, AddQCheckBox, AddQHLine, AddQLineEdit
+from QtShortCuts import AddQLabel, AddQSpinBox, AddQCheckBox, AddQHLine, AddQLineEdit, AddQComboBox
 from includes import BroadCastEvent
 
 
@@ -89,6 +89,9 @@ class OptionEditor(QtWidgets.QWidget):
         self.setWindowIcon(qta.icon("fa.gears"))
 
         self.edits = []
+        self.edits_by_name = {}
+
+        options = data_file.getOptionAccess()
 
         for category in self.data_file._options:
             count = len([option for option in self.data_file._options[category] if not option.hidden])
@@ -117,7 +120,12 @@ class OptionEditor(QtWidgets.QWidget):
                         if option.max_value is not None:
                             edit.setMaximum(option.max_value)
                         edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
+                        if getattr(option, "unit", None):
+                            edit.setSuffix(" "+option.unit)
                     edit.editingFinished.connect(lambda edit=edit, option=option: self.ChangeFinished(edit, option))
+                if option.value_type == "choice":
+                    edit = AddQComboBox(self.layout, option.display_name, option.values, selectedValue=option.values[value])
+                    edit.currentIndexChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
                 if option.value_type == "float":
                     edit = AddQSpinBox(self.layout, option.display_name, float(value), float=True)
                     if option.min_value is not None:
@@ -138,7 +146,11 @@ class OptionEditor(QtWidgets.QWidget):
                 edit.error = None
                 edit.has_error = False
                 self.edits.append(edit)
+                self.edits_by_name[option.key] = edit
             self.layout.addStretch()
+
+        self.edits_by_name["buffer_size"].setDisabled(options.buffer_mode != 1)
+        self.edits_by_name["buffer_memory"].setDisabled(options.buffer_mode != 2)
 
     def list_selected(self):
         pass
@@ -232,12 +244,17 @@ class OptionEditor(QtWidgets.QWidget):
                     field.setStyleSheet("")
             else:
                 value = int(value)
+        if option.value_type == "choice":
+            value = int(value)
         if option.value_type == "float":
             value = float(value)
         if option.value_type == "bool":
             value = bool(value)
         if option.key == "buffer_size":
             self.ShowFieldError(field, "Estimated memory usage:<br/>%s" % PrittyPrintSize(value*self.window.im.nbytes), width=140, normal_msg=True)
+        if option.key == "buffer_mode":
+            self.edits_by_name["buffer_size"].setDisabled(value != 1)
+            self.edits_by_name["buffer_memory"].setDisabled(value != 2)
         field.current_value = value
         self.button_apply.setDisabled(False)
 

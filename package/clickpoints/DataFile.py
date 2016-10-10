@@ -959,8 +959,17 @@ class DataFile:
                         value_type="bool",
                         tooltip="Whether to do image display\n"
                                 "preparation in a separate thread.")
-        self._AddOption(key="buffer_size", display_name="Buffer Frame Count", default=300, value_type="int", min_value=0,
+        self._AddOption(key="buffer_mode", display_name="Buffer Mode", default=2,
+                        value_type="choice", values=["No Buffer", "Limit Buffer by Frames", "Limit Buffer by Memory"])
+        self._AddOption(key="buffer_size", display_name="Buffer Frame Count", default=300, value_type="int", min_value=1,
                         tooltip="How many frames to keep in buffer.\n"
+                                "The buffer should be only as big as the\n"
+                                "RAM has space to prevent swapping.")
+        self._AddOption(key="buffer_memory", display_name="Buffer Memory Amount", default=500, value_type="int",
+                        min_value=1, unit="MB",
+                        tooltip="How big the buffer is allowed to grow in MB.\n"
+                                "This is no hard limit, the buffer can grow\n"
+                                "one image bigger than the allowed memory size.\n"
                                 "The buffer should be only as big as the\n"
                                 "RAM has space to prevent swapping.")
 
@@ -1064,6 +1073,8 @@ class DataFile:
                     option.value = self._stringToList(entry.value)
                 else:
                     option.value = int(entry.value)
+            if option.value_type == "choice":
+                option.value = int(entry.value)
             if option.value_type == "float":
                 option.value = float(entry.value)
             if option.value_type == "bool":
