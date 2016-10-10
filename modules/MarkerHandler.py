@@ -832,6 +832,7 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
                     self.parentItem().marker_handler.Crosshair.Show(self)
                     self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
                 self.grabbed = True
+                self.mouseMoveEvent(event)
         if event.button() == QtCore.Qt.RightButton:
             # right button -> open menu
             self.parentItem().rightClick(self)
