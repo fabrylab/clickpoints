@@ -187,7 +187,7 @@ class DataFile(DataFileBase):
         self.made_changes = False
 
         # image data loading buffer and thread
-        self.buffer = FrameBuffer(self.getOption("buffer_size"))
+        self.buffer = FrameBuffer(self.getOption("buffer_size"), self.getOption("buffer_memory"), self.getOption("buffer_mode"))
         self.thread = None
 
         self.last_added_timestamp = -1
@@ -199,7 +199,7 @@ class DataFile(DataFileBase):
         self.signals = DataFileSignals()
 
     def optionsChanged(self):
-        self.buffer.setBufferCount(self.getOption("buffer_size"))
+        self.buffer.setBufferCount(self.getOption("buffer_size"), self.getOption("buffer_memory"), self.getOption("buffer_mode"))
 
     def setChangesMade(self):
         self.made_changes = True
@@ -645,32 +645,77 @@ class FrameBuffer:
     indices = None
     last_index = 0
 
-    def __init__(self, buffer_count):
+    def __init__(self, buffer_count, buffer_memory, buffer_mode):
         self.buffer_count = buffer_count
+        self.buffer_memory = buffer_memory
+        self.buffer_mode = buffer_mode
         self.reset()
 
-    def setBufferCount(self, buffer_count):
-        if self.buffer_count != buffer_count:
+    def setBufferCount(self, buffer_count, buffer_memory, buffer_mode):
+        if self.buffer_mode != buffer_mode \
+              or (self.buffer_mode == 1 and self.buffer_count != buffer_count)\
+              or (self.buffer_mode == 2 and self.buffer_memory != buffer_memory):
             self.buffer_count = buffer_count
+            self.buffer_memory = buffer_memory
+            self.buffer_mode = buffer_mode
             self.reset()
 
     def reset(self):
-        self.slots = [[]]*self.buffer_count
-        self.indices = [None]*self.buffer_count
-        self.last_index = 0
+        self.slots = []
+        self.indices = []
+        self.last_index = -1
 
     def add_frame(self, number, image):
         self.slots[self.last_index] = image
         self.indices[self.last_index] = number
         self.last_index = (self.last_index+1) % len(self.slots)
 
+    def getMemoryUsage(self):
+        return np.sum([im.nbytes for im in self.slots if im is not None])
+
+    def getMemoryOfSlot(self, index):
+        try:
+            return self.slots[index].nbytes if self.slots[index] is not None else 0
+        except IndexError:
+            return 0
+
+    def getImageCount(self):
+        return np.sum([1 for index in self.indices if index is not None])
+
     def prepare_slot(self, number):
         if self.get_slot_index(number) is not None:
             return None, None
-        index = self.last_index
-        self.last_index = (self.last_index+1) % len(self.slots)
-        self.indices[index] = number
-        self.slots[index] = None
+        if self.buffer_mode == 2:
+            memory = self.getMemoryUsage()
+            images = self.getImageCount()
+
+            index = self.last_index + 1
+            # estimate memory need for next image
+            if images and memory + memory / images - self.getMemoryOfSlot(index) > self.buffer_memory * 1e6:
+                index = 0
+            self.last_index = index
+
+            def PrittyPrintSize(bytes):
+                if bytes > 1e9:
+                    return "%.1f GB" % (bytes / 1e8)
+                if bytes > 1e6:
+                    return "%.1f MB" % (bytes / 1e6)
+                if bytes > 1e3:
+                    return "%.1f kB" % (bytes / 1e3)
+                return "%d bytes" % (bytes)
+            print("Memory usage of buffer", PrittyPrintSize(memory), PrittyPrintSize(self.buffer_memory*1e6))
+        elif self.buffer_mode == 1:
+            index = (self.last_index + 1) % self.buffer_count
+        else:
+            index = (self.last_index + 1) % 3
+        self.last_index = index
+        # prepare the slot
+        if index >= len(self.indices):
+            self.indices.append(number)
+            self.slots.append(None)
+        else:
+            self.indices[index] = number
+            self.slots[index] = None
         return self.slots, index
 
     def get_slot_index(self, number):
