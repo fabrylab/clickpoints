@@ -387,7 +387,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
     def closeEvent(self, QCloseEvent):
         if not self.data_file.exists and self.data_file.made_changes:
-            reply = QtWidgets.QMessageBox.question(None, 'Warning', 'This ClickPoints project has not been saved. All data will be lost.\nDo you want to save it?', QtWidgets.QMessageBox.Yes,
+            reply = QtWidgets.QMessageBox.question(self, 'Warning', 'This ClickPoints project has not been saved. All data will be lost.\nDo you want to save it?', QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.No)
 
             if reply == QtWidgets.QMessageBox.Yes:
