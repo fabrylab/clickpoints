@@ -767,23 +767,26 @@ def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36, endcall=N
         timer.animation_time += 1./(fps*duration)
         timer.animation_counter += 1
         if timer.animation_time >= 1:
-            target.setScale(end)
+            target.setScale(animation_scale=end)
             timer.stop()
             if endcall:
                 endcall()
+            return
         x = timer.animation_time
         k = 3
         y = 0.5 * (x * 2) ** k * (x < 0.5) + (1 - 0.5 * ((1 - x) * 2) ** k) * (x >= 0.5)
-        target.setScale(y*(end-start)+start)
+        target.setScale(animation_scale=y*(end-start)+start)
     timer.timeout.connect(timerEvent)
     timer.animation_time = 0
-    target.setScale(start)
+    target.setScale(animation_scale=start)
     target.animation_timer = timer
     timer.start(1e3/fps)
 
 
 class MyGrabberItem(QtWidgets.QGraphicsPathItem):
     scale_value = 1
+    scale_animation = 1
+    scale_hover = 1
     use_crosshair = False
     grabbed = True
 
@@ -812,11 +815,11 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
 
     def hoverEnterEvent(self, event):
         # a bit bigger during hover
-        super(QtWidgets.QGraphicsPathItem, self).setScale(1.2 * self.scale_value)
+        self.setScale(hover_scale=1.2)
 
     def hoverLeaveEvent(self, event):
         # switch back to normal size
-        super(QtWidgets.QGraphicsPathItem, self).setScale(1 * self.scale_value)
+        self.setScale(hover_scale=1)
 
     def mousePressEvent(self, event):
         # store start position of move
@@ -854,12 +857,16 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
                 self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
                 self.parentItem().marker_handler.Crosshair.Hide()
 
-    def setScale(self, scale=None):
+    def setScale(self, scale=None, animation_scale=None, hover_scale=None):
         # store scale
         if scale is not None:
             self.scale_value = scale
+        if animation_scale is not None:
+            self.scale_animation = animation_scale
+        if hover_scale is not None:
+            self.scale_hover = hover_scale
         # adjust scale
-        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value)
+        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value*self.scale_animation*self.scale_hover)
 
     def delete(self):
         self.setAcceptedMouseButtons(Qt.MouseButtons(0))
