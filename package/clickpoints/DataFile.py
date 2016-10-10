@@ -2291,7 +2291,7 @@ class DataFile:
                 return mask
             return None
 
-    def getMasks(self, image=None, frame=None, filename=None, id=None):
+    def getMasks(self, image=None, frame=None, filename=None, id=None, order_by="sort_index"):
         """
         Get all :py:class:`Mask` entries from the database, which match the given criteria. If no criteria a given, return all masks.
 
@@ -2307,6 +2307,8 @@ class DataFile:
             filename of the image/images, which masks should be returned. If omitted, images or frame numbers should be specified instead.
         id : int, array_like, optional
             id/ids of the masks.
+        order_by: string, optional
+            sorts the result according to sort paramter ('sort_index' or 'timestamp')
 
         Returns
         -------
@@ -2323,6 +2325,14 @@ class DataFile:
         query = addFilter(query, image, self.table_mask.image)
         query = addFilter(query, frame, self.table_image.sort_index)
         query = addFilter(query, filename, self.table_image.filename)
+
+        if order_by == "sort_index":
+            query = query.order_by(self.table_image.sort_index)
+        elif order_by == "timestamp":
+            query = query.order_by(self.table_image.timestamp)
+        else:
+            raise Exception("Unknown order_by parameter - use sort_index or timestamp")
+
 
         return query
 
