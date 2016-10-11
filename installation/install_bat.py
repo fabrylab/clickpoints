@@ -20,6 +20,7 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 import sys, os
+import subprocess
 
 directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 os.chdir("..")
@@ -53,8 +54,8 @@ else:
         fp.write("fi\n")
         os.system("chmod +x %s" % sh_file)
         
-    print("Copying ClickPoints bash file to /bin/")
-    os.popen("sudo cp %s /bin/" % sh_file)
+    print("Copying ClickPoints bash file to /usr/local/bin/")
+    os.popen("sudo cp %s /usr/local/bin/" % sh_file)
 
     application_path = "/home/"+os.popen('whoami').read()[:-1]+"/.local/share/applications/"
     if not os.path.exists(application_path):
@@ -81,19 +82,16 @@ else:
         os.popen("sudo xdg-mime default clickpoints.desktop "+ext)
     
     print("Installing packets via apt-get ...")
-    os.popen("sudo apt-get install python-pip \
-              python-numpy \
-              python-scipy \
-              python-qt4 \
-              python-opencv \
-              python-matplotlib ")
+    proc = subprocess.Popen('sudo apt-get install -y python-pip python-numpy python-scipy python-qt4 python-opencv python-matplotlib', \
+                            shell=True, stdin=None, executable="/bin/bash")
+    proc.wait()
 
     print("Installing packets via pip ...")
     import pip
     pip.main(['install','-r', 'installation/pip_req.txt'])
 
-
     os.chdir("package")
-    os.popen("sudo python setup.py develop")
+    proc = subprocess.Popen("sudo python setup.py develop",shell=True, stdin=None, executable="/bin/bash")
+    proc.wait()
     os.chdir("..")
         
