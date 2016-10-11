@@ -3,3 +3,6 @@ peewee
 natsort
 sortedcontainers
 imageio
+qtawesome
+tifffile
+psutil
