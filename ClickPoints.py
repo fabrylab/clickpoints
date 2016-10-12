@@ -19,6 +19,10 @@
 
 from __future__ import division, print_function
 
+from SplashScreen import StartSplashScreen, StopSplashScreen
+if __name__ == "__main__":
+    StartSplashScreen()
+
 import sys
 import os
 
@@ -551,15 +555,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
 
 def main():
-    # start the Qt application
-    app = QtWidgets.QApplication(sys.argv)
-
-    # Create and display the splash screen
-    splash_pix = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), 'icons', 'Splash.png'))
-    splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
-    splash.setMask(splash_pix.mask())
-    splash.show()
-    app.processEvents()
+    app, splash = StartSplashScreen()
 
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
@@ -577,7 +573,7 @@ def main():
     window = ClickPointsWindow(config)
     window.app = app
     window.show()
-    splash.finish(window)
+    StopSplashScreen(window)
     app.exec_()
 
 # start the main function as entry point
