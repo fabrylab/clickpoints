@@ -2390,7 +2390,7 @@ class DataFile:
             if not data.dtype == np.uint8:
                 raise MaskDtypeMismatch("mask.data dtype is not of type uint8")
             try:
-                if not list(data.shape) == image.getShape():
+                if not tuple(data.shape) == image.getShape():
                     raise MaskDimensionMismatch("mask.data shape doesn't match image dimensions!")
             except IOError:
                 UserWarning("Couldn't retrieve image dimension - shape verification not possible ")
@@ -2407,7 +2407,7 @@ class DataFile:
                 if not data.dtype == np.uint8:
                     raise MaskDtypeMismatch("mask.data dtype is not of type uint8")
                 try:
-                    if not list(data.shape) == image.getShape():
+                    if not tuple(data.shape) == image.getShape():
                         raise MaskDimensionMismatch("mask.data shape doesn't match image dimensions!")
                 except IOError:
                     UserWarning("Couldn't retrieve image dimension - shape verification not possible ")
