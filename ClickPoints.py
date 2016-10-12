@@ -19,8 +19,10 @@
 
 from __future__ import division, print_function
 
-from SplashScreen import StartSplashScreen, StopSplashScreen
 if __name__ == "__main__":
+    from GridViewerBooster import BoosterRunning
+    BoosterRunning()
+    from SplashScreen import StartSplashScreen, StopSplashScreen
     StartSplashScreen()
 
 import sys
@@ -555,6 +557,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
 
 def main():
+    from ClickPointsBooster import BoosterRunning
+    BoosterRunning()
     app, splash = StartSplashScreen()
 
     # set an application id, so that windows properly stacks them in the task bar
