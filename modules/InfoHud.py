@@ -123,7 +123,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             self.hidden = True
 
     def LoadImageEvent(self, filename="", frame_number=0):
-        if not self.data_file.getOption("info_hud_string") == "@script":
+        if not self.data_file.getOption("info_hud_string") == "@script" and self.data_file.getOption("info_hud_string").strip():
             file = self.window.data_file.image.filename
             regex = re.match(self.data_file.getOption("filename_data_regex"), file)
             if regex:

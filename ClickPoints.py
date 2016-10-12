@@ -123,6 +123,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.setMinimumHeight(400)
         self.setWindowTitle("ClickPoints")
 
+        self.setAcceptDrops(True)
+
         # center window
         screen_geometry = QtWidgets.QApplication.desktop().screenGeometry()
         x = (screen_geometry.width()-self.width()) / 2
@@ -156,11 +158,11 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.layout.addLayout(self.layoutButtons)
 
         # view/scene setup
-        self.view = QExtendedGraphicsView()
+        self.view = QExtendedGraphicsView(dropTarget=self)
+        self.layout.addWidget(self.view)
         self.view.zoomEvent = self.zoomEvent
         self.local_scene = self.view.scene
         self.origin = self.view.origin
-        self.layout.addWidget(self.view)
 
         # init DataFile for storage
         new_database = True
@@ -180,31 +182,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.loading_time = time.time()
         if new_database and config.srcpath != "":
             print("Loading files ...")
-            # if it is a directory add it
-            if os.path.isdir(config.srcpath):
-                self.load_thread = threading.Thread(target=addPath, args=(self.data_file, config.srcpath),
-                                                    kwargs=dict(subdirectories=True, use_natsort=config.use_natsort))
-                #addPath(self.data_file, config.srcpath, subdirectories=True, use_natsort=config.use_natsort)
-            # if not check what type of file it is
-            else:
-                directory, filename = os.path.split(config.srcpath)
-                ext = os.path.splitext(filename)[1]
-                # for images load the folder
-                if ext.lower() in imgformats:
-                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                                                        kwargs=dict(use_natsort=config.use_natsort, window=self, select_file=filename))
-                    self.first_frame = None
-                    #addPath(self.data_file, directory, use_natsort=config.use_natsort)
-                # for videos just load the file
-                elif ext.lower() in vidformats:
-                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory), kwargs=dict(file_filter=os.path.split(filename)[1]))
-                    #addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
-                elif ext.lower() == ".txt":
-                    self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
-                    #addList(self.data_file, directory, filename)
-                # if the extension is not known, raise an exception
-                else:
-                    raise Exception("unknown file extension "+ext)
+            self.loadUrl(config.srcpath)
 
         # init the modules
         self.modules = []
@@ -266,6 +244,79 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.load_thread.daemon = True
             self.load_thread.start()
             self.load_timer.start()
+
+    def dragEnterEvent(self, event):
+        # accept url lists (files by drag and drop)
+        if event.mimeData().hasFormat("text/uri-list"):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        self.load_thread = None
+        self.reset()
+        for url in event.mimeData().urls():
+            url = str(url.toString()).strip()
+            if url.startswith("file:///"):
+                url = url[len("file:///"):]
+            if url.startswith("file:"):
+                url = url[len("file:"):]
+            self.loadUrl(url)
+        if self.load_thread is not None:
+            self.load_thread.daemon = True
+            self.load_thread.start()
+            self.load_timer.start()
+
+    def loadUrl(self, url):
+        # if it is a directory add it
+        if os.path.isdir(url):
+            self.load_thread = threading.Thread(target=addPath, args=(self.data_file, url),
+                                                kwargs=dict(subdirectories=True, use_natsort=config.use_natsort))
+            # addPath(self.data_file, config.srcpath, subdirectories=True, use_natsort=config.use_natsort)
+        # if not check what type of file it is
+        else:
+            directory, filename = os.path.split(url)
+            ext = os.path.splitext(filename)[1]
+            # for images load the folder
+            if ext.lower() in imgformats:
+                self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
+                                                    kwargs=dict(use_natsort=config.use_natsort, window=self,
+                                                                select_file=filename))
+                self.first_frame = None
+                # addPath(self.data_file, directory, use_natsort=config.use_natsort)
+            # for videos just load the file
+            elif ext.lower() in vidformats:
+                self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
+                                                    kwargs=dict(file_filter=os.path.split(filename)[1]))
+                # addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
+            elif ext.lower() == ".txt":
+                self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
+                # addList(self.data_file, directory, filename)
+            # open an existing database
+            elif ext.lower() == ".cdb":
+                self.reset(url)
+                self.JumpToFrame(0)
+                self.view.fitInView()
+                self.GetModule("Timeline").ImagesAdded()
+                BroadCastEvent(self.modules, "LoadingFinishedEvent")
+            # if the extension is not known, raise an exception
+            else:
+                raise Exception("unknown file extension " + ext, filename)
+
+    def reset(self, filename=""):
+        # ask to save current data
+        self.testForUnsaved()
+        # close database
+        self.data_file.closeEvent(None)
+        # open new database
+        self.data_file = DataFile(filename, config, storage_path=storage_path)
+        self.data_file.signals.loaded.connect(self.FrameLoaded)
+        # notify modules
+        BroadCastEvent(self.modules, "UpdateDateFile", self.data_file)
+        self.GetModule("Timeline").ImagesAdded()
 
     def LoadTimer(self):
         if self.data_file.image is None and self.data_file.get_image_count() and self.first_frame is not None:
@@ -385,13 +436,16 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
     """ some Qt events which should be passed around """
 
-    def closeEvent(self, QCloseEvent):
+    def testForUnsaved(self):
         if not self.data_file.exists and self.data_file.made_changes:
             reply = QtWidgets.QMessageBox.question(self, 'Warning', 'This ClickPoints project has not been saved. All data will be lost.\nDo you want to save it?', QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.No)
 
             if reply == QtWidgets.QMessageBox.Yes:
                 self.SaveDatabase()
+
+    def closeEvent(self, QCloseEvent):
+        self.testForUnsaved()
         # close the folder editor
         if self.folderEditor is not None:
             self.folderEditor.close()
