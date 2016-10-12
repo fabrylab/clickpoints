@@ -1871,6 +1871,13 @@ class MarkerHandler:
             self.LoadLines()
             self.LoadRectangles()
 
+    def UpdateDateFile(self, data_file):
+        self.data_file = data_file
+
+        for list in self.display_lists:
+            while len(list):
+                list[0].delete(just_display=True)
+
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
         image = self.data_file.image

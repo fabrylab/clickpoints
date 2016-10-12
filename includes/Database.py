@@ -404,7 +404,7 @@ class DataFile(DataFileBase):
             try:
                 self.reader = imageio.get_reader(filename)
                 self.reader.filename = filename
-            except IOError:
+            except (IOError, ValueError):
                 pass
         # get the data from the reader
         image_data = None

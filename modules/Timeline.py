@@ -981,6 +981,9 @@ class Timeline(QtCore.QObject):
     def get_frame_count(self):
         return self.data_file.get_image_count()
 
+    def UpdateDateFile(self, data_file):
+        self.data_file = data_file
+
     def ImagesAdded(self):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)

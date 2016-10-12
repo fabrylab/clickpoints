@@ -581,6 +581,10 @@ class MaskHandler:
         # load mask from mask database entry
         self.LoadMask(self.mask_file.get_mask())
 
+    def UpdateDateFile(self, data_file):
+        self.data_file = data_file
+        self.LoadMask(None)
+
     def ReloadMask(self):
         # load mask from mask database entry
         self.LoadMask(self.mask_file.get_mask())
