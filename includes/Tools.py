@@ -83,22 +83,31 @@ class HelpText(QtWidgets.QGraphicsRectItem):
         self.button.clicked.connect(self.ShowHelpText)
         window.layoutButtons.addWidget(self.button)
 
-        self.text = ""
-        self.UpdateText(file)
+        self.files = [file]
         for mod in modules:
             try:
-                self.UpdateText(mod.file())
+                self.files.append(mod.file())
             except AttributeError:
                 pass
-        self.DisplayText()
-        BoxGrabber(self)
+        self.text = ""
         self.setVisible(False)
 
     def ShowHelpText(self):
         if self.isVisible():
             self.setVisible(False)
         else:
+            if self.text == "":
+                self.LoadTexts()
+                BoxGrabber(self)
             self.setVisible(True)
+
+    def LoadTexts(self):
+        for file_ in self.files:
+            try:
+                self.UpdateText(file_)
+            except AttributeError:
+                pass
+        self.DisplayText()
 
     def UpdateText(self, file):
         import re
