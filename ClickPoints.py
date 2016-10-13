@@ -20,7 +20,7 @@
 from __future__ import division, print_function
 
 if __name__ == "__main__":
-    from GridViewerBooster import BoosterRunning
+    from ClickPointsBooster import BoosterRunning
     BoosterRunning()
     from SplashScreen import StartSplashScreen, StopSplashScreen
     StartSplashScreen()
@@ -105,7 +105,7 @@ class AddStrech():
     def __init__(self, window):
         window.layoutButtons.addStretch()
 
-used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, Console]
+used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, OptionEditor]
 used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", "", ""]
 
 
@@ -118,6 +118,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
     folderEditor = None
     optionEditor = None
     first_frame = 0
+
+    load_thread = None
+    data_file = None
 
     def __init__(self, my_config, parent=None):
         global config
@@ -170,15 +173,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.local_scene = self.view.scene
         self.origin = self.view.origin
 
-        # init DataFile for storage
-        new_database = True
-        if os.path.splitext(config.srcpath)[1] == ".cdb":
-            config.database_file = config.srcpath
-            new_database = False
-        self.data_file = DataFile(config.database_file, config, storage_path=storage_path)
-
         # init image display
-        self.ImageDisplay = BigImageDisplay(self.origin, self, config, self.data_file)
+        self.ImageDisplay = BigImageDisplay(self.origin, self)
 
         # init media handler
         self.load_thread = None
@@ -186,13 +182,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.load_timer.setInterval(0.1)
         self.load_timer.timeout.connect(self.LoadTimer)
         self.loading_time = time.time()
-        if new_database and config.srcpath != "":
-            print("Loading files ...")
-            self.loadUrl(config.srcpath)
 
         # init the modules
-        self.modules = []
-        arg_dict = {"new_database": new_database, "window": self, "layout": self.layout, "data_file": self.data_file, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay, "outputpath": config.outputpath, "config": config, "modules": self.modules, "file": __file__, "datafile": self.data_file}
+        self.modules = [self.ImageDisplay]
+        arg_dict = {"window": self, "layout": self.layout, "parent": self.view.origin, "parent_hud": self.view.hud, "view": self.view, "image_display": self.ImageDisplay,  "modules": self.modules, "file": __file__}
         for mod, hud in zip(used_modules, used_huds):
             allowed = True
             if "can_create_module" in dir(mod):
@@ -217,12 +210,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
             if "setActiveModule" in dir(module) and module.setActiveModule(True, True):
                 break
 
-        self.button_options = QtWidgets.QPushButton()
-        self.button_options.clicked.connect(self.Options)
-        self.button_options.setIcon(qta.icon("fa.gears"))
-        #self.button_options.setToolTip("add/remove folder from the current project")
-        self.layoutButtons.addWidget(self.button_options)
-
         # initialize some variables
         self.new_filename = None
         self.new_frame_number = None
@@ -231,25 +218,15 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         # select the first frame
         self.target_frame = 0
-        self.data_file.signals.loaded.connect(self.FrameLoaded)
-        if self.data_file.get_image_count():
-            self.JumpToFrame(0)
 
         # set focus policy for buttons
         for i in range(self.layoutButtons.count()):
             if self.layoutButtons.itemAt(i).widget():
                 self.layoutButtons.itemAt(i).widget().setFocusPolicy(Qt.NoFocus)
 
-        # apply image rotation from config
-        if self.data_file.getOption("rotation") != 0:
-            self.view.rotate(self.data_file.getOption("rotation"))
-
         self.setFocus()
 
-        if self.load_thread is not None:
-            self.load_thread.daemon = True
-            self.load_thread.start()
-            self.load_timer.start()
+        self.start_timer = QtCore.QTimer.singleShot(1, lambda: self.loadUrl(config.srcpath))
 
     def dragEnterEvent(self, event):
         # accept url lists (files by drag and drop)
@@ -262,66 +239,76 @@ class ClickPointsWindow(QtWidgets.QWidget):
         event.acceptProposedAction()
 
     def dropEvent(self, event):
-        self.load_thread = None
-        self.reset()
+        if self.load_thread is not None:
+            self.load_thread.join()
         for url in event.mimeData().urls():
             url = str(url.toString()).strip()
             if url.startswith("file:///"):
                 url = url[len("file:///"):]
             if url.startswith("file:"):
                 url = url[len("file:"):]
-            self.loadUrl(url)
-        if self.load_thread is not None:
-            self.load_thread.daemon = True
-            self.load_thread.start()
-            self.load_timer.start()
+            self.loadUrl(url, reset=True)
 
-    def loadUrl(self, url):
-        # if it is a directory add it
-        if os.path.isdir(url):
-            self.load_thread = threading.Thread(target=addPath, args=(self.data_file, url),
-                                                kwargs=dict(subdirectories=True, use_natsort=config.use_natsort))
-            # addPath(self.data_file, config.srcpath, subdirectories=True, use_natsort=config.use_natsort)
-        # if not check what type of file it is
+    def loadUrl(self, url, reset=False):
+        print("Loading url", url)
+
+        # open an existing database
+        if url.endswith(".cdb"):
+            self.reset(url)
+            self.JumpToFrame(0)
+            self.view.fitInView()
+            self.GetModule("Timeline").ImagesAdded()
+            BroadCastEvent(self.modules, "LoadingFinishedEvent")
         else:
-            directory, filename = os.path.split(url)
-            ext = os.path.splitext(filename)[1]
-            # for images load the folder
-            if ext.lower() in imgformats:
-                self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                                                    kwargs=dict(use_natsort=config.use_natsort, window=self,
-                                                                select_file=filename))
-                self.first_frame = None
-                # addPath(self.data_file, directory, use_natsort=config.use_natsort)
-            # for videos just load the file
-            elif ext.lower() in vidformats:
-                self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                                                    kwargs=dict(file_filter=os.path.split(filename)[1]))
-                # addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
-            elif ext.lower() == ".txt":
-                self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
-                # addList(self.data_file, directory, filename)
-            # open an existing database
-            elif ext.lower() == ".cdb":
-                self.reset(url)
-                self.JumpToFrame(0)
-                self.view.fitInView()
-                self.GetModule("Timeline").ImagesAdded()
-                BroadCastEvent(self.modules, "LoadingFinishedEvent")
-            # if the extension is not known, raise an exception
+            if self.data_file is None or reset:
+                self.reset()
+            # if it is a directory add it
+            if os.path.isdir(url):
+                self.load_thread = threading.Thread(target=addPath, args=(self.data_file, url),
+                                                    kwargs=dict(subdirectories=True, use_natsort=config.use_natsort))
+                # addPath(self.data_file, config.srcpath, subdirectories=True, use_natsort=config.use_natsort)
+            # if not check what type of file it is
             else:
-                raise Exception("unknown file extension " + ext, filename)
+                directory, filename = os.path.split(url)
+                ext = os.path.splitext(filename)[1]
+                # for images load the folder
+                if ext.lower() in imgformats:
+                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
+                                                        kwargs=dict(use_natsort=config.use_natsort, window=self,
+                                                                    select_file=filename))
+                    self.first_frame = None
+                    # addPath(self.data_file, directory, use_natsort=config.use_natsort)
+                # for videos just load the file
+                elif ext.lower() in vidformats:
+                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
+                                                        kwargs=dict(file_filter=os.path.split(filename)[1]))
+                    # addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
+                elif ext.lower() == ".txt":
+                    self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
+                    # addList(self.data_file, directory, filename)
+                # if the extension is not known, raise an exception
+                else:
+                    raise Exception("unknown file extension " + ext, filename)
+
+            if self.load_thread is not None:
+                self.load_thread.daemon = True
+                self.load_thread.start()
+                self.load_timer.start()
 
     def reset(self, filename=""):
-        # ask to save current data
-        self.testForUnsaved()
-        # close database
-        self.data_file.closeEvent(None)
+        if self.data_file is not None:
+            # ask to save current data
+            self.testForUnsaved()
+            # close database
+            self.data_file.closeEvent(None)
+            BroadCastEvent(self.modules, "closeDataFile")
         # open new database
         self.data_file = DataFile(filename, config, storage_path=storage_path)
         self.data_file.signals.loaded.connect(self.FrameLoaded)
-        # notify modules
-        BroadCastEvent(self.modules, "UpdateDateFile", self.data_file)
+        # apply image rotation from config
+        if self.data_file.getOption("rotation") != 0:
+            self.view.rotate(self.data_file.getOption("rotation"))
+        BroadCastEvent(self.modules, "updateDataFile", self.data_file, filename == "")
         self.GetModule("Timeline").ImagesAdded()
 
     def LoadTimer(self):
@@ -336,13 +323,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
             BroadCastEvent(self.modules, "LoadingFinishedEvent")
             print("Loading finished in %.2fs " % (time.time()-self.loading_time))
 
-    def Options(self):
-        if self.optionEditor is not None:
-            self.optionEditor.close()
-        self.optionEditor = OptionEditor(self, self.data_file)
-        self.optionEditor.show()
-
     def Folder(self):
+        if not self.data_file:
+            return
         self.folderEditor = FolderEditor(self, self.data_file)
         self.folderEditor.show()
 
@@ -361,6 +344,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
         #self.data_file.check_to_save()
 
     def SaveDatabase(self, srcpath=None):
+        if not self.data_file:
+            return
         if srcpath is None:
             srcpath = str(QtWidgets.QFileDialog.getSaveFileName(None, "Save project - ClickPoints", os.getcwd(), "ClickPoints Database *.cdb"))
         if srcpath:
@@ -443,8 +428,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
     """ some Qt events which should be passed around """
 
     def testForUnsaved(self):
-        if not self.data_file.exists and self.data_file.made_changes:
-            reply = QtWidgets.QMessageBox.question(self, 'Warning', 'This ClickPoints project has not been saved. All data will be lost.\nDo you want to save it?', QtWidgets.QMessageBox.Yes,
+        if self.data_file is not None and not self.data_file.exists and self.data_file.made_changes:
+            reply = QtWidgets.QMessageBox.question(self, 'Warning', 'This ClickPoints project has not been saved. '
+                                                                    'All data will be lost.\nDo you want to save it?',
+                                                   QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.No)
 
             if reply == QtWidgets.QMessageBox.Yes:
@@ -455,13 +442,11 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # close the folder editor
         if self.folderEditor is not None:
             self.folderEditor.close()
-        if self.optionEditor is not None:
-            self.optionEditor.close()
         # save the data
         self.Save()
-        # broadcast event the image display and the mediahandler (so that they can terminate their threads)
-        self.ImageDisplay.closeEvent(QCloseEvent)
-        self.data_file.closeEvent(QCloseEvent)
+        # broadcast event
+        if self.data_file is not None:
+            self.data_file.closeEvent(QCloseEvent)
         # broadcast event to the modules
         BroadCastEvent(self.modules, "closeEvent", QCloseEvent)
 
@@ -529,6 +514,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
             for cur_index in rotate_list(list(range(len(self.modules))), index+1):
                 if "setActiveModule" in dir(self.modules[cur_index]) and self.modules[cur_index].setActiveModule(True):
                     break
+
+        if self.data_file is None:
+            return
 
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:

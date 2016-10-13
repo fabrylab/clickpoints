@@ -390,6 +390,8 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         return
 
 class RealTimeSlider(QtWidgets.QGraphicsView):
+    is_hidden = True
+
     def __init__(self):
         QtWidgets.QGraphicsView.__init__(self)
 
@@ -842,21 +844,19 @@ class PreciseTimer(QtCore.QObject):
 
 class Timeline(QtCore.QObject):
     images_added_signal = QtCore.Signal()
+    data_file = None
+    config = None
 
-    def __init__(self, window, data_file, layout, outputpath, config, modules):
+    fps = 25
+    skip = 0
+
+    subsecond_decimals = 0
+
+    def __init__(self, window, layout, modules):
         QtCore.QObject.__init__(self)
 
         self.window = window
-        self.data_file = data_file
-        self.config = config
         self.modules = modules
-
-        self.fps = 0
-        if self.fps == 0:
-            self.fps = 25
-        if self.data_file.getOption("fps") != 0:
-            self.fps = self.data_file.getOption("fps")
-        self.skip = self.data_file.getOption("skip")
 
         self.images_added_signal.connect(self.ImagesAddedMain)
 
@@ -875,24 +875,21 @@ class Timeline(QtCore.QObject):
         self.layoutCtrlParent.addLayout(self.layoutCtrl)
 
         # second
-        if self.data_file.getOption("datetimeline_show"):
-            self.layoutCtrl2 = QtWidgets.QHBoxLayout()
-            self.layoutCtrlParent.addLayout(self.layoutCtrl2)
+        self.layoutCtrl2 = QtWidgets.QHBoxLayout()
+        self.layoutCtrlParent.addLayout(self.layoutCtrl2)
 
-            self.timeSlider = RealTimeSlider()
-            self.layoutCtrl2.addWidget(self.timeSlider)
-            self.timeSlider.setTimes(self.data_file)
-            empty_space_keeper = QtWidgets.QLabel()
-            empty_space_keeper.setMaximumHeight(0)
-            empty_space_keeper.setMaximumWidth(0)
-            self.layoutCtrl2.addWidget(empty_space_keeper)
+        self.timeSlider = RealTimeSlider()
+        self.layoutCtrl2.addWidget(self.timeSlider)
+        #self.timeSlider.setTimes(self.data_file)
+        empty_space_keeper = QtWidgets.QLabel()
+        empty_space_keeper.setMaximumHeight(0)
+        empty_space_keeper.setMaximumWidth(0)
+        self.layoutCtrl2.addWidget(empty_space_keeper)
 
-            self.timeSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
-            self.timeSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider2)
+        self.timeSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
+        self.timeSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider2)
 
-            self.timeSlider.setToolTip("current time stamp")
-        else:
-            self.timeSlider = None
+        self.timeSlider.setToolTip("current time stamp")
 
         self.layoutCtrl3 = QtWidgets.QHBoxLayout()
         self.layoutCtrlParent.addLayout(self.layoutCtrl3)
@@ -918,32 +915,15 @@ class Timeline(QtCore.QObject):
         self.label_frame.setToolTip("current frame number, frame rate and timestamp")
         self.label_frame.mousePressEvent = self.labelClicked
         self.layoutCtrl.addWidget(self.label_frame)
-        # prepare timestamp output
-        # detect %*f marker get number form 1 to 6 as *
-        self.subsecond_decimals = 0
-        regexp = re.compile('.*.%(\d)f.*')
-        match = regexp.match(self.data_file.getOption("display_timeformat"))
-        if match:
-            self.subsecond_decimals = match.group(1)
+
 
         self.frameSlider = TimeLineSlider()
-        if self.get_frame_count():
-            self.frameSlider.setRange(0, self.get_frame_count() - 1)
+        #if self.get_frame_count():
+        #    self.frameSlider.setRange(0, self.get_frame_count() - 1)
         self.frameSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
         self.frameSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider)
         self.frameSlider.setToolTip("current frame, drag to change current frame\n[b], [n] to set start/end marker")
-        self.frameSlider.setValue(self.get_frame_count())
-        if self.data_file.getOption("play_start") is not None:
-            # if >1 its a frame nr if < 1 its a fraction
-            if self.data_file.getOption("play_start") >= 1:
-                self.frameSlider.setStartValue(self.data_file.getOption("play_start"))
-            else:
-                self.frameSlider.setStartValue(int(self.get_frame_count()*self.data_file.getOption("play_start")))
-        if self.data_file.getOption("play_end") is not None:
-            if self.data_file.getOption("play_end") > 1:
-                self.frameSlider.setEndValue(self.data_file.getOption("play_end"))
-            else:
-                self.frameSlider.setEndValue(int(self.get_frame_count()*self.data_file.getOption("play_end")))
+        #self.frameSlider.setValue(self.get_frame_count())
         self.slider_update = True
         self.layoutCtrl.addWidget(self.frameSlider)
 
@@ -969,20 +949,64 @@ class Timeline(QtCore.QObject):
         self.timer = PreciseTimer()
         self.timer.timeout.connect(self.updateFrame)
 
+        self.hidden = True
+
+        self.closeDataFile()
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+
+        self.frameSlider.clearTickMarker()
+
+        self.Play(False)
+
+        self.HideInterface(True)
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
+
+        self.fps = 0
+        if self.fps == 0:
+            self.fps = 25
+        if self.config.fps != 0:
+            self.fps = self.config.fps
+        self.skip = self.config.skip
+
+        self.timeSlider.setTimes(self.data_file)
+
+        # prepare timestamp output
+        # detect %*f marker get number form 1 to 6 as *
+        self.subsecond_decimals = 0
+        regexp = re.compile('.*.%(\d)f.*')
+        match = regexp.match(self.data_file.getOption("display_timeformat"))
+        if match:
+            self.subsecond_decimals = match.group(1)
+
+        if self.data_file.getOption("play_start") is not None:
+            # if >1 its a frame nr if < 1 its a fraction
+            if self.data_file.getOption("play_start") >= 1:
+                self.frameSlider.setStartValue(self.data_file.getOption("play_start"))
+            else:
+                self.frameSlider.setStartValue(int(self.get_frame_count()*self.data_file.getOption("play_start")))
+        if self.data_file.getOption("play_end") is not None:
+            if self.data_file.getOption("play_end") > 1:
+                self.frameSlider.setEndValue(self.data_file.getOption("play_end"))
+            else:
+                self.frameSlider.setEndValue(int(self.get_frame_count()*self.data_file.getOption("play_end")))
+
         self.Play(self.data_file.getOption("playing"))
         self.hidden = True
         self.HideInterface(self.data_file.getOption("timeline_hide"))
 
-        self.FolderChangeEvent()
-
     def get_current_frame(self):
+        if self.data_file is None:
+            return None
         return self.data_file.get_current_image()
 
     def get_frame_count(self):
         return self.data_file.get_image_count()
-
-    def UpdateDateFile(self, data_file):
-        self.data_file = data_file
 
     def ImagesAdded(self):
         self.progress_bar.setMinimum(0)
@@ -999,19 +1023,6 @@ class Timeline(QtCore.QObject):
         if update_end:
             self.frameSlider.setEndValue(self.get_frame_count() - 1)
         self.updateLabel()
-
-    def FolderChangeEvent(self):
-        self.data_file = self.window.data_file
-        if self.data_file.getOption("play_end") is not None:
-            if self.data_file.getOption("play_end") > 1:
-                self.frameSlider.setEndValue(self.data_file.getOption("play_end"))
-            else:
-                self.frameSlider.setEndValue(int(self.get_frame_count()*self.data_file.getOption("play_end")))
-        else:
-            self.frameSlider.setMaximum(self.get_frame_count() - 1)
-        self.updateLabel()
-
-        self.frameSlider.clearTickMarker()
 
     def LoadingFinishedEvent(self):
         self.progress_bar.setMinimum(0)
@@ -1059,6 +1070,8 @@ class Timeline(QtCore.QObject):
             self.playing = False
 
     def updateFrame(self, nr=-1):
+        if self.data_file is None:
+            return
         if nr != -1:
             self.window.JumpToFrame(nr)
         else:
@@ -1098,9 +1111,9 @@ class Timeline(QtCore.QObject):
             self.window.JumpToFrame(value-1)
 
     def FrameChangeEvent(self):
-        dt = time.time()-self.last_time
+        dt = max(time.time()-self.last_time, 1e-6)
         self.last_time = time.time()
-        if self.current_fps is None:
+        if self.current_fps is None or self.current_fps == 0:
             self.current_fps = 1/dt
         else:
             a = np.exp(-dt)
@@ -1146,7 +1159,7 @@ class Timeline(QtCore.QObject):
         self.empty_space_keeper.setHidden(hide or self.progress_bar.isVisible())
         self.button.setChecked(not self.hidden)
         if hide is False and not self.timeSlider is None:
-            self.timeSlider.setHidden(self.timeSlider.is_hidden | (not self.data_file.getOption("datetimeline_show")))
+            self.timeSlider.setHidden(self.timeSlider.is_hidden | (self.data_file is None or not self.data_file.getOption("datetimeline_show")))
 
     #def optionsChanged(self):
     #    if self.hidden is False self.timeSlider.setHidden(self.timeSlider.is_hidden | (not self.data_file.getOption("datetimeline_show")))

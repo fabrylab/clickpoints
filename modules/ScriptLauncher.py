@@ -160,11 +160,14 @@ class ScriptLauncher(QtCore.QObject):
 
     scriptSelector = None
 
-    def __init__(self, window, data_file, modules, config=None):
+    data_file = None
+    config = None
+
+    scripts = []
+
+    def __init__(self, window, modules):
         QtCore.QObject.__init__(self)
         self.window = window
-        self.data_file = data_file
-        self.config = config
         self.modules = modules
 
         self.HOST, self.PORT = "localhost", 55005
@@ -204,14 +207,30 @@ class ScriptLauncher(QtCore.QObject):
         self.script_buttons = []
         self.window.layoutButtons.addLayout(self.button_group_layout)
 
-        self.scripts = self.data_file.getOption("scripts")[:]
         self.script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "addons"))
 
         #self.running_processes = [None]*len(self.config.launch_scripts)
+
+        self.closeDataFile()
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+        self.scripts = []
+        self.updateScripts()
+        if self.scriptSelector:
+            self.scriptSelector.close()
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
+
+        self.scripts = self.data_file.getOption("scripts")[:]
+
         self.updateScripts()
 
     def updateScripts(self):
-        self.data_file.setOption("scripts", self.scripts)
+        #self.data_file.setOption("scripts", self.scripts)
         for button in self.script_buttons:
             self.button_group_layout.removeWidget(button)
         self.script_buttons = []

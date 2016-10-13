@@ -30,9 +30,11 @@ import qtawesome as qta
 from Tools import MySlider, BoxGrabber, TextButton
 
 class GammaCorrection(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent_hud, image_display, config, window):
+    data_file = None
+    config = None
+
+    def __init__(self, parent_hud, image_display, window):
         QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
-        self.config = config
         self.window = window
 
         self.image = image_display
@@ -84,9 +86,17 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.window.layoutButtons.addWidget(self.button_brightness)
 
         self.hidden = False
-        if self.config.hide_interfaces:
-            self.setVisible(False)
-            self.hidden = True
+        self.ToggleInterfaceEvent(hidden=True)
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
+
+        self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
 
     def updateHist(self, hist):
         histpath = QtGui.QPainterPath()
@@ -159,8 +169,11 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             # @key G: update rect
             self.updateROI()
 
-    def ToggleInterfaceEvent(self):
-        self.hidden = not self.hidden
+    def ToggleInterfaceEvent(self, event=None, hidden=None):
+        if hidden is None:
+            self.hidden = not self.hidden
+        else:
+            self.hidden = hidden
         self.setVisible(not self.hidden)
         self.button_brightness.setChecked(not self.hidden)
 

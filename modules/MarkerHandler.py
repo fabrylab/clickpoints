@@ -1540,12 +1540,11 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
 
 class Crosshair(QtWidgets.QGraphicsPathItem):
-    def __init__(self, parent, view, image, config):
+    def __init__(self, parent, view, image):
         QtWidgets.QGraphicsPathItem.__init__(self, parent)
         self.parent = parent
         self.view = view
         self.image = image
-        self.config = config
         self.radius = 50
         self.not_scaled = True
         self.scale = 1
@@ -1761,14 +1760,15 @@ class MarkerHandler:
 
     active_drag = None
 
-    def __init__(self, window, data_file, parent, parent_hud, view, image_display, config, modules, datafile, new_database):
+    data_file = None
+    config = None
+    marker_file = None
+
+    def __init__(self, window, parent, parent_hud, view, image_display, modules):
         self.window = window
-        self.data_file = data_file
         self.view = view
         self.parent_hud = parent_hud
         self.modules = modules
-        self.config = config
-        self.data_file = datafile
         self.parent = parent
 
         self.button = QtWidgets.QPushButton()
@@ -1777,11 +1777,6 @@ class MarkerHandler:
         self.button.setToolTip("add/edit marker for current frame")
         self.button.clicked.connect(self.ToggleInterfaceEvent)
         self.window.layoutButtons.addWidget(self.button)
-
-        self.marker_file = MarkerFile(datafile)
-
-        if self.data_file.getOption("hide_interfaces"):
-            self.hidden = True
 
         self.MarkerParent = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
         self.MarkerParent.setZValue(10)
@@ -1792,7 +1787,33 @@ class MarkerHandler:
         self.scene_event_filter = GraphicsItemEventFilter(parent, self)
         image_display.AddEventFilter(self.scene_event_filter)
 
-        self.Crosshair = Crosshair(parent, view, image_display, config)
+        self.Crosshair = Crosshair(parent, view, image_display)
+
+        self.closeDataFile()
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+        self.marker_file = None
+
+        # remove all markers
+        for list in self.display_lists:
+            while len(list):
+                list[0].delete(just_display=True)
+
+        # remove all counters
+        for counter in self.counter:
+            self.view.scene.removeItem(self.counter[counter])
+        self.counter = []
+
+        if self.marker_edit_window:
+            self.marker_edit_window.close()
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
+
+        self.marker_file = MarkerFile(data_file)
 
         # if a new database is created fill it with markers from the config
         if new_database:
@@ -1804,6 +1825,8 @@ class MarkerHandler:
         # place tick marks for already present markers
         for item in self.marker_file.get_marker_frames():
             BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
+
+        self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
 
     def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1):
         for list in self.display_lists:
@@ -1870,13 +1893,6 @@ class MarkerHandler:
             self.LoadPoints()
             self.LoadLines()
             self.LoadRectangles()
-
-    def UpdateDateFile(self, data_file):
-        self.data_file = data_file
-
-        for list in self.display_lists:
-            while len(list):
-                list[0].delete(just_display=True)
 
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
@@ -2058,8 +2074,11 @@ class MarkerHandler:
             # @key T: toggle marker shape
             self.toggleMarkerShape()
 
-    def ToggleInterfaceEvent(self):
-        self.hidden = not self.hidden
+    def ToggleInterfaceEvent(self, event=None, hidden=None):
+        if hidden is None:
+            self.hidden = not self.hidden
+        else:
+            self.hidden = hidden
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
         for point in self.points:

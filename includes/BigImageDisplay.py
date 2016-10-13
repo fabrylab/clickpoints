@@ -39,7 +39,10 @@ class ImageDisplaySignal(QtCore.QObject):
     display = QtCore.Signal()
 
 class BigImageDisplay:
-    def __init__(self, origin, window, config, data_file):
+    data_file = None
+    config = None
+
+    def __init__(self, origin, window):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
@@ -48,8 +51,6 @@ class BigImageDisplay:
         self.ImageSlices = []
         self.origin = origin
         self.window = window
-        self.data_file = data_file
-        self.config = config
 
         self.image = None
         self.hist = None
@@ -75,6 +76,16 @@ class BigImageDisplay:
 
         self.last_offset = np.array([0, 0])
         self.new_offset = np.array([0, 0])
+
+    def closeDataFile(self):
+        if self.thread is not None:
+            self.thread.join()
+        self.data_file = None
+        self.config = None
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
 
     def AddEventFilter(self, event_filter):
         # add a new event filter to the pixmaps
@@ -128,7 +139,7 @@ class BigImageDisplay:
             self.PrepareImageDisplay(image, np.array(offset))
 
     def closeEvent(self, QCloseEvent):
-        if self.data_file.getOption("threaded_image_display") and self.thread:
+        if self.thread is not None:
             self.thread.join()
 
     def PrepareImageDisplay(self, image, offset):

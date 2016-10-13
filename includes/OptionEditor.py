@@ -43,7 +43,7 @@ def PrittyPrintSize(bytes):
     return "%d bytes" % (bytes)
 
 
-class OptionEditor(QtWidgets.QWidget):
+class OptionEditorWindow(QtWidgets.QWidget):
     def __init__(self, window, data_file):
         QtWidgets.QWidget.__init__(self)
         self.window = window
@@ -172,6 +172,8 @@ class OptionEditor(QtWidgets.QWidget):
                 elif category == "Mask":
                     self.ExportMaskTypes(fp)
                 for option in self.data_file._options[category]:
+                    if option.name == "types" or option.name == "draw_types":
+                        continue
                     if option.value is None:
                         continue
                     if option.value_type == "string":
@@ -280,3 +282,46 @@ class OptionEditor(QtWidgets.QWidget):
 
     def Cancel(self):
         self.close()
+
+class OptionEditor:
+    data_file = None
+    config = None
+
+    def __init__(self, window, modules, config=None):
+        # default settings and parameters
+        self.window = window
+        self.modules = modules
+        self.OptionsWindow = None
+
+        self.button = QtWidgets.QPushButton()
+        self.button.setIcon(qta.icon('fa.gears'))
+        self.button.setToolTip("change the options for the project")
+        self.button.clicked.connect(self.showDialog)
+        window.layoutButtons.addWidget(self.button)
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+
+        if self.OptionsWindow:
+            self.OptionsWindow.close()
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
+
+    def showDialog(self):
+        if self.OptionsWindow:
+            self.OptionsWindow.raise_()
+            self.OptionsWindow.show()
+        else:
+            self.OptionsWindow = OptionEditorWindow(self.window, self.data_file)
+            self.OptionsWindow.show()
+
+    def closeEvent(self, event):
+        if self.OptionsWindow:
+            self.OptionsWindow.close()
+
+    @staticmethod
+    def file():
+        return __file__
