@@ -33,4 +33,5 @@ from ScriptLauncher import ScriptLauncher
 from VideoExporter import VideoExporter
 from InfoHud import InfoHud
 from Overview import Overview
+from OptionEditor import OptionEditor
 from Console import Console

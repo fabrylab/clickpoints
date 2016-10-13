@@ -82,7 +82,6 @@ from includes import BigImageDisplay
 from includes import QExtendedGraphicsView
 from includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats
 from includes import DataFile
-from includes import OptionEditor
 
 from modules import MaskHandler
 from modules import MarkerHandler
@@ -93,6 +92,7 @@ from modules import ScriptLauncher
 from modules import VideoExporter
 from modules import InfoHud
 from modules import Console
+from modules import OptionEditor
 
 class AddVLine():
     def __init__(self, window):

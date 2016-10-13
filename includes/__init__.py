@@ -28,7 +28,6 @@ from BigImageDisplay import BigImageDisplay
 from Database import DataFile
 from MemMap import MemMap
 from DependencyChecker import CheckPackages
-from OptionEditor import OptionEditor
 
 
 path = os.path.join(os.path.dirname(__file__), "qextendedgraphicsview")
