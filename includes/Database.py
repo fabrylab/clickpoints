@@ -155,11 +155,6 @@ class DataFile(DataFileBase):
         self._config = config
         self.temporary_db = None
 
-        # compile regexp for timestamp extraction
-        self.reg_timestamp = []
-        self.reg_timestamp2 = []
-        self.initTimeStampRegEx()
-
         if self.exists:
             # go to the folder
             if os.path.dirname(database_filename):
@@ -174,6 +169,11 @@ class DataFile(DataFileBase):
             #self.db = peewee.SqliteDatabase(":memory:")
 
         DataFileBase.__init__(self, database_filename, mode='r+')
+
+        # compile regexp for timestamp extraction
+        self.reg_timestamp = []
+        self.reg_timestamp2 = []
+        self.initTimeStampRegEx()
 
         # image, file reader and current index
         self.image = None
@@ -494,10 +494,13 @@ class DataFile(DataFileBase):
         pass
 
     def initTimeStampRegEx(self):
+        import json
+
         # extract and compile regexp for timestamp and timestamp2 lists
-        for regex in self._config.timestamp_formats:
+        import ast
+        for regex in ast.literal_eval(self.getOption("timestamp_formats")):
             # replace strings with regexp
-            regex = regex.replace('%Y','(?P<Y>\d{4})',1)
+            regex = regex.replace('%Y', '(?P<Y>\d{4})', 1)
             regex = regex.replace('%y', '(?P<y>\d{2})', 1)
             regex = regex.replace('%m', '(?P<m>\d{2})', 1)
             regex = regex.replace('%d', '(?P<d>\d{2})', 1)
@@ -509,10 +512,10 @@ class DataFile(DataFileBase):
 
             self.reg_timestamp.append(re.compile(regex))
 
-        for regex in self._config.timestamp_formats2:
+        for regex in ast.literal_eval(self.getOption("timestamp_formats2")):
             # replace strings with regexp
             # timestamp 1
-            regex = regex.replace('%Y','(?P<Y>\d{4})',1)
+            regex = regex.replace('%Y', '(?P<Y>\d{4})', 1)
             regex = regex.replace('%y', '(?P<y>\d{2})', 1)
             regex = regex.replace('%m', '(?P<m>\d{2})', 1)
             regex = regex.replace('%d', '(?P<d>\d{2})', 1)
@@ -521,7 +524,7 @@ class DataFile(DataFileBase):
             regex = regex.replace('%S', '(?P<S>\d{2})', 1)
             regex = regex.replace('%f', '(?P<f>\d{1,6})', 1)
             # timestamp 2
-            regex = regex.replace('%Y','(?P<Y2>\d{4})',1)
+            regex = regex.replace('%Y', '(?P<Y2>\d{4})', 1)
             regex = regex.replace('%y', '(?P<y2>\d{2})', 1)
             regex = regex.replace('%m', '(?P<m2>\d{2})', 1)
             regex = regex.replace('%d', '(?P<d2>\d{2})', 1)
@@ -694,16 +697,6 @@ class FrameBuffer:
             if images and memory + memory / images - self.getMemoryOfSlot(index) > self.buffer_memory * 1e6:
                 index = 0
             self.last_index = index
-
-            def PrittyPrintSize(bytes):
-                if bytes > 1e9:
-                    return "%.1f GB" % (bytes / 1e8)
-                if bytes > 1e6:
-                    return "%.1f MB" % (bytes / 1e6)
-                if bytes > 1e3:
-                    return "%.1f kB" % (bytes / 1e3)
-                return "%d bytes" % (bytes)
-            print("Memory usage of buffer", PrittyPrintSize(memory), PrittyPrintSize(self.buffer_memory*1e6))
         elif self.buffer_mode == 1:
             index = (self.last_index + 1) % self.buffer_count
         else:

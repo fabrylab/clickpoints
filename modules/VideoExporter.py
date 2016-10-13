@@ -356,11 +356,12 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.button_stop.setHidden(True)
 
 class VideoExporter:
-    def __init__(self, window, data_file, modules, config=None):
+    data_file = None
+    config = None
+
+    def __init__(self, window, modules, config=None):
         # default settings and parameters
         self.window = window
-        self.data_file = data_file
-        self.config = config
         self.modules = modules
         self.ExporterWindow = None
 
@@ -369,6 +370,17 @@ class VideoExporter:
         self.button.setToolTip("export images as video/image series")
         self.button.clicked.connect(self.showDialog)
         window.layoutButtons.addWidget(self.button)
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+
+        if self.ExporterWindow:
+            self.ExporterWindow.close()
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
 
     def showDialog(self):
         if self.ExporterWindow:

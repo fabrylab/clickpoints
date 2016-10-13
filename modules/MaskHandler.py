@@ -83,7 +83,7 @@ class MaskFile:
 
 
 class BigPaintableImageDisplay:
-    def __init__(self, origin, max_image_size=2**12, config=None):
+    def __init__(self, origin, max_image_size=2**12):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
@@ -93,7 +93,6 @@ class BigPaintableImageDisplay:
         self.DrawImages = []
         self.qimages = []
         self.max_image_size = max_image_size
-        self.config = config
 
         self.opacity = 0
         self.colormap = [QtGui.QColor(255, 0, 255).rgba() for i in range(256)]
@@ -486,22 +485,21 @@ class MaskHandler:
     active_draw_type_index = None
     active_draw_type = None
 
-    def __init__(self, window, parent, parent_hud, image_display, config, modules, datafile, new_database):
+    data_file = None
+    config = None
+    mask_file = None
+
+    def __init__(self, window, parent, parent_hud, image_display, modules):
         # store some references
         self.window = window
         self.parent_hud = parent_hud
         self.ImageDisplay = image_display
-        self.config = config
         self.modules = modules
 
         # create mask display
-        self.MaskDisplay = BigPaintableImageDisplay(parent, config=config)
+        self.MaskDisplay = BigPaintableImageDisplay(parent)
         self.drawPathItem = QtWidgets.QGraphicsPathItem(parent)
         self.drawPathItem.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
-
-        # database access
-        self.data_file = datafile
-        self.mask_file = MaskFile(datafile)
 
         # event filter to grab mouse click and move events
         self.scene_event_filter = GraphicsItemEventFilter(parent, self)
@@ -527,9 +525,35 @@ class MaskHandler:
         self.buttonMask.clicked.connect(self.ToggleInterfaceEvent)
         self.window.layoutButtons.addWidget(self.buttonMask)
 
+        # set the mask opacity to 0.5
+        self.changeOpacity(0.5)
+
+        self.closeDataFile()
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+        self.mask_file = None
+
+        # remove mask
+        self.LoadMask(None)
+
+        # remove all counters
+        for button in self.buttons:
+            self.buttons[button].delete()
+        self.buttons = []
+
+        if self.mask_edit_window:
+            self.mask_edit_window.close()
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
+
+        self.mask_file = MaskFile(data_file)
+
         # take hidden flag from config
-        if self.config.hide_interfaces:
-            self.hidden = True
+        self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
 
         # if a new database is created take mask types from config
         if new_database:
@@ -546,9 +570,6 @@ class MaskHandler:
         # place tick marks for already present masks
         for item in self.mask_file.get_mask_frames():
             BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
-
-        # set the mask opacity to 0.5
-        self.changeOpacity(0.5)
 
     def UpdateButtons(self):
         # remove all counter
@@ -580,10 +601,6 @@ class MaskHandler:
 
         # load mask from mask database entry
         self.LoadMask(self.mask_file.get_mask())
-
-    def UpdateDateFile(self, data_file):
-        self.data_file = data_file
-        self.LoadMask(None)
 
     def ReloadMask(self):
         # load mask from mask database entry
@@ -806,9 +823,12 @@ class MaskHandler:
             # @key M: redraw the mask
             self.RedrawMask()
             
-    def ToggleInterfaceEvent(self):
-        # invert hidden status
-        self.hidden = not self.hidden
+    def ToggleInterfaceEvent(self, event=None, hidden=None):
+        if hidden is None:
+            # invert hidden status
+            self.hidden = not self.hidden
+        else:
+            self.hidden = hidden
         # update visibility status of the buttons
         for button in self.buttons:
             self.buttons[button].setVisible(not self.hidden)

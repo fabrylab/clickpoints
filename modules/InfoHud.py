@@ -91,9 +91,11 @@ def get_meta(file):
 
 
 class InfoHud(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent_hud, window, data_file):
+    data_file = None
+    config = None
+
+    def __init__(self, parent_hud, window):
         QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
-        self.data_file = data_file
 
         self.window = window
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -117,14 +119,27 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
         BoxGrabber(self)
         self.dragged = False
 
-        self.hidden = False
-        if self.data_file.getOption("info_hud_string") == "":
-            self.setVisible(False)
-            self.hidden = True
+        self.closeDataFile()
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+
+        self.setVisible(False)
+        self.hidden = True
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
+
+        if self.config.info_hud_string != "":
+            self.setVisible(True)
+            self.hidden = False
 
     def LoadImageEvent(self, filename="", frame_number=0):
         if not self.data_file.getOption("info_hud_string") == "@script" and self.data_file.getOption("info_hud_string").strip():
-            file = self.window.data_file.image.filename
+            image = self.window.data_file.image
+            file = os.path.join(image.path.path, image.filename)
             regex = re.match(self.data_file.getOption("filename_data_regex"), file)
             if regex:
                 regex = regex.groupdict()
@@ -147,7 +162,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             self.ToggleInterfaceEvent()
 
     def ToggleInterfaceEvent(self):
-        if self.data_file.getOption("info_hud_string") != "" or not self.hidden:
+        if self.config.info_hud_string != "" or not self.hidden:
             self.setVisible(self.hidden)
             self.hidden = not self.hidden
 

@@ -950,6 +950,9 @@ class DataFile:
         self._AddOption(key="rotation", default=0, value_type="int", hidden=True)
         self._AddOption(key="rotation_steps", default=90, value_type="int", hidden=True)
         self._AddOption(key="hide_interfaces", default=True, value_type="bool", hidden=True)
+        self._AddOption(key="timestamp_formats", default="['%Y%m%d-%H%M%S-%f', '%Y%m%d-%H%M%S']", value_type="string", hidden=True)
+        self._AddOption(key="timestamp_formats2", default="['%Y%m%d-%H%M%S_%Y%m%d-%H%M%S']", value_type="string", hidden=True)
+        self._AddOption(key="max_image_size", default=2**14, value_type="int", hidden=True)
         self._AddOption(key="threaded_image_load", display_name="Thread image load", default=True, value_type="bool",
                         tooltip="Whether to do image loading\n"
                                 "in a separate thread.\n"
@@ -977,6 +980,7 @@ class DataFile:
         self._AddOption(key="scripts", hidden=True, default=[], value_type="array")
 
         self._last_category = "Marker"
+        self._AddOption(key="types", default='{0: ["marker", [255, 0, 0], TYPE_Normal]}', value_type="string", hidden=True)
         self._AddOption(key="tracking_connect_nearest", display_name="Track Auto-Connect", default=False, value_type="bool",
                         tooltip="When Auto-Connect is turned on,\n"
                                 "clicking in the image will always\n"
@@ -1000,6 +1004,7 @@ class DataFile:
                                 "frame to hide the track")
 
         self._last_category = "Mask"
+        self._AddOption(key="draw_types", default='[[1, [124, 124, 255], "mask"]]', value_type="string", hidden=True)
         self._AddOption(key="auto_mask_update", display_name="Auto Mask Update", default=True, value_type="bool",
                         tooltip="When turned on, mask changes\n"
                                 "are directly displayed as the mask\n"
@@ -1057,6 +1062,14 @@ class DataFile:
 
         self._AddOption(key="export_image_scale", default=1.0, value_type="float", hidden=True)
         self._AddOption(key="export_marker_scale", default=1.0, value_type="float", hidden=True)
+
+        self._last_category = "Annotations"
+        self._AddOption(key="server_annotations", default=False, value_type="bool", hidden=True)
+        self._AddOption(key="sql_dbname", default='annotation', value_type="string", hidden=True)
+        self._AddOption(key="sql_host", default='131.188.117.94', value_type="string", hidden=True)
+        self._AddOption(key="sql_port", default=3306, value_type="int", hidden=True)
+        self._AddOption(key="sql_user", default='clickpoints', value_type="string", hidden=True)
+        self._AddOption(key="sql_pwd", default='123456', value_type="string", hidden=True)
 
     def _AddOption(self, **kwargs):
         category = kwargs["category"] if "category" in kwargs else self._last_category

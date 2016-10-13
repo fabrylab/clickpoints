@@ -296,7 +296,7 @@ class AnnotationEditor(QtWidgets.QWidget):
         self.layout.addWidget(self.pteAnnotation, 5, 0, 5, 4)
 
         # fill gui entries
-        if self.config.server_annotationss is True:
+        if self.config.server_annotations is True:
             self.leTStamp.setText(self.annotation.timestamp)
             self.leSystem.setText(self.annotation.system)
             self.leCamera.setText(self.annotation.camera)
@@ -425,45 +425,13 @@ class AnnotationOverview(QtWidgets.QWidget):
 
 
 class AnnotationHandler:
-    def __init__(self, window, data_file, modules, datafile, config=None):
-        self.config = config
+    data_file = None
+    config = None
 
+    def __init__(self, window, modules):
         # default settings and parameters
         self.window = window
-        self.data_file = data_file
-        self.config = config
         self.modules = modules
-
-        self.annoation_ids = []
-
-        if self.config.server_annotations:
-            import peewee
-            self.server = peewee.MySQLDatabase(self.config.sql_dbname,
-                                host=self.config.sql_host,
-                                port=self.config.sql_port,
-                                user=self.config.sql_user,
-                                passwd=self.config.sql_pwd)
-            self.db = AnnotationFile(datafile, self.server)
-
-            # place tick marks for already present masks
-            for item in self.db.get_annotation_frames():
-                try:
-                    image = self.data_file.table_image.get(external_id = item.file_id, frame=item.frame)
-                    BroadCastEvent(self.modules, "AnnotationMarkerAdd", image.sort_index)
-                    self.annoation_ids.append(item.id)
-                except:
-                    pass
-
-
-
-        else:
-            self.data_file = datafile
-            self.db = AnnotationFile(datafile)
-
-            # place tick marks for already present masks
-            for item in self.db.get_annotation_frames():
-                BroadCastEvent(self.modules, "AnnotationMarkerAdd", item.image.sort_index)
-                self.annoation_ids.append(item.id)
 
         self.button_annotationEditor = QtWidgets.QPushButton()
         self.button_annotationEditor.setIcon(qta.icon("fa.edit"))
@@ -473,6 +441,50 @@ class AnnotationHandler:
 
         self.AnnotationEditorWindow = None
         self.AnnotationOverviewWindow = None
+
+        self.closeDataFile()
+
+    def closeDataFile(self):
+        self.data_file = None
+        self.config = None
+
+        self.annoation_ids = []
+
+        if self.AnnotationEditorWindow:
+            self.AnnotationEditorWindow.close()
+        if self.AnnotationOverviewWindow:
+            self.AnnotationOverviewWindow.close()
+
+    def updateDataFile(self, data_file, new_database):
+        self.data_file = data_file
+        self.config = data_file.getOptionAccess()
+
+        if self.config.server_annotations:
+            import peewee
+            self.server = peewee.MySQLDatabase(self.config.sql_dbname,
+                                               host=self.config.sql_host,
+                                               port=self.config.sql_port,
+                                               user=self.config.sql_user,
+                                               passwd=self.config.sql_pwd)
+            self.db = AnnotationFile(self.data_file, self.server)
+
+            # place tick marks for already present masks
+            for item in self.db.get_annotation_frames():
+                try:
+                    image = self.data_file.table_image.get(external_id=item.file_id, frame=item.frame)
+                    BroadCastEvent(self.modules, "AnnotationMarkerAdd", image.sort_index)
+                    self.annoation_ids.append(item.id)
+                except:
+                    pass
+
+        else:
+            self.data_file = self.data_file
+            self.db = AnnotationFile(self.data_file)
+
+            # place tick marks for already present masks
+            for item in self.db.get_annotation_frames():
+                BroadCastEvent(self.modules, "AnnotationMarkerAdd", item.image.sort_index)
+                self.annoation_ids.append(item.id)
 
     def AnnotationAdded(self, annotation):
         if annotation.id not in self.annoation_ids:

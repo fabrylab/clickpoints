@@ -36,8 +36,6 @@ def StartSplashScreen():
     except NameError:
         app = QtWidgets.QApplication(sys.argv)
 
-    print("SlapshScreen")
-
     # Create and display the splash screen
     splash_pix = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), 'icons', 'Splash.png'))
     splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
