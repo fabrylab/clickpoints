@@ -59,15 +59,10 @@ class Booster(QtWidgets.QWidget):
         print("Ready")
 
     def OpenNewWindow(self, command):
-        import cProfile, pstats, StringIO
-        pr = cProfile.Profile()
-        pr.enable()
-        # ... do something ...
-
         from ClickPoints import ClickPointsWindow
         from includes import LoadConfig
         global app
-        config = LoadConfig()
+        config = LoadConfig(command)
         config.srcpath = command
         window = ClickPointsWindow(config)
         print("ClickPoints started", time.time()-start_new_time, "s")
@@ -92,12 +87,6 @@ class Booster(QtWidgets.QWidget):
                 new_window_list.append(win)
         self.windows = new_window_list
         self.windows.append(window)
-        pr.disable()
-        s = StringIO.StringIO()
-        sortby = 'cumulative'
-        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        ps.print_stats()
-        print(s.getvalue())
 
 
 def BoosterRunning():

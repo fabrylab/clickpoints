@@ -44,7 +44,7 @@ class dotdict(dict):
 
 class ExceptionPathDoesntExist(Exception): pass
 
-def LoadConfig():
+def LoadConfig(srcpath=""):
     """ Determine the input path """
 
     replacements = dict(TYPE_Normal=0, TYPE_Rect=1, TYPE_Line=2, TYPE_Track=4)
