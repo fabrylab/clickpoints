@@ -980,7 +980,7 @@ class DataFile:
         self._AddOption(key="scripts", hidden=True, default=[], value_type="array")
 
         self._last_category = "Marker"
-        self._AddOption(key="types", default='{0: ["marker", [255, 0, 0], TYPE_Normal]}', value_type="string", hidden=True)
+        self._AddOption(key="types", default={0: ["marker", [255, 0, 0], self.TYPE_Normal]}, value_type="dict", hidden=True)
         self._AddOption(key="tracking_connect_nearest", display_name="Track Auto-Connect", default=False, value_type="bool",
                         tooltip="When Auto-Connect is turned on,\n"
                                 "clicking in the image will always\n"
@@ -1004,7 +1004,7 @@ class DataFile:
                                 "frame to hide the track")
 
         self._last_category = "Mask"
-        self._AddOption(key="draw_types", default='[[1, [124, 124, 255], "mask"]]', value_type="string", hidden=True)
+        self._AddOption(key="draw_types", default=[[1, [124, 124, 255], "mask"]], value_type="list", hidden=True)
         self._AddOption(key="auto_mask_update", display_name="Auto Mask Update", default=True, value_type="bool",
                         tooltip="When turned on, mask changes\n"
                                 "are directly displayed as the mask\n"
@@ -1086,6 +1086,9 @@ class DataFile:
                     option.value = self._stringToList(entry.value)
                 else:
                     option.value = int(entry.value)
+            if option.value_type == "dict" or option.value_type == "list":
+                import ast
+                option.value = ast.literal_eval(entry.value)
             if option.value_type == "choice":
                 option.value = int(entry.value)
             if option.value_type == "float":
