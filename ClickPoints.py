@@ -556,10 +556,6 @@ def main():
 
     # load config and exec addon code
     config = LoadConfig()
-    #for addon in config.addons:
-    #    with open(addon + ".py") as f:
-    #        code = compile(f.read(), addon + ".py", 'exec')
-    #        exec(code)
 
     # init and open the ClickPoints window
     window = ClickPointsWindow(config)
