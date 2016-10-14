@@ -22,10 +22,39 @@
 from __future__ import division, print_function
 import argparse
 import os
+import sys
 import socket
 import signal
 import numpy as np
 from MemMap import MemMap
+
+
+class PrintHook:
+    def __init__(self, out, func):
+        self.func = func
+        self.origOut = None
+
+        if out:
+            sys.stdout = self
+            self.origOut = sys.__stdout__
+        else:
+            sys.stderr = self
+            self.origOut = sys.__stderr__
+
+    def write(self, text):
+        # write to stdout, file and call the function
+        self.origOut.write(text)
+        self.func(text)
+
+    def __getattr__(self, name):
+        # pass the rest to the original output
+        return self.origOut.__getattr__(name)
+
+global hook1, hook2
+def StartHooks(func):
+    global hook1, hook2
+    hook1 = PrintHook(1, func)
+    hook2 = PrintHook(0, func)
 
 
 class Commands:
@@ -51,6 +80,7 @@ class Commands:
         self.PORT = port
         if catch_terminate_signal:
             self.CatchTerminateSignal()
+        StartHooks(self.log)
 
     def _send(self, message):
         if self.PORT is None:
@@ -79,6 +109,17 @@ class Commands:
             pass
         return value
 
+    def log(self, *args):
+        """
+        Print to the ClickPoints console.
+
+        Parameters
+        ----------
+        *args : string
+            multiple strings to print
+        """
+        text = " ".join([str(arg) for arg in args])
+        self._send("log %s \n" % text)
 
     def JumpFrames(self, value):
         """

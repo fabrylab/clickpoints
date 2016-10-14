@@ -40,9 +40,6 @@ else:
 if not os.path.exists(storage_path):
     os.makedirs(storage_path)
 
-from includes import StartHooks
-StartHooks(reset=True)
-
 print(os.path.join(storage_path, "checked"))
 if not os.path.exists(os.path.join(storage_path, "checked")):
     from includes import CheckPackages
@@ -105,7 +102,7 @@ class AddStrech():
     def __init__(self, window):
         window.layoutButtons.addStretch()
 
-used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, OptionEditor]
+used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, OptionEditor, Console]
 used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", "", ""]
 
 
@@ -227,6 +224,11 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.setFocus()
 
         self.start_timer = QtCore.QTimer.singleShot(1, lambda: self.loadUrl(config.srcpath))
+
+        self.log("ClickPoints", version)
+        self.log("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro),
+              sys.version_info.releaselevel, "64bit" if sys.maxsize > 2 ** 32 else "32bit")
+        self.log("Using %s" % QT_API_NAME)
 
     def dragEnterEvent(self, event):
         # accept url lists (files by drag and drop)
@@ -352,6 +354,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.data_file.save_database(file=srcpath)
             BroadCastEvent(self.modules, "DatabaseSaved")
             self.JumpFrames(0)
+
+    def log(self, *args, **kwargs):
+        self.GetModule("Console").log(*args, **kwargs)
 
     """ jumping frames and displaying images """
 
