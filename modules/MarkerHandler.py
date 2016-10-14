@@ -2094,7 +2094,3 @@ class MarkerHandler:
     @staticmethod
     def file():
         return __file__
-
-    @staticmethod
-    def can_create_module(config):
-        return len(config.types) > 0
