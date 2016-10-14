@@ -32,9 +32,8 @@ class Console(QtWidgets.QTextEdit):
     update_normal = QtCore.Signal(str)
     update_error = QtCore.Signal(str)
 
-    def __init__(self, window, data_file):
+    def __init__(self, window):
         QtWidgets.QTextEdit.__init__(self)
-        self.data_file = data_file
         self.window = window
         self.setHidden(True)
 
@@ -65,13 +64,6 @@ class Console(QtWidgets.QTextEdit):
         self.update_normal.connect(self.add_text)
         self.update_error.connect(self.add_textE)
 
-        h1, h2 = GetHooks()
-        h1.func = lambda s: self.update_normal.emit(s)
-        h2.func = lambda s: self.update_error.emit(s)
-        with open(h1.path, "r") as fp:
-            self.add_text(fp.read())
-        self.add_text("")
-
     def keyPressEvent(self, event):
         # @key ---- Modules ----
         # @key Q: open the console
@@ -86,6 +78,10 @@ class Console(QtWidgets.QTextEdit):
                 self.setGeometry(self.x(), self.y(), 500, 300)
                 self.show()
             self.setVisible(True)
+
+    def log(self, *args, **kwargs):
+        text = " ".join([str(arg) for arg in args])+kwargs.get("end", "\n")
+        self.update_normal.emit(text)
 
     def add_textE(self, text, clear=False):
         self.insertHtml("<p style='color: #ff6b68'>"+text.replace("\n", "<br/>").replace(" ", "&nbsp;")+"</p>")#<p style='color: #c0c0c0'></p>")

@@ -55,6 +55,8 @@ def isPortInUse(type,ip,port_nr):
     else:
         return False
 
+path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
+
 
 class ScriptEditor(QtWidgets.QWidget):
     def __init__(self, script_launcher):
@@ -238,11 +240,11 @@ class ScriptLauncher(QtCore.QObject):
             button = QtWidgets.QPushButton()
             button.setCheckable(True)
             button.icon_name = "fa.bar-chart"
-            if os.path.exists(os.path.join(self.config.path_config, script)):
-                script_path = os.path.join(self.config.path_config, script)
+            #if os.path.exists(os.path.join(self.config.path_config, script)):
+            #    script_path = os.path.join(self.config.path_config, script)
             # or relative to the clickpoints path
-            elif os.path.exists(os.path.join(self.config.path_clickpoints, "addons", script)):
-                script_path = os.path.join(self.config.path_clickpoints, "addons", script)
+            if os.path.exists(os.path.join(path_addons, script)):
+                script_path = os.path.join(path_addons, script)
             with open(script_path) as fp:
                 for line in fp:
                     line = line.strip()
@@ -277,6 +279,8 @@ class ScriptLauncher(QtCore.QObject):
         cmd, value = str(command).split(" ", 1)
         if cmd == "JumpFrames":
             self.window.JumpFrames(int(value))
+        if cmd == "log":
+            self.window.log(value[:-1], end="")
         if cmd == "JumpToFrame":
             self.window.JumpToFrame(int(value))
         if cmd == "JumpFramesWait":
@@ -363,13 +367,13 @@ class ScriptLauncher(QtCore.QObject):
         self.window.Save()
         script_path = None
         # search script relative to the config file
-        print(os.path.join(self.config.path_config, script))
-        print(os.path.join(self.config.path_clickpoints, "addons", script))
-        if os.path.exists(os.path.join(self.config.path_config, script)):
-            script_path = os.path.join(self.config.path_config, script)
+        #print(os.path.join(self.config.path_config, script))
+        #print(os.path.join(self.config.path_clickpoints, "addons", script))
+        #if os.path.exists(os.path.join(self.config.path_config, script)):
+        #    script_path = os.path.join(self.config.path_config, script)
         # or relative to the clickpoints path
-        elif os.path.exists(os.path.join(self.config.path_clickpoints, "addons", script)):
-            script_path = os.path.join(self.config.path_clickpoints, "addons", script)
+        if os.path.exists(os.path.join(path_addons, script)):
+            script_path = os.path.join(path_addons, script)
         # print an error message if no file was found
         if script_path is None:
             print("ERROR: script %s not found." % script)
@@ -385,6 +389,7 @@ class ScriptLauncher(QtCore.QObject):
         self.running_processes[index]['command_port'] = self.PORT
         self.running_processes[index]['broadcast_port'] = self.PORT + 1
         print("Process", process)
+        self.window.log("Start add-on", script)
         timer = QtCore.QTimer()
         timer.timeout.connect(lambda: self.CheckProcessRunning(timer, process, self.script_buttons[index]))
         timer.start_time = time.time()
