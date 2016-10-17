@@ -165,7 +165,7 @@ class ScriptLauncher(QtCore.QObject):
     data_file = None
     config = None
 
-    scripts = []
+    scripts = None
 
     def __init__(self, window, modules):
         QtCore.QObject.__init__(self)

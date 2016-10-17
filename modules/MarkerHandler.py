@@ -1741,12 +1741,12 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
         self.scene().removeItem(self)
 
 class MarkerHandler:
-    points = []
-    tracks = []
-    lines = []
-    rectangles = []
-    display_lists = [points, tracks, lines, rectangles]
-    counter = []
+    points = None
+    tracks = None
+    lines = None
+    rectangles = None
+    display_lists = None
+    counter = None
     scale = 1
 
     marker_edit_window = None
@@ -1788,6 +1788,13 @@ class MarkerHandler:
         image_display.AddEventFilter(self.scene_event_filter)
 
         self.Crosshair = Crosshair(parent, view, image_display)
+
+        self.points = []
+        self.tracks = []
+        self.lines = []
+        self.rectangles = []
+        self.counter = []
+        self.display_lists = [self.points, self.tracks, self.lines, self.rectangles]
 
         self.closeDataFile()
 
