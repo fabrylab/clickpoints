@@ -480,7 +480,7 @@ class MaskHandler:
     active = False
     hidden = False
 
-    buttons = []
+    buttons = None
 
     active_draw_type_index = None
     active_draw_type = None
@@ -539,8 +539,9 @@ class MaskHandler:
         self.LoadMask(None)
 
         # remove all counters
-        for button in self.buttons:
-            self.buttons[button].delete()
+        if self.buttons is not None:
+            for button in self.buttons:
+                self.buttons[button].delete()
         self.buttons = []
 
         if self.mask_edit_window:
