@@ -70,7 +70,7 @@ def CheckPackages():
 
 
     packages = [
-      package('clickpoints', version_string="", install_string="%s ../package/setup.py develop" % sys.executable),
+      package('clickpoints', version_string="", install_string="%s %s develop" % (sys.executable, os.path.join(os.path.dirname(__file__), "..", "package", "setup.py"))),
       package('numpy'),
       package('scipy'),
       package('matplotlib'),
@@ -88,7 +88,7 @@ def CheckPackages():
       package('natsort'),
       package('tifffile'),
       package('imageio', min_version='1.3'),
-      package('cv2'),
+      package('cv2'),  # can't be installed by pip
       package('pillow', importname="PIL", version_string="PILLOW_VERSION"),
 
       package('sortedcontainers'),
