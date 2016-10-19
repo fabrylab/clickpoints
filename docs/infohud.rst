@@ -7,7 +7,7 @@ Info Hud
     Example of the info hud displaying time and exposure exif data from a jpg file.
 
 
-This info hud can display additional information for each image. Information get be obtained from the filename, jpeg exif
+This info hud can display additional information for each image. Information can be obtained from the filename, jpeg exif
 information or tiff metadata or be provided by an external script.
 
 The text can be set using the options dialog. Placeholders for additional information are written with curly brackets ``{}``.
