@@ -118,7 +118,7 @@ class TimeLineGrabberSignal(QtCore.QObject):
 class TimeLineGrabber(QtWidgets.QGraphicsPathItem):
     def __init__(self, parent, value, path, gradient, parent_item=None):
         if parent_item is None:
-            QtWidgets.QGraphicsPathItem.__init__(self, None, parent.scene)
+            QtWidgets.QGraphicsPathItem.__init__(self, parent.parent)
         else:
             QtWidgets.QGraphicsPathItem.__init__(self, parent_item)
         self.parent = parent
@@ -193,13 +193,15 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
 
         self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
+        self.parent = QtWidgets.QGraphicsRectItem(None)
+        self.scene.addItem(self.parent)
         self.scene.setBackgroundBrush(self.palette().color(QtGui.QPalette.Background))
         self.setStyleSheet("border: 0px")
 
         self.max_value = max_value
         self.min_value = min_value
 
-        self.slider_line = QtWidgets.QGraphicsRectItem(None, self.scene)
+        self.slider_line = QtWidgets.QGraphicsRectItem(self.parent)
         self.slider_line.setPen(QtGui.QPen(QtGui.QColor("black")))
         self.slider_line.setPos(0, -2.5)
         gradient = QtGui.QLinearGradient(QtCore.QPointF(0, 0), QtCore.QPointF(0, 5))
@@ -208,7 +210,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         self.slider_line.setBrush(QtGui.QBrush(gradient))
         self.slider_line.mousePressEvent = self.SliderBarMousePressEvent
 
-        self.slider_line_active = QtWidgets.QGraphicsRectItem(None, self.scene)
+        self.slider_line_active = QtWidgets.QGraphicsRectItem(self.parent)
         self.slider_line_active.setPen(QtGui.QPen(QtGui.QColor("black")))
         self.slider_line_active.setPos(0, -2.5)
         gradient = QtGui.QLinearGradient(QtCore.QPointF(0, 0), QtCore.QPointF(0, 5))
@@ -405,7 +407,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         self.scene.setBackgroundBrush(self.palette().color(QtGui.QPalette.Background))
         self.setStyleSheet("border: 0px")
 
-        self.slider_line = QtWidgets.QGraphicsRectItem(None, self.scene)
+        self.slider_line = QtWidgets.QGraphicsRectItem(None)
         self.slider_line.setPen(QtGui.QPen(QtGui.QColor("black")))
         self.slider_line.setPos(0, 0)
         gradient = QtGui.QLinearGradient(QtCore.QPointF(0, 0), QtCore.QPointF(0, 5))
