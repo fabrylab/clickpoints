@@ -119,9 +119,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
     load_thread = None
     data_file = None
 
-    def __init__(self, my_config, parent=None):
+    def __init__(self, my_config, app, parent=None):
         global config
         config = my_config
+        self.app = app
         super(QtWidgets.QWidget, self).__init__(parent)
         self.setWindowIcon(QtGui.QIcon(QtGui.QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
 
@@ -229,6 +230,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.log("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro),
               sys.version_info.releaselevel, "64bit" if sys.maxsize > 2 ** 32 else "32bit")
         self.log("Using %s" % QT_API_NAME)
+
+        self.app.processEvents()
 
     def dragEnterEvent(self, event):
         # accept url lists (files by drag and drop)
@@ -563,8 +566,7 @@ def main():
     config = LoadConfig()
 
     # init and open the ClickPoints window
-    window = ClickPointsWindow(config)
-    window.app = app
+    window = ClickPointsWindow(config, app)
     window.show()
     StopSplashScreen(window)
     app.exec_()
