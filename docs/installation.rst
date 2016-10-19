@@ -10,7 +10,7 @@ Windows
 Installer
 ~~~~~~~~~
 
-We provide an installer for the windows platform which python and all the packages which are needed. It is the simplest and most
+We provide an installer for the windows platform including python and all the packages which are needed. It is the simplest and most
 comfortable installation.
 
 `Download Installer with Python 175MB <https://bitbucket.org/fabry_biophysics/clickpoints/downloads/ClickPoints_latest.exe>`_
