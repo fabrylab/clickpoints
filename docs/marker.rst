@@ -140,7 +140,7 @@ The styles use the JSON format for data storage. The following fields can be use
 -  **Track Line Style** - ``"track-line-style": "solid"``
       The style of the line used to display the track history.
 
-      *values:* ``solid`` (default), ``dash``, ``dot``, ``dashdot``,``dashdotdot``
+      *values:* ``solid`` (default), ``dash``, ``dot``, ``dashdot``, ``dashdotdot``
 
 -  **Track Line Width** - ``"track-line-width": 2``
       The line width if the line used to display the track history.
@@ -212,7 +212,7 @@ The keywords are depending on the type for marker, as explained in the following
    # SmartText
    Track: "ID_$track_id"                               # shows the track ID
    Line: "$x_pos | $y_pos \n$length px"                # shows the x & y coordinate and length
-   Rect: "ID_$marker_id\n$x_pos | $y_pos \n$area pxÂ²"  # shows the object_id, its x & y coordinate and area
+   Rect: "ID_$marker_id\n$x_pos | $y_pos \n$area px²"  # shows the object_id, its x & y coordinate and area
 
 .. figure:: images/ModulesMarkerSmartText.png
    :alt: Using the Marker Text and SmartText feature
