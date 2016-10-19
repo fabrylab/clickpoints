@@ -183,8 +183,11 @@ colors = np.linspace(0, 1, 16, endpoint=False).tolist()*3  # 16 different hues
 saturations = [1]*16+[0.5]*16+[1]*16  # in two different saturations
 value = [1]*16+[1]*16+[0.5]*16  # and two different values
 for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
-    # deform the index, as the dialog fills them column wise and we want to fill them rowise
+    # deform the index, as the dialog fills them column wise and we want to fill them row wise
     index = index % 8*6+index//8
     # convert color from hsv to rgb, to an array, to an tuple, to a hex string then to an integer
     color_integer = int("%02x%02x%02x" % tuple((np.array(colorsys.hsv_to_rgb(color, sat, val))*255).astype(int)), 16)
-    QtWidgets.QColorDialog.setStandardColor(index, color_integer)
+    try:
+        QtWidgets.QColorDialog.setStandardColor(index, QtGui.QColor(color_integer))  # for Qt5
+    except TypeError:
+        QtWidgets.QColorDialog.setStandardColor(index, color_integer)  # for Qt4

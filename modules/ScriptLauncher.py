@@ -205,7 +205,7 @@ class ScriptLauncher(QtCore.QObject):
         self.window.layoutButtons.addWidget(self.button)
 
         self.button_group_layout = QtWidgets.QHBoxLayout()
-        self.button_group_layout.setMargin(0)  # setStyleSheet("margin: 0px; padding: 0px;")
+        self.button_group_layout.setContentsMargins(0, 0, 0, 0)  # setStyleSheet("margin: 0px; padding: 0px;")
         self.script_buttons = []
         self.window.layoutButtons.addLayout(self.button_group_layout)
 
