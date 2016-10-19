@@ -33,6 +33,7 @@ class PrintHook:
     def __init__(self, out, func):
         self.func = func
         self.origOut = None
+        self.out = out
 
         if out:
             sys.stdout = self
@@ -41,6 +42,13 @@ class PrintHook:
             sys.stderr = self
             self.origOut = sys.__stderr__
 
+    def __del__(self):
+        if self.out:
+            sys.stdout = self.origOut
+        else:
+            sys.stderr = self.origOut
+        self.origOut = None
+
     def write(self, text):
         # write to stdout, file and call the function
         self.origOut.write(text)
@@ -48,7 +56,9 @@ class PrintHook:
 
     def __getattr__(self, name):
         # pass the rest to the original output
-        return self.origOut.__getattr__(name)
+        if self.origOut is not None:
+            return getattr(self.origOut, name, None)
+
 
 global hook1, hook2
 def StartHooks(func):
