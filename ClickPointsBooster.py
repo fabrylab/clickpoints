@@ -90,9 +90,8 @@ class Booster(QtWidgets.QWidget):
 
 
 def BoosterRunning():
-    import win32api
     import psutil
-    pid = win32api.GetCurrentProcessId()
+    pid = os.getpid()
     python_filename = os.path.basename(__file__)
     python_filename = python_filename.replace(".pyc", ".py")
     for process in psutil.process_iter():
