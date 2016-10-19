@@ -53,7 +53,7 @@ class Booster(QtWidgets.QWidget):
 
         event_handler = MyHandler(command_file, self)
         observer = Observer()
-        observer.schedule(event_handler, path=os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp"),
+        observer.schedule(event_handler, path=os.path.dirname(command_file),
                           recursive=False)
         observer.start()
         print("Ready")
@@ -64,21 +64,22 @@ class Booster(QtWidgets.QWidget):
         global app
         config = LoadConfig(command)
         config.srcpath = command
-        window = ClickPointsWindow(config)
+        window = ClickPointsWindow(config, app)
+        self.setWindowTitle("blabalba")
         print("ClickPoints started", time.time()-start_new_time, "s")
-        from win32gui import SetWindowPos
-        import win32con
+        if sys.platform[:3] == 'win':
+            from win32gui import SetWindowPos
+            import win32con
 
-        SetWindowPos(window.winId(),
-                     win32con.HWND_TOPMOST,  # = always on top. only reliable way to bring it to the front on windows
-                     0, 0, 0, 0,
-                     win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
-        SetWindowPos(window.winId(),
-                     win32con.HWND_NOTOPMOST,  # disable the always on top, but leave window at its top position
-                     0, 0, 0, 0,
-                     win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
+            SetWindowPos(window.winId(),
+                         win32con.HWND_TOPMOST,  # = always on top. only reliable way to bring it to the front on windows
+                         0, 0, 0, 0,
+                         win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
+            SetWindowPos(window.winId(),
+                         win32con.HWND_NOTOPMOST,  # disable the always on top, but leave window at its top position
+                         0, 0, 0, 0,
+                         win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
         window.raise_()
-        window.app = app
         window.show()
         window.activateWindow()
         new_window_list = []
@@ -87,6 +88,7 @@ class Booster(QtWidgets.QWidget):
                 new_window_list.append(win)
         self.windows = new_window_list
         self.windows.append(window)
+        print(self.windows)
 
 
 def BoosterRunning():
@@ -99,7 +101,7 @@ def BoosterRunning():
             process_name = process.name()
         except psutil.AccessDenied:
             continue
-        if process_name == "python.exe":
+        if process_name.startswith("python"):
             for command in process.cmdline():
                 script_name = os.path.split(command)[1]
                 if script_name == python_filename and process.pid != pid:
@@ -110,7 +112,11 @@ def main():
     global app
     BoosterRunning()
 
-    command_file = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints.txt")
+    if sys.platform[:3] == 'win':
+        command_file = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints.txt")
+    else:
+        command_file = os.path.expanduser("~/.clickpoints/ClickPoints.txt")
+
     with open(command_file, "w") as fp:
         fp.write("")
 
