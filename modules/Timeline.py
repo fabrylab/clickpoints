@@ -265,7 +265,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
             width = self.ValueToPixel(1)
             if pos == self.max_value:
                 width = 2
-            tick_marker = QtWidgets.QGraphicsRectItem(0.0, -3.5, width, -height, None, self.scene)
+            tick_marker = QtWidgets.QGraphicsRectItem(0.0, -3.5, width, -height, self.parent)
         tick_marker.setPen(QtGui.QPen(color))
         tick_marker.setBrush(QtGui.QBrush(color))
         tick_marker.value = pos
