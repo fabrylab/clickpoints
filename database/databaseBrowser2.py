@@ -27,27 +27,13 @@ import sip
 
 import qtawesome as qta
 
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
-from matplotlibwidget import MatplotlibWidget
-import seaborn as sns
 import time
-from matplotlib.colors import LinearSegmentedColormap
 from threading import Thread
 import threading
 from qimage2ndarray import array2qimage
 import imageio
 
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QWidget, QTextStream, QGridLayout, QProgressBar
-    from PyQt5.QtCore import Qt
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QWidget, QApplication, QCursor, QFileDialog, QIcon, QMessageBox, QSizePolicy, QGridLayout, \
-        QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QPlainTextEdit, QTableWidget, QHeaderView, \
-        QTableWidgetItem, QSpinBox, QTabWidget, QSpacerItem, QProgressBar
-    from PyQt4.QtCore import Qt, QTextStream, QFile, QObject, SIGNAL
+from qtpy import QtGui, QtCore, QtWidgets
 
 from peewee import fn, SQL
 import re
@@ -100,7 +86,7 @@ def GetMonthName(month):
 
 
 class queryThread(QtCore.QThread):
-    sig = QtCore.pyqtSignal(QtCore.QThread)
+    sig = QtCore.Signal(QtCore.QThread)
 
     def __init__(self, parent, query):
         super(QtCore.QThread, self).__init__()
@@ -203,7 +189,7 @@ def OpenClickPoints(query, database):
     if counter is None:
         return
     if counter == 0:
-        QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
+        QtWidgets.QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
         return
     print("Selected %d images." % counter)
     if platform.system() == 'Windows':
@@ -212,11 +198,11 @@ def OpenClickPoints(query, database):
         subprocess.Popen(['clickpoints', 'files.txt'], shell=False)
 
 
-class DatabaseBrowser(QWidget):
-    update_image = QtCore.pyqtSignal()
+class DatabaseBrowser(QtWidgets.QWidget):
+    update_image = QtCore.Signal()
 
     def __init__(self):
-        QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
 
         # read local mount lookup table
         if platform.system() == 'Linux':
@@ -236,40 +222,40 @@ class DatabaseBrowser(QWidget):
         self.setMinimumHeight(500)
         self.setGeometry(100, 100, 500, 600)
         self.setWindowTitle("Database Browser")
-        self.setWindowIcon(QIcon(QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
+        self.setWindowIcon(QtGui.QIcon(QtGui.QIcon(os.path.join(icon_path, "DatabaseViewer.ico"))))
 
         # The global layout has two parts
-        self.global_layout = QHBoxLayout(self)
-        self.layout = QVBoxLayout()  # the left part for the tree view
+        self.global_layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout()  # the left part for the tree view
         self.global_layout.addLayout(self.layout)
-        self.layout2 = QVBoxLayout()  # and the right part for the image display
+        self.layout2 = QtWidgets.QVBoxLayout()  # and the right part for the image display
         self.global_layout.addLayout(self.layout2)
 
         # System, device, start and end display
-        layout = QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
-        self.system_name = QtGui.QLineEdit()
+        self.system_name = QtWidgets.QLineEdit()
         self.system_name.setDisabled(True)
         layout.addWidget(self.system_name)
-        self.device_name = QtGui.QLineEdit()
+        self.device_name = QtWidgets.QLineEdit()
         self.device_name.setDisabled(True)
         layout.addWidget(self.device_name)
-        layout = QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
-        self.date_start = QtGui.QLineEdit()
+        self.date_start = QtWidgets.QLineEdit()
         layout.addWidget(self.date_start)
-        self.date_end = QtGui.QLineEdit()
+        self.date_end = QtWidgets.QLineEdit()
         layout.addWidget(self.date_end)
 
         # Open button
-        layout = QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
-        self.button_open = QtGui.QPushButton("Open")
+        self.button_open = QtWidgets.QPushButton("Open")
         self.button_open.clicked.connect(self.Open)
         layout.addWidget(self.button_open)
 
         # the tree view
-        tree = QtGui.QTreeView()
+        tree = QtWidgets.QTreeView()
         self.layout.addWidget(tree)
         model = QtGui.QStandardItemModel(0, 0)
 
@@ -299,7 +285,7 @@ class DatabaseBrowser(QWidget):
 
         # the image display part
         # has a label
-        self.time_label = QtGui.QLabel()
+        self.time_label = QtWidgets.QLabel()
         font = QtGui.QFont()
         font.setPointSize(16)
         self.time_label.setFont(font)
@@ -309,12 +295,12 @@ class DatabaseBrowser(QWidget):
         self.view = QExtendedGraphicsView()
         self.view.setMinimumWidth(600)
         self.layout2.addWidget(self.view)
-        self.pixmap = QtGui.QGraphicsPixmapItem(QtGui.QPixmap(1, 1), self.view.origin)
+        self.pixmap = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(1, 1), self.view.origin)
         self.thread_display = None
         self.update_image.connect(self.UpdateImage)
 
         # and a slider
-        self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.layout2.addWidget(self.slider)
         self.slider.sliderReleased.connect(self.SliderChanged)
 
@@ -332,7 +318,8 @@ class DatabaseBrowser(QWidget):
 
     def TreeSelected(self, index):
         # get the selected entry and store it
-        if isinstance(index, QtGui.QItemSelection):
+        print(type(index))
+        if isinstance(index, QtCore.QItemSelection):
             index = index.indexes()[0]
         item = index.model().itemFromIndex(index)
         entry = item.entry
@@ -620,7 +607,7 @@ if __name__ == '__main__':
     if sys.platform[:3] == 'win':
         myappid = 'fabrybiophysics.databasebrowser'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
     window = DatabaseBrowser()
     window.show()
