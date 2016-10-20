@@ -399,7 +399,10 @@ class DataFile:
 
             def __getattr__(self, item):
                 if item == "mask":
-                    return self.masks[0]
+                    try:
+                        return self.masks[0]
+                    except IndexError:
+                        return None
                 if item == "data":
                     return self.get_data()
 
