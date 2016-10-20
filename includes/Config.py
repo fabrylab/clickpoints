@@ -19,7 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-import ConfigParser
+#import ConfigParser
+import configparser as ConfigParser
 import json
 
 class ConfigAccessHelper:
@@ -46,4 +47,4 @@ class Config(ConfigParser.ConfigParser):
     def __getattr__(self, key):
         if key in self.sections():
             return ConfigAccessHelper(self, key)
-        return ConfigParser.ConfigParser.__getattr__(self, key)
+        #return ConfigParser.ConfigParser.__getattr__(self, key)
