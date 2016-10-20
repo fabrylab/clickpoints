@@ -32,10 +32,10 @@ This simple example simulates the movement of 10 object which follow a random wa
     db = clickpoints.DataFile("sim.cdb", "w")
 
     # Create a new marker type
-    type_point = db.AddType("point", "#FF0000", mode=db.TYPE_Track)
+    type_point = db.setMarkerType("point", "#FF0000", mode=db.TYPE_Track)
 
     # Create track instances
-    tracks = db.AddTracks(N, type_point)
+    tracks = [db.setTrack(type_point) for i in range(N)]
 
     # Create initial positions
     points = np.random.rand(N, 2)*size
@@ -44,13 +44,13 @@ This simple example simulates the movement of 10 object which follow a random wa
     for i in range(frame_count):
         print(i)
         # Create a new frame
-        image = db.AddImage("frame_%03d" % i, "", "", width=size, height=size)
+        image = db.setImage("frame_%03d" % i, width=size, height=size)
 
         # Move the positions
         points += np.random.rand(N, 2)-0.5
 
         # Save the new positions
-        db.SetMarker(image=image, x=points[:, 0], y=points[:, 1], track=tracks)
+        db.setMarkers(image=image, x=points[:, 0], y=points[:, 1], track=tracks)
 
     # plot the results
     for track in tracks:
@@ -58,4 +58,5 @@ This simple example simulates the movement of 10 object which follow a random wa
     plt.xlim(0, size)
     plt.ylim(size, 0)
     plt.show()
+
 
