@@ -141,7 +141,15 @@ class ScriptEditor(QtWidgets.QWidget):
         # if we got one, set it
         if new_path:
             print(new_path, self.script_launcher.script_path)
-            new_path = os.path.relpath(new_path, self.script_launcher.script_path)
+            try:
+                new_path1 = os.path.relpath(new_path, self.script_launcher.script_path)
+            except:
+                new_path1 = None
+            new_path2 = os.path.relpath(new_path, os.getcwd())
+            if new_path1 is None or len(new_path1) > len(new_path2):
+                new_path = new_path2
+            else:
+                new_path = new_path1
             self.script_launcher.scripts.append(new_path)
             self.text_input.setText(new_path)
             self.update_folder_list()
@@ -232,7 +240,8 @@ class ScriptLauncher(QtCore.QObject):
         self.updateScripts()
 
     def updateScripts(self):
-        #self.data_file.setOption("scripts", self.scripts)
+        if self.data_file is not None:
+            self.data_file.setOption("scripts", self.scripts)
         for button in self.script_buttons:
             self.button_group_layout.removeWidget(button)
         self.script_buttons = []
@@ -240,10 +249,10 @@ class ScriptLauncher(QtCore.QObject):
             button = QtWidgets.QPushButton()
             button.setCheckable(True)
             button.icon_name = "fa.bar-chart"
-            #if os.path.exists(os.path.join(self.config.path_config, script)):
-            #    script_path = os.path.join(self.config.path_config, script)
+            if os.path.exists(script):
+                script_path = os.path.join(os.getcwd(), script)
             # or relative to the clickpoints path
-            if os.path.exists(os.path.join(path_addons, script)):
+            elif os.path.exists(os.path.join(path_addons, script)):
                 script_path = os.path.join(path_addons, script)
             with open(script_path) as fp:
                 for line in fp:
@@ -371,8 +380,10 @@ class ScriptLauncher(QtCore.QObject):
         #print(os.path.join(self.config.path_clickpoints, "addons", script))
         #if os.path.exists(os.path.join(self.config.path_config, script)):
         #    script_path = os.path.join(self.config.path_config, script)
+        if os.path.exists(script):
+            script_path = os.path.join(os.getcwd(), script)
         # or relative to the clickpoints path
-        if os.path.exists(os.path.join(path_addons, script)):
+        elif os.path.exists(os.path.join(path_addons, script)):
             script_path = os.path.join(path_addons, script)
         # print an error message if no file was found
         if script_path is None:
