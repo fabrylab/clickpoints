@@ -1026,7 +1026,7 @@ class DataFile:
                                 "meta[] meta information from tiff images.")
 
         self._last_category = "Timeline"
-        self._AddOption(key="fps", default=0, value_type="int", hidden=True)
+        self._AddOption(key="fps", default=0, value_type="float", hidden=True)
         self._AddOption(key="skip", default=0, value_type="int", hidden=True)
         self._AddOption(key="play_start", default=0.0, value_type="float", hidden=True)
         self._AddOption(key="play_end", default=1.0, value_type="float", hidden=True)
