@@ -512,7 +512,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
 
         # add the months as children
         for row in query:
-            child = QtGui.QStandardItem("%s (%s)" % (GetMonthName(row.month), ShortenNumber(row.count)))
+            child = QtGui.QStandardItem("%s (%s)" % (GetMonthName(row.month-1), ShortenNumber(row.count)))
             child.setIcon(qta.icon("fa.calendar-o"))
             child.setEditable(False)
             child.entry = Month(entry.device, entry.year, row.month, row.timestamp, row.count1)
