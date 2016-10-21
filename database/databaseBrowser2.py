@@ -385,8 +385,12 @@ class DatabaseBrowser(QtWidgets.QWidget):
             self.slider.setSliderPosition(0)
             self.slider.setRange(0, entry.count)
             self.slider.setDisabled(False)
-            entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
-                                                timestamp=entry.timestamp)
+            #entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
+            #                               timestamp=entry.timestamp)\
+            entry = self.database.SQL_Files.select().where(self.database.SQL_Files.system == entry.device.system.id)\
+                                                    .where(self.database.SQL_Files.device == entry.device.id)\
+                                                    .where(self.database.SQL_Files.timestamp == entry.timestamp)\
+                                                    .order_by(self.database.SQL_Files.timestamp)
             self.ImageDisplaySchedule(entry)
 
     def SliderChanged(self):
@@ -399,6 +403,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
                      .where(self.database.SQL_Files.system == self.selected_entry.device.system.id)
                      .where(self.database.SQL_Files.device == self.selected_entry.device.id)
                      .where(fn.year(self.database.SQL_Files.timestamp) == self.selected_entry.year)
+                     .order_by(self.database.SQL_Files.timestamp)
                      .limit(1).offset(index)
                      )
             self.ImageDisplaySchedule(query)
@@ -410,6 +415,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
                      .where(self.database.SQL_Files.device == self.selected_entry.device.id)
                      .where(fn.year(self.database.SQL_Files.timestamp) == self.selected_entry.year)
                      .where(fn.month(self.database.SQL_Files.timestamp) == self.selected_entry.month)
+                     .order_by(self.database.SQL_Files.timestamp)
                      .limit(1).offset(index)
                      )
             self.ImageDisplaySchedule(query)
@@ -422,6 +428,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
                      .where(fn.year(self.database.SQL_Files.timestamp) == self.selected_entry.year)
                      .where(fn.month(self.database.SQL_Files.timestamp) == self.selected_entry.month)
                      .where(fn.day(self.database.SQL_Files.timestamp) == self.selected_entry.day)
+                     .order_by(self.database.SQL_Files.timestamp)
                      .limit(1).offset(index)
                      )
             self.ImageDisplaySchedule(query)
