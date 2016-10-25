@@ -32,7 +32,7 @@ except ImportError:
     try:
         from StringIO import StringIO
     except ImportError:
-        from io import StringIO
+        import io
 
 PY3 = sys.version_info[0] == 3
 if PY3:
@@ -58,8 +58,8 @@ class ImageField(peewee.BlobField):
 
     def python_value(self, value):
         if not PY3:
-            value = str(value)
-        return imageio.imread(StringIO(value), format=".png")
+            return imageio.imread(StringIO(str(value)), format=".png")
+        return imageio.imread(io.BytesIO(value), format=".png")
 
 def CheckValidColor(color):
     class NoValidColor(Exception):
