@@ -256,6 +256,12 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
     def loadUrl(self, url, reset=False):
         print("Loading url", url)
+        if url == "":
+            if self.data_file is None or reset:
+                self.reset()
+            self.GetModule("Timeline").ImagesAdded()
+            BroadCastEvent(self.modules, "LoadingFinishedEvent")
+            return
 
         # open an existing database
         if url.endswith(".cdb"):

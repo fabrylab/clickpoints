@@ -204,7 +204,9 @@ class FolderEditor(QtWidgets.QWidget):
             selected_path, filename = os.path.split(selected_path)
             addPath(self.data_file, selected_path, filename)
         self.update_folder_list()
+        self.window.GetModule("Timeline").ImagesAdded()
         self.window.ImagesAdded()
+        self.window.GetModule("Timeline").LoadingFinishedEvent()
 
     def remove_folder(self):
         path = self.list.selectedItems()[0].path_entry
