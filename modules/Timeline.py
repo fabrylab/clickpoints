@@ -408,6 +408,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         self.setStyleSheet("border: 0px")
 
         self.slider_line = QtWidgets.QGraphicsRectItem(None)
+        self.scene.addItem(self.slider_line)
         self.slider_line.setPen(QtGui.QPen(QtGui.QColor("black")))
         self.slider_line.setPos(0, 0)
         gradient = QtGui.QLinearGradient(QtCore.QPointF(0, 0), QtCore.QPointF(0, 5))
@@ -1156,8 +1157,8 @@ class Timeline(QtCore.QObject):
         if hide is False and not self.timeSlider is None:
             self.layoutCtrl2.setHidden(self.timeSlider.is_hidden | (self.data_file is None or not self.data_file.getOption("datetimeline_show")))
 
-    #def optionsChanged(self):
-    #    if self.hidden is False self.timeSlider.setHidden(self.timeSlider.is_hidden | (not self.data_file.getOption("datetimeline_show")))
+    def optionsChanged(self):
+        self.HideInterface(self.hidden)
 
     def keyPressEvent(self, event):
         # @key H: hide control elements
