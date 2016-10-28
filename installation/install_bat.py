@@ -44,7 +44,7 @@ else:
     with open(sh_file, 'w') as fp:
         print("Writing ClickPoints bash file")
         fp.write("#!/bin/bash\n")
-        fp.write("echo \"$1\" >> ~/.clickpoints/ClickPoints.txt")
+        fp.write("echo \"$1\" >> ~/.clickpoints/ClickPoints.txt\n")
         fp.write("python")
         fp.write(" ")
         fp.write(script_path)
