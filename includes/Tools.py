@@ -61,6 +61,16 @@ def BroadCastEvent2(function, *args, **kwargs):
         if function in dir(module):
             eval("module."+function+"(*args, **kwargs)")
 
+def HiddeableLayout(parent_layout, layout_class):
+    widget = QtWidgets.QWidget()
+    parent_layout.addWidget(widget)
+    new_layout = layout_class(widget)
+    new_layout.setHidden = widget.setHidden
+    new_layout.setVisible = widget.setVisible
+    new_layout.isHidden = widget.isHidden
+    new_layout.isVisible = widget.isVisible
+    return new_layout
+
 class HelpText(QtWidgets.QGraphicsRectItem):
     def __init__(self, window, file, modules=[]):
         QtWidgets.QGraphicsRectItem.__init__(self, window.view.hud)
