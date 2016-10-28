@@ -34,7 +34,7 @@ from qtpy.QtCore import Qt
 import qtawesome as qta
 
 from QtShortCuts import AddQSpinBox
-from Tools import MySpinBox
+from Tools import MySpinBox, HiddeableLayout
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
@@ -873,12 +873,12 @@ class Timeline(QtCore.QObject):
         # control elements
         self.layoutCtrlParent = QtWidgets.QVBoxLayout()
         layout.addLayout(self.layoutCtrlParent)
-        self.layoutCtrl = QtWidgets.QHBoxLayout()
-        self.layoutCtrlParent.addLayout(self.layoutCtrl)
+
+        self.layoutCtrl = HiddeableLayout(self.layoutCtrlParent, QtWidgets.QHBoxLayout)
+        self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
 
         # second
-        self.layoutCtrl2 = QtWidgets.QHBoxLayout()
-        self.layoutCtrlParent.addLayout(self.layoutCtrl2)
+        self.layoutCtrl2 = HiddeableLayout(self.layoutCtrlParent, QtWidgets.QHBoxLayout)
 
         self.timeSlider = RealTimeSlider()
         self.layoutCtrl2.addWidget(self.timeSlider)
@@ -893,11 +893,10 @@ class Timeline(QtCore.QObject):
 
         self.timeSlider.setToolTip("current time stamp")
 
-        self.layoutCtrl3 = QtWidgets.QHBoxLayout()
-        self.layoutCtrlParent.addLayout(self.layoutCtrl3)
+        self.layoutCtrl3 = HiddeableLayout(self.layoutCtrlParent, QtWidgets.QHBoxLayout)
         self.progress_bar = QtWidgets.QProgressBar()
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setVisible(False)
+        self.layoutCtrl3.setVisible(False)
         self.layoutCtrl3.addWidget(self.progress_bar)
         self.empty_space_keeper = QtWidgets.QLabel()
         self.empty_space_keeper.setMaximumHeight(0)
@@ -1013,7 +1012,7 @@ class Timeline(QtCore.QObject):
     def ImagesAdded(self):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)
-        self.progress_bar.setVisible(True)
+        self.layoutCtrl3.setVisible(True)
         self.empty_space_keeper.setVisible(False)
         self.images_added_signal.emit()
 
@@ -1029,7 +1028,7 @@ class Timeline(QtCore.QObject):
     def LoadingFinishedEvent(self):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(100)
-        self.progress_bar.setHidden(True)
+        self.layoutCtrl3.setHidden(True)
         self.empty_space_keeper.setHidden(False)
         if self.data_file.getOption("datetimeline_show"):
             self.timeSlider.setTimes(self.data_file)
@@ -1150,18 +1149,12 @@ class Timeline(QtCore.QObject):
         control_widgets = [self.layoutCtrl.itemAt(i).widget() for i in range(self.layoutCtrl.count())]
         if self.timeSlider is not None:
             control_widgets.extend(self.layoutCtrl2.itemAt(i).widget() for i in range(self.layoutCtrl2.count()))
-        if hide:
-            for widget in control_widgets:
-                widget.setHidden(True)
-            self.layoutCtrl.setContentsMargins(0, 0, 0, 0)
-        else:
-            for widget in control_widgets:
-                widget.setHidden(False)
-            self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
-        self.empty_space_keeper.setHidden(hide or self.progress_bar.isVisible())
+        self.layoutCtrl.setHidden(hide)
+        self.layoutCtrl2.setHidden(hide)
+        self.empty_space_keeper.setHidden(hide or self.layoutCtrl3.isVisible())
         self.button.setChecked(not self.hidden)
         if hide is False and not self.timeSlider is None:
-            self.timeSlider.setHidden(self.timeSlider.is_hidden | (self.data_file is None or not self.data_file.getOption("datetimeline_show")))
+            self.layoutCtrl2.setHidden(self.timeSlider.is_hidden | (self.data_file is None or not self.data_file.getOption("datetimeline_show")))
 
     #def optionsChanged(self):
     #    if self.hidden is False self.timeSlider.setHidden(self.timeSlider.is_hidden | (not self.data_file.getOption("datetimeline_show")))
