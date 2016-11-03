@@ -875,14 +875,15 @@ class Timeline(QtCore.QObject):
 
         # control elements
         self.layoutCtrlParent = HiddeableLayout(layout, QtWidgets.QVBoxLayout)
-        self.layoutCtrlParent.setContentsMargins(0, 0, 0, 0)
+        self.layoutCtrlParent.setContentsMargins(0, 0, 0, 5)
+        self.layoutCtrlParent.setSpacing(0)
 
         self.layoutCtrl = HiddeableLayout(self.layoutCtrlParent, QtWidgets.QHBoxLayout)
-        self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
+        self.layoutCtrl.setContentsMargins(5, 5, 5, 0)
 
         # second
         self.layoutCtrl2 = HiddeableLayout(self.layoutCtrlParent, QtWidgets.QHBoxLayout)
-        self.layoutCtrl2.setContentsMargins(5, 0, 5, 5)
+        self.layoutCtrl2.setContentsMargins(5, 0, 5, 0)
         self.timeSlider = RealTimeSlider()
         self.layoutCtrl2.addWidget(self.timeSlider)
         #self.timeSlider.setTimes(self.data_file)
