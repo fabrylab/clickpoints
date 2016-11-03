@@ -103,9 +103,7 @@ def LoadConfig(srcpath=""):
                         continue
                     for replacement in replacements:
                         line = line.replace(replacement, str(replacements[replacement]))
-                    print(line)
                     key, value = line.split("=", 1)
-                    print("key", key, "value", value)
                     import ast
                     config[key.strip()] = ast.literal_eval(value.strip())
                     #config[key] = json.loads(value)
