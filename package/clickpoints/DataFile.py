@@ -1068,11 +1068,11 @@ class DataFile:
 
         self._last_category = "Annotations"
         self._AddOption(key="server_annotations", default=False, value_type="bool", hidden=True)
-        self._AddOption(key="sql_dbname", default='annotation', value_type="string", hidden=True)
-        self._AddOption(key="sql_host", default='131.188.117.94', value_type="string", hidden=True)
+        self._AddOption(key="sql_dbname", default='', value_type="string", hidden=True)
+        self._AddOption(key="sql_host", default='', value_type="string", hidden=True)
         self._AddOption(key="sql_port", default=3306, value_type="int", hidden=True)
-        self._AddOption(key="sql_user", default='clickpoints', value_type="string", hidden=True)
-        self._AddOption(key="sql_pwd", default='123456', value_type="string", hidden=True)
+        self._AddOption(key="sql_user", default='', value_type="string", hidden=True)
+        self._AddOption(key="sql_pwd", default='', value_type="string", hidden=True)
 
     def _AddOption(self, **kwargs):
         category = kwargs["category"] if "category" in kwargs else self._last_category
