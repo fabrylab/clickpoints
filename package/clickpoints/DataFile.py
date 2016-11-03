@@ -1108,7 +1108,7 @@ class DataFile:
         self._options_by_key[option.key] = option
         if self._config is not None and option.key in self._config and not entry_found:
             self.setOption(option.key, self._config[option.key])
-            print("Config", option.key, self._config[option.key])
+            #print("Config", option.key, self._config[option.key])
 
     def _stringToList(self, value):
         value = value.strip()
