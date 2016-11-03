@@ -125,6 +125,23 @@ class Day:
         self.timestamp = timestamp
         self.count = count
 
+class ALL:
+    def __init__(self, device, year=None, month=None, day=None, timestamp=None):
+        self.device = device
+        self.year = year
+        self.month = month
+        self.day = day
+        self.timestamp = timestamp
+        self.expanded = False
+
+class Annotation:
+    def __init__(self, device, year=None, month=None, day=None,  timestamp=None):
+        self.device = device
+        self.year = year
+        self.month = month
+        self.day = day
+        self.timestamp = timestamp
+
 class StoppableThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
     regularly for the stopped() condition."""
@@ -702,6 +719,18 @@ class DatabaseBrowser(QtWidgets.QWidget):
                          .where(self.database.SQL_Files.device == entry.id)
                          .group_by(fn.year(self.database.SQL_Annotation.timestamp)))
 
+                # add ALL as child
+                child = QtGui.QStandardItem("ALL")
+                child.setIcon(qta.icon("fa.calendar"))
+                child.setEditable(False)
+                child.entry = ALL(entry)
+                item.appendRow(child)
+
+                # add dummy child
+                child2 = QtGui.QStandardItem("")
+                child2.setEditable(False)
+                child.appendRow(child2)
+
                 # add the years as children
                 for row in query:
                     child = QtGui.QStandardItem("%d (%s)" % (row.year, ShortenNumber(row.count)))
@@ -741,7 +770,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
                     child = QtGui.QStandardItem("%s (%s)" % (GetMonthName(row.month - 1), ShortenNumber(row.count)))
                     child.setIcon(qta.icon("fa.calendar-o"))
                     child.setEditable(False)
-                    child.entry = Month(entry.device, entry.year, row.month, row.timestamp, row.count1)
+                    child.entry = Month(entry.device, entry.year, row.month, row.timestamp)
                     item.appendRow(child)
 
                     # add dummy child
@@ -760,22 +789,76 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 item.removeRow(0)
 
                 # query for the days
-                query = (self.database.SQL_Files
-                         .select((fn.count(self.database.SQL_Files.id) * self.database.SQL_Files.frames).alias('count'),
-                                 fn.count(self.database.SQL_Files.id).alias('count1'),
+                query = (self.database.SQL_Annotation
+                         .select((fn.count(self.database.SQL_Annotation.id)).alias('count'),
                                  fn.day(self.database.SQL_Files.timestamp).alias('day'),
-                                 self.database.SQL_Files.timestamp)
+                                 self.database.SQL_Annotation.timestamp)
+                         .join(self.database.SQL_Files)
                          .where(self.database.SQL_Files.device == entry.device.id,
                                 fn.year(self.database.SQL_Files.timestamp) == entry.year,
                                 fn.month(self.database.SQL_Files.timestamp) == entry.month)
                          .group_by(fn.dayofyear(self.database.SQL_Files.timestamp)))
 
+
                 # add the days as children
                 for row in query:
                     child = QtGui.QStandardItem("%02d. (%s)" % (row.day, ShortenNumber(row.count)))
-                    child.setIcon(qta.icon("fa.bookmark-o"))
+                    child.setIcon(qta.icon("fa.commenting-o"))
                     child.setEditable(False)
-                    child.entry = Day(entry.device, entry.year, entry.month, row.day, row.timestamp, row.count1)
+                    child.entry = Day(entry.device, entry.year, entry.month, row.day, row.timestamp)
+                    item.appendRow(child)
+
+                # mark the entry as expanded and rest the icon
+                entry.expanded = True
+                item.setIcon(qta.icon('fa.calendar-o'))
+
+            def ExpandAll(self, index, item, entry):
+                # change icon to hourglass during waiting
+                item.setIcon(qta.icon('fa.hourglass-o'))
+                # remove the dummy child
+                item.removeRow(0)
+
+                # query for annotations
+                device_id = entry.device
+                tag_list = None
+
+                query = (self.database.SQL_Annotation
+                         .select(self.database.SQL_Annotation, self.database.SQL_TagAssociation,
+                                                             self.database.SQL_Tags,
+                                                             self.database.SQL_Files,
+                                                        fn.GROUP_CONCAT(self.database.SQL_Tags.name).alias("tags"))
+                         .join(self.database.SQL_Files)
+                         .switch(self.database.SQL_Annotation)
+                         .join(self.database.SQL_TagAssociation, join_type='LEFT OUTER')
+                         .join(self.database.SQL_Tags, join_type='LEFT OUTER')
+
+                         )
+                if device_id:
+                    query = query.where(self.database.SQL_Files.device == device_id)
+                if tag_list:
+                    query = (query.switch(self.database.SQL_Annotation)
+                             .where(self.database.SQL_Tags.name.in_(tag_list)))
+                query = query.group_by(self.database.SQL_Annotation.id)
+                query = query.order_by(self.database.SQL_Annotation.timestamp)
+
+                #
+                # query = (self.database.SQL_Annotation
+                #          .select((fn.count(self.database.SQL_Annotation.id)).alias('count'),
+                #                  fn.day(self.database.SQL_Files.timestamp).alias('day'),
+                #                  self.database.SQL_Annotation.timestamp)
+                #          .join(self.database.SQL_Files)
+                #          .where(self.database.SQL_Files.device == entry.device.id,
+                #                 fn.year(self.database.SQL_Files.timestamp) == entry.year,
+                #                 fn.month(self.database.SQL_Files.timestamp) == entry.month)
+                #          .group_by(fn.dayofyear(self.database.SQL_Files.timestamp)))
+                #
+
+                # add the days as children
+                for row in query:
+                    child = QtGui.QStandardItem("%s" % (row.comment))
+                    child.setIcon(qta.icon("fa.commenting-o"))
+                    child.setEditable(False)
+                    child.entry = Annotation(entry.device, timestamp=row.timestamp)
                     item.appendRow(child)
 
                 # mark the entry as expanded and rest the icon
@@ -803,6 +886,10 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 # Expand month with days
                 if isinstance(entry, Month) and entry.expanded is False:
                     thread = Thread(target=self.ExpandMonth, args=(index, item, entry))
+
+                # expand ALL type object
+                if isinstance(entry, ALL) and entry.expanded is False:
+                    thread = Thread(target=self.ExpandAll, args=(index, item, entry))
 
                 # Start thread as daemonic
                 if thread:
