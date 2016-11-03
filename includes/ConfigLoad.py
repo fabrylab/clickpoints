@@ -22,7 +22,7 @@
 from __future__ import division, print_function, unicode_literals
 import sys
 import os
-import json
+import ast
 
 
 def isstring(object):
@@ -96,10 +96,16 @@ def LoadConfig(srcpath=""):
     config_path = "."
     for path in path_list:
         if os.path.exists(path):
+            config.update(replacements)
+            with open(path) as f:
+                code = compile(f.read(), path, 'exec')
+                print("Loaded config", path)
+                exec(code, config)
+            """
             with open(path) as fp:
                 for line in fp:
                     line = line.strip()
-                    if line == "" or line.startswith("#") or line.startswith("'''") or line.startswith('"""'):
+                    if line == "" or line.startswith("#") or line.startswith("'''") or line.startswith('"" "'):
                         continue
                     for replacement in replacements:
                         line = line.replace(replacement, str(replacements[replacement]))
@@ -109,7 +115,8 @@ def LoadConfig(srcpath=""):
                     #config[key] = json.loads(value)
                 config_path = path
                 print("Loaded config", path)
-            break
+            """
+        break
 
     """ get command line data """
 
@@ -119,7 +126,7 @@ def LoadConfig(srcpath=""):
             key, value = arg[1:].split("=", 1)
             if key == "srcpath":
                 continue
-            config[key] = json.loads(value)
+            config[key] = ast.literal_eval(value)
     config["srcpath"] = srcpath
 
     """ convert to dict and return """

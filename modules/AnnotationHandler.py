@@ -296,10 +296,10 @@ class AnnotationEditor(QtWidgets.QWidget):
         self.layout.addWidget(self.pteAnnotation, 5, 0, 5, 4)
 
         # fill gui entries
-        if self.config.server_annotations is True:
-            self.leTStamp.setText(self.annotation.timestamp)
-            self.leSystem.setText(self.annotation.system)
-            self.leCamera.setText(self.annotation.camera)
+        #if self.config.server_annotations is True:
+            #self.leTStamp.setText(self.annotation.timestamp)
+            #self.leSystem.setText(self.annotation.system)
+            #self.leCamera.setText(self.annotation.camera)
         #if self.annotation.timestamp:
         #    self.leTStamp.setText(datetime.strftime(self.annotation.timestamp, '%Y%m%d-%H%M%S'))
         if self.annotation.rating:
@@ -459,6 +459,7 @@ class AnnotationHandler:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
+    def LoadingFinishedEvent(self):
         if self.config.server_annotations:
             import peewee
             self.server = peewee.MySQLDatabase(self.config.sql_dbname,
@@ -474,7 +475,7 @@ class AnnotationHandler:
                     image = self.data_file.table_image.get(external_id=item.file_id, frame=item.frame)
                     BroadCastEvent(self.modules, "AnnotationMarkerAdd", image.sort_index)
                     self.annoation_ids.append(item.id)
-                except:
+                except peewee.DoesNotExist:
                     pass
 
         else:
