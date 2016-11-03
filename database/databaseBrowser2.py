@@ -189,11 +189,11 @@ def OpenClickPoints(query, database):
     if counter is None:
         return
     if counter == 0:
-        QtWidgets.QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QMessageBox.Ok)
+        QtWidgets.QMessageBox.question(None, 'Warning', 'Your selection doesn\'t contain any images.', QtWidgets.QMessageBox.Ok)
         return
     print("Selected %d images." % counter)
     if platform.system() == 'Windows':
-        subprocess.Popen(r"python.exe ..\ClickPoints.py -srcpath=files.txt")
+        subprocess.Popen(r"python.exe ..\ClickPoints.py -srcpath=files.txt -server_annotations=True -sql_dbname='{database}' -sql_host='{host}' -sql_port={port} -sql_user='{user}' -sql_pwd='{password}'".format(database=config.database, host=config.host, port=config.port, user=config.user, password=config.password))
     elif platform.system() == 'Linux':
         subprocess.Popen(['clickpoints', 'files.txt'], shell=False)
 
@@ -821,7 +821,6 @@ class DatabaseBrowser(QtWidgets.QWidget):
 
         # a GraphicsView
         self.view = QExtendedGraphicsView()
-        self.view.setMinimumWidth(600)
         self.view.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.layout2.addWidget(self.view)
         self.pixmap = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(1, 1), self.view.origin)
