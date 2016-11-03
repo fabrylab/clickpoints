@@ -65,6 +65,7 @@ def HiddeableLayout(parent_layout, layout_class):
     widget = QtWidgets.QWidget()
     parent_layout.addWidget(widget)
     new_layout = layout_class(widget)
+    new_layout.widget = widget
     new_layout.setHidden = widget.setHidden
     new_layout.setVisible = widget.setVisible
     new_layout.isHidden = widget.isHidden

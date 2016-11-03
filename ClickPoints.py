@@ -141,6 +141,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # add layout
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
         self.setLayout(self.layout)
 
         # setup mono space font
@@ -150,6 +151,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.icon_path = icon_path
         self.storage_path = storage_path
         self.layoutButtons = QtWidgets.QHBoxLayout()
+        self.layoutButtons.setSpacing(5)
+        self.layoutButtons.setContentsMargins(0, 0, 0, 5)
         self.button_play = QtWidgets.QPushButton()
         self.button_play.clicked.connect(lambda x: self.SaveDatabase())
         self.button_play.setIcon(qta.icon("fa.save"))

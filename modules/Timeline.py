@@ -190,6 +190,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         #self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setSizePolicy(self.sizePolicy().horizontalPolicy(), QtWidgets.QSizePolicy.Preferred)
 
         self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
@@ -401,6 +402,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         #self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setSizePolicy(self.sizePolicy().horizontalPolicy(), QtWidgets.QSizePolicy.Preferred)
 
         self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
@@ -872,15 +874,15 @@ class Timeline(QtCore.QObject):
         self.window.layoutButtons.addWidget(self.button)
 
         # control elements
-        self.layoutCtrlParent = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.layoutCtrlParent)
+        self.layoutCtrlParent = HiddeableLayout(layout, QtWidgets.QVBoxLayout)
+        self.layoutCtrlParent.setContentsMargins(0, 0, 0, 0)
 
         self.layoutCtrl = HiddeableLayout(self.layoutCtrlParent, QtWidgets.QHBoxLayout)
         self.layoutCtrl.setContentsMargins(5, 5, 5, 5)
 
         # second
         self.layoutCtrl2 = HiddeableLayout(self.layoutCtrlParent, QtWidgets.QHBoxLayout)
-
+        self.layoutCtrl2.setContentsMargins(5, 0, 5, 5)
         self.timeSlider = RealTimeSlider()
         self.layoutCtrl2.addWidget(self.timeSlider)
         #self.timeSlider.setTimes(self.data_file)
@@ -894,15 +896,12 @@ class Timeline(QtCore.QObject):
 
         self.timeSlider.setToolTip("current time stamp")
 
-        self.layoutCtrl3 = HiddeableLayout(self.layoutCtrlParent, QtWidgets.QHBoxLayout)
+        self.layoutCtrl3 = HiddeableLayout(layout, QtWidgets.QHBoxLayout)
+        self.layoutCtrl3.setContentsMargins(0, 0, 0, 0)
         self.progress_bar = QtWidgets.QProgressBar()
         self.progress_bar.setTextVisible(False)
         self.layoutCtrl3.setVisible(False)
         self.layoutCtrl3.addWidget(self.progress_bar)
-        self.empty_space_keeper = QtWidgets.QLabel()
-        self.empty_space_keeper.setMaximumHeight(0)
-        self.empty_space_keeper.setMaximumWidth(0)
-        self.layoutCtrl3.addWidget(self.empty_space_keeper)
 
         # frame control
         self.button_play = QtWidgets.QPushButton()
@@ -917,7 +916,6 @@ class Timeline(QtCore.QObject):
         self.label_frame.setToolTip("current frame number, frame rate and timestamp")
         self.label_frame.mousePressEvent = self.labelClicked
         self.layoutCtrl.addWidget(self.label_frame)
-
 
         self.frameSlider = TimeLineSlider()
         #if self.get_frame_count():
@@ -1014,7 +1012,6 @@ class Timeline(QtCore.QObject):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)
         self.layoutCtrl3.setVisible(True)
-        self.empty_space_keeper.setVisible(False)
         self.images_added_signal.emit()
 
     def ImagesAddedMain(self):
@@ -1030,7 +1027,6 @@ class Timeline(QtCore.QObject):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(100)
         self.layoutCtrl3.setHidden(True)
-        self.empty_space_keeper.setHidden(False)
         if self.data_file.getOption("datetimeline_show"):
             self.timeSlider.setTimes(self.data_file)
 
@@ -1147,15 +1143,9 @@ class Timeline(QtCore.QObject):
 
     def HideInterface(self, hide):
         self.hidden = hide
-        control_widgets = [self.layoutCtrl.itemAt(i).widget() for i in range(self.layoutCtrl.count())]
-        if self.timeSlider is not None:
-            control_widgets.extend(self.layoutCtrl2.itemAt(i).widget() for i in range(self.layoutCtrl2.count()))
-        self.layoutCtrl.setHidden(hide)
-        self.layoutCtrl2.setHidden(hide)
-        self.empty_space_keeper.setHidden(hide or self.layoutCtrl3.isVisible())
+        self.layoutCtrlParent.setHidden(hide)
         self.button.setChecked(not self.hidden)
-        if hide is False and not self.timeSlider is None:
-            self.layoutCtrl2.setHidden(self.timeSlider.is_hidden | (self.data_file is None or not self.data_file.getOption("datetimeline_show")))
+        self.layoutCtrl2.setHidden(self.timeSlider.is_hidden | (self.data_file is None or not self.data_file.getOption("datetimeline_show")))
 
     def optionsChanged(self):
         self.HideInterface(self.hidden)
