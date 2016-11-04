@@ -173,7 +173,7 @@ class pyQtTagSelector(QtWidgets.QWidget):
             # delete icon
             self.deleteLater()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, add_button=True):
         super(QtWidgets.QWidget, self).__init__(parent)
 
         self.cbTag = QtWidgets.QComboBox(self)
@@ -185,10 +185,13 @@ class pyQtTagSelector(QtWidgets.QWidget):
         self.cbTag.setSizePolicy(sizePolicy)
         self.cbTag.activated.connect(self.hPB_add)
 
-        self.pbAdd = QtWidgets.QPushButton(self)
-        self.pbAdd.setIcon(qta.icon("fa.plus"))
-        self.pbAdd.setMaximumWidth(30)
-        self.pbAdd.released.connect(self.hPB_add)
+        if add_button:
+            self.pbAdd = QtWidgets.QPushButton(self)
+            self.pbAdd.setIcon(qta.icon("fa.plus"))
+            self.pbAdd.setMaximumWidth(30)
+            self.pbAdd.released.connect(self.hPB_add)
+        else:
+            self.cbTag.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
 
         self.layout_main = QtWidgets.QVBoxLayout()
         self.layout_main.setAlignment(Qt.AlignTop)
@@ -198,7 +201,9 @@ class pyQtTagSelector(QtWidgets.QWidget):
         self.layout_main.addLayout(self.layout_tag)
         self.layout_main.addLayout(self.layout_list)
         self.layout_tag.addWidget(self.cbTag)
-        self.layout_tag.addWidget(self.pbAdd)
+
+        if add_button:
+            self.layout_tag.addWidget(self.pbAdd)
 
         self.layout_main.setContentsMargins(0, 0, 0, 0)
 
