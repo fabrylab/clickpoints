@@ -799,6 +799,9 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 # remove the dummy child
                 item.removeRow(0)
 
+                print(entry.year)
+                print(entry.device.id)
+
                 # query for the months
                 query = (self.database.SQL_Annotation
                          .select((fn.count(self.database.SQL_Annotation.id)).alias('count'),
@@ -814,7 +817,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 child = QtGui.QStandardItem("* (%d)" % total_count)
                 child.setIcon(qta.icon("fa.globe"))
                 child.setEditable(False)
-                child.entry = ALL(entry)
+                child.entry = ALL(entry.device,entry.year)
                 item.appendRow(child)
 
                 # add dummy child
@@ -861,7 +864,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 child = QtGui.QStandardItem("* (%d)" % total_count)
                 child.setIcon(qta.icon("fa.globe"))
                 child.setEditable(False)
-                child.entry = ALL(entry)
+                child.entry = ALL(entry.device,entry.year,entry.month)
                 item.appendRow(child)
 
                 # add dummy child
@@ -889,6 +892,11 @@ class DatabaseBrowser(QtWidgets.QWidget):
 
                 # query for annotations
                 device_id = entry.device
+                year = entry.year
+                month = entry.month
+                day = entry.day
+
+
                 tag_list_pos = self.tagutil_pos.getTagList()
                 tag_list_neg = self.tagutil_neg.getTagList()
 
@@ -905,6 +913,12 @@ class DatabaseBrowser(QtWidgets.QWidget):
                          )
                 if device_id:
                     query = query.where(self.database.SQL_Files.device == device_id)
+                if entry.year:
+                    query = query.where(fn.year(self.database.SQL_Annotation.timestamp) == entry.year)
+                if entry.month:
+                    query = query.where(fn.month(self.database.SQL_Annotation.timestamp) == entry.month)
+                if entry.day:
+                    query = query.where(fn.day(self.database.SQL_Annotation.timestamp) == entry.day)
                 if tag_list_pos:
                     query = (query.switch(self.database.SQL_Annotation)
                              .where(self.database.SQL_Tags.name.in_(tag_list_pos)))
