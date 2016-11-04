@@ -543,6 +543,9 @@ class DatabaseBrowser(QtWidgets.QWidget):
             def __init__(self, parent):
                 Tab.__init__(self, parent)
 
+                self.time_delta_start = timedelta(minutes=0)
+                self.time_delta_end = timedelta(minutes=5)
+
                 self.layout_byDateTab = QtWidgets.QVBoxLayout()
                 self.setLayout(self.layout_byDateTab)
                 self.database = self.parent.database
@@ -559,10 +562,23 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 layout.addWidget(self.device_name)
                 layout = QtWidgets.QHBoxLayout()
                 self.layout_byDateTab.addLayout(layout)
-                self.date_start = QtWidgets.QLineEdit()
+                self.date_start = QtWidgets.QDateTimeEdit()
+                self.date_start.setEnabled(False)
                 layout.addWidget(self.date_start)
-                self.date_end = QtWidgets.QLineEdit()
+                self.date_end = QtWidgets.QDateTimeEdit()
+                self.date_end.setEnabled(False)
                 layout.addWidget(self.date_end)
+
+                layout = QtWidgets.QHBoxLayout()
+                self.layout_byDateTab.addLayout(layout)
+                self.tagutil_pos = pyQtTagSelector(add_button=False)
+                self.tagutil_pos.setStringList(self.database.getTagList())
+                self.tagutil_pos.setSizePolicy(QtWidgets.QSizePolicy.Minimum,QtWidgets.QSizePolicy.Minimum)
+                layout.addWidget(self.tagutil_pos)
+                self.tagutil_neg = pyQtTagSelector(add_button=False)
+                self.tagutil_neg.setStringList(self.database.getTagList())
+                self.tagutil_neg.setSizePolicy(QtWidgets.QSizePolicy.Minimum,QtWidgets.QSizePolicy.Minimum)
+                layout.addWidget(self.tagutil_neg)
 
                 # Open button
                 layout = QtWidgets.QHBoxLayout()
@@ -573,7 +589,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
 
                 # the tree view
                 self.tree = QtWidgets.QTreeView()
-                self.tree.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+                self.tree.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
                 self.layout_byDateTab.addWidget(self.tree)
                 model = QtGui.QStandardItemModel(0, 0)
 
@@ -599,6 +615,9 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 self.tree.setModel(model)
                 self.tree.expanded.connect(self.TreeExpand)
                 self.tree.selectionModel().selectionChanged.connect(lambda x, y: self.TreeSelected(x))
+
+            def getTagList(self):
+                return [tag.name for tag in self.SQL_Tags.select()]
 
             def TreeSelected(self, index):
                 # get the selected entry and store it
@@ -633,50 +652,75 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 if isinstance(entry, Year):
                     self.system_name.setText(entry.device.system.name)
                     self.device_name.setText(entry.device.name)
-                    self.date_start.setText("%04d-01-01 00:00:00" % entry.year)
-                    self.date_end.setText("%04d-01-01 00:00:00" % (entry.year + 1))
+                    # self.date_start.setText("%04d-01-01 00:00:00" % entry.year)
+                    # self.date_end.setText("%04d-01-01 00:00:00" % (entry.year + 1))
                     self.slider.setSliderPosition(0)
                     self.slider.setRange(0, entry.count)
                     self.slider.setDisabled(False)
                     entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                                                         timestamp=entry.timestamp)
-                    self.parent.ImageDisplaySchedule(entry)
+                    # self.parent.ImageDisplaySchedule(entry)
 
                 if isinstance(entry, Month):
                     self.system_name.setText(entry.device.system.name)
                     self.device_name.setText(entry.device.name)
-                    self.date_start.setText("%04d-%02d-01 00:00:00" % (entry.year, entry.month))
-                    if entry.month == 12:
-                        self.date_end.setText("%04d-%02d-01 00:00:00" % (entry.year + 1, 1))
-                    else:
-                        self.date_end.setText("%04d-%02d-01 00:00:00" % (entry.year, entry.month + 1))
-                    self.slider.setSliderPosition(0)
+                    # self.date_start.setText("%04d-%02d-01 00:00:00" % (entry.year, entry.month))
+                    # if entry.month == 12:
+                    #     self.date_end.setText("%04d-%02d-01 00:00:00" % (entry.year + 1, 1))
+                    # else:
+                    #     self.date_end.setText("%04d-%02d-01 00:00:00" % (entry.year, entry.month + 1))
+                    # self.slider.setSliderPosition(0)
                     self.slider.setRange(0, entry.count)
                     self.slider.setDisabled(False)
                     entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                                                         timestamp=entry.timestamp)
-                    self.parent.ImageDisplaySchedule(entry)
+                    # self.parent.ImageDisplaySchedule(entry)
 
                 if isinstance(entry, Day):
                     self.system_name.setText(entry.device.system.name)
                     self.device_name.setText(entry.device.name)
-                    self.date_start.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month, entry.day))
-                    if entry.month == 12 and entry.day == 31:
-                        self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year + 1, 1, 1))
-                    elif entry.day == calendar.monthrange(entry.year, entry.month)[1]:
-                        self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month + 1, 1))
-                    else:
-                        self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month, entry.day + 1))
+                    # self.date_start.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month, entry.day))
+                    # if entry.month == 12 and entry.day == 31:
+                    #     self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year + 1, 1, 1))
+                    # elif entry.day == calendar.monthrange(entry.year, entry.month)[1]:
+                    #     self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month + 1, 1))
+                    # else:
+                    #     self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month, entry.day + 1))
                     self.slider.setSliderPosition(0)
                     self.slider.setRange(0, entry.count)
                     self.slider.setDisabled(False)
                     # entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                     #                               timestamp=entry.timestamp)\
-                    entry = self.database.SQL_Files.select().where(
-                        self.database.SQL_Files.system == entry.device.system.id) \
-                        .where(self.database.SQL_Files.device == entry.device.id) \
-                        .where(self.database.SQL_Files.timestamp == entry.timestamp) \
-                        .order_by(self.database.SQL_Files.timestamp)
+                    # entry = self.database.SQL_Files.select().where(
+                    #     self.database.SQL_Files.system == entry.device.system.id) \
+                    #     .where(self.database.SQL_Files.device == entry.device.id) \
+                    #     .where(self.database.SQL_Files.timestamp == entry.timestamp) \
+                    #     .order_by(self.database.SQL_Files.timestamp)
+                    # self.parent.ImageDisplaySchedule(entry)
+
+                if isinstance(entry, Annotation):
+                    self.system_name.setText(entry.device.system.name)
+                    self.device_name.setText(entry.device.name)
+                    self.date_start.setEnabled(True)
+                    self.date_start.setDateTime(entry.timestamp - self.time_delta_start)
+                    self.date_end.setEnabled(True)
+                    self.date_end.setDateTime(entry.timestamp + self.time_delta_end)
+
+                    self.slider.setSliderPosition(0)
+
+                    # count = (self.database.SQL_Files.select()
+                    #          .where(self.database.SQL_Files.system == entry.device.system.id)
+                    #          .where(self.database.SQL_Files.device == entry.device.id)
+                    #          .where(self.database.SQL_Files.timestamp.between(
+                    #                 entry.timestamp - self.time_delta_start,
+                    #                 entry.timestamp - self.time_delta_end))).count()
+                    #
+                    # print("Count",count)
+
+                    self.slider.setRange(0, 0)
+                    self.slider.setDisabled(False)
+                    entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
+                                                        timestamp=entry.timestamp)
                     self.parent.ImageDisplaySchedule(entry)
 
             def ExpandSystem(self, index, item, entry):
@@ -720,8 +764,9 @@ class DatabaseBrowser(QtWidgets.QWidget):
                          .group_by(fn.year(self.database.SQL_Annotation.timestamp)))
 
                 # add ALL as child
-                child = QtGui.QStandardItem("ALL")
-                child.setIcon(qta.icon("fa.calendar"))
+                total_count = np.sum([ row.count for row in query])
+                child = QtGui.QStandardItem("* (%d)" % total_count)
+                child.setIcon(qta.icon("fa.globe"))
                 child.setEditable(False)
                 child.entry = ALL(entry)
                 item.appendRow(child)
@@ -764,6 +809,18 @@ class DatabaseBrowser(QtWidgets.QWidget):
                                 fn.year(self.database.SQL_Files.timestamp) == entry.year)
                          .group_by(fn.month(self.database.SQL_Annotation.timestamp)))
 
+                # add ALL as child
+                total_count = np.sum([row.count for row in query])
+                child = QtGui.QStandardItem("* (%d)" % total_count)
+                child.setIcon(qta.icon("fa.globe"))
+                child.setEditable(False)
+                child.entry = ALL(entry)
+                item.appendRow(child)
+
+                # add dummy child
+                child2 = QtGui.QStandardItem("")
+                child2.setEditable(False)
+                child.appendRow(child2)
 
                 # add the months as children
                 for row in query:
@@ -799,6 +856,18 @@ class DatabaseBrowser(QtWidgets.QWidget):
                                 fn.month(self.database.SQL_Files.timestamp) == entry.month)
                          .group_by(fn.dayofyear(self.database.SQL_Files.timestamp)))
 
+                # add ALL as child
+                total_count = np.sum([row.count for row in query])
+                child = QtGui.QStandardItem("* (%d)" % total_count)
+                child.setIcon(qta.icon("fa.globe"))
+                child.setEditable(False)
+                child.entry = ALL(entry)
+                item.appendRow(child)
+
+                # add dummy child
+                child2 = QtGui.QStandardItem("")
+                child2.setEditable(False)
+                child.appendRow(child2)
 
                 # add the days as children
                 for row in query:
@@ -820,13 +889,14 @@ class DatabaseBrowser(QtWidgets.QWidget):
 
                 # query for annotations
                 device_id = entry.device
-                tag_list = None
+                tag_list_pos = self.tagutil_pos.getTagList()
+                tag_list_neg = self.tagutil_neg.getTagList()
 
                 query = (self.database.SQL_Annotation
                          .select(self.database.SQL_Annotation, self.database.SQL_TagAssociation,
-                                                             self.database.SQL_Tags,
-                                                             self.database.SQL_Files,
-                                                        fn.GROUP_CONCAT(self.database.SQL_Tags.name).alias("tags"))
+                                                               self.database.SQL_Tags,
+                                                               self.database.SQL_Files,
+                                    fn.GROUP_CONCAT(self.database.SQL_Tags.name).alias("tags"))
                          .join(self.database.SQL_Files)
                          .switch(self.database.SQL_Annotation)
                          .join(self.database.SQL_TagAssociation, join_type='LEFT OUTER')
@@ -835,9 +905,12 @@ class DatabaseBrowser(QtWidgets.QWidget):
                          )
                 if device_id:
                     query = query.where(self.database.SQL_Files.device == device_id)
-                if tag_list:
+                if tag_list_pos:
                     query = (query.switch(self.database.SQL_Annotation)
-                             .where(self.database.SQL_Tags.name.in_(tag_list)))
+                             .where(self.database.SQL_Tags.name.in_(tag_list_pos)))
+                if tag_list_neg:
+                    query = (query.switch(self.database.SQL_Annotation)
+                             .where(not self.database.SQL_Tags.name.in_(tag_list_neg)))
                 query = query.group_by(self.database.SQL_Annotation.id)
                 query = query.order_by(self.database.SQL_Annotation.timestamp)
 
@@ -863,7 +936,7 @@ class DatabaseBrowser(QtWidgets.QWidget):
 
                 # mark the entry as expanded and rest the icon
                 entry.expanded = True
-                item.setIcon(qta.icon('fa.calendar-o'))
+                item.setIcon(qta.icon('fa.globe'))
 
             def TreeExpand(self, index):
                 # Get item and entry
@@ -998,6 +1071,19 @@ class DatabaseBrowser(QtWidgets.QWidget):
                      .limit(1).offset(index)
                      )
             self.ImageDisplaySchedule(query)
+
+        # Get one image from the annotation
+        if isinstance(self.tab.selected_entry, Annotation):
+            print("selected annotation type")
+            query = (self.database.SQL_Files.select()
+                     .where(self.database.SQL_Files.system == self.tab.selected_entry.device.system.id)
+                     .where(self.database.SQL_Files.device == self.tab.selected_entry.device.id)
+                     .where(self.database.SQL_Files.timestamp.between(self.tab.selected_entry.timestamp-self.tab.time_delta_start,self.tab.selected_entry.timestamp-self.tab.time_delta_end))
+                     .limit(1).offset(index)
+                     )
+
+            self.ImageDisplaySchedule(query)
+
 
     def ImageDisplaySchedule(self, entry):
         # Stop a running thread which tries to display an image
