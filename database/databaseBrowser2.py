@@ -273,9 +273,11 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 layout.addWidget(self.device_name)
                 layout = QtWidgets.QHBoxLayout()
                 self.layout_byDateTab.addLayout(layout)
-                self.date_start = QtWidgets.QLineEdit()
+                self.date_start = QtWidgets.QDateTimeEdit()
+                self.date_start.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
                 layout.addWidget(self.date_start)
-                self.date_end = QtWidgets.QLineEdit()
+                self.date_end = QtWidgets.QDateTimeEdit()
+                self.date_end.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
                 layout.addWidget(self.date_end)
 
                 # Open button
@@ -328,8 +330,8 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 if isinstance(entry, self.database.SQL_Systems):
                     self.system_name.setText(entry.name)
                     self.device_name.setText("")
-                    self.date_start.setText("")
-                    self.date_end.setText("")
+                    #self.date_start.setText("")
+                    #self.date_end.setText("")
                     entry = self.database.SQL_Files.get(system=entry.id)
                     self.parent.ImageDisplaySchedule(entry)
                     self.slider.setRange(0, 0)
@@ -338,8 +340,8 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 if isinstance(entry, self.database.SQL_Devices):
                     self.system_name.setText(entry.system.name)
                     self.device_name.setText(entry.name)
-                    self.date_start.setText("")
-                    self.date_end.setText("")
+                    #self.date_start.setText("")
+                    #self.date_end.setText("")
                     entry = self.database.SQL_Files.get(system=entry.system.id, device=entry.id)
                     self.parent.ImageDisplaySchedule(entry)
                     self.slider.setRange(0, 0)
@@ -348,8 +350,8 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 if isinstance(entry, Year):
                     self.system_name.setText(entry.device.system.name)
                     self.device_name.setText(entry.device.name)
-                    self.date_start.setText("%04d-01-01 00:00:00" % entry.year)
-                    self.date_end.setText("%04d-01-01 00:00:00" % (entry.year + 1))
+                    self.date_start.setDateTime(QtCore.QDateTime(QtCore.QDate(entry.year, 1, 1), QtCore.QTime(0, 0)))
+                    self.date_end.setDateTime(QtCore.QDateTime(QtCore.QDate(entry.year + 1, 1, 1), QtCore.QTime(0, 0)))
                     self.slider.setSliderPosition(0)
                     self.slider.setRange(0, entry.count)
                     self.slider.setDisabled(False)
@@ -360,11 +362,13 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 if isinstance(entry, Month):
                     self.system_name.setText(entry.device.system.name)
                     self.device_name.setText(entry.device.name)
-                    self.date_start.setText("%04d-%02d-01 00:00:00" % (entry.year, entry.month))
+                    self.date_start.setDateTime(QtCore.QDateTime(QtCore.QDate(entry.year, entry.month, 1), QtCore.QTime(0, 0)))
                     if entry.month == 12:
-                        self.date_end.setText("%04d-%02d-01 00:00:00" % (entry.year + 1, 1))
+                        self.date_end.setDateTime(
+                            QtCore.QDateTime(QtCore.QDate(entry.year + 1, 1, 1), QtCore.QTime(0, 0)))
                     else:
-                        self.date_end.setText("%04d-%02d-01 00:00:00" % (entry.year, entry.month + 1))
+                        self.date_start.setDateTime(
+                            QtCore.QDateTime(QtCore.QDate(entry.year, entry.month + 1, 1), QtCore.QTime(0, 0)))
                     self.slider.setSliderPosition(0)
                     self.slider.setRange(0, entry.count)
                     self.slider.setDisabled(False)
@@ -375,13 +379,17 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 if isinstance(entry, Day):
                     self.system_name.setText(entry.device.system.name)
                     self.device_name.setText(entry.device.name)
-                    self.date_start.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month, entry.day))
+                    self.date_start.setDateTime(
+                        QtCore.QDateTime(QtCore.QDate(entry.year, entry.month, entry.day), QtCore.QTime(0, 0)))
                     if entry.month == 12 and entry.day == 31:
-                        self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year + 1, 1, 1))
+                        self.date_end.setDateTime(
+                            QtCore.QDateTime(QtCore.QDate(entry.year + 1, 1, 1), QtCore.QTime(0, 0)))
                     elif entry.day == calendar.monthrange(entry.year, entry.month)[1]:
-                        self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month + 1, 1))
+                        self.date_end.setDateTime(
+                            QtCore.QDateTime(QtCore.QDate(entry.year, entry.month + 1, 1), QtCore.QTime(0, 0)))
                     else:
-                        self.date_end.setText("%04d-%02d-%02d 00:00:00" % (entry.year, entry.month, entry.day + 1))
+                        self.date_end.setDateTime(
+                            QtCore.QDateTime(QtCore.QDate(entry.year, entry.month, entry.day + 1), QtCore.QTime(0, 0)))
                     self.slider.setSliderPosition(0)
                     self.slider.setRange(0, entry.count)
                     self.slider.setDisabled(False)
@@ -632,8 +640,8 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 if isinstance(entry, self.database.SQL_Systems):
                     self.system_name.setText(entry.name)
                     self.device_name.setText("")
-                    self.date_start.setText("")
-                    self.date_end.setText("")
+                    #self.date_start.setText("")
+                    #self.date_end.setText("")
                     entry = self.database.SQL_Files.get(system=entry.id)
                     # self.parent.ImageDisplaySchedule(entry)
                     self.slider.setRange(0, 0)
@@ -642,8 +650,8 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 if isinstance(entry, self.database.SQL_Devices):
                     self.system_name.setText(entry.system.name)
                     self.device_name.setText(entry.name)
-                    self.date_start.setText("")
-                    self.date_end.setText("")
+                    #self.date_start.setText("")
+                    #self.date_end.setText("")
                     entry = self.database.SQL_Files.get(system=entry.system.id, device=entry.id)
                     # self.parent.ImageDisplaySchedule(entry)
                     self.slider.setRange(0, 0)
