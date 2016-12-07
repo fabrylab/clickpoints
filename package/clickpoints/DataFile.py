@@ -392,7 +392,8 @@ class DataFile:
             def get_data(self):
                 if self.image_data is None:
                     if self.database_class._reader is None or self.database_class._reader.filename != self.filename:
-                        self.database_class._reader = imageio.get_reader(os.path.join(self.path.path, self.filename))
+                        path = os.path.join(os.path.dirname(self.database_class._database_filename), self.path.path, self.filename)
+                        self.database_class._reader = imageio.get_reader(path)
                         self.database_class._reader.filename = self.filename
                     self.image_data = self.database_class._reader.get_data(self.frame)
                 return self.image_data
