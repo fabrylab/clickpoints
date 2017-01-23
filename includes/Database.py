@@ -637,9 +637,15 @@ class DataFile(DataFileBase):
                 return None
             try:
                 t = json.loads(metadata.decode('utf-8'))["Time"]
-                return datetime.strptime(t, '%Y%m%d-%H%M%S')
             except (AttributeError, ValueError, KeyError):
                 return None
+            try:
+                return datetime.strptime(t, '%Y%m%d-%H%M%S')
+            except ValueError:
+                try:
+                    return datetime.strptime(t, '%Y%m%d-%H%M%S-%f')
+                except ValueError:
+                    return None
         return None
 
 
