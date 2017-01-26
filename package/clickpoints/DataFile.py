@@ -231,6 +231,10 @@ class MarkerTypeDoesNotExist(DoesNotExist):
     pass
 
 
+class TrackDoesNotExist(DoesNotExist):
+    pass
+
+
 def GetCommandLineArgs():
     """
     Parse the command line arguments for the information provided by ClickPoints, if the script is invoked from within
@@ -1448,6 +1452,16 @@ class DataFile:
         for table in self._tables:
             table.create_table(fail_silently=True)
 
+    def _checkTrackField(self, tracks):
+        if not isinstance(tracks, (tuple, list)):
+            tracks = [tracks]
+        tracks = np.unique(tracks)
+        tracks = [t for t in tracks if t is not None]
+        if len(tracks) == 0:
+            return
+        if self.table_track.select().where(self.table_track.id << tracks).count() != len(tracks):
+            raise TrackDoesNotExist("One or more tracks from the list {0} does not exist.".format(tracks))
+
     def _processesTypeNameField(self, types):
         def CheckType(type):
             if isinstance(type, basestring):
@@ -2591,6 +2605,8 @@ class DataFile:
             item = self.table_marker()
 
         type = self._processesTypeNameField(type)
+        if track is not None:
+            self._checkTrackField(track)
         image = self._processImagesField(image, frame, filename)
 
         setFields(item, dict(image=image, x=x, y=y, type=type, processed=processed, track=track, style=style, text=text))
@@ -2634,6 +2650,8 @@ class DataFile:
             it the inserting was successful.
         """
         type = self._processesTypeNameField(type)
+        if track is not None:
+            self._checkTrackField(track)
         image = self._processImagesField(image, frame, filename)
 
         data = packToDictList(self.table_marker, id=id, image=image, x=x, y=y, processed=processed, type=type, track=track,
