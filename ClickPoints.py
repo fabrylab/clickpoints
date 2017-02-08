@@ -19,14 +19,16 @@
 
 from __future__ import division, print_function
 
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(__file__))
+
 if __name__ == "__main__":
     from ClickPointsBooster import BoosterRunning
     BoosterRunning()
     from SplashScreen import StartSplashScreen, StopSplashScreen
     StartSplashScreen()
-
-import sys
-import os
 
 icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
 clickpoints_path = os.path.dirname(__file__)
