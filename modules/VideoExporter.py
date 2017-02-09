@@ -296,7 +296,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
             self.preview_slice[start_y3-start_y2:self.preview_slice.shape[0]+(end_y3-end_y2), start_x3-start_x2:self.preview_slice.shape[1]+(end_x3-end_x2), :] = image[start_y3:end_y3, start_x3:end_x3, :3]
             # apply the subpixel decimal shift
             if offset_float[0] or offset_float[1]:
-                self.preview_slice = shift(self.preview_slice, -np.hstack((offset_float, 0)))
+                self.preview_slice = shift(self.preview_slice, [offset_float[1], -offset_float[0], 0])
 
             # use min/max & gamma correction
             if self.window.ImageDisplay.conversion is not None:
