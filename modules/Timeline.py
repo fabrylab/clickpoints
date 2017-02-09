@@ -183,6 +183,9 @@ class TimeLineGrabberTime(TimeLineGrabber):
         self.updatePos()
 
 class TimeLineSlider(QtWidgets.QGraphicsView):
+    start_changed = QtCore.Signal(int)
+    end_changed = QtCore.Signal(int)
+
     def __init__(self, max_value=0, min_value=0):
         QtWidgets.QGraphicsView.__init__(self)
 
@@ -355,10 +358,13 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
     def setStartValue(self, value):
         self.slider_start.setValue(BoundBy(value, self.min_value, self.max_value))
         self.updatePlayRange()
+        self.start_changed.emit(value)
 
     def setEndValue(self, value):
         self.slider_end.setValue(BoundBy(value, self.min_value, self.max_value))
         self.updatePlayRange()
+        self.end_changed.emit(value)
+
 
     def PixelToValue(self, pixel):
         return Remap(pixel, [0, self.length], [self.min_value, self.max_value])
@@ -367,13 +373,17 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         return Remap(value, [self.min_value, self.max_value], [0, self.length])
 
     def slider_start_changed(self):
+        self.start_changed.emit(self.slider_start.value)
         if self.slider_start.value > self.slider_end.value:
             self.slider_end.setValue(self.slider_start.value)
+            self.end_changed.emit(self.slider_end.value)
         self.updatePlayRange()
 
     def slider_end_changed(self):
+        self.end_changed.emit(self.slider_end.value)
         if self.slider_start.value > self.slider_end.value:
             self.slider_start.setValue(self.slider_end.value)
+            self.start_changed.emit(self.slider_start.value)
         self.updatePlayRange()
 
     def updatePlayRange(self):
@@ -851,6 +861,8 @@ class Timeline(QtCore.QObject):
     images_added_signal = QtCore.Signal()
     data_file = None
     config = None
+    _startframe = None
+    _endframe = None
 
     fps = 25
     skip = 0
@@ -923,6 +935,8 @@ class Timeline(QtCore.QObject):
         #    self.frameSlider.setRange(0, self.get_frame_count() - 1)
         self.frameSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
         self.frameSlider.slider_position.signal.sliderReleased.connect(self.ReleasedSlider)
+        self.frameSlider.start_changed.connect(lambda value: self.data_file.setOption("play_start", value))
+        self.frameSlider.end_changed.connect(lambda value: self.data_file.setOption("play_end", value))
         self.frameSlider.setToolTip("current frame, drag to change current frame\n[b], [n] to set start/end marker")
         #self.frameSlider.setValue(self.get_frame_count())
         self.slider_update = True
@@ -986,16 +1000,9 @@ class Timeline(QtCore.QObject):
             self.subsecond_decimals = match.group(1)
 
         if self.data_file.getOption("play_start") is not None:
-            # if >1 its a frame nr if < 1 its a fraction
-            if self.data_file.getOption("play_start") >= 1:
-                self.frameSlider.setStartValue(self.data_file.getOption("play_start"))
-            else:
-                self.frameSlider.setStartValue(int(self.get_frame_count()*self.data_file.getOption("play_start")))
+            self._startframe = self.data_file.getOption("play_start")
         if self.data_file.getOption("play_end") is not None:
-            if self.data_file.getOption("play_end") > 1:
-                self.frameSlider.setEndValue(self.data_file.getOption("play_end"))
-            else:
-                self.frameSlider.setEndValue(int(self.get_frame_count()*self.data_file.getOption("play_end")))
+            self._endframe = self.data_file.getOption("play_end")
 
         self.Play(self.data_file.getOption("playing"))
         self.hidden = True
@@ -1023,6 +1030,19 @@ class Timeline(QtCore.QObject):
         if update_end:
             self.frameSlider.setEndValue(self.get_frame_count() - 1)
         self.updateLabel()
+
+        # reset start and end marker (only if all images are loaded frames may be valid)
+        if self._startframe is not None:
+            # if >1 its a frame nr if < 1 its a fraction
+            if self._startframe >= 1:
+                self.frameSlider.setStartValue(self._startframe)
+            else:
+                self.frameSlider.setStartValue(int(self.get_frame_count()*self._startframe))
+        if self._endframe is not None:
+            if self._endframe > 1:
+                self.frameSlider.setEndValue(self._endframe)
+            else:
+                self.frameSlider.setEndValue(int(self.get_frame_count()*self._endframe))
 
     def LoadingFinishedEvent(self):
         self.progress_bar.setMinimum(0)
