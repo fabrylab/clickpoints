@@ -22,6 +22,13 @@ from __future__ import division, print_function
 import sys
 import os
 
+""" some magic to prevent PyQt5 from swallowing exceptions """
+# Back up the reference to the exceptionhook
+sys._excepthook = sys.excepthook
+# Set the exception hook to our wrapping function
+sys.excepthook = lambda *args: sys._excepthook(*args)
+
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 if __name__ == "__main__":
