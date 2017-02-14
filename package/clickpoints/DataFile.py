@@ -1221,8 +1221,12 @@ class DataFile:
         if nr_version < 8:
             print("\tto 8")
             with self.db.transaction():
+                # fix for DB migration with missing paths table
+                self.db.execute_sql('CREATE TABLE IF NOT EXISTS "paths" ("id" INTEGER NOT NULL PRIMARY KEY, "path" VARCHAR (255) NOT NULL);')
                 self.db.execute_sql("ALTER TABLE paths RENAME TO path")
                 self.db.execute_sql("ALTER TABLE images RENAME TO image")
+                # fix for DB migration with missing paths table
+                self.db.execute_sql('CREATE TABLE IF NOT EXISTS "offsets" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL,"x" REAL NOT NULL,"y" REAL NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);')
                 self.db.execute_sql("ALTER TABLE offsets RENAME TO offset")
                 self.db.execute_sql("ALTER TABLE tracks RENAME TO track")
                 self.db.execute_sql("ALTER TABLE types RENAME TO markertype")
