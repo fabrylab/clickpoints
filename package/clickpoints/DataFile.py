@@ -1209,11 +1209,13 @@ class DataFile:
 
         if nr_version < 7:
             print("\tto 7")
-            with self.db.transaction():
-                # Add text fields for Tracks
-                self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
-                # Add text fields for Types
-                self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
+            # fix migration for old branched databases
+            if nr_version < 4:  # version before start of migration
+                with self.db.transaction():
+                    # Add text fields for Tracks
+                    self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
+                    # Add text fields for Types
+                    self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
             self._SetVersion(7)
 
         if nr_version < 8:
