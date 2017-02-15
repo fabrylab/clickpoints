@@ -440,7 +440,7 @@ class MarkerEditor(QtWidgets.QWidget):
 
     def treeClicked(self, index):
         data = index.model().itemFromIndex(index).entry
-        if type(data) == self.data_file.table_marker and self.data == data:
+        if (type(data)in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle]) and self.data == data:
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
 
     def setMarker(self, data, data_type=None):
