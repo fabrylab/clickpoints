@@ -955,6 +955,8 @@ class DataFile:
                         tooltip="How many frames to jump\n"
                                 "for the keys on the numpad:\n"
                                 "2, 3, 5, 6, 8, 9, /, *")
+
+        self._AddOption(key="auto_contrast", display_name="Auto Contrast", default=False, value_type="bool")
         self._AddOption(key="rotation", default=0, value_type="int", hidden=True)
         self._AddOption(key="rotation_steps", default=90, value_type="int", hidden=True)
         self._AddOption(key="hide_interfaces", default=True, value_type="bool", hidden=True)
