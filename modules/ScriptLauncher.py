@@ -258,6 +258,8 @@ class ScriptLauncher(QtCore.QObject):
             # or relative to the clickpoints path
             elif os.path.exists(os.path.join(path_addons, script)):
                 script_path = os.path.join(path_addons, script)
+            else:
+                continue
             with open(script_path) as fp:
                 for line in fp:
                     line = line.strip()
