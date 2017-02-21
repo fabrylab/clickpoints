@@ -169,9 +169,13 @@ class FolderEditor(QtWidgets.QWidget):
 
     def select_folder(self):
         # ask for a directory path
-        new_path = str(QtWidgets.QFileDialog.getExistingDirectory(None, "Select Folder", os.getcwd()))
+        new_path = QtWidgets.QFileDialog.getExistingDirectory(None, "Select Folder", os.getcwd())
         # if we get one, set it
         if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
             # enable folder settings
             self.checkbox_subfolders.setDisabled(False)
             self.checkbox_natsort.setDisabled(False)
@@ -181,9 +185,13 @@ class FolderEditor(QtWidgets.QWidget):
 
     def select_file(self):
         # ask for a file name
-        new_path = str(QtWidgets.QFileDialog.getOpenFileName(None, "Select File", os.getcwd()))
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Select File", os.getcwd())
         # if we got one, set it
         if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
             # disable folder settings
             self.checkbox_subfolders.setDisabled(True)
             self.checkbox_natsort.setDisabled(True)
