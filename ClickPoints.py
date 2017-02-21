@@ -370,8 +370,12 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if not self.data_file:
             return
         if srcpath is None:
-            srcpath = str(QtWidgets.QFileDialog.getSaveFileName(None, "Save project - ClickPoints", os.getcwd(), "ClickPoints Database *.cdb"))
+            srcpath = QtWidgets.QFileDialog.getSaveFileName(None, "Save project - ClickPoints", os.getcwd(), "ClickPoints Database *.cdb")
         if srcpath:
+            if isinstance(srcpath, tuple):
+                srcpath = srcpath[0]
+            else:
+                srcpath = str(srcpath)
             self.data_file.save_database(file=srcpath)
             BroadCastEvent(self.modules, "DatabaseSaved")
             self.JumpFrames(0)

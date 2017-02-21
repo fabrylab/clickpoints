@@ -137,9 +137,13 @@ class ScriptEditor(QtWidgets.QWidget):
 
     def select_file(self):
         # ask for a file name
-        new_path = str(QtWidgets.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path))
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path)
         # if we got one, set it
         if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
             print(new_path, self.script_launcher.script_path)
             try:
                 new_path1 = os.path.relpath(new_path, self.script_launcher.script_path)
