@@ -847,7 +847,7 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
                 self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
             # notify parent
             pos = self.parentItem().mapFromScene(event.scenePos())
-            self.parentItem().graberMoved(self, pos)
+            self.parentItem().graberMoved(self, pos, event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
@@ -856,6 +856,7 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
             if self.use_crosshair:
                 self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
                 self.parentItem().marker_handler.Crosshair.Hide()
+            self.parentItem().graberReleased(self, event)
 
     def setScale(self, scale=None, animation_scale=None, hover_scale=None):
         # store scale
@@ -1078,6 +1079,9 @@ class MyDisplayItem:
     def graberDelete(self, grabber):
         self.delete()
 
+    def graberReleased(self, grabber, event):
+        pass
+
     def rightClick(self, grabber):
         # open marker edit menu
         mh = self.marker_handler
@@ -1133,7 +1137,7 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.g1.setPos(self.data.x, self.data.y)
         self.setText(self.GetText())
 
-    def graberMoved(self, grabber, pos):
+    def graberMoved(self, grabber, pos, event):
         self.data.x = pos.x()
         self.data.y = pos.y()
         self.updateDisplay()
@@ -1186,7 +1190,7 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
         self.g1.setPos(*self.data.getPos1())
         self.g2.setPos(*self.data.getPos2())
 
-    def graberMoved(self, grabber, pos):
+    def graberMoved(self, grabber, pos, event):
         if grabber == self.g1:
             self.data.setPos1(pos.x(), pos.y())
             self.setLine(*self.data.getPos())
@@ -1199,7 +1203,7 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
             self.setText(self.GetText())
 
     def drag(self, event):
-        self.graberMoved(self.g2, event.pos())
+        self.graberMoved(self.g2, event.pos(), event)
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
@@ -1266,7 +1270,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
             if self.text:
                 self.text.setParentItem(self.g3)
 
-    def graberMoved(self, grabber, pos):
+    def graberMoved(self, grabber, pos, event):
         if grabber == self.g1:
             self.data.width = self.data.x + self.data.width - pos.x()
             self.data.height = self.data.y + self.data.height - pos.y()
@@ -1293,7 +1297,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
             self.updateDisplay()
 
     def drag(self, event):
-        self.graberMoved(self.start_grabber, event.pos())
+        self.graberMoved(self.start_grabber, event.pos(), event)
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
@@ -1372,7 +1376,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.g1.setShape(self.style.get("shape", "cross"))
         self.g1.setScale(self.style.get("scale", 1))
 
-    def graberMoved(self, grabber, pos):
+    def graberMoved(self, grabber, pos, event):
         if self.marker is None:
             image = self.marker_handler.marker_file.data_file.image
             self.marker = self.marker_handler.marker_file.table_marker(image=image,
@@ -1389,6 +1393,10 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.marker.x = pos.x()
             self.marker.y = pos.y()
         self.updateDisplay()
+
+    def graberReleased(self, grabber, event):
+        if self.marker_handler.data_file.getOption("tracking_connect_nearest") and event.modifiers() & Qt.ShiftModifier:
+            self.marker_handler.window.JumpFrames(1)
 
     def graberDelete(self, grabber):
         self.RemoveTrackPoint()
@@ -2063,9 +2071,8 @@ class MarkerHandler:
                     len(tracks) and not event.modifiers() & Qt.AltModifier:
                 distances = [np.linalg.norm(PosToArray(point.g1.pos() - event.pos())) for point in tracks]
                 index = np.argmin(distances)
-                tracks[index].graberMoved(None, event.pos())
-                if event.modifiers() & Qt.ShiftModifier:
-                    self.window.JumpFrames(1)
+                tracks[index].graberMoved(None, event.pos(), event)
+                tracks[index].graberReleased(None, event)
             elif self.active_type.mode & TYPE_Track:
                 self.tracks.append(
                     MyTrackItem(self, self.TrackParent, event=event, type=self.active_type, frame=self.frame_number))
