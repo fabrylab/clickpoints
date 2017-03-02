@@ -341,12 +341,15 @@ class DataFile:
             if os.path.exists(self._database_filename):
                 os.remove(self._database_filename)
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
+            self.db.connect()
             self.db.get_conn().row_factory = dict_factory
         else:  # or read an existing one
             if not os.path.exists(self._database_filename) and mode != "r+":
                 raise Exception("DB %s does not exist!" % os.path.abspath(self._database_filename))
+            exists = os.path.exists(self._database_filename)
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
-            if os.path.exists(self._database_filename):
+            self.db.connect()
+            if exists:
                 self.db.get_conn().row_factory = dict_factory
                 version = self._CheckVersion()
                 self._next_sort_index = None
@@ -927,7 +930,6 @@ class DataFile:
         self._tables.extend([Annotation, Tag, TagAssociation])
 
         """ Connect """
-        self.db.connect()
         self._CreateTables()
         self.db.execute_sql("PRAGMA foreign_keys = ON")
         self.db.execute_sql("PRAGMA journal_mode = WAL")
