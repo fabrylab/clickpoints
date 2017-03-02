@@ -89,7 +89,7 @@ else:
 
     print("Installing packets via pip ...")
     import pip
-    pip.main(['install','-r', 'installation/pip_req.txt'])
+    pip.main(['install','-r', 'installation/pip_req.txt', '--no-deps'])
 
     os.chdir("package")
     proc = subprocess.Popen("sudo python setup.py develop",shell=True, stdin=None, executable="/bin/bash")
