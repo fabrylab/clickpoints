@@ -1005,19 +1005,19 @@ class DataFile:
                                 "To start a new track while Auto-Connect\n"
                                 "is turned on, hold down the 'alt' key")
         self._AddOption(key="tracking_show_trailing", display_name="Track show trailing", default=-1, value_type="int", min_value=-1,
-                        tooltip="How many frames to display\n"
-                                "before the current frame.\n"
+                        tooltip="Nr of track markers displayed\n"
+                                "before the current frame (past).\n"
                                 "-1 for all.")
         self._AddOption(key="tracking_show_leading", display_name="Track show leading", default=0, value_type="int", min_value=-1,
-                        tooltip="How many frames to display\n"
-                                "after the current frame.\n"
+                        tooltip="Nr of track markers displayed\n"
+                                "after the current frame (future).\n"
                                 "-1 for all.")
         self._AddOption(key="tracking_hide_trailing", display_name="Track hide trailing", default=2, value_type="int", min_value=0,
-                        tooltip="How many frames before the first active\n"
-                                "frame to hide the track.")
+                        tooltip="Nr of frames before the first track marker\n"
+                                "until which the track is hidden.")
         self._AddOption(key="tracking_hide_leading", display_name="Track hide leading", default=2, value_type="int", min_value=0,
-                        tooltip="How many frames after the last active\n"
-                                "frame to hide the track")
+                        tooltip="Nr of frames after the last track marker\n"
+                                "until the the track is hidden")
 
         self._last_category = "Mask"
         self._AddOption(key="draw_types", default=[[1, [124, 124, 255], "mask"]], value_type="list", hidden=True)
