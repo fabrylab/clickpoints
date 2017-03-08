@@ -154,11 +154,28 @@ class DataFile(DataFileBase):
         self.exists = os.path.exists(database_filename)
         self._config = config
         self.temporary_db = None
+        self.replace = None
 
         if self.exists:
             # go to the folder
             if os.path.dirname(database_filename):
                 os.chdir(os.path.dirname(database_filename))
+            # find a replacement file
+            replace_file = database_filename.replace(".cdb", ".txt")
+            if os.path.exists(replace_file):
+                find = None
+                replace = None
+                with open(replace_file) as fp:
+                    for line in fp:
+                        line = line.strip()
+                        key, value = line.split("=")
+                        print("key", key, line)
+                        if key == "find":
+                            find = value
+                        if key == "replace":
+                            replace = value
+                if find is not None and replace is not None:
+                    self.replace = [find, replace]
         else:
             database_filename = os.path.join(storage_path, "tmp%d.cdb" % os.getpid())
             index2 = 0
@@ -383,6 +400,9 @@ class DataFile(DataFileBase):
         # query the information on the image to load
         image = self.table_image.get(sort_index=index)
         filename = os.path.join(image.path.path, image.filename)
+        # apply replace pattern
+        if self.replace is not None:
+            filename = filename.replace(self.replace[0], self.replace[1])
         # prepare a slot in the buffer
         slots, slot_index, = self.buffer.prepare_slot(index)
         # call buffer_frame in a separate thread or directly
