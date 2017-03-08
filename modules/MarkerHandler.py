@@ -1450,6 +1450,8 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                 path_line.moveTo(x, y)
                 if last_frame is not None:
                     path_gap.lineTo(x, y)
+                else:
+                    path_gap.moveTo(x, y)
             last_frame = frame
             if shape == "circle":
                 path_line.addEllipse(x - .5 * circle_width, y - .5 * circle_width, circle_width,
