@@ -816,10 +816,12 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
     def hoverEnterEvent(self, event):
         # a bit bigger during hover
         self.setScale(hover_scale=1.2)
+        self.parentItem().graberHoverEnter(self, event)
 
     def hoverLeaveEvent(self, event):
         # switch back to normal size
         self.setScale(hover_scale=1)
+        self.parentItem().graberHoverLeave(self, event)
 
     def mousePressEvent(self, event):
         # store start position of move
@@ -1080,6 +1082,12 @@ class MyDisplayItem:
         self.delete()
 
     def graberReleased(self, grabber, event):
+        pass
+
+    def graberHoverEnter(self, grabber, event):
+        pass
+
+    def graberHoverLeave(self, grabber, event):
         pass
 
     def rightClick(self, grabber):
@@ -1362,6 +1370,13 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             except KeyError:
                 self.marker = None
                 self.g1.setPos(*point.pos())
+
+        self.path2 = QtWidgets.QGraphicsPathItem(self)  # second path for the lines to cover gaps
+        pen = self.path2.pen()
+        pen.setCosmetic(True)
+        self.path2.setPen(pen)
+        #self.path2.setScale(1 / self.marker_handler.scale)
+
         self.updateDisplay()
 
     def ApplyStyle(self):
@@ -1369,10 +1384,19 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine,
                            dashdotdot=Qt.DashDotDotLine)
 
+        # the line between points
         pen = self.pen()
         pen.setWidthF(self.style.get("track-line-width", 2))
         pen.setStyle(line_styles[self.style.get("track-line-style", "solid")])
         self.setPen(pen)
+
+        # the line between gaps
+        pen = self.path2.pen()
+        pen.setWidthF(self.style.get("track-gap-line-width", self.style.get("track-line-width", 2)))
+        pen.setStyle(line_styles[self.style.get("track-gap-line-style", "dash")])
+        pen.setColor(self.color)
+        self.path2.setPen(pen)
+
         self.g1.setShape(self.style.get("shape", "cross"))
         self.g1.setScale(self.style.get("scale", 1))
 
@@ -1408,7 +1432,8 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.marker_handler.marker_edit_window.setMarker(self.marker)
 
     def updateDisplay(self):
-        path = QtGui.QPainterPath()
+        path_line = QtGui.QPainterPath()
+        path_gap = QtGui.QPainterPath()
         circle_width = self.scale_value * 10 * self.style.get("track-point-scale", 1)
         last_frame = None
         shape = self.style.get("track-point-shape", "circle")
@@ -1419,17 +1444,21 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                 break
             x, y = self.points_data[frame] + self.offsets[frame] - self.current_offset
             if last_frame == frame - 1:
-                path.lineTo(x, y)
+                path_line.lineTo(x, y)
+                path_gap.moveTo(x, y)
             else:
-                path.moveTo(x, y)
+                path_line.moveTo(x, y)
+                if last_frame is not None:
+                    path_gap.lineTo(x, y)
             last_frame = frame
             if shape == "circle":
-                path.addEllipse(x - .5 * circle_width, y - .5 * circle_width, circle_width,
+                path_line.addEllipse(x - .5 * circle_width, y - .5 * circle_width, circle_width,
                                 circle_width)
             if shape == "rect":
-                path.addRect(x - .5 * circle_width, y - .5 * circle_width, circle_width, circle_width)
-            path.moveTo(x, y)
-        self.setPath(path)
+                path_line.addRect(x - .5 * circle_width, y - .5 * circle_width, circle_width, circle_width)
+            path_line.moveTo(x, y)
+        self.path2.setPath(path_gap)
+        self.setPath(path_line)
         if self.marker is not None:
             self.g1.setPos(*self.marker.pos())
 
@@ -1519,6 +1548,22 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             #self.g1.setOpacity(2)
             if self.marker_handler.data_file.getOption("tracking_connect_nearest"):
                 self.setAcceptedMouseButtons(Qt.MouseButtons(3))
+
+    def graberHoverEnter(self, grabber, event):
+        self.SetAdditionalLineWidthScale(1.5)
+
+    def graberHoverLeave(self, grabber, event):
+        self.SetAdditionalLineWidthScale(1)
+
+    def SetAdditionalLineWidthScale(self, scale):
+        pen = self.pen()
+        pen.setWidthF(self.style.get("track-line-width", 2)*scale)
+        self.setPen(pen)
+
+        # the line between gaps
+        pen = self.path2.pen()
+        pen.setWidthF(self.style.get("track-gap-line-width", self.style.get("track-line-width", 2))*scale)
+        self.path2.setPen(pen)
 
     def CheckToDisplay(self):
         if self.min_frame - self.marker_handler.data_file.getOption("tracking_hide_trailing") <= self.current_frame <= self.max_frame + self.marker_handler.data_file.getOption("tracking_hide_leading"):
