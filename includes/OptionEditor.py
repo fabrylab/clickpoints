@@ -140,6 +140,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
                     edit = AddQLineEdit(self.layout, option.display_name, value)
                     edit.textChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
                 if option.tooltip:
+                    edit.label.setToolTip(option.tooltip)
                     edit.setToolTip(option.tooltip)
                 edit.current_value = None
                 edit.option = option
