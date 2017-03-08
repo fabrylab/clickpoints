@@ -33,6 +33,7 @@ def AddQSpinBox(layout, text, value=0, float=True, strech=False):
         spinBox = QtWidgets.QDoubleSpinBox()
     else:
         spinBox = QtWidgets.QSpinBox()
+    spinBox.label = text
     spinBox.setRange(-99999, 99999)
     spinBox.setValue(value)
     spinBox.setHidden_ = spinBox.setHidden
@@ -55,6 +56,7 @@ def AddQLineEdit(layout, text, value=None, strech=False):
     lineEdit = QtWidgets.QLineEdit()
     if value:
         lineEdit.setText(value)
+    lineEdit.label = text
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(lineEdit)
     lineEdit.managingLayout = horizontal_layout
@@ -69,6 +71,7 @@ def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", fil
     lineEdit = QtWidgets.QLineEdit()
     if value:
         lineEdit.setText(value)
+    lineEdit.label = text
     lineEdit.setEnabled(False)
     def OpenDialog():
         srcpath = str(QtWidgets.QFileDialog.getSaveFileName(None, dialog_title, os.getcwd(), file_type))
@@ -93,6 +96,7 @@ def AddQColorChoose(layout, text, value=None, strech=False):
     # add a text
     text = QtWidgets.QLabel(text)
     button = QtWidgets.QPushButton("")
+    button.label = text
 
     def OpenDialog():
         # get new color from color picker
@@ -134,6 +138,7 @@ def AddQComboBox(layout, text, values=None, selectedValue=None):
     layout.addLayout(horizontal_layout)
     text = QtWidgets.QLabel(text)
     comboBox = QtWidgets.QComboBox()
+    comboBox.label = text
     for value in values:
         comboBox.addItem(value)
     if selectedValue:
@@ -149,6 +154,7 @@ def AddQCheckBox(layout, text, checked=False, strech=False):
     layout.addLayout(horizontal_layout)
     text = QtWidgets.QLabel(text)
     checkBox = QtWidgets.QCheckBox()
+    checkBox.label = text
     checkBox.setChecked(checked)
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(checkBox)
