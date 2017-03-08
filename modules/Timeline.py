@@ -104,6 +104,8 @@ class SelectFrame(QtWidgets.QDialog):
         main_layout = QtWidgets.QVBoxLayout(self)
         self.spinBox = AddQSpinBox(main_layout, "Frame Number:", value=frame, float=False)
         self.spinBox.setRange(0, max_frame)
+        # set LineEdit text to selected
+        self.spinBox.findChild(QtWidgets.QLineEdit).selectAll()
 
         button2 = QtWidgets.QPushButton("Ok")
         button2.clicked.connect(lambda: self.done(self.spinBox.value()+1))
