@@ -27,6 +27,21 @@ semi-automatic evaluation or display the results of automatic image evaluation.
    api
    api_addon
 
+Citing ClickPoints
+------------------
+
+If you use ClickPoints for academic research, you are highly encouraged (though not
+required) to cite the following paper:
+
+*  Gerum, R., Richter, S., Fabry, B. and Zitterbart, D.P. (2016),
+   `"ClickPoints: an expandable toolbox for scientific image annotation and analysis" <http://onlinelibrary.wiley.com/doi/10.1111/2041-210X.12702/abstract>`_.
+   Methods Ecol Evol. doi:10.1111/2041-210X.12702
+
+ClickPoints is developed primarily by academics, and so citations matter a lot to
+us. Citing ClickPoints also increases it's exposure and potential user
+(and developer) base, which is to the benefit of all users of ClickPoints. Thanks
+in advance!
+
 Note
 ----
 
