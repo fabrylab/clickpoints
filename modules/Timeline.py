@@ -867,7 +867,7 @@ class Timeline(QtCore.QObject):
     _endframe = None
 
     fps = 25
-    skip = 0
+    skip = 1 # where skip should be called step width i.e step=10 -> frame0 to frame10
 
     subsecond_decimals = 0
 
@@ -953,11 +953,11 @@ class Timeline(QtCore.QObject):
         self.layoutCtrl.addWidget(self.spinBox_FPS)
 
         self.spinBox_Skip = MySpinBox()
-        self.spinBox_Skip.setMinimum(0)
+        self.spinBox_Skip.setMinimum(1)
         self.spinBox_Skip.setMaximum(1000)
         self.spinBox_Skip.setValue(self.skip)
         self.spinBox_Skip.valueChanged.connect(self.ChangedSkip)
-        self.spinBox_Skip.setToolTip("how many frames to skip during playback after each frame")
+        self.spinBox_Skip.setToolTip("display every Nth frame")
         self.layoutCtrl.addWidget(self.spinBox_Skip)
 
         # video replay
@@ -980,6 +980,7 @@ class Timeline(QtCore.QObject):
 
         self.HideInterface(True)
 
+    # load Data File values
     def updateDataFile(self, data_file, new_database):
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
@@ -991,6 +992,7 @@ class Timeline(QtCore.QObject):
             self.fps = self.config.fps
         self.skip = self.config.skip
 
+        self.spinBox_Skip.setValue(self.skip)
         self.timeSlider.setTimes(self.data_file)
 
         # prepare timestamp output
@@ -1096,10 +1098,10 @@ class Timeline(QtCore.QObject):
         if nr != -1:
             self.window.JumpToFrame(nr)
         else:
-            if self.get_current_frame() < self.frameSlider.startValue() or self.get_current_frame()+1+self.skip > self.frameSlider.endValue():
+            if self.get_current_frame() < self.frameSlider.startValue() or self.get_current_frame()+self.skip > self.frameSlider.endValue():
                 self.window.JumpToFrame(self.frameSlider.startValue())
             else:
-                self.window.JumpFrames(1+self.skip)
+                self.window.JumpFrames(self.skip)
 
     def updateLabel(self):
         if self.slider_update or 1:
