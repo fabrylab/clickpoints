@@ -143,7 +143,15 @@ The styles use the JSON format for data storage. The following fields can be use
       *values:* ``solid`` (default), ``dash``, ``dot``, ``dashdot``, ``dashdotdot``
 
 -  **Track Line Width** - ``"track-line-width": 2``
-      The line width if the line used to display the track history.
+      The line width of the line used to display the track history.
+
+-  **Track Gap Line Style** -- ``"track-gap-line-style": dash``
+      The style of the line used to display gaps in the track history.
+
+      *values:* ``solid``, ``dash`` (default), ``dot``, ``dashdot``, ``dashdotdot``
+
+-  **Track Gap Line Width** -- ``"track-gap-line-width": 2``
+      The line width of the line used to display gaps in the track history.
 
 -  **Track Marker Shape** - ``"track-point-shape": "circle"``
       The marker shape used to display the track history.
@@ -212,7 +220,7 @@ The keywords are depending on the type for marker, as explained in the following
    # SmartText
    Track: "ID_$track_id"                               # shows the track ID
    Line: "$x_pos | $y_pos \n$length px"                # shows the x & y coordinate and length
-   Rect: "ID_$marker_id\n$x_pos | $y_pos \n$area px²"  # shows the object_id, its x & y coordinate and area
+   Rect: "ID_$marker_id\n$x_pos | $y_pos \n$area pxï¿½"  # shows the object_id, its x & y coordinate and area
 
 .. figure:: images/ModulesMarkerSmartText.png
    :alt: Using the Marker Text and SmartText feature
