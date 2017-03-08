@@ -1396,7 +1396,8 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
     def graberReleased(self, grabber, event):
         if self.marker_handler.data_file.getOption("tracking_connect_nearest") and event.modifiers() & Qt.ShiftModifier:
-            self.marker_handler.window.JumpFrames(1)
+            step = self.marker_handler.config.skip
+            self.marker_handler.window.JumpFrames(step)
 
     def graberDelete(self, grabber):
         self.RemoveTrackPoint()
