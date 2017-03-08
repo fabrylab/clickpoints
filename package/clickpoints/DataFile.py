@@ -930,6 +930,10 @@ class DataFile:
         self._tables.extend([Annotation, Tag, TagAssociation])
 
         """ Connect """
+        try:
+            self.db.connect()
+        except:
+            pass
         self._CreateTables()
         self.db.execute_sql("PRAGMA foreign_keys = ON")
         self.db.execute_sql("PRAGMA journal_mode = WAL")
