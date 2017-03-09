@@ -31,6 +31,8 @@ from qtpy import QtGui
 from qtpy import QtCore
 from qtpy.QtWidgets import QApplication
 
+from includes import LoadConfig
+
 app = QApplication(sys.argv)
 
 class BaseTest():
@@ -47,14 +49,10 @@ class BaseTest():
 
         print("Test Path", self.test_path)
         sys.argv = [__file__, r"-srcpath="+self.test_path]
-        print(sys.argv)
-        config = ClickPoints.LoadConfig()
-        for addon in config.addons:
-            with open(addon + ".py") as f:
-                code = compile(f.read(), addon + ".py", 'exec')
-                exec(code)
+        config = LoadConfig()
 
-        self.window = ClickPoints.ClickPointsWindow(config)
+        app = QApplication(sys.argv)
+        self.window = ClickPoints.ClickPointsWindow(config, app)
         #self.window.show()
 
     def mouseMove(self, x, y, delay=10, coordinates="origin"):
