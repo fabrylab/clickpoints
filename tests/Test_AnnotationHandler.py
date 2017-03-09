@@ -43,9 +43,10 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
     def test_loadAnnotations(self):
         """ Load existing annotations """
-        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "clickpoints.cdb")
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack", "clickpoints.cdb"))
 
         # jump to next annotation
+        self.wait_for_image_load()
         self.keyPress(Qt.Key_Right, Qt.ControlModifier)
         self.wait_for_image_load()
 
@@ -147,7 +148,7 @@ class Test_AnnotationHandler(unittest.TestCase, BaseTest):
 
     def test_addTagsAnnotations(self):
         """ Add and remove annotation """
-        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"), "addTagsAnnotations.db")
+        self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"))
 
         # wait for image to be loaded
         self.wait_for_image_load()
