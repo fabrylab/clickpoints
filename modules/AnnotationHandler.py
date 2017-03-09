@@ -361,8 +361,12 @@ class AnnotationOverview(QtWidgets.QWidget):
         self.table.hideColumn(4)
         self.table.hideColumn(5)
         self.table.hideColumn(6)
-        self.table.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        try:  # Qt5
+            self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            self.table.horizontalHeader().setSectionResizeMode(8, QtWidgets.QHeaderView.Stretch)
+        except AttributeError:  # Qt4
+            self.table.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            self.table.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
         self.table.verticalHeader().hide()
         self.layout.addWidget(self.table)
 
