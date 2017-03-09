@@ -150,7 +150,8 @@ class AnnotationFile:
         return self.table_annotation.select()
 
     def getAnnotationsByIds(self, id_list):
-        return self.table_annotation.select(peewee.SQL("*"), peewee.SQL("GROUP_CONCAT(t3.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tag, join_type="LEFT JOIN").group_by(self.table_annotation.id)
+        "Date', 'Tag', 'Comment', 'R', 'image', 'image_frame', 'id'])"
+        return self.table_annotation.select(peewee.SQL("t1.id as id"), peewee.SQL("t1.timestamp as timestamp"), peewee.SQL("t1.comment as comment"), peewee.SQL("t3.filename as image_filename"), peewee.SQL("t3.sort_index as image_sort_index"), peewee.SQL("t1.image_id as image_id"), peewee.SQL("t1.rating as rating"), peewee.SQL("GROUP_CONCAT(t4.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tag, join_type="LEFT JOIN").group_by(self.table_annotation.id).switch(self.table_annotation).join(self.data_file.table_image)
 
 class pyQtTagSelector(QtWidgets.QWidget):
     class unCheckBox(QtWidgets.QCheckBox):
@@ -363,7 +364,7 @@ class AnnotationOverview(QtWidgets.QWidget):
         self.table.hideColumn(6)
         try:  # Qt5
             self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-            self.table.horizontalHeader().setSectionResizeMode(8, QtWidgets.QHeaderView.Stretch)
+            self.table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
         except AttributeError:  # Qt4
             self.table.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
             self.table.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
@@ -397,18 +398,18 @@ class AnnotationOverview(QtWidgets.QWidget):
         if self.config.server_annotations is True:
             filename = annotation.reffilename
         else:
-            filename = annotation.image.filename
+            filename = annotation.image_filename
         if annotation.tags is None:
             annotation.tags = ""
         if annotation.timestamp is not None and annotation.timestamp:
             timestamp = datetime.strftime(annotation.timestamp, '%Y%m%d-%H%M%S')
         else:
             timestamp = ""
-        if self.config.server_annotations is True:
-            image = self.window.data_file.table_image.get(external_id = annotation.file_id, frame=annotation.frame)
-        else:
-            image = annotation.image
-        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(image.sort_index), str(annotation.id)]
+        #if self.config.server_annotations is True:
+        #    image = self.window.data_file.table_image.get(external_id = annotation.file_id, frame=annotation.frame)
+        #else:
+        #    image = annotation.image
+        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(annotation.image_sort_index), str(annotation.id)]
         for index, text in enumerate(texts):
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
