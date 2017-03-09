@@ -813,6 +813,11 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
     def setShape(self, shape):
         self.setPath(paths[shape])
 
+    def shape(self):
+        path = QtGui.QPainterPath()
+        path.addEllipse(self.boundingRect())
+        return path
+
     def hoverEnterEvent(self, event):
         # a bit bigger during hover
         self.setScale(hover_scale=1.2)
