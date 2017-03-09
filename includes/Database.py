@@ -22,11 +22,12 @@
 from __future__ import division, print_function
 import os
 import sys
+import glob
 import importlib
 import itertools
+import subprocess
 from datetime import datetime, timedelta, MINYEAR
 import peewee
-from playhouse.reflection import Introspector
 try:
     from StringIO import StringIO  # python 2
 except ImportError:
@@ -42,7 +43,7 @@ import re
 
 
 # add plugins to imageIO if available
-plugin_searchpath = os.path.join(os.path.split(__file__)[0],'..',r'addons/imageio_plugin')
+plugin_searchpath = os.path.join(os.path.split(__file__)[0], '..', r'addons/imageio_plugin')
 sys.path.append(plugin_searchpath)
 if os.path.exists(plugin_searchpath):
     print("Searching ImageIO Plugins ...")
@@ -51,6 +52,25 @@ if os.path.exists(plugin_searchpath):
         if plugin.startswith('imageio_plugin_') and plugin.endswith('.py'):
             importlib.import_module(os.path.splitext(plugin)[0])
             print('Adding %s' % plugin)
+
+
+# check for ffmpeg
+try:
+    # check if imageio already has an exe file
+    imageio.plugins.ffmpeg.get_exe()
+    print("ffmpeg found from imageio")
+except imageio.core.fetching.NeedDownloadError:
+    # try to find an ffmpeg.exe in the ClickPoints folder
+    files = glob.glob(os.path.join(os.path.dirname(__file__), "..", "ffmpeg*.exe"))
+    files.extend(glob.glob(os.path.join(os.path.dirname(__file__), "..", "external", "ffmpeg*.exe")))
+    # if an ffmpeg exe has been found, set the environmental variable accordingly
+    if len(files):
+        print("ffmpeg found", files[0])
+        os.environ['IMAGEIO_FFMPEG_EXE'] = files[0]
+    # if not, try to download it
+    else:
+        print("try to download ffmpeg")
+        imageio.plugins.ffmpeg.download()
 
 
 def max_sql_variables():
