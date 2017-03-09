@@ -440,7 +440,7 @@ class DataFile:
 
             def getShape(self):
                 if self.width is not None and self.height is not None:
-                    return [self.height, self.width]
+                    return (self.height, self.width)
                 else:
                     try:
                         return self.data.shape[:2]
@@ -932,7 +932,7 @@ class DataFile:
         """ Connect """
         try:
             self.db.connect()
-        except:
+        except peewee.OperationalError:
             pass
         self._CreateTables()
         self.db.execute_sql("PRAGMA foreign_keys = ON")
@@ -1469,7 +1469,6 @@ class DataFile:
     def _checkTrackField(self, tracks):
         if not isinstance(tracks, (tuple, list)):
             tracks = [tracks]
-        tracks = np.unique(tracks)
         tracks = [t for t in tracks if t is not None]
         if len(tracks) == 0:
             return
