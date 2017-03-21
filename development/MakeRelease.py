@@ -86,11 +86,11 @@ def CopyInstallerFilesNoPython(directory):
         dst = os.path.join(path_to_temporary_installer, file)
         print(os.path.abspath(src))
         shutil.copy(src, dst)
-    for file in ["sqlite3.dll", "_sqlite3.pyd"]:
-        src = os.path.join("development", "pynsist", "pynsist_pkgs", file)
-        dst = os.path.join(path_to_temporary_installer, file)
-        print(os.path.abspath(src))
-        shutil.copy(src, dst)
+    #for file in ["sqlite3.dll", "_sqlite3.pyd"]:
+    #    src = os.path.join("development", "pynsist", "pynsist_pkgs", file)
+    #    dst = os.path.join(path_to_temporary_installer, file)
+    #    print(os.path.abspath(src))
+    #    shutil.copy(src, dst)
 
     os.chdir(path_to_temporary_installer)
     os.system(sys.executable+" make_no_python_installer.py")
@@ -123,7 +123,7 @@ def CopyInstallerFiles(directory):
             shutil.copy(file, os.path.join(path_to_temporary_installer, target))
 
     os.chdir(path_to_temporary_installer)
-    os.system(sys.executable+" -m nsist installer.cfg")
+    #os.system(sys.executable+" -m nsist installer.cfg")
     os.chdir(old_dir)
 
 def CheckForUncommitedChanges(directory):
@@ -162,8 +162,8 @@ version_file = os.path.join("clickpoints", "version.txt")
 
 #paths = [".", "clickpoints", "mediahandler", "qextendedgraphicsview"]
 #path_destinations = ["installation", ".", "includes", "includes"]
-paths = ["clickpoints", os.path.join("clickpoints", "includes", "qextendedgraphicsview")]
-path_destinations = [".", "includes"]
+paths = [os.path.join("clickpoints", "includes", "qextendedgraphicsview"), "clickpoints"]
+path_destinations = ["includes", "."]
 
 """ Checks """
 # get old version name
@@ -194,16 +194,17 @@ if options.release:
     for path in paths:
         CheckForUncommitedChanges(path)
     CheckForUncommitedChanges(path_to_website)
-else:
-    os.chdir("clickpoints")
-    revision = os.popen("hg id").read().strip()[:12]
-    os.chdir("..")
-    new_version = "%s (%s)" % (new_version, revision)
 
 """ Let's go """
 # write new version to version.txt
 with open(version_file, "w") as fp:
     fp.write(new_version)
+
+# add revision number to version
+os.chdir("clickpoints")
+revision = os.popen("hg id").read().strip()[:12]
+os.chdir("..")
+new_version_revision = "%s (%s)" % (new_version, revision)
 
 # Create filelist and zip file
 file_list = open("files.txt", "w")
@@ -224,8 +225,8 @@ print("finished zip")
 # Close
 file_list.close()
 myzip.write("files.txt", "installation/files.txt")
-myzip.write("clickpoints/development/pynsist/pynsist_pkgs/sqlite3.dll", "sqlite3.dll")
-myzip.write("clickpoints/development/pynsist/pynsist_pkgs/_sqlite3.pyd", "_sqlite3.pyd")
+#myzip.write("clickpoints/development/pynsist/pynsist_pkgs/sqlite3.dll", "sqlite3.dll")
+#myzip.write("clickpoints/development/pynsist/pynsist_pkgs/_sqlite3.pyd", "_sqlite3.pyd")
 myzip.close()
 
 # Copy files to website
@@ -233,8 +234,8 @@ print("Move Files")
 shutil.move(zip_file, os.path.join(path_to_website, zip_file))
 shutil.copy(version_file, os.path.join(path_to_website, "version.html"))
 new_version_ = new_version.replace(" ", "_")
-shutil.copy(os.path.join(path_to_temporary_installer, "build", "nsis", "ClickPoints_v"+new_version_+".exe" ), os.path.join(path_to_website, "ClickPoints_v"+new_version_+".exe"))
-shutil.copy(os.path.join(path_to_temporary_installer, "ClickPoints_v"+new_version_+"_no_python.exe" ), os.path.join(path_to_website, "ClickPoints_v"+new_version_+"_no_python.exe"))
+#shutil.copy(os.path.join(path_to_temporary_installer, "build", "nsis", "ClickPoints_v"+new_version_+".exe" ), os.path.join(path_to_website, "ClickPoints_v"+new_version_+".exe"))
+shutil.copy(os.path.join(path_to_temporary_installer, "ClickPoints_v"+new_version_+".exe" ), os.path.join(path_to_website, "ClickPoints_v"+new_version_+".exe"))
 
 if options.release:
     # Commit changes to ClickPoints
