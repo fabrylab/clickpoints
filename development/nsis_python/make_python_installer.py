@@ -72,42 +72,58 @@ class Config(ConfigParser.ConfigParser):
             return ConfigAccessHelper(self, key)
         return ConfigParser.ConfigParser.__getattr__(self, key)
 
-config = Config("installer.cfg")
+folderPath = r"D:\WinPython-64bit-3.6.0.1Zero"
+old_path = os.getcwd()
+#os.chdir(folderPath)
 
-icon = os.path.split(config.Application.icon)[1]
-shutil.copy(config.Application.icon, icon)
+""" get size of folder """
+import win32com.client as com
+
+fso = com.Dispatch("Scripting.FileSystemObject")
+folder = fso.GetFolder(".")
+KB = 1024.0
+folder_size = int(folder.Size/KB)
+print("%d KB" % (folder_size))
+
+icon = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "icons", "winpython.ico"))
 
 grouped_files = [["$INSTDIR", []]]
 install_files = []
 install_dirs = []
-files = "ClickPoints.py\n"+icon+"\n"+config.Include.files
-for entry in files.split():
-    if entry.endswith("/"):
-        install_dirs.append([entry[:-1], "$INSTDIR"])
-    else:
-        install_files.append([entry, "$INSTDIR"])
-        grouped_files[0][1].append(entry)
-#install_files.append(["sqlite3.dll", "$INSTDIR"])
-#grouped_files[0][1].append("sqlite3.dll")
-#install_files.append(["_sqlite3.pyd", "$INSTDIR"])
-#grouped_files[0][1].append("_sqlite3.pyd")
-print(grouped_files)
-print(install_files)
-print(install_dirs)
+if 0:
+    for root, dirs, files in os.walk(".", topdown=True):
+        if len(files) == 0:
+            continue
+        #for name in files:
+        #    install_files.append([os.path.join(root, name), "$INSTDIR"])
+        #    grouped_files[0][1].append(os.path.join(root, name))
+        #for name in dirs:
+        install_dirs.append([root, "$INSTDIR"])
+
+install_dirs.append([folderPath, "$INSTDIR"])
+#for name in glob.glob(folderPath+"\*"):
+#    install_files.append([os.path.split(name)[1], "$INSTDIR"])
+#    grouped_files[0][1].append(os.path.join(folderPath, name))
+#print(grouped_files)
+#print(install_files)
+#print(install_dirs)
 
 env = Environment(loader=FileSystemLoader(os.path.dirname(__file__)))
 
-template = env.get_template("pyapp_clickpoints_no_python.nsi")
+template = env.get_template("pyapp_python.nsi")
 with open("tmp.nsi", 'w') as fp:
-    fp.write(template.render(extension_list=[".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif", ".avi", ".mp4"],
-    appname=config.Application.name,
-    version=config.Application.version,
-    installer_name=config.Build.installer_name,
+    fp.write(template.render(
+    appname="WinPython for ClickPoints",
+    appname_path="WinPython-ClickPoints",
+    version="1.1",
+    installer_name=os.path.join(old_path, "WinPython_CP.exe"),
     icon=icon,
+
     install_dirs=install_dirs,
     grouped_files=grouped_files,
     pjoin=os.path.join,
     install_files=install_files,
+    folder_size=folder_size,
     ))
 
 def find_makensis_win():

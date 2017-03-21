@@ -91,7 +91,8 @@ Section "!${PRODUCT_NAME}" sec_app
   ClearErrors
   FileOpen $0 "$INSTDIR\ClickPoints.bat" w
   IfErrors done
-  FileWrite $0 "@echo off$\r$\n"  
+  FileWrite $0 "@echo off$\r$\n"
+  FileWrite $0 "set PATH=%CLICKPOINTS_PATH%;%PATH%$\r$\n"
   FileWrite $0 'python "$INSTDIR\ClickPoints.py" -srcpath=%1$\r$\n'
   FileWrite $0 "IF %ERRORLEVEL% NEQ 0 pause$\r$\n"
   FileClose $0
@@ -128,6 +129,8 @@ Section "Uninstall"
   Delete $INSTDIR\uninstall.exe
   Delete "$INSTDIR\${PRODUCT_ICON}"
   Delete $INSTDIR\ClickPoints.bat
+
+  RMDir /r "$INSTDIR\__pycache__"
   
   ; Uninstall files
   {% for file, destination in install_files %}
