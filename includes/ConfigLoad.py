@@ -116,7 +116,7 @@ def LoadConfig(srcpath=""):
                 config_path = path
                 print("Loaded config", path)
             """
-        break
+            break
 
     """ get command line data """
 
