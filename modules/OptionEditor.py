@@ -156,7 +156,11 @@ class OptionEditorWindow(QtWidgets.QWidget):
         pass
 
     def Export(self):
-        export_path = str(QtWidgets.QFileDialog.getSaveFileName(self.window, "Export config - ClickPoints", os.path.join(os.getcwd(), "ConfigClickPoints.txt"), "ClickPoints Config *.txt"))
+        export_path = QtWidgets.QFileDialog.getSaveFileName(self.window, "Export config - ClickPoints", os.path.join(os.getcwd(), "ConfigClickPoints.txt"), "ClickPoints Config *.txt")
+        if isinstance(export_path, tuple):
+            export_path = export_path[0]
+        else:
+            export_path = str(export_path)
         if not export_path:
             return
         with open(export_path, "w") as fp:
