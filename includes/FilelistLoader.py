@@ -277,7 +277,10 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
                     if frames == 0:
                         continue
                     # add the file to the database
-                    data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, full_path=os.path.join(path, filename), commit=False))
+                    try:
+                        data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, full_path=os.path.join(path, filename), commit=False))
+                    except OSError as err:
+                        print("ERROR:", err)
                     if len(data) > 100 or filename == select_file:
                         data_file.add_bulk(data)
                         data = []
