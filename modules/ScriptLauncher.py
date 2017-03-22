@@ -149,7 +149,10 @@ class ScriptEditor(QtWidgets.QWidget):
                 new_path1 = os.path.relpath(new_path, self.script_launcher.script_path)
             except:
                 new_path1 = None
-            new_path2 = os.path.relpath(new_path, os.getcwd())
+            try:
+                new_path2 = os.path.relpath(new_path, os.getcwd())
+            except ValueError:
+                new_path2 = new_path
             if new_path1 is None or len(new_path1) > len(new_path2):
                 new_path = new_path2
             else:
