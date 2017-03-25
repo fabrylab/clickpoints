@@ -150,8 +150,42 @@ class AnnotationFile:
         return self.table_annotation.select()
 
     def getAnnotationsByIds(self, id_list):
-        "Date', 'Tag', 'Comment', 'R', 'image', 'image_frame', 'id'])"
-        return self.table_annotation.select(peewee.SQL("t1.id as id"), peewee.SQL("t1.timestamp as timestamp"), peewee.SQL("t1.comment as comment"), peewee.SQL("t3.filename as image_filename"), peewee.SQL("t3.sort_index as image_sort_index"), peewee.SQL("t1.image_id as image_id"), peewee.SQL("t1.rating as rating"), peewee.SQL("GROUP_CONCAT(t4.name) as tags")).where(self.table_annotation.id << id_list).join(self.table_tagassociation, join_type="LEFT JOIN").join(self.table_tag, join_type="LEFT JOIN").group_by(self.table_annotation.id).switch(self.table_annotation).join(self.data_file.table_image)
+        # are the annotations on the server?
+        if self.server is not None:
+            # get the server data
+            query = (self.table_annotation.select(peewee.SQL("t1.id as id"), peewee.SQL("t1.timestamp as timestamp"),
+                                                peewee.SQL("t1.comment as comment"),
+                                                peewee.SQL("t1.reffilename as image_filename"),
+                                                peewee.SQL("t1.file_id as image_id"),
+                                                peewee.SQL("t1.rating as rating"),
+                                                peewee.SQL("GROUP_CONCAT(t3.name) as tags"))
+                     .where(self.table_annotation.id << id_list)
+                     .join(self.table_tagassociation, join_type="LEFT JOIN")
+                     .join(self.table_tag, join_type="LEFT JOIN")
+                     .group_by(self.table_annotation.id))
+            annotations = [q for q in query]
+            # new query on local database to the the sort_index
+            query = (self.data_file.table_image.select(self.data_file.table_image.sort_index, self.data_file.table_image.external_id)
+                     .where(self.data_file.table_image.external_id << [q.image_id for q in annotations]))
+            id_to_sort_index = {q.external_id: q.sort_index for q in query}
+            # add the sort index to the query data
+            for annotation in annotations:
+                annotation.image_sort_index = id_to_sort_index[annotation.image_id]
+            # return composed annotations
+            return annotations
+        # no server? than we can use a direct query with join
+        return (self.table_annotation.select(peewee.SQL("t1.id as id"), peewee.SQL("t1.timestamp as timestamp"),
+                                            peewee.SQL("t1.comment as comment"),
+                                            peewee.SQL("t3.filename as image_filename"),
+                                            peewee.SQL("t3.sort_index as image_sort_index"),
+                                            peewee.SQL("t1.image_id as image_id"), peewee.SQL("t1.rating as rating"),
+                                            peewee.SQL("GROUP_CONCAT(t4.name) as tags"))
+               .where(self.table_annotation.id << id_list)
+               .join(self.table_tagassociation, join_type="LEFT JOIN")
+               .join(self.table_tag, join_type="LEFT JOIN")
+               .group_by(self.table_annotation.id)
+               .switch(self.table_annotation)
+               .join(self.data_file.table_image))
 
 class pyQtTagSelector(QtWidgets.QWidget):
     class unCheckBox(QtWidgets.QCheckBox):
