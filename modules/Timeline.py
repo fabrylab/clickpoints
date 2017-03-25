@@ -20,9 +20,7 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 from __future__ import division, print_function
-import sys
 import os
-import glob
 import time
 import numpy as np
 import re
@@ -460,7 +458,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         self.length = self.size().width()
         self.slider_line.setRect(0, -0.5, self.pixel_len, 1)
         self.slider_line.resetTransform()
-        self.slider_line.scale(self.length/self.pixel_len, 1)
+        self.slider_line.setTransform(QtGui.QTransform.fromScale(self.length/self.pixel_len, 1), True)
         self.setSceneRect(0, -10, self.size().width(), 20)
         self.repaint()
 
@@ -794,17 +792,17 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         if event.isAccepted():
             return
 
-        if 0:#qt_version == '5':
+        try:  # PyQt 5
             angle = event.angleDelta().y()
-        else:
+        except AttributeError:  # PyQt 4
             angle = event.delta()
         old_scale = self.scale
         if angle > 0:
             self.scale *= 1.1
-            self.markerParent.scale(1.1, 1)
+            self.markerParent.setTransform(QtGui.QTransform.fromScale(1.1, 1), True)
         else:
             self.scale *= 0.9
-            self.markerParent.scale(0.9, 1)
+            self.markerParent.setTransform(QtGui.QTransform.fromScale(0.9, 1), True)
         new_pos = PosToArray(self.slider_line.mapFromScene(self.mapToScene(event.pos())))
         x = new_pos[0]
         self.pan = x - self.scale/old_scale*(x-self.pan)
