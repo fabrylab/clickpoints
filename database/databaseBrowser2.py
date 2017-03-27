@@ -42,6 +42,8 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import calendar
 
+sys.path.insert(0, os.path.dirname(__file__))
+
 from databaseFiles import DatabaseFiles
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
