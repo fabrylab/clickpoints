@@ -99,6 +99,7 @@ class MarkerFile:
         try:
             type = self.table_markertype.get(self.table_markertype.name == name)
         except peewee.DoesNotExist:
+            rgb_tuple = [int(i) for i in rgb_tuple]
             type = self.table_markertype(name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), mode=mode)
             type.save(force_insert=True)
         return type
