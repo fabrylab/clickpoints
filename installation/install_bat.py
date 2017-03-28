@@ -24,7 +24,7 @@ import subprocess
 
 directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 os.chdir("..")
-script_path = os.path.join(directory, "ClickPoints.py")
+script_path = os.path.normpath(os.path.join(directory, "ClickPoints.py"))
 icon_path = os.path.join(directory, "icons", "ClickPoints.ico")
 if sys.platform.startswith('win'):
     with open("ClickPoints.bat", 'w') as fp:
