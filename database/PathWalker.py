@@ -30,6 +30,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import time
 
+sys.path.insert(0, os.path.dirname(__file__))
 from databaseFiles import DatabaseFiles
 from PIL import Image
 import PIL.ExifTags
