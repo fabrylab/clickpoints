@@ -38,9 +38,9 @@ For adding clickpoints to the right click menu in the file explorer, execute the
     If you don't use our provided Python installation, you need to install the required packages. Missing packages will
     throw an ImportError, e.g. ``ImportError: No module named peewee``. This means this package is missing and has to be
     installed. While most packages can be easily installed using pip, unfortunately some packages don't install out of
-    the box with `pip` but wheel files for these packages be obtained for Windows from Christoph Gohlke's
+    the box with ``pip install PACKAGENAME`` but wheel files for these packages be obtained for Windows from Christoph Gohlke's
     `Unofficial Windows Binaries <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_ or if you are on Linux from your
-     distributions package repositories, e.g. using ``sudo apt install python-PACKAGENAME``
+    distributions package repositories, e.g. using ``sudo apt install python-PACKAGENAME``
 
 Linux
 -----
