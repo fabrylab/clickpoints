@@ -21,6 +21,8 @@ from __future__ import division, print_function
 
 import sys
 import os
+import glob
+import natsort
 
 """ some magic to prevent PyQt5 from swallowing exceptions """
 # Back up the reference to the exceptionhook
@@ -275,6 +277,22 @@ class ClickPointsWindow(QtWidgets.QWidget):
             BroadCastEvent(self.modules, "LoadingFinishedEvent")
             return
 
+        # glob support
+        if '*' in url:
+            print("Glob string detected - building list")
+            if self.data_file is None or reset:
+                self.reset()
+            # obj can be directory or files
+            obj_list = natsort.natsorted(glob.glob(url))
+            for obj in obj_list:
+                print("Loading GLOB URL", os.path.abspath(obj))
+                self.loadObject(os.path.abspath(obj))
+            self.JumpToFrame(0)
+            self.view.fitInView()
+            self.GetModule("Timeline").ImagesAdded()
+            BroadCastEvent(self.modules, "LoadingFinishedEvent")
+            return
+
         # open an existing database
         if url.endswith(".cdb"):
             self.reset(url)
@@ -317,6 +335,48 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 self.load_thread.daemon = True
                 self.load_thread.start()
                 self.load_timer.start()
+
+    def loadObject(self,url):
+        #TODO: rebuild threaded version for glob, replace duplicated code above with this function
+        """
+        Loads objects of type directory, img or video file
+        HACKED the non thread version as i couldnt get threaded to work ...
+
+        :param url (string): path to object
+        :return:
+        """
+        if os.path.isdir(url):
+            # self.load_thread = threading.Thread(target=addPath, args=(self.data_file, url),
+            #                                     kwargs=dict(subdirectories=True, use_natsort=config.use_natsort))
+            addPath(self.data_file, url, subdirectories=True, use_natsort=config.use_natsort)
+        # if not check what type of file it is
+        else:
+            directory, filename = os.path.split(url)
+            ext = os.path.splitext(filename)[1]
+            # for images load the folder
+            if ext.lower() in imgformats:
+                # self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
+                #                                     kwargs=dict(use_natsort=config.use_natsort, window=self,
+                #                                                 select_file=filename))
+                self.first_frame = None
+                addPath(self.data_file, directory, use_natsort=config.use_natsort)
+            # for videos just load the file
+            elif ext.lower() in vidformats:
+                # self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
+                #                                     kwargs=dict(file_filter=os.path.split(filename)[1]))
+                addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
+            elif ext.lower() == ".txt":
+                # self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
+                addList(self.data_file, directory, filename)
+            # if the extension is not known, raise an exception
+            else:
+                raise Exception("unknown file extension " + ext, filename)
+
+        # if self.load_thread is not None:
+        #     self.load_thread.daemon = True
+        #     self.load_thread.start()
+        #     self.load_timer.start()
+
 
     def reset(self, filename=""):
         if self.data_file is not None:
