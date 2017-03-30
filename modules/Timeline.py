@@ -1052,6 +1052,7 @@ class Timeline(QtCore.QObject):
         self.layoutCtrl3.setHidden(True)
         if self.data_file.getOption("datetimeline_show"):
             self.timeSlider.setTimes(self.data_file)
+            self.layoutCtrl2.setHidden(False)
 
     def ChangedSkip(self):
         self.skip = self.spinBox_Skip.value()
