@@ -176,7 +176,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
                 elif category == "Mask":
                     self.ExportMaskTypes(fp)
                 for option in self.data_file._options[category]:
-                    if option.name == "types" or option.name == "draw_types":
+                    if option.key == "types" or option.key == "draw_types":
                         continue
                     if option.value is None:
                         continue
