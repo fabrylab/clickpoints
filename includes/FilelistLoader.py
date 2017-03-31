@@ -367,7 +367,7 @@ def getFrameNumber(file, extension):
             reader = imageio.get_reader(file, format='AVBin')
             if reader.get_length() <= 1:
                 raise IOError()
-        except (IOError, WindowsError):
+        except (IOError):
             # for other formats let imagio choose a reader
             try:
                 reader = imageio.get_reader(file)

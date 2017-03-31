@@ -543,6 +543,10 @@ class AnnotationHandler:
             self.AnnotationOverviewWindow.AnnotationRemoved(annotation)
 
     def showAnnotationEditor(self):
+        if self.data_file is None or self.data_file.image is None:
+            reply = QtWidgets.QMessageBox.warning(self.window, 'Warning', 'To add an annotation to an image, '
+                                                                   'an image has to be loaded.')
+            return
         if self.AnnotationEditorWindow is not None:
             self.AnnotationEditorWindow.close()
             del self.AnnotationEditorWindow
