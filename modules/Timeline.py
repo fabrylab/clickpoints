@@ -1092,7 +1092,7 @@ class Timeline(QtCore.QObject):
             self.playing = False
 
     def updateFrame(self, nr=-1):
-        if self.data_file is None:
+        if self.data_file is None or self.get_current_frame() is None:
             return
         if nr != -1:
             self.window.JumpToFrame(nr)
