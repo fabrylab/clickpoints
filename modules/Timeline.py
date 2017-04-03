@@ -522,6 +522,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
             self.text.setPos(-offsetX*0.5+1, 2)
             self.font_parent.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
             tick_marker.text = self.text
+            tick_marker.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
         else:
             tick_marker.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
             tick_marker.text = None
