@@ -780,7 +780,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
     def mouseReleaseEvent(self, event):
         if event.button() == 1:
             pos = (self.slider_line.mapFromScene(self.mapToScene(event.pos())) - self.markerParent.pos())/self.scale
-            pos = self.mapFromScene(self.slider_line.mapToScene(pos))
+            pos = QtCore.QPointF(self.mapFromScene(self.slider_line.mapToScene(pos)*1e6))/1e6  # Hack to prevent mapFromScene to discard float information
             self.setValue(self.PixelToValue(pos.x()))
             self.slider_position.signal.sliderReleased.emit()
         if event.button() == 2:
