@@ -275,7 +275,7 @@ class DataFile:
     """
     db = None
     _reader = None
-    _current_version = "16"
+    _current_version = "17"
     _database_filename = None
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
@@ -520,10 +520,11 @@ class DataFile:
             mode = peewee.IntegerField(default=0)
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
+            hidden = peewee.BooleanField(default=False)
 
             def __str__(self):
-                return "MarkerTypeObject id%s:\tname=%s\tcolor=%s\tmode=%s\tstyle=%s\ttext=%s" \
-                       % (self.id, self.name, self.color, self.mode, self.style, self.text)
+                return "MarkerTypeObject id%s:\tname=%s\tcolor=%s\tmode=%s\tstyle=%s\ttext=%s\thidden=%s" \
+                       % (self.id, self.name, self.color, self.mode, self.style, self.text, self.hidden)
 
             def print_details(self):
                 print("MarkerTypeObject:\n"
@@ -533,7 +534,8 @@ class DataFile:
                       "mode:\t{3}\n"
                       "style:\t{4}\n"
                       "text:\t{5}\n"
-                      .format(self.id, self.name, self.color, self.mode, self.style, self.text))
+                      "hidden:\t{6}\n"
+                      .format(self.id, self.name, self.color, self.mode, self.style, self.text, self.hidden))
 
             def getColorRGB(self):
                 return HTMLColorToRGB(self.color)
@@ -542,6 +544,7 @@ class DataFile:
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
             type = peewee.ForeignKeyField(MarkerType, related_name="tracks", on_delete='CASCADE')
+            hidden = peewee.BooleanField(default=False)
 
             def __getattr__(self, item):
                 if item == "points":
@@ -559,8 +562,8 @@ class DataFile:
                 return BaseModel(self, item)
 
             def __str__(self):
-                return "TrackObject id%s:\ttype=%s\ttext=%s\tstyle=%s" \
-                       % (self.id, self.type, self.style, self.text)
+                return "TrackObject id%s:\ttype=%s\ttext=%s\tstyle=%s\thidden=%s" \
+                       % (self.id, self.type, self.style, self.text, self.hidden)
 
             def print_details(self):
                 print("TrackObject:\n"
@@ -568,7 +571,8 @@ class DataFile:
                       "type:\t{1}\n"
                       "style:\t{2}\n"
                       "text:\t{3}\n"
-                      .format(self.id, self.type, self.style, self.text))
+                      "hidden:\t{4}\n"
+                      .format(self.id, self.type, self.style, self.text, self.hidden))
 
 
         class Marker(BaseModel):
@@ -1418,11 +1422,36 @@ class DataFile:
             print("\tto 16")
             with self.db.transaction():
                 try:
-                    self.db.execute_sql('CREATE TABLE "option" ("id" INTEGER NOT NULL PRIMARY KEY, "key" VARCHAR(255) NOT NULL, "value" VARCHAR(255))')
+                    self.db.execute_sql(
+                        'CREATE TABLE "option" ("id" INTEGER NOT NULL PRIMARY KEY, "key" VARCHAR(255) NOT NULL, "value" VARCHAR(255))')
                     self.db.execute_sql('CREATE UNIQUE INDEX "option_key" ON "option" ("key")')
                 except peewee.OperationalError:
                     pass
             self._SetVersion(16)
+
+        if nr_version < 17:
+            print("\tto 17")
+            with self.db.transaction():
+                try:
+                    self.db.execute_sql(
+                        'CREATE TABLE "markertype_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL, "color" VARCHAR(255) NOT NULL, "mode" INTEGER NOT NULL, "style" VARCHAR(255), "text" VARCHAR(255), "hidden" INTEGER NOT NULL);')
+                    self.db.execute_sql(
+                        'INSERT INTO markertype_tmp SELECT id, name, color, mode, style, text, "0" FROM markertype')
+                    self.db.execute_sql("DROP TABLE markertype")
+                    self.db.execute_sql("ALTER TABLE markertype_tmp RENAME TO markertype")
+                    self.db.execute_sql('CREATE UNIQUE INDEX "markertype_name" ON "markertype" ("name");')
+
+                    self.db.execute_sql(
+                        'CREATE TABLE "track_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "style" VARCHAR(255), "text" VARCHAR(255), "type_id" INTEGER NOT NULL, "hidden" INTEGER NOT NULL, FOREIGN KEY ("type_id") REFERENCES "markertype" ("id") ON DELETE CASCADE);')
+                    self.db.execute_sql(
+                        'INSERT INTO track_tmp SELECT id, style, text, type_id, "0" FROM track')
+                    self.db.execute_sql("DROP TABLE track")
+                    self.db.execute_sql("ALTER TABLE track_tmp RENAME TO track")
+                    self.db.execute_sql('CREATE INDEX "track_type_id" ON "track" ("type_id");')
+                except peewee.OperationalError:
+                    raise
+                    pass
+            self._SetVersion(17)
 
 
     def _SetVersion(self, nr_new_version):
@@ -1910,7 +1939,7 @@ class DataFile:
         query = addFilter(query, height, self.table_image.height)
         return query.execute()
 
-    def getTracks(self, type=None, text=None, id=None):
+    def getTracks(self, type=None, text=None, hidden=None, id=None):
         """
         Get all :py:class:`Track` entries, optional filter by type
 
@@ -1922,6 +1951,8 @@ class DataFile:
             the marker type/types or name of the marker type for the track.
         text : str, array_like, optional
             the :py:class:`Track` specific text entry
+        hidden : bool, array_like, optional
+            whether the tracks should be displayed in ClickPoints
         id : int, array_like, optional
             the  :py:class:`Track` ID
 
@@ -1935,6 +1966,7 @@ class DataFile:
         query = self.table_track.select()
         query = addFilter(query, type, self.table_track.type)
         query = addFilter(query, text, self.table_track.text)
+        query = addFilter(query, hidden, self.table_track.hidden)
         query = addFilter(query, id, self.table_track.id)
 
         return query
@@ -1960,7 +1992,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def setTrack(self, type, style=None, text=None, id=None, uid=None):
+    def setTrack(self, type, style=None, text=None, hidden=None, id=None, uid=None):
         """
         Insert or update a :py:class:`Track` object.
 
@@ -1973,9 +2005,11 @@ class DataFile:
             the marker type or name of the marker type for the track.
         style:
             the :py:class:`Track` specific style entry
-        texts :
+        text :
             the :py:class:`Track` specific text entry
-        ids : int, array_like
+        hidden :
+            wether the track should be displayed in ClickPoints
+        id : int, array_like
             the  :py:class:`Track` ID
 
 
@@ -1986,12 +2020,12 @@ class DataFile:
         """
         type = self._processesTypeNameField(type)
 
-        item = self.table_track.insert(id=id, type=type, style=style, text=text).upsert().execute()
+        item = self.table_track.insert(id=id, type=type, style=style, text=text, hidden=hidden).upsert().execute()
         item = self.table_track.get(id=item)
 
         return item
 
-    def deleteTracks(self, type=None, text=None, id=None):
+    def deleteTracks(self, type=None, text=None, hidden=None, id=None):
         """
         Delete a single :py:class:`Track` object specified by id or all :py:class:`Track` object of an type
 
@@ -2003,6 +2037,8 @@ class DataFile:
             the marker type or name of the marker type
         text : str, array_like, optional
             the :py:class:`Track` specific text entry
+        hidden : bool, array_like, optional
+            whether the tracks should be displayed in ClickPoints
         id : int, array_like, array_like, optional
             the  :py:class:`Track` ID
 
@@ -2017,10 +2053,11 @@ class DataFile:
         query = self.table_track.delete()
         query = addFilter(query, id, self.table_track.id)
         query = addFilter(query, text, self.table_track.text)
+        query = addFilter(query, hidden, self.table_track.hidden)
         query = addFilter(query, type, self.table_track.type)
         return query.execute()
 
-    def getMarkerTypes(self, name=None, color=None, mode=None, text=None, id=None):
+    def getMarkerTypes(self, name=None, color=None, mode=None, text=None, hidden=None, id=None):
         """
         Retreive all :py:class:`MarkerType` objects in the database.
 
@@ -2036,6 +2073,8 @@ class DataFile:
             mode of the marker type (marker 0, rect 1, line 2, track 4)
         text: str, array_like, optional
             display text
+        hidden: bool, array_like, optional
+            whether the types should be displayed in ClickPoints
         id: int, array_like, optional
             id of the :py:class:`MarkerType` object
 
@@ -2050,6 +2089,7 @@ class DataFile:
         query = addFilter(query, color, self.table_markertype.color)
         query = addFilter(query, mode, self.table_markertype.mode)
         query = addFilter(query, text, self.table_markertype.text)
+        query = addFilter(query, hidden, self.table_markertype.hidden)
         query = addFilter(query, id, self.table_markertype.id)
 
         return query
@@ -2077,7 +2117,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def setMarkerType(self, name=None, color=None, mode=None, style=None, text=None, id=None):
+    def setMarkerType(self, name=None, color=None, mode=None, style=None, text=None, hidden=None, id=None):
         """
         Insert or update an :py:class:`MarkerType` object in the database.
 
@@ -2095,6 +2135,8 @@ class DataFile:
             style string
         text: str, optional
             display text
+        hidden: bool, optional
+            whether the type should be displayed in ClickPoints
         id: int, optional
             id of the :py:class:`MarkerType` object
 
@@ -2110,11 +2152,11 @@ class DataFile:
 
         if color is not None:
             color = CheckValidColor(color)
-        setFields(item, dict(name=name, color=color, mode=mode, style=style, text=text))
+        setFields(item, dict(name=name, color=color, mode=mode, style=style, text=text, hidden=hidden))
         item.save()
         return item
 
-    def deleteMarkerTypes(self, name=None, color=None, mode=None, text=None, id=None):
+    def deleteMarkerTypes(self, name=None, color=None, mode=None, text=None, hidden=None, id=None):
         """
         Delete all :py:class:`MarkerType` entries from the database, which match the given criteria.
 
@@ -2130,6 +2172,8 @@ class DataFile:
             mode of the marker type (marker 0, rect 1, line 2, track 4)
         text: str, array_like, optional
             display text
+        hidden: bool, array_like, optional
+            whether the types should be displayed in ClickPoints
         id: int, array_like, optional
             id of the :py:class:`MarkerType` object
 
@@ -2144,6 +2188,7 @@ class DataFile:
         query = addFilter(query, color, self.table_markertype.color)
         query = addFilter(query, mode, self.table_markertype.mode)
         query = addFilter(query, text, self.table_markertype.text)
+        query = addFilter(query, hidden, self.table_markertype.hidden)
         query = addFilter(query, id, self.table_markertype.id)
 
         return query.execute()

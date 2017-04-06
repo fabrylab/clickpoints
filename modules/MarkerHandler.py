@@ -38,7 +38,7 @@ import json
 import matplotlib.pyplot as plt
 from threading import Thread
 
-from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex
+from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
 from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
 
 w = 1.
@@ -303,6 +303,7 @@ class MarkerEditor(QtWidgets.QWidget):
         self.typeWidget.style = AddQLineEdit(layout, "Style:")
         self.typeWidget.color = AddQColorChoose(layout, "Color:")
         self.typeWidget.text = AddQLineEdit(layout, "Text:")
+        self.typeWidget.hidden = AddQCheckBox(layout, "Hidden:")
         layout.addStretch()
 
         """ Track Properties """
@@ -311,6 +312,7 @@ class MarkerEditor(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout(self.trackWidget)
         self.trackWidget.style = AddQLineEdit(layout, "Style:")
         self.trackWidget.text = AddQLineEdit(layout, "Text:")
+        self.trackWidget.hidden = AddQCheckBox(layout, "Hidden:")
         layout.addStretch()
 
         """ Control Buttons """
@@ -505,6 +507,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.trackWidget.setTitle("Track #%d" % data.id)
             self.trackWidget.style.setText(data.style if data.style else "")
             self.trackWidget.text.setText(data.text if data.text else "")
+            self.trackWidget.hidden.setChecked(data.hidden)
 
         elif type(data) == self.data_file.table_markertype or data_type == "type":
             if data is None:
@@ -533,6 +536,8 @@ class MarkerEditor(QtWidgets.QWidget):
             self.typeWidget.style.setText(data.style if data.style else "")
             self.typeWidget.color.setColor(data.color)
             self.typeWidget.text.setText(data.text if data.text else "")
+            self.typeWidget.hidden.setChecked(data.hidden)
+            print("hidden", data.hidden, self.typeWidget.hidden.isChecked())
 
     def filterText(self, input):
         # if text field is empty - add Null instead of "" to sql db
@@ -574,6 +579,7 @@ class MarkerEditor(QtWidgets.QWidget):
         elif type(self.data) == self.data_file.table_track:
             self.data.style = self.trackWidget.style.text()
             self.data.text = self.filterText(self.trackWidget.text.text())
+            self.data.hidden = self.trackWidget.hidden.isChecked()
             self.data.save()
 
             self.marker_handler.ReloadTrack(self.data)
@@ -610,6 +616,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.data.style = self.typeWidget.style.text()
             self.data.color = self.typeWidget.color.getColor()
             self.data.text = self.filterText(self.typeWidget.text.text())
+            self.data.hidden = self.typeWidget.hidden.isChecked()
             try:
                 self.data.save()
             except peewee.IntegrityError as err:
@@ -1995,7 +2002,11 @@ class MarkerHandler:
     def LoadTracks(self):
         while len(self.tracks):
             self.tracks[0].delete(just_display=True)
-        track_list = self.marker_file.table_track.select()
+        track_list = (self.marker_file.table_track.select(self.marker_file.table_track, self.marker_file.table_markertype)
+                          .where(self.marker_file.table_track.hidden == False)
+                          .join(self.marker_file.table_markertype)
+                          .where(self.marker_file.table_markertype.hidden == False)
+                      )
         for track in track_list:
             data = track.markers
             if data.count():
@@ -2003,16 +2014,19 @@ class MarkerHandler:
 
     def ReloadTrack(self, track):
         track_item = self.GetMarkerItem(track)
-        track_item.delete(just_display=True)
-        self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=self.frame_number))
+        if track_item is not None:
+            track_item.delete(just_display=True)
+        if not track.hidden:
+            self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=self.frame_number))
 
     def LoadPoints(self):
         while len(self.points):
             self.points[0].delete(just_display=True)
         marker_list = (
-        self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_markertype)
-        .join(self.marker_file.table_markertype)
-        .where(self.marker_file.table_marker.image == self.data_file.image.id)
+            self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_markertype)
+                .join(self.marker_file.table_markertype)
+                .where(self.marker_file.table_marker.image == self.data_file.image.id)
+                .where(self.marker_file.table_markertype.hidden == False)
         )
         for marker in marker_list:
             if not marker.track:
@@ -2026,6 +2040,7 @@ class MarkerHandler:
             self.marker_file.table_line.select(self.marker_file.table_line, self.marker_file.table_markertype)
                 .join(self.marker_file.table_markertype)
                 .where(self.marker_file.table_line.image == self.data_file.image.id)
+                .where(self.marker_file.table_markertype.hidden == False)
         )
         for line in line_list:
             self.lines.append(MyLineItem(self, self.MarkerParent, data=line))
@@ -2037,6 +2052,7 @@ class MarkerHandler:
             self.marker_file.table_rectangle.select(self.marker_file.table_rectangle, self.marker_file.table_markertype)
                 .join(self.marker_file.table_markertype)
                 .where(self.marker_file.table_rectangle.image == self.data_file.image.id)
+                .where(self.marker_file.table_markertype.hidden == False)
         )
         for rect in rect_list:
             self.rectangles.append(MyRectangleItem(self, self.MarkerParent, data=rect))

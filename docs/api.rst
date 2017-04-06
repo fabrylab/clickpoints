@@ -98,6 +98,7 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
     Attributes:
         - **style** *(str)* - the style for this track.
         - **text** *(str)* - an additional text associated with this track. It is displayed next to the markers of this track in ClickPoints.
+        - **hidden** *(bool)* - whether the track should be displayed in ClickPoints.
         - **points** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers.
         - **points_corrected** *(array)* - an Nx2 array containing the x and y coordinates of the associated markers corrected by the offsets of the images.
         - **markers** *(list of* :py:class:`Marker` *)* - a list containing all the associated markers.
@@ -117,6 +118,7 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **mode** *(int)* - the mode, hast to be either: TYPE_Normal, TYPE_Rect, TYPE_Line or TYPE_Track
         - **style** *(str)* - the style of the marker type.
         - **text** *(str)* - an additional text associated with the marker type. It is displayed next to the markers of this type in ClickPoints.
+        - **hidden** *(bool)* - whether the markers of this type should be displayed in ClickPoints.
         - **markers** *(list of* :py:class:`Marker` *)* - a list containing all markers of this type. Only for TYPE_Normal and TYPE_Track.
         - **lines** *(list of* :py:class:`Line` *)* - a list containing all lines of this type. Only for TYPE_Line.
         - **markers** *(list of* :py:class:`Rectangle` *)* - a list containing all rectangles of this type. Only for TYPE_Rect.
