@@ -227,6 +227,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.new_frame_number = None
         self.loading_image = -1
         self.im = None
+        self.layer = 0
 
         # select the first frame
         self.target_frame = 0
@@ -480,9 +481,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.loading_image += 1
 
         if self.data_file.getOption("threaded_image_load") and threaded:
-            self.data_file.load_frame(target_id, threaded=1)
+            self.data_file.load_frame(target_id, layer=self.layer, threaded=1)
         else:
-            self.data_file.load_frame(target_id, threaded=0)
+            self.data_file.load_frame(target_id, layer=self.layer, threaded=0)
 
     def FrameLoaded(self, frame_number, threaded=True):
         # set the index of the current frame
@@ -495,7 +496,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # Notify that the frame will be loaded TODO are all these events necessary?
         BroadCastEvent(self.modules, "FrameChangeEvent")
         BroadCastEvent(self.modules, "PreLoadImageEvent", self.new_filename, self.new_frame_number)
-        self.setWindowTitle("%s - %s - ClickPoints" % (self.new_filename, self.data_file.getFilename()))
+        self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (self.new_filename, self.data_file.getFilename(), self.layer))
 
         # get image
         self.im = self.data_file.get_image_data()
@@ -583,9 +584,21 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.data_file.save_database()
             self.Save()
 
+        if event.key() == QtCore.Qt.Key_PageUp:
+            # @key PageUp: show next upper layer
+            self.layer += 1
+            self.JumpFrames(0)
+
+
+        if event.key() == QtCore.Qt.Key_PageDown:
+            # @key PageDown: show next lower layer
+            self.layer -= 1
+            self.JumpFrames(0)
+
         if event.key() == QtCore.Qt.Key_Escape:
             # @key Escape: close window
             self.close()
+
 
         # @key ---- Modules ----
         if event.key() == QtCore.Qt.Key_P:

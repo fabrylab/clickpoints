@@ -409,7 +409,7 @@ class DataFile(DataFileBase):
         # return the current image index
         return self.current_image_index
 
-    def load_frame(self, index, threaded):
+    def load_frame(self, index, threaded, layer=0):
         # check if frame is already buffered then we don't need to load it
         if self.buffer.get_frame(index) is not None:
             self.signals.loaded.emit(index, threaded)
@@ -418,7 +418,7 @@ class DataFile(DataFileBase):
         if self.thread:
             self.thread.join()
         # query the information on the image to load
-        image = self.table_image.get(sort_index=index)
+        image = self.table_image.get(sort_index=index, layer=layer)
         filename = os.path.join(image.path.path, image.filename)
         # apply replace pattern
         if self.replace is not None:
