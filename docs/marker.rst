@@ -128,14 +128,17 @@ The styles use the JSON format for data storage. The following fields can be use
 
       *values:* ``cross`` (default), ``circle``, ``rect``
 
-
-
 -  **Marker Line Width** - ``"line-width": 1``
       Defines the line width of the markers symbol (e.g. width of the circle). Ignored if a filled symbol (e.g. the
       cross) is used.
 
 -  **Marker Scale** - ``"scale": 1``
       Scaling of the marker.
+
+-  **Marker Transform** - ``"transform": "screen"``
+      If the marker should have a fixed size with respect to the screen or the image.
+
+      *values:* ``screen`` (default), ``image``
 
 -  **Track Line Style** - ``"track-line-style": "solid"``
       The style of the line used to display the track history.
