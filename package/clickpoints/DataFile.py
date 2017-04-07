@@ -275,7 +275,7 @@ class DataFile:
     """
     db = None
     _reader = None
-    _current_version = "17"
+    _current_version = "18"
     _database_filename = None
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
@@ -389,6 +389,7 @@ class DataFile:
             width = peewee.IntegerField(null=True)
             height = peewee.IntegerField(null=True)
             path = peewee.ForeignKeyField(Path, related_name="images", on_delete='CASCADE')
+            layer = peewee.IntegerField(default=0)
 
             class Meta:
                 # image and path in combination have to be unique
@@ -449,9 +450,9 @@ class DataFile:
 
             def __str__(self):
                 return "ImageObject id%s:\tfilename=%s\text=%s\tframe=%s\texternal_id=%s\ttimestamp=%s\tsort_index=%s," \
-                       " width=%s\theight=%s\tpath=%s" \
+                       " width=%s\theight=%s\tpath=%s\tlayer=%s" \
                        % (self.id, self.filename, self.ext, self.frame, self.external_id,
-                        self.timestamp, self.sort_index, self.width, self.height, self.path)
+                        self.timestamp, self.sort_index, self.width, self.height, self.path, self.layer)
 
             def print_details(self):
                 print("ImageObject:\n"
@@ -463,9 +464,10 @@ class DataFile:
                       "sort_index:\t{5}\n"
                       "widht:\t{6}\n"
                       "height:\t{7}\n"
-                      "path:\t{8}"
+                      "path:\t{8}\n"
+                      "layer:\t{9}"
                       .format(self.id, self.filename, self.ext, self.frame, self.external_id,
-                        self.timestamp, self.sort_index, self.width, self.height, self.path))
+                        self.timestamp, self.sort_index, self.width, self.height, self.path, self.layer))
 
         self.base_model = BaseModel
         self.table_meta = Meta
@@ -1453,6 +1455,21 @@ class DataFile:
                     pass
             self._SetVersion(17)
 
+        if nr_version < 18:
+            print("\tto 18")
+            with self.db.transaction():
+                try:
+                    self.db.execute_sql(
+                        'CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, "layer" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);')
+                    self.db.execute_sql(
+                        'INSERT INTO image_tmp SELECT id, filename, ext, frame, external_id, timestamp, sort_index, width, height, path_id, "0" FROM image')
+                    self.db.execute_sql('DROP TABLE image')
+                    self.db.execute_sql('ALTER TABLE image_tmp RENAME TO image')
+                    self.db.execute_sql('CREATE INDEX "image_path_id" ON "image" ("path_id");')
+                except peewee.OperationalError:
+                    raise
+                pass
+            self._SetVersion(18)
 
     def _SetVersion(self, nr_new_version):
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
@@ -1710,7 +1727,7 @@ class DataFile:
             query = query.where(self.table_path.path.startswith(base_path))
         return query.execute()
 
-    def getImage(self, frame=None, filename=None, id=None):
+    def getImage(self, frame=None, filename=None, id=None, layer=0):
         """
         Returns the :py:class:`Image` entry with the given frame number.
 
@@ -1725,6 +1742,8 @@ class DataFile:
             the filename of the desired image.
         id : int, optional
             the id of the image.
+        layer : int, optional
+            the layer_id of the image.
 
         Returns
         -------
@@ -1738,7 +1757,7 @@ class DataFile:
         except peewee.DoesNotExist:
             KeyError("No image with %s found." % VerboseDict(kwargs))
 
-    def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, order_by="sort_index"):
+    def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, layer=None, order_by="sort_index"):
         """
         Get all :py:class:`Image` entries sorted by sort index. For large databases
         :py:meth:`~.DataFile.getImageIterator`, should be used as it doesn't load all frames at once.
@@ -1764,6 +1783,8 @@ class DataFile:
             the height/s of the image/s
         path : int, :py:class:`Path`, array_like, optional
             the path/s (or path id/s) of the image/s
+        layer : int, array_like, optional
+            the layer/s of the image/s
         order_by : string, optional
             sort by either 'sort_index' (default) or 'timestamp'.
 
@@ -1783,6 +1804,7 @@ class DataFile:
         query = addFilter(query, width, self.table_image.width)
         query = addFilter(query, height, self.table_image.height)
         query = addFilter(query, path, self.table_image.path)
+        query = addFilter(query, layer, self.table_image.layer)
 
         if order_by == "sort_index":
             query = query.order_by(self.table_image.sort_index)
@@ -1837,7 +1859,7 @@ class DataFile:
                 break
             frame += 1
 
-    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None):
+    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=None):
 
         """
         Update or create new :py:class:`Image` entry with the given parameters.
@@ -1862,6 +1884,8 @@ class DataFile:
             the height of the image
         id : int, optional
             the id of the image
+        layer : int, optional
+            the layer_id of the image
 
         Returns
         -------
@@ -1882,7 +1906,7 @@ class DataFile:
                 item.path = self.getPath(path_string=os.path.split(filename)[0], create=True)
         if isinstance(path, basestring):
             path = self.getPath(path)
-        setFields(item, noNoneDict(frame=frame, path=path, external_id=external_id, timestamp=timestamp, width=width, height=height))
+        setFields(item, noNoneDict(frame=frame, path=path, external_id=external_id, timestamp=timestamp, width=width, height=height, layer=layer))
         if new_image:
             if self._next_sort_index is None:
                 try:

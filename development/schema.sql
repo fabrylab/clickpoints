@@ -2,7 +2,7 @@ CREATE TABLE "meta" ("id" INTEGER NOT NULL PRIMARY KEY, "key" VARCHAR(255) NOT N
 CREATE UNIQUE INDEX "meta_key" ON "meta" ("key");
 CREATE TABLE "path" ("id" INTEGER NOT NULL PRIMARY KEY, "path" VARCHAR(255) NOT NULL);
 CREATE UNIQUE INDEX "path_path" ON "path" ("path");
-CREATE TABLE "image" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);
+CREATE TABLE "image" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, "layer" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);
 CREATE INDEX "image_path_id" ON "image" ("path_id");
 CREATE UNIQUE INDEX "image_filename_path_id_frame" ON "image" ("filename", "path_id", "frame");
 CREATE TABLE "option" ("id" INTEGER NOT NULL PRIMARY KEY, "key" VARCHAR(255) NOT NULL, "value" VARCHAR(255));
@@ -36,4 +36,4 @@ CREATE TABLE "tagassociation" ("id" INTEGER NOT NULL PRIMARY KEY, "annotation_id
 CREATE INDEX "tagassociation_annotation_id" ON "tagassociation" ("annotation_id");
 CREATE INDEX "tagassociation_tag_id" ON "tagassociation" ("tag_id");
 CREATE TRIGGER no_empty_tracks                                AFTER DELETE ON marker                                BEGIN                                  DELETE FROM track WHERE id = OLD.track_id AND (SELECT COUNT(marker.id) FROM marker WHERE marker.track_id = track.id) = 0;                                END;
-INSERT OR REPLACE INTO meta (id,key,value) VALUES            ((SELECT id FROM meta WHERE key='version'),'version',16);
+INSERT OR REPLACE INTO meta (id,key,value) VALUES            ((SELECT id FROM meta WHERE key='version'),'version',17);
