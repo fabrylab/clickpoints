@@ -988,7 +988,12 @@ class MyDisplayItem:
             if grabber is None:
                 break
             grabber.setShape(self.style.get("shape", self.default_shape))
-            grabber.setScale(self.style.get("scale", 1))
+            if self.style.get("transform", "screen") == "screen":
+                grabber.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
+                grabber.setScale(self.style.get("scale", 1))
+            else:
+                grabber.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, False)
+                grabber.setScale(self.style.get("scale", 10)*0.1)
             i += 1
 
     # update text with priorities: marker, track, label
