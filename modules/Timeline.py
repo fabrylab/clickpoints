@@ -1154,6 +1154,13 @@ class Timeline(QtCore.QObject):
         else:
             self.frameSlider.addTickMarker(self.get_current_frame(), type=1)
 
+    def MarkerPointsAddedList(self, frames=None):
+        for frame in frames:
+            if frame is not None:
+                self.frameSlider.addTickMarker(frame, type=1)
+            else:
+                self.frameSlider.addTickMarker(self.get_current_frame(), type=1)
+
     def MarkerPointsRemoved(self):
         self.frameSlider.removeTickMarker(self.get_current_frame(), type=1)
 
