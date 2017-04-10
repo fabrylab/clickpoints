@@ -1920,8 +1920,12 @@ class MarkerHandler:
         self.UpdateCounter()
 
         # place tick marks for already present markers
-        frames = np.array(self.marker_file.get_marker_frames().tuples())[:, 0]
-        BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
+        # but lets take care that there are markers ...
+        try:
+            frames = np.array(self.marker_file.get_marker_frames().tuples())[:, 0]
+            BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
+        except IndexError:
+            pass
         self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
 
     def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1):
