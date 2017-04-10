@@ -126,7 +126,7 @@ class MarkerFile:
         return self.table_marker.select().where(self.table_marker.track == track)
 
     def get_marker_frames(self):
-        return self.table_marker.select().group_by(self.table_marker.image)
+        return self.data_file.table_image.select(self.data_file.table_image.sort_index).join(self.table_marker).group_by(self.table_marker.image_id)
 
 
 def ReadTypeDict(string):
@@ -1920,9 +1920,8 @@ class MarkerHandler:
         self.UpdateCounter()
 
         # place tick marks for already present markers
-        for item in self.marker_file.get_marker_frames():
-            BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
-
+        frames = np.array(self.marker_file.get_marker_frames().tuples())[:, 0]
+        BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
         self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
 
     def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1):
