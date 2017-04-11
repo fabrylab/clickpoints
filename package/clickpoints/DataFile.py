@@ -999,8 +999,16 @@ class DataFile:
         self._last_category = "Script Launcher"
         self._AddOption(key="scripts", hidden=True, default=[], value_type="array")
 
+        self._last_category = "Contrast Adjust"
+        self._AddOption(key="contrast_interface_hidden", default=True, value_type="bool", hidden=True)
+        self._AddOption(key="contrast_gamma", default=1.0, value_type="float", hidden=True)
+        self._AddOption(key="contrast_max", default=255, value_type="float", hidden=True)
+        self._AddOption(key="contrast_min", default=0, value_type="float", hidden=True)
+
         self._last_category = "Marker"
         self._AddOption(key="types", default={0: ["marker", [255, 0, 0], self.TYPE_Normal]}, value_type="dict", hidden=True)
+        self._AddOption(key="selected_marker_type", default=-1, value_type="int", hidden=True)
+        self._AddOption(key="marker_interface_hidden", default=True, value_type="bool", hidden=True)
         self._AddOption(key="tracking_connect_nearest", display_name="Track Auto-Connect", default=False, value_type="bool",
                         tooltip="When Auto-Connect is turned on,\n"
                                 "clicking in the image will always\n"
@@ -1048,6 +1056,7 @@ class DataFile:
                                 "exif[] exit information from jpeg files.\n"
                                 "regex[] information from the filename.\n"
                                 "meta[] meta information from tiff images.")
+        self._AddOption(key="infohud_interface_hidden", default=True, value_type="bool", hidden=True)
 
         self._last_category = "Timeline"
         self._AddOption(key="fps", default=0, value_type="float", hidden=True)
@@ -1118,7 +1127,7 @@ class DataFile:
             if option.value_type == "float":
                 option.value = float(entry.value)
             if option.value_type == "bool":
-                option.value = (entry.value == "True")
+                option.value = (entry.value == "True") or (entry.value == True)
             if option.value_type == "string":
                 option.value = str(entry.value)
             if option.value_type == "array":
