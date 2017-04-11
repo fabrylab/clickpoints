@@ -126,7 +126,13 @@ class MarkerFile:
         return self.table_marker.select().where(self.table_marker.track == track)
 
     def get_marker_frames(self):
-        return self.data_file.table_image.select(self.data_file.table_image.sort_index).join(self.table_marker).group_by(self.table_marker.image_id)
+        # query all sort_indices which have a marker, rectangle or line entry
+        return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
+                                          .join(self.table_marker, "LEFT JOIN").switch(self.data_file.table_image)
+                                          .join(self.table_rectangle, "LEFT JOIN").switch(self.data_file.table_image)
+                                          .join(self.table_line, "LEFT JOIN")
+                                          .where( self.table_marker.id.is_null(False) | self.table_line.id.is_null(False) | self.table_rectangle.id.is_null(False) )
+                                          .group_by(self.data_file.table_image.sort_index))
 
 
 def ReadTypeDict(string):
