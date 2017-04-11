@@ -553,9 +553,6 @@ class MaskHandler:
 
         self.mask_file = MaskFile(data_file)
 
-        # take hidden flag from config
-        self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
-
         # if a new database is created take mask types from config
         if new_database:
             for type_id, type_def in enumerate(self.config.draw_types):
@@ -567,6 +564,13 @@ class MaskHandler:
 
         # update mask interface buttons
         self.UpdateButtons()
+
+        # get config options
+        self.changeOpacity(self.config.mask_opacity - self.mask_opacity)
+        self.changeCursorSize(self.config.mask_brush_size - self.DrawCursorSize)
+        self.ToggleInterfaceEvent(hidden=self.config.mask_interface_hidden)
+        if self.config.selected_draw_type >= 0:
+            self.SetActiveDrawType(self.config.selected_draw_type)
 
         # place tick marks for already present masks
         for item in self.mask_file.get_mask_frames():
@@ -660,8 +664,10 @@ class MaskHandler:
         # set the current active button to active or inactive color
         if active:
             self.buttons[self.active_draw_type_index].SetToActiveColor()
+            self.config.selected_draw_type = self.active_draw_type_index
         else:
             self.buttons[self.active_draw_type_index].SetToInactiveColor()
+            self.config.selected_draw_type = -1
         return True
 
     def changeOpacity(self, value):
@@ -673,6 +679,9 @@ class MaskHandler:
         # and minimally 0
         if self.mask_opacity < 0:
             self.mask_opacity = 0
+        # store in options
+        if self.config is not None:
+            self.config.mask_opacity = self.mask_opacity
         # set the opacity
         self.MaskDisplay.setOpacity(self.mask_opacity)
 
@@ -686,6 +695,7 @@ class MaskHandler:
         # store the new type
         self.active_draw_type = self.buttons[new_index].type
         self.active_draw_type_index = new_index
+        self.config.selected_draw_type = new_index
         # set the new button to active
         self.buttons[self.active_draw_type_index].SetToActiveColor()
         # update mask and draw cursor
@@ -707,6 +717,9 @@ class MaskHandler:
         # size has to be at least 1
         if self.DrawCursorSize < 1:
             self.DrawCursorSize = 1
+        # store in options
+        if self.config is not None:
+            self.config.mask_brush_size = self.DrawCursorSize
         # update displayed brush cursor size
         self.UpdateDrawCursorDisplay()
         if self.MaskChanged:
@@ -830,6 +843,10 @@ class MaskHandler:
             self.hidden = not self.hidden
         else:
             self.hidden = hidden
+        # store in options
+        if self.config is not None:
+            self.config.mask_interface_hidden = self.hidden
+            print("self.config.mask_interface_hidden", self.config.mask_interface_hidden)
         # update visibility status of the buttons
         for button in self.buttons:
             self.buttons[button].setVisible(not self.hidden)
