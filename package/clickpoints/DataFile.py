@@ -3435,7 +3435,7 @@ class DataFile:
                 return annotation
             return None
 
-    def getAnnotations(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None):
+    def getAnnotations(self, image=None, frame=None, filename=None, timestamp=None, tag=None, comment=None, rating=None, id=None):
         """
         Get all :py:class:`Annotation` entries from the database, which match the given criteria. If no criteria a given, return all masks.
 
@@ -3451,6 +3451,8 @@ class DataFile:
             filename of the image/images, which annotations should be returned. If omitted, images or frame numbers should be specified instead.
         timestamp : datetime, array_like, optional
             timestamp/s of the annotations.
+        tag : string, array_like, optional
+            the tag/s of the annotations to load.
         comment : string, array_like, optional
             the comment/s of the annotations.
         rating : int, array_like, optional
@@ -3468,6 +3470,8 @@ class DataFile:
             "Exactly one of images, frames or filenames should be specified"
 
         query = self.table_annotation.select(self.table_annotation, self.table_image).join(self.table_image)
+        if tag is not None:
+            query = query.switch(self.table_annotation).join(self.table_tagassociation).join(self.table_tag)
 
         query = addFilter(query, id, self.table_annotation.id)
         query = addFilter(query, image, self.table_annotation.image)
@@ -3476,6 +3480,9 @@ class DataFile:
         query = addFilter(query, timestamp, self.table_annotation.timestamp)
         query = addFilter(query, comment, self.table_annotation.comment)
         query = addFilter(query, rating, self.table_annotation.rating)
+        if tag:
+            query = addFilter(query, tag, self.table_tag.name)
+            query = query.group_by(self.table_annotation.id)
 
         return query
 
