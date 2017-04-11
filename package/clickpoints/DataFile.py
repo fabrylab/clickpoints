@@ -1025,6 +1025,10 @@ class DataFile:
 
         self._last_category = "Mask"
         self._AddOption(key="draw_types", default=[[1, [124, 124, 255], "mask"]], value_type="list", hidden=True)
+        self._AddOption(key="selected_draw_type", default=-1, value_type="int", hidden=True)
+        self._AddOption(key="mask_opacity", default=0.5, value_type="float", hidden=True)
+        self._AddOption(key="mask_brush_size", default=10, value_type="int", hidden=True)
+        self._AddOption(key="mask_interface_hidden", default=True, value_type="bool", hidden=True)
         self._AddOption(key="auto_mask_update", display_name="Auto Mask Update", default=True, value_type="bool",
                         tooltip="When turned on, mask changes\n"
                                 "are directly displayed as the mask\n"
@@ -1114,7 +1118,7 @@ class DataFile:
             if option.value_type == "float":
                 option.value = float(entry.value)
             if option.value_type == "bool":
-                option.value = bool(entry.value)
+                option.value = (entry.value == "True")
             if option.value_type == "string":
                 option.value = str(entry.value)
             if option.value_type == "array":
