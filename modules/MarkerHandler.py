@@ -1919,6 +1919,11 @@ class MarkerHandler:
 
         self.UpdateCounter()
 
+        # get config options
+        self.ToggleInterfaceEvent(hidden=self.config.marker_interface_hidden)
+        if self.config.selected_marker_type >= 0:
+            self.SetActiveMarkerType(self.config.selected_marker_type)
+
         # place tick marks for already present markers
         # but lets take care that there are markers ...
         try:
@@ -1926,7 +1931,6 @@ class MarkerHandler:
             BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
         except IndexError:
             pass
-        self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
 
     def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1):
         for list in self.display_lists:
@@ -2104,6 +2108,7 @@ class MarkerHandler:
             self.counter[self.active_type_index].SetToInactiveColor()
         self.active_type = self.counter[new_index].type
         self.active_type_index = new_index
+        self.config.selected_marker_type = new_index
         self.counter[self.active_type_index].SetToActiveColor()
 
     def zoomEvent(self, scale, pos):
@@ -2122,9 +2127,11 @@ class MarkerHandler:
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             if self.active_type_index is not None:
                 self.counter[self.active_type_index].SetToActiveColor()
+                self.config.selected_marker_type = self.active_type_index
         else:
             if self.active_type_index is not None:
                 self.counter[self.active_type_index].SetToInactiveColor()
+            self.config.selected_marker_type = -1
         return True
 
     def toggleMarkerShape(self):
@@ -2187,6 +2194,9 @@ class MarkerHandler:
             self.hidden = not self.hidden
         else:
             self.hidden = hidden
+        # store in options
+        if self.config is not None:
+            self.config.marker_interface_hidden = self.hidden
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
         for point in self.points:

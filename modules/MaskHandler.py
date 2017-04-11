@@ -846,7 +846,6 @@ class MaskHandler:
         # store in options
         if self.config is not None:
             self.config.mask_interface_hidden = self.hidden
-            print("self.config.mask_interface_hidden", self.config.mask_interface_hidden)
         # update visibility status of the buttons
         for button in self.buttons:
             self.buttons[button].setVisible(not self.hidden)

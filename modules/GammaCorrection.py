@@ -32,6 +32,7 @@ from Tools import MySlider, BoxGrabber, TextButton
 class GammaCorrection(QtWidgets.QGraphicsRectItem):
     data_file = None
     config = None
+    schedule_update = False
 
     def __init__(self, parent_hud, image_display, window):
         QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
@@ -96,7 +97,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
-        self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
+        self.ToggleInterfaceEvent(hidden=self.config.contrast_interface_hidden)
+        self.schedule_update = True
 
     def updateHist(self, hist):
         histpath = QtGui.QPainterPath()
@@ -119,6 +121,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
+        if self.config:
+            self.config.contrast_gamma = value
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateBrightnes(self, value):
@@ -128,6 +132,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
+        if self.config:
+            self.config.contrast_max = value
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
@@ -137,11 +143,18 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
+        if self.config:
+            self.config.contrast_min = value
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def LoadImageEvent(self, filename="", frame_number=0):
         if self.image.preview_rect is not None:
             self.updateHist(self.image.hist)
+        if self.schedule_update:
+            self.sliders[0].setValue(self.config.contrast_gamma)
+            self.sliders[1].setValue(self.config.contrast_max)
+            self.sliders[2].setValue(self.config.contrast_min)
+            self.schedule_update = False
 
     def mousePressEvent(self, event):
         if event.button() == 2:
@@ -174,6 +187,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             self.hidden = not self.hidden
         else:
             self.hidden = hidden
+        if self.config is not None:
+            self.config.contrast_interface_hidden = self.hidden
         self.setVisible(not self.hidden)
         self.button_brightness.setChecked(not self.hidden)
 
