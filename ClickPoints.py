@@ -587,13 +587,22 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if event.key() == QtCore.Qt.Key_PageUp:
             # @key PageUp: show next upper layer
             self.layer += 1
-            self.JumpFrames(0)
-
+            #dirtydirtydirty
+            self.data_file.buffer.reset()
+            try:
+                self.JumpFrames(0)
+            except:
+                self.layer -=1
 
         if event.key() == QtCore.Qt.Key_PageDown:
             # @key PageDown: show next lower layer
             self.layer -= 1
-            self.JumpFrames(0)
+            #dirtydirtydirty
+            self.data_file.buffer.reset()
+            try:
+                self.JumpFrames(0)
+            except:
+                self.layer +=1
 
         if event.key() == QtCore.Qt.Key_Escape:
             # @key Escape: close window
