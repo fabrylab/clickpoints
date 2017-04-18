@@ -1751,12 +1751,11 @@ class DataFile:
             the image entry.
         """
 
-        kwargs = noNoneDict(sort_index=frame, filename=filename, id=id)
+        kwargs = noNoneDict(sort_index=frame, filename=filename, id=id, layer=layer)
         try:
             return self.table_image.get(**kwargs)
         except peewee.DoesNotExist:
             KeyError("No image with %s found." % VerboseDict(kwargs))
-
     def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, layer=None, order_by="sort_index"):
         """
         Get all :py:class:`Image` entries sorted by sort index. For large databases
@@ -1815,7 +1814,7 @@ class DataFile:
 
         return query
 
-    def getImageIterator(self, start_frame=0, end_frame=None):
+    def getImageIterator(self, start_frame=0, end_frame=None, layer=0):
         """
         Get an iterator to iterate over all :py:class:`Image` entries starting from start_frame.
 
@@ -1853,7 +1852,7 @@ class DataFile:
             if frame == end_frame:
                 break
             try:
-                image = self.table_image.get(self.table_image.sort_index == frame)
+                image = self.table_image.get(self.table_image.sort_index == frame, self.table_image.layer==layer)
                 yield image
             except peewee.DoesNotExist:
                 break
