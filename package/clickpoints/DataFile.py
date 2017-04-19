@@ -1001,8 +1001,16 @@ class DataFile:
         self._last_category = "Script Launcher"
         self._AddOption(key="scripts", hidden=True, default=[], value_type="array")
 
+        self._last_category = "Contrast Adjust"
+        self._AddOption(key="contrast_interface_hidden", default=True, value_type="bool", hidden=True)
+        self._AddOption(key="contrast_gamma", default=1.0, value_type="float", hidden=True)
+        self._AddOption(key="contrast_max", default=255, value_type="float", hidden=True)
+        self._AddOption(key="contrast_min", default=0, value_type="float", hidden=True)
+
         self._last_category = "Marker"
         self._AddOption(key="types", default={0: ["marker", [255, 0, 0], self.TYPE_Normal]}, value_type="dict", hidden=True)
+        self._AddOption(key="selected_marker_type", default=-1, value_type="int", hidden=True)
+        self._AddOption(key="marker_interface_hidden", default=True, value_type="bool", hidden=True)
         self._AddOption(key="tracking_connect_nearest", display_name="Track Auto-Connect", default=False, value_type="bool",
                         tooltip="When Auto-Connect is turned on,\n"
                                 "clicking in the image will always\n"
@@ -1027,6 +1035,10 @@ class DataFile:
 
         self._last_category = "Mask"
         self._AddOption(key="draw_types", default=[[1, [124, 124, 255], "mask"]], value_type="list", hidden=True)
+        self._AddOption(key="selected_draw_type", default=-1, value_type="int", hidden=True)
+        self._AddOption(key="mask_opacity", default=0.5, value_type="float", hidden=True)
+        self._AddOption(key="mask_brush_size", default=10, value_type="int", hidden=True)
+        self._AddOption(key="mask_interface_hidden", default=True, value_type="bool", hidden=True)
         self._AddOption(key="auto_mask_update", display_name="Auto Mask Update", default=True, value_type="bool",
                         tooltip="When turned on, mask changes\n"
                                 "are directly displayed as the mask\n"
@@ -1046,6 +1058,7 @@ class DataFile:
                                 "exif[] exit information from jpeg files.\n"
                                 "regex[] information from the filename.\n"
                                 "meta[] meta information from tiff images.")
+        self._AddOption(key="infohud_interface_hidden", default=True, value_type="bool", hidden=True)
 
         self._last_category = "Timeline"
         self._AddOption(key="fps", default=0, value_type="float", hidden=True)
@@ -1116,7 +1129,7 @@ class DataFile:
             if option.value_type == "float":
                 option.value = float(entry.value)
             if option.value_type == "bool":
-                option.value = bool(entry.value)
+                option.value = (entry.value == "True") or (entry.value == True)
             if option.value_type == "string":
                 option.value = str(entry.value)
             if option.value_type == "array":
@@ -3445,7 +3458,7 @@ class DataFile:
                 return annotation
             return None
 
-    def getAnnotations(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None):
+    def getAnnotations(self, image=None, frame=None, filename=None, timestamp=None, tag=None, comment=None, rating=None, id=None):
         """
         Get all :py:class:`Annotation` entries from the database, which match the given criteria. If no criteria a given, return all masks.
 
@@ -3461,6 +3474,8 @@ class DataFile:
             filename of the image/images, which annotations should be returned. If omitted, images or frame numbers should be specified instead.
         timestamp : datetime, array_like, optional
             timestamp/s of the annotations.
+        tag : string, array_like, optional
+            the tag/s of the annotations to load.
         comment : string, array_like, optional
             the comment/s of the annotations.
         rating : int, array_like, optional
@@ -3478,6 +3493,8 @@ class DataFile:
             "Exactly one of images, frames or filenames should be specified"
 
         query = self.table_annotation.select(self.table_annotation, self.table_image).join(self.table_image)
+        if tag is not None:
+            query = query.switch(self.table_annotation).join(self.table_tagassociation).join(self.table_tag)
 
         query = addFilter(query, id, self.table_annotation.id)
         query = addFilter(query, image, self.table_annotation.image)
@@ -3486,6 +3503,9 @@ class DataFile:
         query = addFilter(query, timestamp, self.table_annotation.timestamp)
         query = addFilter(query, comment, self.table_annotation.comment)
         query = addFilter(query, rating, self.table_annotation.rating)
+        if tag:
+            query = addFilter(query, tag, self.table_tag.name)
+            query = query.group_by(self.table_annotation.id)
 
         return query
 

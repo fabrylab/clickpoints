@@ -1009,7 +1009,7 @@ class Timeline(QtCore.QObject):
 
         self.Play(self.data_file.getOption("playing"))
         self.hidden = True
-        self.HideInterface(self.data_file.getOption("timeline_hide"))
+        self.HideInterface(self.config.timeline_hide)
 
     def get_current_frame(self):
         if self.data_file is None:
@@ -1154,6 +1154,13 @@ class Timeline(QtCore.QObject):
         else:
             self.frameSlider.addTickMarker(self.get_current_frame(), type=1)
 
+    def MarkerPointsAddedList(self, frames=None):
+        for frame in frames:
+            if frame is not None:
+                self.frameSlider.addTickMarker(frame, type=1)
+            else:
+                self.frameSlider.addTickMarker(self.get_current_frame(), type=1)
+
     def MarkerPointsRemoved(self):
         self.frameSlider.removeTickMarker(self.get_current_frame(), type=1)
 
@@ -1168,6 +1175,8 @@ class Timeline(QtCore.QObject):
 
     def HideInterface(self, hide):
         self.hidden = hide
+        if self.config:
+            self.config.timeline_hide = self.hidden
         self.layoutCtrlParent.setHidden(hide)
         self.button.setChecked(not self.hidden)
         self.layoutCtrl2.setHidden(self.timeSlider.is_hidden | (self.data_file is None or not self.data_file.getOption("datetimeline_show")))
