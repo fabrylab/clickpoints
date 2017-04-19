@@ -136,6 +136,8 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             self.setVisible(True)
             self.hidden = False
 
+            self.ToggleInterfaceEvent(self.config.infohud_interface_hidden)
+
     def LoadImageEvent(self, filename="", frame_number=0):
         if not self.data_file.getOption("info_hud_string") == "@script" and self.data_file.getOption("info_hud_string").strip():
             image = self.window.data_file.image
@@ -161,10 +163,17 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
         elif self.hidden and self.data_file.getOption("info_hud_string") != "":
             self.ToggleInterfaceEvent()
 
-    def ToggleInterfaceEvent(self):
-        if self.config.info_hud_string != "" or not self.hidden:
-            self.setVisible(self.hidden)
+    def ToggleInterfaceEvent(self, hidden=None):
+        if hidden is None:
+            # invert hidden status
             self.hidden = not self.hidden
+        else:
+            self.hidden = hidden
+        if self.config.info_hud_string == "":
+            self.hidden = True
+        self.setVisible(self.hidden)
+        if self.config is not None:
+            self.config.infohud_interface_hidden = self.hidden
 
     def updateHUD(self, info_string):
         fmt = PartialFormatter()

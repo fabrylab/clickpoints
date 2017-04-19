@@ -126,7 +126,13 @@ class MarkerFile:
         return self.table_marker.select().where(self.table_marker.track == track)
 
     def get_marker_frames(self):
-        return self.table_marker.select().group_by(self.table_marker.image)
+        # query all sort_indices which have a marker, rectangle or line entry
+        return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
+                                          .join(self.table_marker, "LEFT JOIN").switch(self.data_file.table_image)
+                                          .join(self.table_rectangle, "LEFT JOIN").switch(self.data_file.table_image)
+                                          .join(self.table_line, "LEFT JOIN")
+                                          .where( self.table_marker.id.is_null(False) | self.table_line.id.is_null(False) | self.table_rectangle.id.is_null(False) )
+                                          .group_by(self.data_file.table_image.sort_index))
 
 
 def ReadTypeDict(string):
@@ -988,7 +994,12 @@ class MyDisplayItem:
             if grabber is None:
                 break
             grabber.setShape(self.style.get("shape", self.default_shape))
-            grabber.setScale(self.style.get("scale", 1))
+            if self.style.get("transform", "screen") == "screen":
+                grabber.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
+                grabber.setScale(self.style.get("scale", 1))
+            else:
+                grabber.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, False)
+                grabber.setScale(self.style.get("scale", 10)*0.1)
             i += 1
 
     # update text with priorities: marker, track, label
@@ -1914,11 +1925,18 @@ class MarkerHandler:
 
         self.UpdateCounter()
 
-        # place tick marks for already present markers
-        for item in self.marker_file.get_marker_frames():
-            BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
+        # get config options
+        self.ToggleInterfaceEvent(hidden=self.config.marker_interface_hidden)
+        if self.config.selected_marker_type >= 0:
+            self.SetActiveMarkerType(self.config.selected_marker_type)
 
-        self.ToggleInterfaceEvent(hidden=self.config.hide_interfaces)
+        # place tick marks for already present markers
+        # but lets take care that there are markers ...
+        try:
+            frames = np.array(self.marker_file.get_marker_frames().tuples())[:, 0]
+            BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
+        except IndexError:
+            pass
 
     def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1):
         for list in self.display_lists:
@@ -2096,6 +2114,7 @@ class MarkerHandler:
             self.counter[self.active_type_index].SetToInactiveColor()
         self.active_type = self.counter[new_index].type
         self.active_type_index = new_index
+        self.config.selected_marker_type = new_index
         self.counter[self.active_type_index].SetToActiveColor()
 
     def zoomEvent(self, scale, pos):
@@ -2114,9 +2133,11 @@ class MarkerHandler:
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             if self.active_type_index is not None:
                 self.counter[self.active_type_index].SetToActiveColor()
+                self.config.selected_marker_type = self.active_type_index
         else:
             if self.active_type_index is not None:
                 self.counter[self.active_type_index].SetToInactiveColor()
+            self.config.selected_marker_type = -1
         return True
 
     def toggleMarkerShape(self):
@@ -2179,6 +2200,9 @@ class MarkerHandler:
             self.hidden = not self.hidden
         else:
             self.hidden = hidden
+        # store in options
+        if self.config is not None:
+            self.config.marker_interface_hidden = self.hidden
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
         for point in self.points:

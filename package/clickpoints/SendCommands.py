@@ -59,6 +59,9 @@ class PrintHook:
         if self.origOut is not None:
             return getattr(self.origOut, name, None)
 
+    def __eq__(self, other):
+        return other == self.origOut
+
 
 global hook1, hook2
 def StartHooks(func):
