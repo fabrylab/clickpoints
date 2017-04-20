@@ -406,6 +406,7 @@ class DataFile(DataFileBase):
         return self.image_count
 
     def get_current_image(self):
+        print("DEBUG2")
         # return the current image index
         return self.current_image_index
 
