@@ -626,7 +626,7 @@ class MarkerEditor(QtWidgets.QWidget):
             try:
                 self.data.save()
             except peewee.IntegrityError as err:
-                if err.message == "UNIQUE constraint failed: markertype.name":
+                if str(err) == "UNIQUE constraint failed: markertype.name":
                     QtWidgets.QMessageBox.critical(self, 'Error - ClickPoints',
                                                            'There already exists a markertype with name %s' % self.data.name,
                                                            QtWidgets.QMessageBox.Ok)
