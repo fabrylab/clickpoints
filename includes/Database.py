@@ -327,7 +327,18 @@ class DataFile(DataFileBase):
             path = self.table_path.get(path=path)
         except peewee.DoesNotExist:
             path = self.table_path(path=path)
-            path.save()
+            # try multiple times in case the database is locked
+            for i in range(100):
+                try:
+                    path.save()
+                except peewee.OperationalError:
+                    if i < 9:
+                        time.sleep(0.01)
+                        continue
+                    else:
+                        raise
+                else:
+                    break
         return path
 
     def add_image(self, filename, extension, external_id, frames, path, full_path=None, timestamp=None, commit=True):
