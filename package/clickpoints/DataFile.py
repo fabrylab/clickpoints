@@ -2364,7 +2364,7 @@ class DataFile:
         query = addFilter(query, index, self.table_masktype.index)
         query.execute()
 
-    def getMask(self, image=None, frame=None, filename=None, id=None, create=False):
+    def getMask(self, image=None, frame=None, filename=None, id=None, layer=None, create=False):
         """
         Get the :py:class:`Mask` entry for the given image frame number or filename.
 
@@ -2405,7 +2405,7 @@ class DataFile:
         except IndexError:
             if create is True:
                 if not image:
-                    image = self.getImage(frame, filename)
+                    image = self.getImage(frame=frame, filename=filename, layer=layer)
                     if not image:
                         raise ImageDoesNotExist("No parent image found ")
                 try:
@@ -2462,7 +2462,7 @@ class DataFile:
 
         return query
 
-    def setMask(self, image=None, frame=None, filename=None, data=None, id=None):
+    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=None):
         """
         Update or create new :py:class:`Mask` entry with the given parameters.
 
@@ -2491,11 +2491,11 @@ class DataFile:
         assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
             "Exactly one of image, frame or filename should be specified or an id"
 
-        mask = self.getMask(image=image, frame=frame, filename=filename, id=id)
+        mask = self.getMask(image=image, frame=frame, filename=filename, id=id, layer=layer)
 
         # get image object
         if not image:
-            image = self.getImage(frame, filename)
+            image = self.getImage(frame=frame, filename=filename, layer=layer)
             if not image:
                 raise ImageDoesNotExist("No matching parent image found (%s)" % filename)
 
