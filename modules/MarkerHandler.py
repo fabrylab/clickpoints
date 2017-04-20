@@ -1776,6 +1776,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
     def setIndex(self, index):
         self.index = index
         self.setPos(10, 10 + 25 * self.index)
+        self.AddCount(0)
 
     def Update(self, type):
         self.type = type
@@ -1959,16 +1960,26 @@ class MarkerHandler:
             self.counter[key].setVisible(not self.hidden)
 
     def removeCounter(self, type):
+        # find the index to the type
         for index in self.counter:
             if self.counter[index].type == type:
+                # delete the counter
                 self.counter[index].delete()
                 del self.counter[index]
+                # if it was active set active to None
+                if index == self.active_type_index:
+                    self.active_type_index = None
                 break
-        self.counter = {new_index: self.counter[old_index] for new_index, old_index in enumerate(self.counter)}
+        # store the "add type" button
+        add_type_button = self.counter[-1]
+        # resort the buttons
+        self.counter = {new_index: self.counter[old_index] for new_index, old_index in enumerate(sorted(self.counter.keys())[1:])}
+        self.counter[-1] = add_type_button
+        # update the buttons with their new index
         for index in self.counter:
-            self.counter[index].setIndex(index)
-        self.counter[-1] = self.counter[index]
-        del self.counter[index]
+            if index != -1:
+                self.counter[index].setIndex(index)
+        self.counter[-1].setIndex(max(self.counter.keys()) + 1)
 
     def addCounter(self, type):
         new_index = max(self.counter.keys())+1
