@@ -218,11 +218,12 @@ class Commands:
         Returns the current image.
         """
         string = self._send_and_receive("CurrentImage \n")
-        print("Debug4 %s"%string)
-        try:
-            return int(string)
-        except ValueError:
-            return 1
+        # print("Debug4 %s"%string)
+        return int(string)
+
+    def CurrentLayer(self):
+        string = self._send_and_receive("CurrentLayer \n")
+        return int(string)
 
     def ReloadMarker(self, frame=None):
         """
