@@ -485,15 +485,16 @@ class ClickPointsWindow(QtWidgets.QWidget):
         else:
             self.data_file.load_frame(target_id, layer=self.layer, threaded=0)
 
-    def FrameLoaded(self, frame_number, threaded=True):
+    def FrameLoaded(self, frame_number, layer, threaded=True):
         # set the index of the current frame
-        self.data_file.set_image(frame_number)
+        self.data_file.set_image(frame_number, layer)
 
         # get filename and frame number
         self.new_filename = self.data_file.image.filename
         self.new_frame_number = self.target_frame
 
         # Notify that the frame will be loaded TODO are all these events necessary?
+        BroadCastEvent(self.modules, "FrameChangeEvent")
         BroadCastEvent(self.modules, "FrameChangeEvent")
         BroadCastEvent(self.modules, "PreLoadImageEvent", self.new_filename, self.new_frame_number)
         self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (self.new_filename, self.data_file.getFilename(), self.layer))
