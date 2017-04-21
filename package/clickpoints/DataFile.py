@@ -1561,12 +1561,12 @@ class DataFile:
             paths = CheckPath(paths)
         return paths
 
-    def _processImagesField(self, images, frames, filenames):
+    def _processImagesField(self, images, frames, filenames, layer):
         if images is not None:
             return images
 
-        def CheckImageFrame(frame):
-            image = self.getImage(frame=frame)
+        def CheckImageFrame(frame, layer):
+            image = self.getImage(frame=frame, layer=layer)
             if image is None:
                 raise ImageDoesNotExist("No image with the frame number %s exists." % frame)
             return image
@@ -1579,9 +1579,9 @@ class DataFile:
 
         if frames is not None:
             if isinstance(frames, (tuple, list)):
-                images = [CheckImageFrame(frame) for frame in frames]
+                images = [CheckImageFrame(frame, layer) for frame in frames]
             else:
-                images = CheckImageFrame(frames)
+                images = CheckImageFrame(frames, layer)
         else:
             if isinstance(filenames, (tuple, list)):
                 images = [CheckImageFilename(filename) for filename in filenames]
@@ -1742,7 +1742,7 @@ class DataFile:
 
     def getImage(self, frame=None, filename=None, id=None, layer=0):
         """
-        Returns the :py:class:`Image` entry with the given frame number.
+        Returns the :py:class:`Image` entry with the given frame number and layer.
 
         See also: :py:meth:`~.DataFile.getImages`, :py:meth:`~.DataFile.getImageIterator`, :py:meth:`~.DataFile.setImage`,
         :py:meth:`~.DataFile.deleteImages`.
@@ -1769,7 +1769,7 @@ class DataFile:
             return self.table_image.get(**kwargs)
         except peewee.DoesNotExist:
             KeyError("No image with %s found." % VerboseDict(kwargs))
-    def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, layer=None, order_by="sort_index"):
+    def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, layer=0, order_by="sort_index"):
         """
         Get all :py:class:`Image` entries sorted by sort index. For large databases
         :py:meth:`~.DataFile.getImageIterator`, should be used as it doesn't load all frames at once.
@@ -1839,6 +1839,8 @@ class DataFile:
             start at the image with the number start_frame. Default is 0
         end_frame : int, optional
             the last frame of the iteration (excluded). Default is None, the iteration stops when no more images are present.
+        layer : int, optional
+            layer of frames, over which should be iterated.
 
         Returns
         -------
@@ -1871,7 +1873,7 @@ class DataFile:
                 break
             frame += 1
 
-    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=None):
+    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=0):
 
         """
         Update or create new :py:class:`Image` entry with the given parameters.
@@ -1897,7 +1899,7 @@ class DataFile:
         id : int, optional
             the id of the image
         layer : int, optional
-            the layer_id of the image
+            the layer_id of the image, always use with frame
 
         Returns
         -------
@@ -1910,6 +1912,10 @@ class DataFile:
         except peewee.DoesNotExist:
             item = self.table_image()
             new_image = True
+
+        if layer != 0:
+            assert frame is not None, \
+                "Frame should be specified, if layer is given."
 
         if filename is not None:
             item.filename = os.path.split(filename)[1]
@@ -1931,7 +1937,7 @@ class DataFile:
         item.save()
         return item
 
-    def deleteImages(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None):
+    def deleteImages(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=0):
         """
         Delete all :py:class:`Image` entries with the given criteria.
 
@@ -1955,6 +1961,8 @@ class DataFile:
             the height/heights of the images
         id : int, array_like, optional
             the id/ids of the images
+        layer: int, array_like, optional
+            the layer/layers of the images
 
         Returns
         -------
@@ -1973,6 +1981,7 @@ class DataFile:
         query = addFilter(query, timestamp, self.table_image.timestamp)
         query = addFilter(query, width, self.table_image.width)
         query = addFilter(query, height, self.table_image.height)
+        query = addFilter(query, layer, self.table_image.layer)
         return query.execute()
 
     def getTracks(self, type=None, text=None, hidden=None, id=None):
@@ -2377,7 +2386,7 @@ class DataFile:
         query = addFilter(query, index, self.table_masktype.index)
         query.execute()
 
-    def getMask(self, image=None, frame=None, filename=None, id=None, layer=None, create=False):
+    def getMask(self, image=None, frame=None, filename=None, id=None, layer=0, create=False):
         """
         Get the :py:class:`Mask` entry for the given image frame number or filename.
 
@@ -2395,6 +2404,8 @@ class DataFile:
             id of the mask entry.
         create : bool, optional
             whether the mask should be created if it does not exist. (default: False)
+        layer: int, optional
+            layer of the image, which mask should be returned. Always use with frame.
 
         Returns
         -------
@@ -2402,8 +2413,10 @@ class DataFile:
             the desired :py:class:`Mask` entry.
         """
         # check input
+        # assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
+        #     "Exactly one of image, frame or filename should be specified or should be referenced by it's id."
         assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
-            "Exactly one of image, frame or filename should be specified or should be referenced by it's id."
+            "Image, frame (with layer) or filename should be specified or should be referenced by it's id."
 
         query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
 
@@ -2411,6 +2424,7 @@ class DataFile:
         query = addFilter(query, image, self.table_mask.image)
         query = addFilter(query, frame, self.table_image.sort_index)
         query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, layer, self.table_image.layer)
         query.limit(1)
 
         try:
@@ -2430,7 +2444,7 @@ class DataFile:
                 return mask
             return None
 
-    def getMasks(self, image=None, frame=None, filename=None, id=None, order_by="sort_index"):
+    def getMasks(self, image=None, frame=None, filename=None, id=None, layer=0, order_by="sort_index"):
         """
         Get all :py:class:`Mask` entries from the database, which match the given criteria. If no criteria a given, return all masks.
 
@@ -2446,6 +2460,8 @@ class DataFile:
             filename of the image/images, which masks should be returned. If omitted, images or frame numbers should be specified instead.
         id : int, array_like, optional
             id/ids of the masks.
+        layer :  int, optional
+            layer of the images, which masks should be returned. Always use with frame.
         order_by: string, optional
             sorts the result according to sort paramter ('sort_index' or 'timestamp')
 
@@ -2458,12 +2474,17 @@ class DataFile:
         assert sum(e is not None for e in [image, frame, filename]) <= 1, \
             "Exactly one of images, frames or filenames should be specified"
 
+        if layer != 0:
+            assert frame is not None, \
+                "Frame should be specified, if layer is given."
+
         query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
 
         query = addFilter(query, id, self.table_mask.id)
         query = addFilter(query, image, self.table_mask.image)
         query = addFilter(query, frame, self.table_image.sort_index)
         query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, layer, self.table_image.layer)
 
         if order_by == "sort_index":
             query = query.order_by(self.table_image.sort_index)
@@ -2475,7 +2496,7 @@ class DataFile:
 
         return query
 
-    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=None):
+    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=0):
         """
         Update or create new :py:class:`Mask` entry with the given parameters.
 
@@ -2494,6 +2515,8 @@ class DataFile:
             one channel, and it should be using the data type uint8.
         id : int, optional
             id of the mask entry.
+        layer: int, optional
+            the layer of the image, which masks should be set. always use with frame.
 
         Returns
         -------
@@ -2503,6 +2526,9 @@ class DataFile:
         # check input
         assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
             "Exactly one of image, frame or filename should be specified or an id"
+        if layer != 0:
+            assert frame is not None, \
+                "Frame should be specified, if layer is given."
 
         mask = self.getMask(image=image, frame=frame, filename=filename, id=id, layer=layer)
 
@@ -2543,12 +2569,12 @@ class DataFile:
 
         setFields(mask, dict(data=data, image=image))
         if frame is not None or filename is not None:
-            mask.image = self.getImage(frame=frame, filename=filename)
+            mask.image = self.getImage(frame=frame, filename=filename, layer=layer)
         mask.save()
 
         return mask
 
-    def deleteMasks(self, image=None, frame=None, filename=None, id=None):
+    def deleteMasks(self, image=None, frame=None, filename=None, id=None, layer=0):
         """
         Delete all :py:class:`Mask` entries with the given criteria.
 
@@ -2564,10 +2590,16 @@ class DataFile:
             filename of the image/images, which masks should be deleted. If omitted, images or frame numbers should be specified instead.
         id : int, array_like, optional
             id/ids of the masks.
+        layer: int, array_like, optional
+            layer/layers of the images, which masks should be deleted. Always use with frame!
         """
         # check input
         assert sum(e is not None for e in [image, frame, filename]) <= 1, \
             "Exactly one of images, frames or filenames should be specified"
+
+        if any(layer!=0):
+            assert frame is not None, \
+                "Frame should be specified, if layer is given."
 
         query = self.table_mask.delete()
 
@@ -2575,6 +2607,7 @@ class DataFile:
             images = self.table_image.select()
             images = addFilter(images, frame, self.table_image.sort_index)
             images = addFilter(images, filename, self.table_image.filename)
+            images = addFilter(images, layer, self.table_image.layer)
             query = query.where(self.table_mask.image.in_(images))
         else:
             query = addFilter(query, image, self.table_mask.image)
@@ -2604,7 +2637,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def getMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, text=None, id=None):
+    def getMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, text=None, id=None, layer=0):
         """
         Get all :py:class:`Marker` entries with the given criteria.
 
@@ -2632,6 +2665,8 @@ class DataFile:
             the text/s of the markers.
         id : int, array_like, optional
             the id/s of the markers.
+        layer : int, optional
+            the layer of the markers
 
         Returns
         -------
@@ -2645,6 +2680,7 @@ class DataFile:
         query = addFilter(query, id, self.table_marker.id)
         query = addFilter(query, image, self.table_marker.image)
         query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, layer, self.table_image.layer)
         query = addFilter(query, filename, self.table_image.filename)
         query = addFilter(query, x, self.table_marker.x)
         query = addFilter(query, y, self.table_marker.y)
@@ -2655,7 +2691,7 @@ class DataFile:
 
         return query
 
-    def setMarker(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, style=None, text=None, id=None):
+    def setMarker(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, style=None, text=None, id=None, layer=None):
         """
         Insert or update an :py:class:`Marker` object in the database.
 
@@ -2684,6 +2720,8 @@ class DataFile:
             the text of the marker.
         id : int, optional
             the id of the marker.
+        layer: int, optional
+            the layer of the image of the marker
 
         Returns
         -------
@@ -2701,14 +2739,14 @@ class DataFile:
         type = self._processesTypeNameField(type)
         if track is not None:
             self._checkTrackField(track)
-        image = self._processImagesField(image, frame, filename)
+        image = self._processImagesField(image, frame, filename, layer)
 
         setFields(item, dict(image=image, x=x, y=y, type=type, processed=processed, track=track, style=style, text=text))
         item.save()
         return item
 
     def setMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None,
-                   track=None, style=None, text=None, id=None):
+                   track=None, style=None, text=None, id=None, layer=0):
         """
         Insert or update multiple :py:class:`Marker` objects in the database.
 
@@ -2737,6 +2775,8 @@ class DataFile:
             the text/s of the markers.
         id : int, array_like, optional
             the id/s of the markers.
+        layer: int, optional
+            the layer of the images
 
         Returns
         -------
@@ -2746,7 +2786,7 @@ class DataFile:
         type = self._processesTypeNameField(type)
         if track is not None:
             self._checkTrackField(track)
-        image = self._processImagesField(image, frame, filename)
+        image = self._processImagesField(image, frame, filename, layer)
 
         data = packToDictList(self.table_marker, id=id, image=image, x=x, y=y, processed=processed, type=type, track=track,
                               style=style, text=text)
@@ -2890,7 +2930,7 @@ class DataFile:
 
         return query
 
-    def setLine(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None, processed=None, style=None, text=None, id=None):
+    def setLine(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None, processed=None, style=None, text=None, id=None, layer=0):
         """
         Insert or update an :py:class:`Line` object in the database.
 
@@ -2921,6 +2961,8 @@ class DataFile:
             the text of the line.
         id : int, optional
             the id of the line.
+        layer : int, optional
+            the layer of the image of the line
 
         Returns
         -------
@@ -2936,14 +2978,14 @@ class DataFile:
             item = self.table_line()
 
         type = self._processesTypeNameField(type)
-        image = self._processImagesField(image, frame, filename)
+        image = self._processImagesField(image, frame, filename, layer)
 
         setFields(item, dict(image=image, x1=x1, y1=y1, x2=x2, y2=y2, type=type, processed=processed, style=style, text=text))
         item.save()
         return item
 
     def setLines(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None,
-                 processed=None, style=None, text=None, id=None):
+                 processed=None, style=None, text=None, id=None, layer=0):
         """
         Insert or update multiple :py:class:`Line` objects in the database.
 
@@ -2976,6 +3018,8 @@ class DataFile:
             the text/s of the lines.
         id : int, array_like, optional
             the id/s of the lines.
+        layer: int, optional
+            the layer of the images of the lines
 
         Returns
         -------
@@ -2983,7 +3027,7 @@ class DataFile:
             it the inserting was successful.
         """
         type = self._processesTypeNameField(type)
-        image = self._processImagesField(image, frame, filename)
+        image = self._processImagesField(image, frame, filename, layer)
 
         data = packToDictList(self.table_line, id=id, image=image, x1=x1, y1=y1, x2=x2, y2=y2, processed=processed, type=type,
                               style=style, text=text)
@@ -3130,7 +3174,7 @@ class DataFile:
         return query
 
     def setRectangle(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
-                     processed=None, style=None, text=None, id=None):
+                     processed=None, style=None, text=None, id=None, layer=0):
         """
         Insert or update an :py:class:`Rectangle` object in the database.
 
@@ -3161,6 +3205,8 @@ class DataFile:
             the text of the rectangle.
         id : int, optional
             the id of the rectangle.
+        layer : int, optional
+            the id of the image of the rectangle
 
         Returns
         -------
@@ -3176,14 +3222,14 @@ class DataFile:
             item = self.table_rectangle()
 
         type = self._processesTypeNameField(type)
-        image = self._processImagesField(image, frame, filename)
+        image = self._processImagesField(image, frame, filename, layer)
 
         setFields(item, dict(image=image, x=x, y=y, width=width, height=height, type=type, processed=processed, style=style, text=text))
         item.save()
         return item
 
     def setRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
-                 processed=None, style=None, text=None, id=None):
+                 processed=None, style=None, text=None, id=None, layer=0):
         """
         Insert or update multiple :py:class:`Rectangle` objects in the database.
 
@@ -3216,6 +3262,8 @@ class DataFile:
             the text/s of the rectangles.
         id : int, array_like, optional
             the id/s of the rectangles.
+        layer : int, optional
+            the layer of the images of the rectangles
 
         Returns
         -------
@@ -3223,7 +3271,7 @@ class DataFile:
             it the inserting was successful.
         """
         type = self._processesTypeNameField(type)
-        image = self._processImagesField(image, frame, filename)
+        image = self._processImagesField(image, frame, filename, layer)
 
         data = packToDictList(self.table_rectangle, id=id, image=image, x=x, y=y, width=width, height=height, processed=processed, type=type,
                               style=style, text=text)
@@ -3509,7 +3557,7 @@ class DataFile:
 
         return query
 
-    def setAnnotation(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None):
+    def setAnnotation(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None, layer=0):
         """
         Insert or update an :py:class:`Annotation` object in the database.
 
@@ -3539,7 +3587,7 @@ class DataFile:
         """
         assert not (id is None and image is None and frame is None and filename is None), "Annotations must have an image, frame or filename given or be referenced by it's id."
 
-        image = self._processImagesField(image, frame, filename)
+        image = self._processImagesField(image, frame, filename, layer)
 
         try:
             item = self.table_annotation.get(**noNoneDict(id=id, image=image))
