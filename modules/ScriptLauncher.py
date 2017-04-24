@@ -55,6 +55,7 @@ class Script:
     running = False
 
     button = None
+    run_thread = None
 
     def __init__(self, filename):
         self.filename = filename
@@ -95,9 +96,15 @@ class Script:
         self.active = False
 
     def run(self, start_frame):
-        self.run_thread = threading.Thread(target=self.process.run, args=(start_frame, ))
-        self.run_thread.daemon = True
-        self.run_thread.start()
+        if self.run_thread and self.run_thread.isAlive():
+            self.process.terminate()
+            self.run_thread.join(1)
+            self.run_thread = None
+        else:
+            self.process.cp.stop = False
+            self.run_thread = threading.Thread(target=self.process.run, args=(start_frame, ))
+            self.run_thread.daemon = True
+            self.run_thread.start()
         #self.process.run(start_frame)
 
 path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
@@ -335,6 +342,7 @@ class ScriptLauncher(QtCore.QObject):
                 sock.close()
 
     def launch(self, index):
+        self.window.Save()
         script = self.active_scripts[index]
         script.run(self.data_file.get_current_image())
         print("Launch", index)
@@ -364,16 +372,3 @@ class ScriptLauncher(QtCore.QObject):
     @staticmethod
     def can_create_module(config):
         return 1
-
-
-def startScript(script):
-    if sys.version_info[0] == 3:
-        with open(script, "r") as fp:
-            code = compile(fp.read(), script, 'exec')
-            exec (code, global_vars)
-    else:
-        execfile(task.script, global_vars, {})
-
-if __name__ == "__main__":
-    print(sys.argv)
-    startScript(sys.argv[1])

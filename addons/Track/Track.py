@@ -80,11 +80,11 @@ class Addon(clickpoints.Addon):
             image_last = image
 
             # check if we should terminate
-            #if self.com.HasTerminateSignal():
-            #    print("Cancelled Tracking")
-            #    return
+            if self.cp.hasTerminateSignal():
+                print("Cancelled Tracking")
+                return
 
 if __name__ == "__main__":
     start_frame, database, port = clickpoints.GetCommandLineArgs()
-    addon = Addon(database=database, port=port)
+    addon = Addon(database=database)
     addon.run(start_frame)

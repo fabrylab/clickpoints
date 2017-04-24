@@ -25,49 +25,83 @@ import clickpoints
 
 
 class Command:
-    def __init__(self, script_launcher):
+    script_launcher = None
+    stop = False
+
+    def __init__(self, script_launcher=None):
         self.script_launcher = script_launcher
-        self.window = self.script_launcher.window
+        if self.script_launcher is not None:
+            self.window = self.script_launcher.window
 
     def jumpFrames(self, value):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
         self.window.signal_jump.emit(int(value))
 
     def jumpToFrame(self, value):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
         self.window.signal_jumpTo.emit(int(value))
 
     def jumpFramesWait(self, value):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
         self.window.signal_jump.emit(int(value))
         # wait for frame change to be completed
         while self.window.new_frame_number != int(value) or self.window.loading_image:
             time.sleep(0.01)
 
     def jumpToFrameWait(self, value):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
         self.window.signal_jumpTo.emit(int(value))
         # wait for frame change to be completed
         while self.window.new_frame_number != int(value) or self.window.loading_image:
             time.sleep(0.01)
 
     def reloadMask(self):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
         self.window.signal_broadcast.emit("ReloadMask", tuple())
 
     def reloadMarker(self, value):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
         frame = int(value)
         if frame == -1:
             frame = self.data_file.get_current_image()
         self.window.signal_broadcast.emit("ReloadMarker", (frame,))
 
     def reloadTypes(self):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
         self.window.signal_broadcast.emit("UpdateCounter", tuple())
 
     def getImage(self, value):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
         image = self.window.data_file.get_image_data(int(value))
         return image
 
+    def hasTerminateSignal(self):
+        return self.stop
+
 
 class Addon:
-    def __init__(self, database=None, command=None):
+    def __init__(self, database, command=None):
         self.cp = Command(command)
         self.db = clickpoints.DataFile(database)
+
+    def terminate(self):
+        self.cp.stop = True
 
     def run(self, start_frame=0):
         pass
