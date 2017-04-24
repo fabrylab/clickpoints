@@ -40,6 +40,12 @@ from includes import MemMap
 from Tools import BroadCastEvent
 import re
 import time
+import glob
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
+import importlib
 
 class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -55,7 +61,166 @@ def isPortInUse(type,ip,port_nr):
     else:
         return False
 
+class Script:
+    process = None
+    command_port = None
+    broadcast_port = None
+
+    port = None
+
+    active = False
+    running = False
+
+    button = None
+
+    def __init__(self, filename):
+        self.filename = filename
+        parser = ConfigParser.ConfigParser()
+        parser.read(filename)
+        self.name = parser.get("addon", "name", fallback=os.path.split(os.path.dirname(filename))[1])
+        try:
+            self.description = parser.get("addon", "description", fallback="")
+        except ConfigParser.NoOptionError:
+            self.description = ""
+        if self.description is "":
+            path = os.path.join(os.path.dirname(filename), "Desc.html")
+            with open(path) as fp:
+                self.description = fp.read()
+        self.icon = parser.get("addon", "icon", fallback="fa.code")
+        self.icon_name = self.icon
+        self.script = parser.get("addon", "file", fallback="Script.py")
+        self.script = os.path.join(os.path.dirname(filename), self.script)
+
+        if self.icon.startswith("fa."):
+            self.icon = qta.icon(self.icon)
+        else:
+            self.icon = QtGui.QIcon(self.icon)
+
+    def activate(self, script_launcher):
+        path = os.path.abspath(self.script)
+        name = os.path.splitext(os.path.basename(path))[0]
+        sys.path.insert(0, os.path.dirname(path))
+        addon_module = importlib.import_module(name)
+        if "Addon" not in dir(addon_module):
+            raise NameError("No addon module found in " + path)
+        self.process = addon_module.Addon(script_launcher.data_file._database_filename, self.port, script_launcher)
+        sys.path.pop(0)
+
+        self.active = True
+
+    def deactivate(self):
+        self.active = False
+
+    def run(self, start_frame):
+        self.process.run(start_frame)
+
 path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
+
+class ScriptChooser(QtWidgets.QWidget):
+    def __init__(self, script_launcher):
+        QtWidgets.QWidget.__init__(self)
+        self.script_launcher = script_launcher
+
+        # Widget
+        self.setMinimumWidth(700)
+        self.setMinimumHeight(400)
+        self.setWindowTitle("Script Chooser - ClickPoints")
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout_main.addLayout(self.layout)
+        self.layout2 = QtWidgets.QVBoxLayout()
+        self.layout_main.addLayout(self.layout2)
+
+        self.setWindowIcon(qta.icon("fa.code"))
+
+        """ """
+        #self.list = QtWidgets.QListWidget(self)
+        #self.layout.addWidget(self.list)
+        #self.list.itemSelectionChanged.connect(self.list_selected)
+
+        self.list2 = QtWidgets.QListWidget(self)
+        self.layout.addWidget(self.list2)
+        self.list2.itemSelectionChanged.connect(self.list_selected2)
+
+        self.nameDisplay = QtWidgets.QLabel(self)
+        self.nameDisplay.setStyleSheet("font-weight: bold;")
+        self.layout2.addWidget(self.nameDisplay)
+
+        self.imageDisplay = QtWidgets.QLabel(self)
+        self.layout2.addWidget(self.imageDisplay)
+
+        self.textDisplay = QtWidgets.QTextEdit(self)
+        self.textDisplay.setReadOnly(True)
+        self.layout2.addWidget(self.textDisplay)
+
+        self.layout_buttons = QtWidgets.QHBoxLayout()
+        self.layout2.addLayout(self.layout_buttons)
+        self.layout_buttons.addStretch()
+
+        self.button_removeAdd = QtWidgets.QPushButton("Remove")
+        self.button_removeAdd.clicked.connect(self.add_script)
+        self.layout_buttons.addWidget(self.button_removeAdd)
+
+        self.scripts = []
+        self.activeScripts = []
+        self.loadScripts()
+        self.selected_script = None
+
+        for script in self.script_launcher.scripts:
+            for script2 in self.scripts:
+                if script == script2.script:
+                    self.activeScripts.append(script2)
+                    script2.active = True
+
+        self.update_folder_list2()
+
+    def loadScripts(self):
+        script_path = os.path.join(os.path.dirname(__file__), "..", "addons")
+        scripts = glob.glob(os.path.join(script_path, "*", '*.txt'))
+        self.scripts = [Script(filename) for filename in scripts]
+
+    def list_selected2(self):
+        selections = self.list2.selectedItems()
+        if len(selections) == 0:
+            self.button_removeAdd.setDisabled(True)
+            self.selected_script = None
+            return
+        script = selections[0].entry
+        self.selected_script = script
+        self.nameDisplay.setText(script.name)
+        self.textDisplay.setHtml(script.description)
+        if script.active:
+            self.button_removeAdd.setText("Remove")
+            self.button_removeAdd.setDisabled(False)
+        else:
+            self.button_removeAdd.setText("Add")
+            self.button_removeAdd.setDisabled(False)
+        return
+
+    def update_folder_list2(self):
+        self.list2.clear()
+        for index, script in enumerate(self.scripts):
+            text = script.name
+            if script.active:
+                text += " (active)"
+            item = QtWidgets.QListWidgetItem(script.icon, text, self.list2)
+            item.entry = script
+
+    def add_script(self):
+        if self.selected_script in self.activeScripts:
+            self.activeScripts.remove(self.selected_script)
+            self.selected_script.deactivate()
+        else:
+            self.activeScripts.append(self.selected_script)
+            self.selected_script.activate(self.script_launcher)
+        self.update_folder_list2()
+        self.script_launcher.scripts = self.activeScripts
+        self.script_launcher.updateScripts()
+
+    def keyPressEvent(self, event):
+        # close the window with esc
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.close()
 
 
 class ScriptEditor(QtWidgets.QWidget):
@@ -137,22 +302,15 @@ class ScriptEditor(QtWidgets.QWidget):
 
     def select_file(self):
         # ask for a file name
-        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path)
+        new_path = str(QtWidgets.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path))
         # if we got one, set it
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
             print(new_path, self.script_launcher.script_path)
             try:
                 new_path1 = os.path.relpath(new_path, self.script_launcher.script_path)
             except:
                 new_path1 = None
-            try:
-                new_path2 = os.path.relpath(new_path, os.getcwd())
-            except ValueError:
-                new_path2 = new_path
+            new_path2 = os.path.relpath(new_path, os.getcwd())
             if new_path1 is None or len(new_path1) > len(new_path2):
                 new_path = new_path2
             else:
@@ -206,7 +364,7 @@ class ScriptLauncher(QtCore.QObject):
         server_thread.daemon = True
         server_thread.start()
 
-        process_dict = { 'process':None, 'command_port':None, 'broadcast_port':None}
+        process_dict = {'process': None, 'command_port': None, 'broadcast_port': None}
 
         self.running_processes = [process_dict] * 10
         self.memmap = None
@@ -244,7 +402,7 @@ class ScriptLauncher(QtCore.QObject):
 
         self.scripts = self.data_file.getOption("scripts")[:]
 
-        self.updateScripts()
+        #self.updateScripts()
 
     def updateScripts(self):
         if self.data_file is not None:
@@ -255,46 +413,34 @@ class ScriptLauncher(QtCore.QObject):
         for index, script in enumerate(self.scripts):
             button = QtWidgets.QPushButton()
             button.setCheckable(True)
-            button.icon_name = "fa.bar-chart"
-            if os.path.exists(script):
-                script_path = os.path.join(os.getcwd(), script)
-            # or relative to the clickpoints path
-            elif os.path.exists(os.path.join(path_addons, script)):
-                script_path = os.path.join(path_addons, script)
-            else:
-                continue
-            with open(script_path) as fp:
-                for line in fp:
-                    line = line.strip()
-                    if line.startswith("__icon__"):
-                        match = re.match(r"__[^_]*__\s*=\s*\"(.*)\"\s*$", line)
-                        if match:
-                            button.icon_name = match.groups()[0]
-                        break
-            button.setIcon(qta.icon(button.icon_name))
-            button.setToolTip(script)
+            button.setIcon(script.icon)
+            button.setToolTip(script.name)
             button.clicked.connect(lambda x, i=index: self.launch(i))
             self.button_group_layout.addWidget(button)
             self.script_buttons.append(button)
+            script.button = button
 
-    def CheckProcessRunning(self, timer, process, button):
-        if process.pid in psutil.pids() and process.poll() is None:
-            spin_icon = qta.icon(button.icon_name, 'fa.hourglass-%d' % (int(timer.duration()*2) % 3 +1), options=[{},
+    def CheckProcessRunning(self, script):
+        if script.running:
+            spin_icon = qta.icon(script.icon_name, 'fa.hourglass-%d' % (int(script.timer.duration()*2) % 3 +1), options=[{},
                                                                             {'scale_factor': 0.9, 'offset': (0.3, 0.2),
                                                                              'color': QtGui.QColor(128, 0, 0)}])
-            button.setIcon(spin_icon)
-            button.setChecked(True)
+            script.button.setIcon(spin_icon)
+            script.button.setChecked(True)
             return
-        button.setIcon(qta.icon(button.icon_name))
-        button.setChecked(False)
-        timer.stop()
+        script.button.setIcon(script.icon)
+        script.button.setChecked(False)
+        script.timer.stop()
 
     def showScriptSelector(self):
-        self.scriptSelector = ScriptEditor(self)
+        self.scriptSelector = ScriptChooser(self)
         self.scriptSelector.show()
 
-    def Command(self, command, socket, client_address):
-        cmd, value = str(command).split(" ", 1)
+    def Command(self, cmd, value):#command, socket, client_address):
+        socket = None
+        client_address = None
+        #cmd, value = str(command).split(" ", 1)
+        print("Received command", cmd, value)
         if cmd == "JumpFrames":
             self.window.JumpFrames(int(value))
         if cmd == "log":
@@ -315,7 +461,7 @@ class ScriptLauncher(QtCore.QObject):
             if frame == -1:
                 frame = self.data_file.get_current_image()
             BroadCastEvent(self.modules, "ReloadMarker", frame)
-            socket.sendto(cmd.encode(), client_address)
+            #socket.sendto(cmd.encode(), client_address)
         if cmd == "ReloadTypes":
             BroadCastEvent(self.modules, "UpdateCounter")
             socket.sendto(cmd.encode(), client_address)
@@ -375,7 +521,17 @@ class ScriptLauncher(QtCore.QObject):
 
     def launch(self, index):
         script = self.scripts[index]
-        process = self.running_processes[index]['process']
+        script.run(self.data_file.get_current_image())
+        print("Launch", index)
+
+        timer = QtCore.QTimer()
+        timer.timeout.connect(lambda: self.CheckProcessRunning(script))
+        timer.start_time = time.time()
+        timer.duration = lambda: time.time() - timer.start_time
+        timer.start(10)
+        script.timer = timer
+        return
+        process = script.process
         if process is not None and process.pid in psutil.pids() and process.poll() is None:
             if hasattr(os.sys, 'winver'):
                 os.kill(process.pid, signal.CTRL_BREAK_EVENT)
@@ -383,39 +539,27 @@ class ScriptLauncher(QtCore.QObject):
                 process.send_signal(signal.SIGTERM)
             return
         self.window.Save()
-        script_path = None
-        # search script relative to the config file
-        #print(os.path.join(self.config.path_config, script))
-        #print(os.path.join(self.config.path_clickpoints, "addons", script))
-        #if os.path.exists(os.path.join(self.config.path_config, script)):
-        #    script_path = os.path.join(self.config.path_config, script)
-        if os.path.exists(script):
-            script_path = os.path.join(os.getcwd(), script)
-        # or relative to the clickpoints path
-        elif os.path.exists(os.path.join(path_addons, script)):
-            script_path = os.path.join(path_addons, script)
-        # print an error message if no file was found
-        if script_path is None:
-            print("ERROR: script %s not found." % script)
-            return
-        args = [sys.executable, os.path.abspath(script_path), "--start_frame", str(self.data_file.get_current_image()),
+        args = [sys.executable, os.path.abspath(script.script), "--start_frame", str(self.data_file.get_current_image()),
                 "--port", str(self.PORT), "--database", str(self.data_file._database_filename)]
         print('arags:', args)
         if hasattr(os.sys, 'winver'):
             process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
         else:
             process = subprocess.Popen(args)
-        self.running_processes[index]['process'] = process
-        self.running_processes[index]['command_port'] = self.PORT
-        self.running_processes[index]['broadcast_port'] = self.PORT + 1
+        #self.running_processes[index]['process'] = process
+        #self.running_processes[index]['command_port'] = self.PORT
+        #self.running_processes[index]['broadcast_port'] = self.PORT + 1
         print("Process", process)
         self.window.log("Start add-on", script)
         timer = QtCore.QTimer()
-        timer.timeout.connect(lambda: self.CheckProcessRunning(timer, process, self.script_buttons[index]))
+        timer.timeout.connect(lambda: self.CheckProcessRunning(script))
         timer.start_time = time.time()
         timer.duration = lambda: time.time()-timer.start_time
         timer.start(10)
-        self.script_buttons[index].timer = timer
+        script.timer = timer
+        script.process = process
+        script.command_port = self.PORT
+        script.broadcast_port = self.PORT + 1
 
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
@@ -435,3 +579,16 @@ class ScriptLauncher(QtCore.QObject):
     @staticmethod
     def can_create_module(config):
         return 1
+
+
+def startScript(script):
+    if sys.version_info[0] == 3:
+        with open(script, "r") as fp:
+            code = compile(fp.read(), script, 'exec')
+            exec (code, global_vars)
+    else:
+        execfile(task.script, global_vars, {})
+
+if __name__ == "__main__":
+    print(sys.argv)
+    startScript(sys.argv[1])
