@@ -305,7 +305,7 @@ class ScriptLauncher(QtCore.QObject):
             script.button = button
 
     def CheckProcessRunning(self, script):
-        if script.running:
+        if script.run_thread is not None and script.run_thread.isAlive():
             spin_icon = qta.icon(script.icon_name, 'fa.hourglass-%d' % (int(script.timer.duration()*2) % 3 +1), options=[{},
                                                                             {'scale_factor': 0.9, 'offset': (0.3, 0.2),
                                                                              'color': QtGui.QColor(128, 0, 0)}])
@@ -319,9 +319,6 @@ class ScriptLauncher(QtCore.QObject):
     def showScriptSelector(self):
         self.scriptSelector = ScriptChooser(self)
         self.scriptSelector.show()
-
-    def BroadCastEvent(self, *args):
-        BroadCastEvent(self.modules, *args)
 
     def LoadImageEvent(self, filename, framenumber):
         # broadcast event to all running processes
