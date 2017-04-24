@@ -59,9 +59,6 @@ class PrintHook:
         if self.origOut is not None:
             return getattr(self.origOut, name, None)
 
-    def __eq__(self, other):
-        return other == self.origOut
-
 
 global hook1, hook2
 def StartHooks(func):
@@ -86,14 +83,16 @@ class Commands:
         whether a terminate signal from ClickPoints should directly terminate the script (default) or if only the
         terminate_signal flag should be set. This flag can later on be queried with HasTerminateSignal()
     """
-    def __init__(self, port=None, catch_terminate_signal=False):
+    def __init__(self, scriptlauncher=None, port=None, catch_terminate_signal=False):
+        self.scriptlauncher = scriptlauncher
+        return
         self.HOST = "localhost"
         if port is None:
             print("No port supplied. Returning a dummy connection.")
         self.PORT = port
         if catch_terminate_signal:
             self.CatchTerminateSignal()
-        StartHooks(self.log)
+        #StartHooks(self.log)
 
     def _send(self, message):
         if self.PORT is None:
@@ -176,6 +175,7 @@ class Commands:
         value : int
             the frame to which ClickPoints should jump.
         """
+        return self.scriptlauncher.Command("JumpToFrameWait", value)
         self._send_and_receive("JumpToFrameWait %d \n" % value)
 
     def GetImage(self, value):
@@ -224,6 +224,7 @@ class Commands:
         """
         if frame is None:
             frame = -1
+        return self.scriptlauncher.Command("ReloadMarker", frame)
         return self._send_and_receive("ReloadMarker %d \n" % frame)
 
     def ReloadTypes(self):
