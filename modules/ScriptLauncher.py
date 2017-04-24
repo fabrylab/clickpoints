@@ -147,23 +147,9 @@ class ScriptChooser(QtWidgets.QWidget):
         self.button_removeAdd.clicked.connect(self.add_script)
         self.layout_buttons.addWidget(self.button_removeAdd)
 
-        self.scripts = []
-        self.activeScripts = []
-        self.loadScripts()
         self.selected_script = None
 
-        for script in self.script_launcher.scripts:
-            for script2 in self.scripts:
-                if script == script2.script:
-                    self.activeScripts.append(script2)
-                    script2.active = True
-
         self.update_folder_list2()
-
-    def loadScripts(self):
-        script_path = os.path.join(os.path.dirname(__file__), "..", "addons")
-        scripts = glob.glob(os.path.join(script_path, "*", '*.txt'))
-        self.scripts = [Script(filename) for filename in scripts]
 
     def list_selected2(self):
         selections = self.list2.selectedItems()
@@ -185,7 +171,7 @@ class ScriptChooser(QtWidgets.QWidget):
 
     def update_folder_list2(self):
         self.list2.clear()
-        for index, script in enumerate(self.scripts):
+        for index, script in enumerate(self.script_launcher.scripts):
             text = script.name
             if script.active:
                 text += " (active)"
@@ -193,122 +179,12 @@ class ScriptChooser(QtWidgets.QWidget):
             item.entry = script
 
     def add_script(self):
-        if self.selected_script in self.activeScripts:
-            self.activeScripts.remove(self.selected_script)
-            self.selected_script.deactivate()
+        if self.selected_script.active:
+            self.script_launcher.deactivateScript(self.selected_script)
         else:
-            self.activeScripts.append(self.selected_script)
-            self.selected_script.activate(self.script_launcher)
+            self.script_launcher.activateScript(self.selected_script)
         self.update_folder_list2()
-        self.script_launcher.scripts = self.activeScripts
         self.script_launcher.updateScripts()
-
-    def keyPressEvent(self, event):
-        # close the window with esc
-        if event.key() == QtCore.Qt.Key_Escape:
-            self.close()
-
-
-class ScriptEditor(QtWidgets.QWidget):
-    def __init__(self, script_launcher):
-        QtWidgets.QWidget.__init__(self)
-        self.script_launcher = script_launcher
-
-        # Widget
-        self.setMinimumWidth(500)
-        self.setMinimumHeight(200)
-        self.setWindowTitle("Script Selector - ClickPoints")
-        self.layout = QtWidgets.QVBoxLayout(self)
-
-        self.setWindowIcon(qta.icon("fa.code"))
-
-        """ """
-        self.list = QtWidgets.QListWidget(self)
-        self.layout.addWidget(self.list)
-        self.list.itemSelectionChanged.connect(self.list_selected)
-
-        group_box = QtWidgets.QGroupBox("Add Folder")
-        self.group_box = group_box
-        self.layout.addWidget(group_box)
-        layout = QtWidgets.QVBoxLayout()
-        group_box.setLayout(layout)
-        """ """
-
-        horizontal_layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(horizontal_layout)
-
-        horizontal_layout.addWidget(QtWidgets.QLabel("Folder:"))
-
-        self.text_input = QtWidgets.QLineEdit(self)
-        self.text_input.setDisabled(True)
-        horizontal_layout.addWidget(self.text_input)
-
-        self.pushbutton_file = QtWidgets.QPushButton('Select F&ile', self)
-        self.pushbutton_file.pressed.connect(self.select_file)
-        horizontal_layout.addWidget(self.pushbutton_file)
-
-        self.pushbutton_delete = QtWidgets.QPushButton('Remove', self)
-        self.pushbutton_delete.pressed.connect(self.remove_folder)
-        horizontal_layout.addWidget(self.pushbutton_delete)
-
-        """ """
-
-        horizontal_layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(horizontal_layout)
-
-        horizontal_layout.addStretch()
-
-        self.pushbutton_Confirm = QtWidgets.QPushButton('O&k', self)
-        self.pushbutton_Confirm.pressed.connect(self.close)
-        horizontal_layout.addWidget(self.pushbutton_Confirm)
-
-        self.update_folder_list()
-        self.list.setCurrentRow(self.list.count()-1)
-
-    def list_selected(self):
-        selections = self.list.selectedItems()
-        if len(selections) == 0 or self.list.currentRow() == self.list.count()-1:
-            self.text_input.setText("")
-            self.group_box.setTitle("Add Script")
-            self.pushbutton_file.setHidden(False)
-            self.pushbutton_delete.setHidden(True)
-        else:
-            self.text_input.setText(selections[0].text().rsplit("  ", 1)[0])
-            self.group_box.setTitle("Script")
-            self.pushbutton_file.setHidden(True)
-            self.pushbutton_delete.setHidden(False)
-
-    def update_folder_list(self):
-        self.list.clear()
-        for index, script in enumerate(self.script_launcher.scripts):
-            item = QtWidgets.QListWidgetItem(qta.icon("fa.code"), "%s  (F%d)" % (script, 12-index), self.list)
-            item.path_entry = script
-        QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add script", self.list)
-        self.script_launcher.updateScripts()
-
-    def select_file(self):
-        # ask for a file name
-        new_path = str(QtWidgets.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path))
-        # if we got one, set it
-        if new_path:
-            print(new_path, self.script_launcher.script_path)
-            try:
-                new_path1 = os.path.relpath(new_path, self.script_launcher.script_path)
-            except:
-                new_path1 = None
-            new_path2 = os.path.relpath(new_path, os.getcwd())
-            if new_path1 is None or len(new_path1) > len(new_path2):
-                new_path = new_path2
-            else:
-                new_path = new_path1
-            self.script_launcher.scripts.append(new_path)
-            self.text_input.setText(new_path)
-            self.update_folder_list()
-
-    def remove_folder(self):
-        path = self.list.selectedItems()[0].path_entry
-        self.script_launcher.scripts.remove(path)
-        self.update_folder_list()
 
     def keyPressEvent(self, event):
         # close the window with esc
@@ -325,6 +201,7 @@ class ScriptLauncher(QtCore.QObject):
     config = None
 
     scripts = None
+    active_scripts = None
 
     def __init__(self, window, modules):
         QtCore.QObject.__init__(self)
@@ -351,14 +228,18 @@ class ScriptLauncher(QtCore.QObject):
 
         self.script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "addons"))
 
-        #self.running_processes = [None]*len(self.config.launch_scripts)
-
         self.closeDataFile()
+
+    def loadScripts(self):
+        script_path = os.path.join(os.path.dirname(__file__), "..", "addons")
+        scripts = glob.glob(os.path.join(script_path, "*", '*.txt'))
+        return [Script(filename) for filename in scripts]
 
     def closeDataFile(self):
         self.data_file = None
         self.config = None
-        self.scripts = []
+        self.scripts = self.loadScripts()
+        self.active_scripts = []
         self.updateScripts()
         if self.scriptSelector:
             self.scriptSelector.close()
@@ -366,18 +247,47 @@ class ScriptLauncher(QtCore.QObject):
     def updateDataFile(self, data_file, new_database):
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
+        self.scripts = self.loadScripts()
 
-        self.scripts = self.data_file.getOption("scripts")[:]
+        for script in self.data_file.getOption("scripts"):
+            self.activateScript(script)
 
-        #self.updateScripts()
+        self.updateScripts()
+
+    def activateScript(self, script):
+        script = self.getScriptByFilename(script)
+        if script is not None:
+            self.active_scripts.append(script)
+            script.activate(self)
+
+    def deactivateScript(self, script):
+        script = self.getScriptByFilename(script)
+        if script is not None:
+            self.active_scripts.remove(script)
+            script.deactivate()
+
+    def getScriptByFilename(self, filename):
+        if isinstance(filename, Script):
+            return filename
+        filename = os.path.normpath(filename)
+        if self.scripts:
+            filenames = [os.path.normpath(s.filename) for s in self.scripts]
+            if filename in filenames:
+                return self.scripts[filenames.index(filename)]
+        try:
+            return Script(filename)
+        except FileNotFoundError:
+            return None
 
     def updateScripts(self):
         if self.data_file is not None:
-            self.data_file.setOption("scripts", self.scripts)
+            self.data_file.setOption("scripts", [os.path.normpath(s.filename) for s in self.active_scripts])
         for button in self.script_buttons:
             self.button_group_layout.removeWidget(button)
+            button.setParent(None)
+            del button
         self.script_buttons = []
-        for index, script in enumerate(self.scripts):
+        for index, script in enumerate(self.active_scripts):
             button = QtWidgets.QPushButton()
             button.setCheckable(True)
             button.setIcon(script.icon)
@@ -425,7 +335,7 @@ class ScriptLauncher(QtCore.QObject):
                 sock.close()
 
     def launch(self, index):
-        script = self.scripts[index]
+        script = self.active_scripts[index]
         script.run(self.data_file.get_current_image())
         print("Launch", index)
 
