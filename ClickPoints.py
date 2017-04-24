@@ -130,6 +130,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
     load_thread = None
     data_file = None
 
+    signal_jump = QtCore.Signal(int)
+    signal_jumpTo = QtCore.Signal(int)
+    signal_broadcast = QtCore.Signal(str, tuple)
+
     def __init__(self, my_config, app, parent=None):
         global config
         config = my_config
@@ -235,6 +239,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
         for i in range(self.layoutButtons.count()):
             if self.layoutButtons.itemAt(i).widget():
                 self.layoutButtons.itemAt(i).widget().setFocusPolicy(Qt.NoFocus)
+
+        self.signal_jump.connect(self.JumpFrames)
+        self.signal_jumpTo.connect(self.JumpToFrame)
+        self.signal_broadcast.connect(lambda s, a: BroadCastEvent(self.modules, s, *a))
 
         self.setFocus()
 
