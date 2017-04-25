@@ -32,6 +32,8 @@ from threading import Thread
 import threading
 from qimage2ndarray import array2qimage
 import imageio
+import requests
+from io import BytesIO
 
 from qtpy import QtGui, QtCore, QtWidgets
 
@@ -171,7 +173,17 @@ class StoppableThread(threading.Thread):
         filename = os.path.join(window.database.getPath(self.entry.path), self.entry.basename + self.entry.extension)
         if self.stopped():
             return
-        im = imageio.get_reader("\\\\" + filename).get_data(0)
+        # try to get the file by samba link
+        try:
+            im = imageio.get_reader("\\\\" + filename).get_data(0)
+        # if not, try to get the file over a flask server
+        except IOError:
+            url = "http://" + filename.replace("\\", ":5001/", 1).replace("\\", "/")
+            response = requests.get(url)
+            if not response.ok:
+                print("Url", url, "not found", response.ok, response.status_code)
+                raise IOError
+            im = imageio.get_reader(BytesIO(response.content), format=self.entry.extension).get_data(0)
         if self.stopped():
             return
         window.im = im
