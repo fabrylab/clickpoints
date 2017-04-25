@@ -135,8 +135,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
         if self.config.info_hud_string != "":
             self.setVisible(True)
             self.hidden = False
-
-            self.ToggleInterfaceEvent(self.config.infohud_interface_hidden)
+            self.ToggleInterfaceEvent(self.hidden)
 
     def LoadImageEvent(self, filename="", frame_number=0):
         if not self.data_file.getOption("info_hud_string") == "@script" and self.data_file.getOption("info_hud_string").strip():
@@ -171,7 +170,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             self.hidden = hidden
         if self.config.info_hud_string == "":
             self.hidden = True
-        self.setVisible(self.hidden)
+        self.setVisible( not self.hidden)
         if self.config is not None:
             self.config.infohud_interface_hidden = self.hidden
 
