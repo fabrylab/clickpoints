@@ -178,7 +178,7 @@ class StoppableThread(threading.Thread):
             im = imageio.get_reader("\\\\" + filename).get_data(0)
         # if not, try to get the file over a flask server
         except IOError:
-            url = "http://" + filename.replace("\\", ":5001/", 1).replace("\\", "/")
+            url = "http://" + filename.replace("\\", "/").replace("/", ":5001/", 1)
             response = requests.get(url)
             if not response.ok:
                 print("Url", url, "not found", response.ok, response.status_code)
