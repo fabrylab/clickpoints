@@ -175,7 +175,10 @@ class StoppableThread(threading.Thread):
             return
         # try to get the file by samba link
         try:
-            im = imageio.get_reader("\\\\" + filename).get_data(0)
+            if platform.system() == 'Linux':
+                im = imageio.get_reader("/mnt/" + filename).get_data(0)
+            else:
+                im = imageio.get_reader("\\\\" + filename).get_data(0)
         # if not, try to get the file over a flask server
         except IOError:
             url = "http://" + filename.replace("\\", "/").replace("/", ":5001/", 1)
@@ -242,8 +245,9 @@ class DatabaseBrowser(QtWidgets.QWidget):
                 self.smb_targets = [k for k, v in LinuxMountLookup.iteritems()]
                 self.smb_mounts = [v for k, v in LinuxMountLookup.iteritems()]
             except:
-                raise Exception(
-                    "Warning - Linux systems require mounted smb shares - please add translation dictionary to linuxmountlookup.py")
+                pass
+                #raise Exception(
+                #    "Warning - Linux systems require mounted smb shares - please add translation dictionary to linuxmountlookup.py")
 
         # open the database
         self.database = DatabaseFiles(config)
