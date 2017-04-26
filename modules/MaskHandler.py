@@ -68,7 +68,10 @@ class MaskFile:
             return None
 
     def get_mask_frames(self):
-        return self.table_mask.select().group_by(self.table_mask.image)
+        # query all sort_indices which have a mask
+        return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
+                .join(self.table_mask)
+                .group_by(self.data_file.table_image.sort_index))
 
     def get_mask_path(self):
         if self.mask_path:
@@ -573,8 +576,12 @@ class MaskHandler:
             self.SetActiveDrawType(self.config.selected_draw_type)
 
         # place tick marks for already present masks
-        for item in self.mask_file.get_mask_frames():
-            BroadCastEvent(self.modules, "MarkerPointsAdded", item.image.sort_index)
+        # but lets take care that there are masks ...
+        try:
+            frames = np.array(self.mask_file.get_mask_frames().tuples())[:, 0]
+            BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
+        except IndexError:
+            pass
 
     def UpdateButtons(self):
         # remove all counter
