@@ -83,8 +83,3 @@ class Addon(clickpoints.Addon):
             if self.cp.hasTerminateSignal():
                 print("Cancelled Tracking")
                 return
-
-if __name__ == "__main__":
-    start_frame, database, port = clickpoints.GetCommandLineArgs()
-    addon = Addon(database=database)
-    addon.run(start_frame)
