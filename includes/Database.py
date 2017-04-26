@@ -36,6 +36,7 @@ import imageio
 from threading import Thread
 from qtpy import QtCore
 import numpy as np
+import platform
 
 from clickpoints import DataFile as DataFileBase
 
@@ -290,6 +291,9 @@ class DataFile(DataFileBase):
             new_directory = os.path.dirname(file)
             paths = self.table_path.select()
             for path in paths:
+                # don't change samba paths
+                if path.path.startswith("\\\\"):
+                    continue
                 abs_path = os.path.join(old_directory, path.path)
                 try:
                     path.path = os.path.relpath(abs_path, new_directory)
@@ -432,6 +436,9 @@ class DataFile(DataFileBase):
         # query the information on the image to load
         image = self.table_image.get(sort_index=index)
         filename = os.path.join(image.path.path, image.filename)
+        # replace samba path for linux
+        if platform.system() == 'Linux' and filename.startswith("\\\\"):
+            filename = "/mnt/" + filename[2:]
         # apply replace pattern
         if self.replace is not None:
             filename = filename.replace(self.replace[0], self.replace[1])

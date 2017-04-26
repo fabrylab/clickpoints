@@ -26,6 +26,7 @@ import peewee
 from PIL import Image as PILImage
 import imageio
 import sys
+import platform
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -395,10 +396,14 @@ class DataFile:
                 indexes = ((('filename', 'path', 'frame'), True),)
 
             def get_data(self):
-                # only if we don't have the file aready open (which in case for videos is important)
+                # only if we don't have the file already open (which in case for videos is important)
                 if self.database_class._reader is None or self.database_class._reader.filename != self.filename:
                     # compose the path
-                    path = os.path.join(os.path.dirname(self.database_class._database_filename), self.path.path, self.filename)
+                    if platform.system() == 'Linux' and self.path.path.startswith("\\\\"):
+                        # replace samba path for linux
+                        path = os.path.join("/mnt", self.path.path[2:], self.filename)
+                    else:
+                        path = os.path.join(os.path.dirname(self.database_class._database_filename), self.path.path, self.filename)
                     # get the reader (open the file)
                     self.database_class._reader = imageio.get_reader(path)
                     self.database_class._reader.filename = self.filename
