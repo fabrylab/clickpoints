@@ -962,6 +962,10 @@ class DataFile:
 
         self._InitOptions()
 
+    def __del__(self):
+        if self.db:
+            self.db.close()
+
     def _InitOptions(self):
         self._options = {}
         self._options_by_key = {}
