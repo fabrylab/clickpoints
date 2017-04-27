@@ -35,10 +35,6 @@ except ImportError:
     import socketserver as SocketServer  # python 3
     socketobject = socket.socket
 
-import imageio
-from includes import MemMap
-from Tools import BroadCastEvent
-import re
 import time
 import glob
 try:
@@ -48,16 +44,31 @@ except ImportError:
 import importlib
 
 
-class Script:
+def wrap_run(run, script):
+
+    def wrapper(*args, **kwargs):
+        script.run_started()
+        try:
+            run(*args, **kwargs)
+        finally:
+            script.run_stopped()
+
+    return wrapper
+
+
+class Script(QtCore.QObject):
     process = None
 
     active = False
-    running = False
+    is_running = False
 
     button = None
     run_thread = None
 
+    start_timer = QtCore.Signal()
+
     def __init__(self, filename):
+        QtCore.QObject.__init__(self)
         self.filename = filename
         parser = ConfigParser.ConfigParser()
         parser.read(filename)
@@ -80,20 +91,53 @@ class Script:
         else:
             self.icon = QtGui.QIcon(self.icon)
 
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.checkProcessRunning)
+        self.start_timer.connect(self.startTimer)
+
     def activate(self, script_launcher):
+        self.script_launcher = script_launcher
         path = os.path.abspath(self.script)
         name = os.path.splitext(os.path.basename(path))[0]
         sys.path.insert(0, os.path.dirname(path))
-        addon_module = importlib.import_module(name)
+        try:
+            addon_module = importlib.import_module(name)
+        finally:
+            sys.path.pop(0)
         if "Addon" not in dir(addon_module):
             raise NameError("No addon module found in " + path)
         self.process = addon_module.Addon(script_launcher.data_file._database_filename, script_launcher)
-        sys.path.pop(0)
+        self.process.run = wrap_run(self.process.run, self)
 
         self.active = True
 
     def deactivate(self):
         self.active = False
+        self.button = None
+
+    def run_started(self):
+        self.process.cp.stop = False
+        self.is_running = True
+        self.start_timer.emit()
+
+    def run_stopped(self):
+        self.is_running = False
+
+    def startTimer(self):
+        self.timer.start_time = time.time()
+        self.timer.duration = lambda: time.time() - self.timer.start_time
+        self.timer.start(10)
+
+    def checkProcessRunning(self):
+        if self.is_running:
+            spin_icon = qta.icon(self.icon_name, 'fa.hourglass-%d' % (int(self.timer.duration() * 2) % 3 + 1),
+                                 options=[{}, {'scale_factor': 0.9, 'offset': (0.3, 0.2), 'color': QtGui.QColor(128, 0, 0)}])
+            self.button.setIcon(spin_icon)
+            self.button.setChecked(True)
+            return
+        self.button.setIcon(self.icon)
+        self.button.setChecked(False)
+        self.timer.stop()
 
     def run(self, start_frame):
         if self.run_thread and self.run_thread.isAlive():
@@ -101,11 +145,10 @@ class Script:
             self.run_thread.join(1)
             self.run_thread = None
         else:
-            self.process.cp.stop = False
             self.run_thread = threading.Thread(target=self.process.run, args=(start_frame, ))
             self.run_thread.daemon = True
             self.run_thread.start()
-        #self.process.run(start_frame)
+
 
 path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
 
@@ -304,52 +347,20 @@ class ScriptLauncher(QtCore.QObject):
             self.script_buttons.append(button)
             script.button = button
 
-    def CheckProcessRunning(self, script):
-        if script.run_thread is not None and script.run_thread.isAlive():
-            spin_icon = qta.icon(script.icon_name, 'fa.hourglass-%d' % (int(script.timer.duration()*2) % 3 +1), options=[{},
-                                                                            {'scale_factor': 0.9, 'offset': (0.3, 0.2),
-                                                                             'color': QtGui.QColor(128, 0, 0)}])
-            script.button.setIcon(spin_icon)
-            script.button.setChecked(True)
-            return
-        script.button.setIcon(script.icon)
-        script.button.setChecked(False)
-        script.timer.stop()
+    def receiveBroadCastEvent(self, function, *args, **kwargs):
+        for script in self.scripts:
+            if function in dir(script.process):
+                eval("script.process." + function + "(*args, **kwargs)")
 
     def showScriptSelector(self):
         self.scriptSelector = ScriptChooser(self)
         self.scriptSelector.show()
-
-    def LoadImageEvent(self, filename, framenumber):
-        # broadcast event to all running processes
-        for p in self.running_processes:
-            if not p['process'] == None:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                msg = "LoadImageEvent %s %d" % (filename,framenumber)
-                sock.sendto(msg.encode(), ('127.0.0.1', p['broadcast_port']))
-                sock.close()
-
-    def PreLoadImageEvent(self, filename, framenumber):
-        # broadcast event to all running processes
-        for p in self.running_processes:
-            if not p['process'] == None:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                msg = "PreLoadImageEvent %s %d" % (filename,framenumber)
-                sock.sendto(msg.encode(), ('127.0.0.1', p['broadcast_port']))
-                sock.close()
 
     def launch(self, index):
         self.window.Save()
         script = self.active_scripts[index]
         script.run(self.data_file.get_current_image())
         print("Launch", index)
-
-        timer = QtCore.QTimer()
-        timer.timeout.connect(lambda: self.CheckProcessRunning(script))
-        timer.start_time = time.time()
-        timer.duration = lambda: time.time() - timer.start_time
-        timer.start(10)
-        script.timer = timer
 
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
