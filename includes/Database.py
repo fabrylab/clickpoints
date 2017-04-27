@@ -438,7 +438,7 @@ class DataFile(DataFileBase):
         filename = os.path.join(image.path.path, image.filename)
         # replace samba path for linux
         if platform.system() == 'Linux' and filename.startswith("\\\\"):
-            filename = "/mnt/" + filename[2:]
+            filename = "/mnt/" + filename[2:].replace("\\", "/")
         # apply replace pattern
         if self.replace is not None:
             filename = filename.replace(self.replace[0], self.replace[1])
