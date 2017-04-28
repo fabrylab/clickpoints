@@ -596,7 +596,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.data = self.data_file.table_markertype()
             self.data.name = self.typeWidget.name.text()
             new_mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
-            if new_mode != self.data.mode:
+            if new_mode != self.data.mode and not new_type:
                 count = self.data.markers.count() + self.data.lines.count() + self.data.rectangles.count()
                 if count:
                     reply = QtWidgets.QMessageBox.question(self, 'Warning',
