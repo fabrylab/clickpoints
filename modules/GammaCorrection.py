@@ -98,7 +98,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.config = data_file.getOptionAccess()
 
         self.ToggleInterfaceEvent(hidden=self.config.contrast_interface_hidden)
-        self.schedule_update = True
+        if self.config.contrast_gamma != 1 or self.config.contrast_max != 255 or self.config.contrast_min != 0:
+            self.schedule_update = True
 
     def updateHist(self, hist):
         histpath = QtGui.QPainterPath()
