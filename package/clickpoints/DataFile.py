@@ -2461,9 +2461,6 @@ class DataFile:
         class QuerySelector(peewee.SelectQuery):
             def __iter__(self):
                 return self.iterator()
-            def __getitem__(self, item):
-                print(item)
-                return super(peewee.SelectQuery, self).__getitem__(item)
         query.__class__ = QuerySelector
 
         return query
