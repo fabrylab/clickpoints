@@ -343,7 +343,6 @@ class DataFile:
                 os.remove(self._database_filename)
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
             self.db.connect()
-            self.db.get_conn().row_factory = dict_factory
         else:  # or read an existing one
             if not os.path.exists(self._database_filename) and mode != "r+":
                 raise Exception("DB %s does not exist!" % os.path.abspath(self._database_filename))
@@ -351,12 +350,9 @@ class DataFile:
             self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
             self.db.connect()
             if exists:
-                self.db.get_conn().row_factory = dict_factory
                 version = self._CheckVersion()
                 self._next_sort_index = None
                 new_database = False
-            else:
-                self.db.get_conn().row_factory = dict_factory
 
         """ Basic Tables """
 
@@ -1207,6 +1203,7 @@ class DataFile:
         # migrate database from an older version
         print("Migrating DB from version %s" % version)
         nr_version = int(version)
+        self.db.get_conn().row_factory = dict_factory
 
         if nr_version < 3:
             print("\tto 3")
@@ -1474,6 +1471,8 @@ class DataFile:
                     raise
                     pass
             self._SetVersion(17)
+
+        self.db.get_conn().row_factory = None
 
 
     def _SetVersion(self, nr_new_version):
