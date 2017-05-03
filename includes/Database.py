@@ -134,7 +134,6 @@ def SaveDB(db_memory, filename):
     con_memory = db_memory.get_conn()
 
     tempfile = StringIO()
-    con_memory.row_factory = None
     for line in con_memory.iterdump():
         tempfile.write('%s\n' % line)
     tempfile.seek(0)
