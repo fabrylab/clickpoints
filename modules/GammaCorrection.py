@@ -55,7 +55,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.conv.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
         self.conv.setPos(0, 110)
 
-        self.sliders = []
+        self.sliders = {}
         functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
         min_max = [[0, 2], [0, 255], [0, 255]]
         start = [1, 255, 0]
@@ -66,7 +66,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             slider.setPos(5, 40 + i * 30)
             slider.setValue(start[i])
             slider.valueChanged = functions[i]
-            self.sliders.append(slider)
+            self.sliders.update({name: slider})
 
         self.button_update = TextButton(self, 50, "update", font=window.mono_font)
         self.button_update.setPos(3, 40 + 3 * 30 - 20)
@@ -89,6 +89,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.hidden = False
         self.ToggleInterfaceEvent(hidden=True)
 
+        self.current_layer=-1
+
     def closeDataFile(self):
         self.data_file = None
         self.config = None
@@ -96,6 +98,14 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
     def updateDataFile(self, data_file, new_database):
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
+
+        # if new_database:
+        #     values = self.config.contrast[self.current_layer]
+        #     for i, name in enumerate(self.sliders):
+        #         self.sliders[name].setValue(values[i])
+        #     self.image.Change(gamma=values[0])
+        #     self.image.Change(max_brightness=values[1])
+        #     self.image.Change(min_brightness=values[2])
 
         self.ToggleInterfaceEvent(hidden=self.config.contrast_interface_hidden)
         if self.config.contrast_gamma != 1 or self.config.contrast_max != 255 or self.config.contrast_min != 0:
@@ -123,7 +133,13 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         if update_hist:
             self.updateHist(self.image.hist)
         if self.config:
-            self.config.contrast_gamma = value
+            # self.config.contrast_gamma = value
+
+            if self.current_layer in self.config.contrast:
+                self.config.contrast[self.current_layer][0] = value
+            else:
+                # self.config.contrast[-1][0] = value
+                self.config.contrast.update({self.current_layer: [1., 255, 0]})
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateBrightnes(self, value):
@@ -134,7 +150,12 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         if update_hist:
             self.updateHist(self.image.hist)
         if self.config:
-            self.config.contrast_max = value
+            # self.config.contrast_max = value
+            if self.current_layer in self.config.contrast:
+                self.config.contrast[self.current_layer][1] = value
+            else:
+                # self.config.contrast[-1][1] = value
+                self.config.contrast.update({self.current_layer: [1., 255, 0]})
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
@@ -145,16 +166,52 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         if update_hist:
             self.updateHist(self.image.hist)
         if self.config:
-            self.config.contrast_min = value
+            # self.config.contrast_min = value
+
+            if self.current_layer in self.config.contrast:
+                self.config.contrast[self.current_layer][2] = value
+            else:
+                # self.config.contrast[-1][2] = value
+                self.config.contrast.update({self.current_layer: [1., 255, 0]})
+        QtWidgets.QApplication.restoreOverrideCursor()
+
+    def setActiveLayer(self, new_index):
+        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        update_hist = self.image.preview_slice is None
+        if new_index in self.config.contrast:
+            values = self.config.contrast[new_index]
+            for i, name in enumerate(self.sliders):
+                self.sliders[name].setValue(values[i])
+            self.image.Change(gamma=values[0])
+            self.image.Change(max_brightness=values[1])
+            self.image.Change(min_brightness=values[2])
+            print("Setting to %s"%values)
+            self.updateConv()
+            if update_hist:
+                self.updateHist(self.image.hist)
+        else:
+            values = self.config.contrast[-1]
+            for i, name in enumerate(self.sliders):
+                self.sliders[name].setValue(values[i])
+            self.image.Change(gamma=values[0])
+            self.image.Change(max_brightness=values[1])
+            self.image.Change(min_brightness=values[2])
+            print("Setting to %s"%values)
+            self.updateConv()
+            if update_hist:
+                self.updateHist(self.image.hist)
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def LoadImageEvent(self, filename="", frame_number=0):
         if self.image.preview_rect is not None:
             self.updateHist(self.image.hist)
         if self.schedule_update:
-            self.sliders[0].setValue(self.config.contrast_gamma)
-            self.sliders[1].setValue(self.config.contrast_max)
-            self.sliders[2].setValue(self.config.contrast_min)
+            values = self.config.contrast[self.current_layer]
+            for i, name in enumerate(self.sliders):
+                self.sliders[name].setValue(values[i])
+            # self.sliders["Gamma"].setValue(self.config.contrast_gamma)
+            # self.sliders["Max"].setValue(self.config.contrast_max)
+            # self.sliders["Min"].setValue(self.config.contrast_min)
             self.schedule_update = False
 
     def mousePressEvent(self, event):
@@ -163,7 +220,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         pass
 
     def reset(self):
-        for slider in self.sliders:
+        for slider in self.sliders.values():
             slider.reset()
         self.image.ResetPreview()
         self.hist.setPath(QtGui.QPainterPath())
@@ -192,6 +249,11 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             self.config.contrast_interface_hidden = self.hidden
         self.setVisible(not self.hidden)
         self.button_brightness.setChecked(not self.hidden)
+
+    def LayerChangedEvent(self, layer):
+        self.current_layer = layer
+        self.setActiveLayer(layer)
+
 
     @staticmethod
     def file():

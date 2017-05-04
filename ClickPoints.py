@@ -452,7 +452,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
     # jump absolute
     def JumpToFrame(self, target_id, threaded=True):
-        # if no frame is loaded yet, do nothing
+        # if no frame is loaded yet, do nothingPageU
         if self.data_file.get_image_count() == 0:
             return
 
@@ -501,7 +501,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         # get image
         self.im = self.data_file.get_image_data()
-
+        print(self.im)
         # get offsets
         offset = self.data_file.get_offset()
 
@@ -587,6 +587,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         if event.key() == QtCore.Qt.Key_PageUp:
             # @key PageUp: show next upper layer
+            BroadCastEvent(self.modules, "LayerChangedEvent", self.layer)
             self.layer += 1
             #dirtydirtydirty
             self.data_file.buffer.reset()
@@ -597,6 +598,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         if event.key() == QtCore.Qt.Key_PageDown:
             # @key PageDown: show next lower layer
+            BroadCastEvent(self.modules, "LayerChangedEvent", self.layer)
             self.layer -= 1
             #dirtydirtydirty
             self.data_file.buffer.reset()
