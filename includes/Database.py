@@ -495,7 +495,7 @@ class DataFile(DataFileBase):
             self.signals.loaded.emit(index, layer, threaded)
 
     def get_image_data(self, index=None, layer=None):
-        if index is None or layer is None or index == self.current_image_index:
+        if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             # get the pixel data from the current image
             return self.buffer.get_frame(self.current_image_index)
         try:
@@ -508,7 +508,7 @@ class DataFile(DataFileBase):
             return buffer
         filename = os.path.join(image.path.path, image.filename)
         slots, slot_index, = self.buffer.prepare_slot(index)
-        self.buffer_frame(image, filename, slots, slot_index, index, signal=False)
+        self.buffer_frame(image, filename, slots, slot_index, index, layer, signal=False)
         return self.buffer.get_frame(index)
 
     def get_image(self, index=None, layer=None):

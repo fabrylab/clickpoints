@@ -333,6 +333,7 @@ class DataFile:
         if database_filename is None:
             raise TypeError("No database filename supplied.")
         self._database_filename = database_filename
+        print("path", self._database_filename)
 
         version = self._current_version
         new_database = True
@@ -1011,6 +1012,8 @@ class DataFile:
         self._AddOption(key="contrast_gamma", default=1.0, value_type="float", hidden=True)
         self._AddOption(key="contrast_max", default=255, value_type="float", hidden=True)
         self._AddOption(key="contrast_min", default=0, value_type="float", hidden=True)
+
+        self._AddOption(key="contrast", default={-1: [1.0, 255, 0]}, value_type="dict", hidden=True)
 
         self._last_category = "Marker"
         self._AddOption(key="types", default={0: ["marker", [255, 0, 0], self.TYPE_Normal]}, value_type="dict", hidden=True)
@@ -2653,7 +2656,7 @@ class DataFile:
         except peewee.DoesNotExist:
             return None
 
-    def getMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, text=None, id=None, layer=0):
+    def getMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, text=None, id=None, layer=None):
         """
         Get all :py:class:`Marker` entries with the given criteria.
 
