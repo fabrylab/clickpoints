@@ -1993,14 +1993,16 @@ class MarkerHandler:
                 return self.counter[index]
         raise NameError("A non existing type was referenced")
 
-    def ReloadMarker(self, frame=None):
+    def ReloadMarker(self, frame=None, layer=None):
         # called via SendCommand from external scripts or add-ons
         # get the frame
         if frame is None:
             frame = self.data_file.get_current_image()
-            image_id = self.data_file.image.id
+            # image_id = self.data_file.image.id
+            image_id = self.data_file.get_image(frame, 0).id
         else:
-            image_id = self.data_file.get_image(frame).id
+            image_id = self.data_file.get_image(frame, 0).id
+
         # Tracks
         marker_list = self.data_file.table_marker.select().where(self.data_file.table_marker.image == image_id)
         marker_list = {marker.track_id: marker for marker in marker_list}
@@ -2019,7 +2021,6 @@ class MarkerHandler:
     def LoadImageEvent(self, filename, framenumber):
         self.frame_number = framenumber
         image = self.data_file.image
-
         if len(self.tracks) == 0:
             self.LoadTracks()
         else:
@@ -2032,6 +2033,9 @@ class MarkerHandler:
     def LoadTracks(self):
         while len(self.tracks):
             self.tracks[0].delete(just_display=True)
+
+        frame = self.data_file.get_current_image()
+        # image_id = self.data_file.get_image(frame, 0).id
         track_list = (self.marker_file.table_track.select(self.marker_file.table_track, self.marker_file.table_markertype)
                           .where(self.marker_file.table_track.hidden == False)
                           .join(self.marker_file.table_markertype)
@@ -2040,7 +2044,7 @@ class MarkerHandler:
         for track in track_list:
             data = track.markers
             if data.count():
-                self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=self.frame_number))
+                self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=frame))
 
     def ReloadTrack(self, track):
         track_item = self.GetMarkerItem(track)
@@ -2052,10 +2056,12 @@ class MarkerHandler:
     def LoadPoints(self):
         while len(self.points):
             self.points[0].delete(just_display=True)
+        frame = self.data_file.get_current_image()
+        image_id = self.data_file.get_image(frame, 0).id
         marker_list = (
             self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_markertype)
                 .join(self.marker_file.table_markertype)
-                .where(self.marker_file.table_marker.image == self.data_file.image.id)
+                .where(self.marker_file.table_marker.image == image_id)
                 .where(self.marker_file.table_markertype.hidden == False)
         )
         for marker in marker_list:
@@ -2066,10 +2072,12 @@ class MarkerHandler:
     def LoadLines(self):
         while len(self.lines):
             self.lines[0].delete(just_display=True)
+        frame = self.data_file.get_current_image()
+        image_id = self.data_file.get_image(frame, 0).id
         line_list = (
             self.marker_file.table_line.select(self.marker_file.table_line, self.marker_file.table_markertype)
                 .join(self.marker_file.table_markertype)
-                .where(self.marker_file.table_line.image == self.data_file.image.id)
+                .where(self.marker_file.table_line.image == image_id)
                 .where(self.marker_file.table_markertype.hidden == False)
         )
         for line in line_list:
@@ -2078,10 +2086,12 @@ class MarkerHandler:
     def LoadRectangles(self):
         while len(self.rectangles):
             self.rectangles[0].delete(just_display=True)
+        frame = self.data_file.get_current_image()
+        image_id = self.data_file.get_image(frame, 0).id
         rect_list = (
             self.marker_file.table_rectangle.select(self.marker_file.table_rectangle, self.marker_file.table_markertype)
                 .join(self.marker_file.table_markertype)
-                .where(self.marker_file.table_rectangle.image == self.data_file.image.id)
+                .where(self.marker_file.table_rectangle.image == image_id)
                 .where(self.marker_file.table_markertype.hidden == False)
         )
         for rect in rect_list:

@@ -213,6 +213,18 @@ class Commands:
         """
         return self._send_and_receive("ReloadMask \n")
 
+    def CurrentImage(self):
+        """
+        Returns the current image.
+        """
+        string = self._send_and_receive("CurrentImage \n")
+        # print("Debug4 %s"%string)
+        return int(string)
+
+    def CurrentLayer(self):
+        string = self._send_and_receive("CurrentLayer \n")
+        return int(string)
+
     def ReloadMarker(self, frame=None):
         """
         Reloads the marker from the given frame in ClickPoints.
