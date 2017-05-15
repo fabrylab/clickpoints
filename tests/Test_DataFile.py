@@ -46,7 +46,7 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getDbVersion(self):
         """ Test if the getDbVersion function returns the version properly """
-        self.assertEqual(self.db.getDbVersion(), "16", "Database version is not returned correctly.")
+        self.assertEqual(self.db.getDbVersion(), "18", "Database version is not returned correctly.")
 
     ''' Test Path functions '''
     def test_setPath(self):
