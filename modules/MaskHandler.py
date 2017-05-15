@@ -63,7 +63,14 @@ class MaskFile:
 
     def get_mask(self):
         try:
-            return self.table_mask.get(self.table_mask.image == self.data_file.image.id)
+            # print('_____')
+            # print(self.data_file.image.id)
+            # print('_____')
+            # return self.table_mask.get(self.table_mask.image == self.data_file.image.id)
+            image = self.data_file.get_image(index=self.data_file.current_image_index, layer=0)
+            # print(image.id)
+            # print('_____')
+            return self.table_mask.get(self.table_mask.image == image)
         except peewee.DoesNotExist:
             return None
 
@@ -616,6 +623,7 @@ class MaskHandler:
 
     def ReloadMask(self):
         # load mask from mask database entry
+        print(self.mask_file.get_mask())
         self.LoadMask(self.mask_file.get_mask())
 
     def LoadMask(self, mask_entry):

@@ -310,6 +310,16 @@ class ScriptLauncher(QtCore.QObject):
         if cmd == "ReloadMask":
             BroadCastEvent(self.modules, "ReloadMask")
             socket.sendto(cmd.encode(), client_address)
+        if cmd == "CurrentLayer":
+            current_layer = self.window.layer
+            socket.sendto((cmd + " " + str(current_layer)).encode(), client_address)
+        if cmd == "CurrentImage":
+            # print("DEBUG1")
+            # print(self.window.layer)
+            current_im = self.data_file.get_current_image()
+            # print("DEBUG3 %s"%current_im)
+            # print((cmd + str(current_im)))
+            socket.sendto((cmd + " " + str(current_im)).encode(), client_address)
         if cmd == "ReloadMarker":
             frame = int(value)
             if frame == -1:

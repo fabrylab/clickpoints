@@ -217,6 +217,7 @@ class DataFile(DataFileBase):
         self.image = None
         self.reader = None
         self.current_image_index = None
+        self.current_layer = None
         self.timestamp = None
         self.next_sort_index = 0
         self.image_count = None
@@ -233,7 +234,7 @@ class DataFile(DataFileBase):
 
         # signals to notify others when a frame is loaded
         class DataFileSignals(QtCore.QObject):
-            loaded = QtCore.Signal(int, int)
+            loaded = QtCore.Signal(int, int, int)
         self.signals = DataFileSignals()
 
     def optionsChanged(self):
@@ -424,16 +425,16 @@ class DataFile(DataFileBase):
         # return the current image index
         return self.current_image_index
 
-    def load_frame(self, index, threaded):
+    def load_frame(self, index, threaded, layer=0):
         # check if frame is already buffered then we don't need to load it
         if self.buffer.get_frame(index) is not None:
-            self.signals.loaded.emit(index, threaded)
+            self.signals.loaded.emit(index, layer, threaded)
             return
         # if we are still loading a frame finish first
         if self.thread:
             self.thread.join()
         # query the information on the image to load
-        image = self.table_image.get(sort_index=index)
+        image = self.table_image.get(sort_index=index, layer=layer)
         filename = os.path.join(image.path.path, image.filename)
         # replace samba path for linux
         if platform.system() == 'Linux' and filename.startswith("\\\\"):
@@ -445,12 +446,12 @@ class DataFile(DataFileBase):
         slots, slot_index, = self.buffer.prepare_slot(index)
         # call buffer_frame in a separate thread or directly
         if threaded:
-            self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, True, threaded))
+            self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, layer, True, threaded))
             self.thread.start()
         else:
-            return self.buffer_frame(image, filename, slots, slot_index, index, threaded=threaded)
+            return self.buffer_frame(image, filename, slots, slot_index, index, layer=layer, threaded=threaded)
 
-    def buffer_frame(self, image, filename, slots, slot_index, index, signal=True, threaded=True):
+    def buffer_frame(self, image, filename, slots, slot_index, index, layer=0, signal=True, threaded=True):
         # if we have already a reader...
         if self.reader:
             # ... check if it is the right one, if not delete it
@@ -491,14 +492,14 @@ class DataFile(DataFileBase):
             slots[slot_index] = image_data
         # notify that the frame has been loaded
         if signal:
-            self.signals.loaded.emit(index, threaded)
+            self.signals.loaded.emit(index, layer, threaded)
 
-    def get_image_data(self, index=None):
-        if index is None or index == self.current_image_index:
+    def get_image_data(self, index=None, layer=None):
+        if index is None or layer is None or index == self.current_image_index:
             # get the pixel data from the current image
             return self.buffer.get_frame(self.current_image_index)
         try:
-            image = self.table_image.get(sort_index=index)
+            image = self.table_image.get(sort_index=index, layer=layer)
         except peewee.DoesNotExist:
             return None
 
@@ -510,21 +511,21 @@ class DataFile(DataFileBase):
         self.buffer_frame(image, filename, slots, slot_index, index, signal=False)
         return self.buffer.get_frame(index)
 
-    def get_image(self, index=None):
-        if index is None or index == self.current_image_index:
+    def get_image(self, index=None, layer=None):
+        if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             return self.image
-
         try:
-            image = self.table_image.get(sort_index=index)
+            image = self.table_image.get(sort_index=index, layer=layer)
         except peewee.DoesNotExist:
             return None
         return image
 
-    def set_image(self, index):
+    def set_image(self, index, layer=None):
         # the the current image number and retrieve its information from the database
-        self.image = self.table_image.get(sort_index=index)
+        self.image = self.table_image.get(sort_index=index, layer=layer)
         self.timestamp = self.image.timestamp
         self.current_image_index = index
+        self.current_layer = self.image.layer
 
     def get_offset(self, image=None):
         # if no image is specified, use the current one
