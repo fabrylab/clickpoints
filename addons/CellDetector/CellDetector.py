@@ -24,8 +24,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import eig, inv
 from skimage.measure import regionprops, label
+import clickpoints
 
-__icon__ = "fa.bullseye"
 
 def moveInDirection(startx, starty, dir, im, factor, maximum):
     cut = np.zeros(maximum)
@@ -381,37 +381,36 @@ def count(im):
     # plt.show()
 
 
-# connect to ClickPoints database
-# database filename is supplied as command line argument when started from ClickPoints
-import clickpoints
-start_frame, database, port = clickpoints.GetCommandLineArgs()
-db = clickpoints.DataFile(database)
-com = clickpoints.Commands(port, catch_terminate_signal=True)
+class Addon(clickpoints.Addon):
+    def __init__(self, *args, **kwargs):
+        clickpoints.Addon.__init__(self, *args, **kwargs)
 
-# Check if the marker type is present
-if not db.getMarkerType("cell_nucleus"):
-    marker_type = db.setMarkerType("cell_nucleus", [255, 0, 255], db.TYPE_Normal)
-    com.ReloadTypes()
-else:
-    marker_type = db.getMarkerType("cell_nucleus")
+        # Check if the marker type is present
+        if not self.db.getMarkerType("cell_nucleus"):
+            self.marker_type = self.db.setMarkerType("cell_nucleus", [255, 0, 255], self.db.TYPE_Normal)
+            self.cp.reloadTypes()
+        else:
+            self.marker_type = self.db.getMarkerType("cell_nucleus")
 
-# get images and mask_types
-images = db.getImages()
+    def run(self, start_frame=0):
+        # get images and mask_types
+        images = self.db.getImages()
 
-# iterate over all images
-for image in images:
-    print(image.filename)
-    data = image.data
-    if len(data.shape) == 3:
-        data = np.mean(image.data, axis=2)
-    p1 = count_old(data)
+        # iterate over all images
+        for image in images:
+            print(image.filename)
+            data = image.data
+            if len(data.shape) == 3:
+                data = np.mean(image.data, axis=2)
+            p1 = count_old(data)
 
-    db.table_marker.delete().where(db.table_marker.image == image.id).execute()
-    db.setMarkers(image=image.id, x=p1[:, 0], y=p1[:, 1], type=marker_type)
-    com.ReloadMarker(image.sort_index)
+            self.db.table_marker.delete().where(self.db.table_marker.image == image.id).execute()
+            self.db.setMarkers(image=image.id, x=p1[:, 0], y=p1[:, 1], type=self.marker_type)
+            self.cp.reloadMarker(image.sort_index)
 
-    # check if we should terminate
-    if com.HasTerminateSignal():
-        print("Cancelled Tracking")
-        sys.exit(0)
-print("done")
+            # check if we should terminate
+            if self.cp.hasTerminateSignal():
+                print("Cancelled cell detection")
+                return
+
+        print("done")
