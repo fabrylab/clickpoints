@@ -35,136 +35,206 @@ except ImportError:
     import socketserver as SocketServer  # python 3
     socketobject = socket.socket
 
-import imageio
-from includes import MemMap
-from Tools import BroadCastEvent
-import re
 import time
+import glob
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
+import importlib
 
-class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
-    def handle(self):
-        msg = self.request[0].decode()
-        self.server.signal.emit(msg, self.request[1], self.client_address)
 
-def isPortInUse(type,ip,port_nr):
-    connection_list = psutil.net_connections(kind=type)
-    ipport_list = [[c[3][0],c[3][1]] for c in connection_list]
+def wrap_run(run, script):
 
-    if [ip,port_nr] in ipport_list:
-        return True
-    else:
-        return False
+    def wrapper(*args, **kwargs):
+        script.run_started()
+        try:
+            run(*args, **kwargs)
+        finally:
+            script.run_stopped()
+
+    return wrapper
+
+
+class Script(QtCore.QObject):
+    process = None
+
+    active = False
+    is_running = False
+
+    button = None
+    run_thread = None
+
+    start_timer = QtCore.Signal()
+
+    def __init__(self, filename):
+        QtCore.QObject.__init__(self)
+        self.filename = filename
+        parser = ConfigParser.ConfigParser()
+        parser.read(filename)
+        self.name = parser.get("addon", "name", fallback=os.path.split(os.path.dirname(filename))[1])
+        try:
+            self.description = parser.get("addon", "description", fallback="")
+        except ConfigParser.NoOptionError:
+            self.description = ""
+        if self.description is "":
+            path = os.path.join(os.path.dirname(filename), "Desc.html")
+            with open(path) as fp:
+                self.description = fp.read()
+        self.icon = parser.get("addon", "icon", fallback="fa.code")
+        self.icon_name = self.icon
+        self.script = parser.get("addon", "file", fallback="Script.py")
+        self.script = os.path.join(os.path.dirname(filename), self.script)
+
+        if self.icon.startswith("fa."):
+            self.icon = qta.icon(self.icon)
+        else:
+            self.icon = QtGui.QIcon(self.icon)
+
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.checkProcessRunning)
+        self.start_timer.connect(self.startTimer)
+
+    def activate(self, script_launcher):
+        self.script_launcher = script_launcher
+        path = os.path.abspath(self.script)
+        name = os.path.splitext(os.path.basename(path))[0]
+        sys.path.insert(0, os.path.dirname(path))
+        try:
+            addon_module = importlib.import_module(name)
+        finally:
+            sys.path.pop(0)
+        if "Addon" not in dir(addon_module):
+            raise NameError("No addon module found in " + path)
+        self.process = addon_module.Addon(script_launcher.data_file._database_filename, script_launcher)
+        self.process.run = wrap_run(self.process.run, self)
+
+        self.active = True
+
+    def deactivate(self):
+        self.active = False
+        self.button = None
+
+    def run_started(self):
+        self.process.cp.stop = False
+        self.is_running = True
+        self.start_timer.emit()
+
+    def run_stopped(self):
+        self.is_running = False
+
+    def startTimer(self):
+        self.timer.start_time = time.time()
+        self.timer.duration = lambda: time.time() - self.timer.start_time
+        self.timer.start(10)
+
+    def checkProcessRunning(self):
+        if self.is_running:
+            spin_icon = qta.icon(self.icon_name, 'fa.hourglass-%d' % (int(self.timer.duration() * 2) % 3 + 1),
+                                 options=[{}, {'scale_factor': 0.9, 'offset': (0.3, 0.2), 'color': QtGui.QColor(128, 0, 0)}])
+            self.button.setIcon(spin_icon)
+            self.button.setChecked(True)
+            return
+        self.button.setIcon(self.icon)
+        self.button.setChecked(False)
+        self.timer.stop()
+
+    def run(self, start_frame):
+        if self.run_thread and self.run_thread.isAlive():
+            self.process.terminate()
+            self.run_thread.join(1)
+            self.run_thread = None
+        else:
+            self.run_thread = threading.Thread(target=self.process.run, args=(start_frame, ))
+            self.run_thread.daemon = True
+            self.run_thread.start()
+
 
 path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
 
-
-class ScriptEditor(QtWidgets.QWidget):
+class ScriptChooser(QtWidgets.QWidget):
     def __init__(self, script_launcher):
         QtWidgets.QWidget.__init__(self)
         self.script_launcher = script_launcher
 
         # Widget
-        self.setMinimumWidth(500)
-        self.setMinimumHeight(200)
-        self.setWindowTitle("Script Selector - ClickPoints")
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.setMinimumWidth(700)
+        self.setMinimumHeight(400)
+        self.setWindowTitle("Script Chooser - ClickPoints")
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout_main.addLayout(self.layout)
+        self.layout2 = QtWidgets.QVBoxLayout()
+        self.layout_main.addLayout(self.layout2)
 
         self.setWindowIcon(qta.icon("fa.code"))
 
         """ """
-        self.list = QtWidgets.QListWidget(self)
-        self.layout.addWidget(self.list)
-        self.list.itemSelectionChanged.connect(self.list_selected)
+        #self.list = QtWidgets.QListWidget(self)
+        #self.layout.addWidget(self.list)
+        #self.list.itemSelectionChanged.connect(self.list_selected)
 
-        group_box = QtWidgets.QGroupBox("Add Folder")
-        self.group_box = group_box
-        self.layout.addWidget(group_box)
-        layout = QtWidgets.QVBoxLayout()
-        group_box.setLayout(layout)
-        """ """
+        self.list2 = QtWidgets.QListWidget(self)
+        self.layout.addWidget(self.list2)
+        self.list2.itemSelectionChanged.connect(self.list_selected2)
 
-        horizontal_layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(horizontal_layout)
+        self.nameDisplay = QtWidgets.QLabel(self)
+        self.nameDisplay.setStyleSheet("font-weight: bold;")
+        self.layout2.addWidget(self.nameDisplay)
 
-        horizontal_layout.addWidget(QtWidgets.QLabel("Folder:"))
+        self.imageDisplay = QtWidgets.QLabel(self)
+        self.layout2.addWidget(self.imageDisplay)
 
-        self.text_input = QtWidgets.QLineEdit(self)
-        self.text_input.setDisabled(True)
-        horizontal_layout.addWidget(self.text_input)
+        self.textDisplay = QtWidgets.QTextEdit(self)
+        self.textDisplay.setReadOnly(True)
+        self.layout2.addWidget(self.textDisplay)
 
-        self.pushbutton_file = QtWidgets.QPushButton('Select F&ile', self)
-        self.pushbutton_file.pressed.connect(self.select_file)
-        horizontal_layout.addWidget(self.pushbutton_file)
+        self.layout_buttons = QtWidgets.QHBoxLayout()
+        self.layout2.addLayout(self.layout_buttons)
+        self.layout_buttons.addStretch()
 
-        self.pushbutton_delete = QtWidgets.QPushButton('Remove', self)
-        self.pushbutton_delete.pressed.connect(self.remove_folder)
-        horizontal_layout.addWidget(self.pushbutton_delete)
+        self.button_removeAdd = QtWidgets.QPushButton("Remove")
+        self.button_removeAdd.clicked.connect(self.add_script)
+        self.layout_buttons.addWidget(self.button_removeAdd)
 
-        """ """
+        self.selected_script = None
 
-        horizontal_layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(horizontal_layout)
+        self.update_folder_list2()
 
-        horizontal_layout.addStretch()
-
-        self.pushbutton_Confirm = QtWidgets.QPushButton('O&k', self)
-        self.pushbutton_Confirm.pressed.connect(self.close)
-        horizontal_layout.addWidget(self.pushbutton_Confirm)
-
-        self.update_folder_list()
-        self.list.setCurrentRow(self.list.count()-1)
-
-    def list_selected(self):
-        selections = self.list.selectedItems()
-        if len(selections) == 0 or self.list.currentRow() == self.list.count()-1:
-            self.text_input.setText("")
-            self.group_box.setTitle("Add Script")
-            self.pushbutton_file.setHidden(False)
-            self.pushbutton_delete.setHidden(True)
+    def list_selected2(self):
+        selections = self.list2.selectedItems()
+        if len(selections) == 0:
+            self.button_removeAdd.setDisabled(True)
+            self.selected_script = None
+            return
+        script = selections[0].entry
+        self.selected_script = script
+        self.nameDisplay.setText(script.name)
+        self.textDisplay.setHtml(script.description)
+        if script.active:
+            self.button_removeAdd.setText("Remove")
+            self.button_removeAdd.setDisabled(False)
         else:
-            self.text_input.setText(selections[0].text().rsplit("  ", 1)[0])
-            self.group_box.setTitle("Script")
-            self.pushbutton_file.setHidden(True)
-            self.pushbutton_delete.setHidden(False)
+            self.button_removeAdd.setText("Add")
+            self.button_removeAdd.setDisabled(False)
+        return
 
-    def update_folder_list(self):
-        self.list.clear()
+    def update_folder_list2(self):
+        self.list2.clear()
         for index, script in enumerate(self.script_launcher.scripts):
-            item = QtWidgets.QListWidgetItem(qta.icon("fa.code"), "%s  (F%d)" % (script, 12-index), self.list)
-            item.path_entry = script
-        QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add script", self.list)
+            text = script.name
+            if script.active:
+                text += " (active)"
+            item = QtWidgets.QListWidgetItem(script.icon, text, self.list2)
+            item.entry = script
+
+    def add_script(self):
+        if self.selected_script.active:
+            self.script_launcher.deactivateScript(self.selected_script)
+        else:
+            self.script_launcher.activateScript(self.selected_script)
+        self.update_folder_list2()
         self.script_launcher.updateScripts()
-
-    def select_file(self):
-        # ask for a file name
-        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Select File", self.script_launcher.script_path)
-        # if we got one, set it
-        if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
-            print(new_path, self.script_launcher.script_path)
-            try:
-                new_path1 = os.path.relpath(new_path, self.script_launcher.script_path)
-            except:
-                new_path1 = None
-            try:
-                new_path2 = os.path.relpath(new_path, os.getcwd())
-            except ValueError:
-                new_path2 = new_path
-            if new_path1 is None or len(new_path1) > len(new_path2):
-                new_path = new_path2
-            else:
-                new_path = new_path1
-            self.script_launcher.scripts.append(new_path)
-            self.text_input.setText(new_path)
-            self.update_folder_list()
-
-    def remove_folder(self):
-        path = self.list.selectedItems()[0].path_entry
-        self.script_launcher.scripts.remove(path)
-        self.update_folder_list()
 
     def keyPressEvent(self, event):
         # close the window with esc
@@ -181,32 +251,14 @@ class ScriptLauncher(QtCore.QObject):
     config = None
 
     scripts = None
+    active_scripts = None
 
     def __init__(self, window, modules):
         QtCore.QObject.__init__(self)
         self.window = window
         self.modules = modules
 
-        self.HOST, self.PORT = "localhost", 55005
-        # Try to connect the server at the next free port
-        while True:
-            try:
-                server = SocketServer.ThreadingUDPServer((self.HOST, self.PORT), ThreadedUDPRequestHandler)
-                # check private boradcast port as self.PORT +1
-                if isPortInUse('udp','127.0.0.1',self.PORT +1):
-                    raise socket.error
-            except socket.error:
-                self.PORT += 2
-            else:
-                break
-
-        server.signal = self.signal
-        server.signal.connect(self.Command)
-        server_thread = threading.Thread(target=server.serve_forever)
-        server_thread.daemon = True
-        server_thread.start()
-
-        process_dict = { 'process':None, 'command_port':None, 'broadcast_port':None}
+        process_dict = {'process': None, 'command_port': None, 'broadcast_port': None}
 
         self.running_processes = [process_dict] * 10
         self.memmap = None
@@ -226,14 +278,18 @@ class ScriptLauncher(QtCore.QObject):
 
         self.script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "addons"))
 
-        #self.running_processes = [None]*len(self.config.launch_scripts)
-
         self.closeDataFile()
+
+    def loadScripts(self):
+        script_path = os.path.join(os.path.dirname(__file__), "..", "addons")
+        scripts = glob.glob(os.path.join(script_path, "*", '*.txt'))
+        return [Script(filename) for filename in scripts]
 
     def closeDataFile(self):
         self.data_file = None
         self.config = None
-        self.scripts = []
+        self.scripts = self.loadScripts()
+        self.active_scripts = []
         self.updateScripts()
         if self.scriptSelector:
             self.scriptSelector.close()
@@ -241,181 +297,70 @@ class ScriptLauncher(QtCore.QObject):
     def updateDataFile(self, data_file, new_database):
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
+        self.scripts = self.loadScripts()
 
-        self.scripts = self.data_file.getOption("scripts")[:]
+        for script in self.data_file.getOption("scripts"):
+            self.activateScript(script)
 
         self.updateScripts()
 
+    def activateScript(self, script):
+        script = self.getScriptByFilename(script)
+        if script is not None:
+            self.active_scripts.append(script)
+            script.activate(self)
+
+    def deactivateScript(self, script):
+        script = self.getScriptByFilename(script)
+        if script is not None:
+            self.active_scripts.remove(script)
+            script.deactivate()
+
+    def getScriptByFilename(self, filename):
+        if isinstance(filename, Script):
+            return filename
+        filename = os.path.normpath(filename)
+        if self.scripts:
+            filenames = [os.path.normpath(s.filename) for s in self.scripts]
+            if filename in filenames:
+                return self.scripts[filenames.index(filename)]
+        try:
+            return Script(filename)
+        except FileNotFoundError:
+            return None
+
     def updateScripts(self):
         if self.data_file is not None:
-            self.data_file.setOption("scripts", self.scripts)
+            self.data_file.setOption("scripts", [os.path.normpath(s.filename) for s in self.active_scripts])
         for button in self.script_buttons:
             self.button_group_layout.removeWidget(button)
+            button.setParent(None)
+            del button
         self.script_buttons = []
-        for index, script in enumerate(self.scripts):
+        for index, script in enumerate(self.active_scripts):
             button = QtWidgets.QPushButton()
             button.setCheckable(True)
-            button.icon_name = "fa.bar-chart"
-            if os.path.exists(script):
-                script_path = os.path.join(os.getcwd(), script)
-            # or relative to the clickpoints path
-            elif os.path.exists(os.path.join(path_addons, script)):
-                script_path = os.path.join(path_addons, script)
-            else:
-                continue
-            with open(script_path) as fp:
-                for line in fp:
-                    line = line.strip()
-                    if line.startswith("__icon__"):
-                        match = re.match(r"__[^_]*__\s*=\s*\"(.*)\"\s*$", line)
-                        if match:
-                            button.icon_name = match.groups()[0]
-                        break
-            button.setIcon(qta.icon(button.icon_name))
-            button.setToolTip(script)
+            button.setIcon(script.icon)
+            button.setToolTip(script.name)
             button.clicked.connect(lambda x, i=index: self.launch(i))
             self.button_group_layout.addWidget(button)
             self.script_buttons.append(button)
+            script.button = button
 
-    def CheckProcessRunning(self, timer, process, button):
-        if process.pid in psutil.pids() and process.poll() is None:
-            spin_icon = qta.icon(button.icon_name, 'fa.hourglass-%d' % (int(timer.duration()*2) % 3 +1), options=[{},
-                                                                            {'scale_factor': 0.9, 'offset': (0.3, 0.2),
-                                                                             'color': QtGui.QColor(128, 0, 0)}])
-            button.setIcon(spin_icon)
-            button.setChecked(True)
-            return
-        button.setIcon(qta.icon(button.icon_name))
-        button.setChecked(False)
-        timer.stop()
+    def receiveBroadCastEvent(self, function, *args, **kwargs):
+        for script in self.scripts:
+            if function in dir(script.process):
+                eval("script.process." + function + "(*args, **kwargs)")
 
     def showScriptSelector(self):
-        self.scriptSelector = ScriptEditor(self)
+        self.scriptSelector = ScriptChooser(self)
         self.scriptSelector.show()
 
-    def Command(self, command, socket, client_address):
-        cmd, value = str(command).split(" ", 1)
-        if cmd == "JumpFrames":
-            self.window.JumpFrames(int(value))
-        if cmd == "log":
-            self.window.log(value[:-1], end="")
-        if cmd == "JumpToFrame":
-            self.window.JumpToFrame(int(value))
-        if cmd == "JumpFramesWait":
-            self.window.JumpFrames(int(value))
-            socket.sendto(cmd.encode(), client_address)
-        if cmd == "JumpToFrameWait":
-            self.window.JumpToFrame(int(value))
-            socket.sendto(cmd.encode(), client_address)
-        if cmd == "ReloadMask":
-            BroadCastEvent(self.modules, "ReloadMask")
-            socket.sendto(cmd.encode(), client_address)
-        if cmd == "ReloadMarker":
-            frame = int(value)
-            if frame == -1:
-                frame = self.data_file.get_current_image()
-            BroadCastEvent(self.modules, "ReloadMarker", frame)
-            socket.sendto(cmd.encode(), client_address)
-        if cmd == "ReloadTypes":
-            BroadCastEvent(self.modules, "UpdateCounter")
-            socket.sendto(cmd.encode(), client_address)
-        if cmd == "GetImage":
-            image = self.window.data_file.get_image_data(int(value))
-            if image is None:
-                socket.sendto(cmd.encode(), client_address)
-                return
-            image_id = self.window.data_file.get_image(int(value)).id
-
-            shape = image.shape
-            if len(shape) == 2:
-                shape = (shape[0], shape[1], 1)
-
-            size = shape[0]*shape[1]*shape[2]
-            clickpoints_storage_path = self.window.storage_path
-            if self.memmap is None or size > self.memmap_size:
-                self.memmap_path = os.path.normpath(os.path.join(clickpoints_storage_path, "image.dat"))
-                self.memmap_path_xml = os.path.normpath(os.path.join(clickpoints_storage_path, "image.xml"))
-                layout = (
-                    dict(name="shape", type="uint32", shape=(3,)),
-                    dict(name="type", type="|S30"),
-                    dict(name="data", type=str(image.dtype), shape=(shape[0]*shape[1]*shape[2],)),
-                )
-
-                self.memmap = MemMap(self.memmap_path, layout)
-                self.memmap.saveXML(self.memmap_path_xml)
-                self.memmap_size = size
-
-            self.memmap.shape[:] = shape
-            self.memmap.type = str(image.dtype)
-            self.memmap.data[:size] = image.flatten()
-            socket.sendto((cmd + " " + self.memmap_path_xml + " " + str(image_id)).encode(), client_address)
-        if cmd == "updateHUD":
-            try:
-                self.window.GetModule('InfoHud').updateHUD(value)
-            except ValueError:
-                print('Module InfoHud not available')
-
-    def LoadImageEvent(self, filename, framenumber):
-        # broadcast event to all running processes
-        for p in self.running_processes:
-            if not p['process'] == None:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                msg = "LoadImageEvent %s %d" % (filename,framenumber)
-                sock.sendto(msg.encode(), ('127.0.0.1', p['broadcast_port']))
-                sock.close()
-
-    def PreLoadImageEvent(self, filename, framenumber):
-        # broadcast event to all running processes
-        for p in self.running_processes:
-            if not p['process'] == None:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                msg = "PreLoadImageEvent %s %d" % (filename,framenumber)
-                sock.sendto(msg.encode(), ('127.0.0.1', p['broadcast_port']))
-                sock.close()
-
     def launch(self, index):
-        script = self.scripts[index]
-        process = self.running_processes[index]['process']
-        if process is not None and process.pid in psutil.pids() and process.poll() is None:
-            if hasattr(os.sys, 'winver'):
-                os.kill(process.pid, signal.CTRL_BREAK_EVENT)
-            else:
-                process.send_signal(signal.SIGTERM)
-            return
         self.window.Save()
-        script_path = None
-        # search script relative to the config file
-        #print(os.path.join(self.config.path_config, script))
-        #print(os.path.join(self.config.path_clickpoints, "addons", script))
-        #if os.path.exists(os.path.join(self.config.path_config, script)):
-        #    script_path = os.path.join(self.config.path_config, script)
-        if os.path.exists(script):
-            script_path = os.path.join(os.getcwd(), script)
-        # or relative to the clickpoints path
-        elif os.path.exists(os.path.join(path_addons, script)):
-            script_path = os.path.join(path_addons, script)
-        # print an error message if no file was found
-        if script_path is None:
-            print("ERROR: script %s not found." % script)
-            return
-        args = [sys.executable, os.path.abspath(script_path), "--start_frame", str(self.data_file.get_current_image()),
-                "--port", str(self.PORT), "--database", str(self.data_file._database_filename)]
-        print('arags:', args)
-        if hasattr(os.sys, 'winver'):
-            process = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
-        else:
-            process = subprocess.Popen(args)
-        self.running_processes[index]['process'] = process
-        self.running_processes[index]['command_port'] = self.PORT
-        self.running_processes[index]['broadcast_port'] = self.PORT + 1
-        print("Process", process)
-        self.window.log("Start add-on", script)
-        timer = QtCore.QTimer()
-        timer.timeout.connect(lambda: self.CheckProcessRunning(timer, process, self.script_buttons[index]))
-        timer.start_time = time.time()
-        timer.duration = lambda: time.time()-timer.start_time
-        timer.start(10)
-        self.script_buttons[index].timer = timer
+        script = self.active_scripts[index]
+        script.run(self.data_file.get_current_image())
+        print("Launch", index)
 
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
