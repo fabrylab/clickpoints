@@ -75,6 +75,8 @@ def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", fil
     lineEdit.setEnabled(False)
     def OpenDialog():
         srcpath = str(QtWidgets.QFileDialog.getSaveFileName(None, dialog_title, os.getcwd(), file_type))
+        if srcpath.startswith("(u'"):
+            srcpath = srcpath.split(",")[0][3:-1]
         if filename_checker and srcpath:
             srcpath = filename_checker(srcpath)
         if srcpath:
