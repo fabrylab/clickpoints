@@ -2590,7 +2590,7 @@ class DataFile:
 
         return mask
 
-    def deleteMasks(self, image=None, frame=None, filename=None, id=None, layer=0):
+    def deleteMasks(self, image=None, frame=None, filename=None, id=None, layer=None):
         """
         Delete all :py:class:`Mask` entries with the given criteria.
 
@@ -2613,7 +2613,7 @@ class DataFile:
         assert sum(e is not None for e in [image, frame, filename]) <= 1, \
             "Exactly one of images, frames or filenames should be specified"
 
-        if any(layer!=0):
+        if layer is not None:
             assert frame is not None, \
                 "Frame should be specified, if layer is given."
 
