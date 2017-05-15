@@ -2041,7 +2041,11 @@ class DataFile:
         """
         type = self._processesTypeNameField(type)
 
-        item = self.table_track.insert(id=id, type=type, style=style, text=text, hidden=hidden).upsert().execute()
+        # gather all the parameters that are not none
+        parameters = locals()
+        parameters = {key: parameters[key] for key in ["id", "type", "style", "text", "hidden"] if parameters[key] is not None}
+        # insert and item with the given parameters
+        item = self.table_track.insert(**parameters).upsert().execute()
         item = self.table_track.get(id=item)
 
         return item
