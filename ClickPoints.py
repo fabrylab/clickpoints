@@ -608,6 +608,14 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if self.data_file is None:
             return
 
+        # @key ---- Zoom ----
+        if event.key() == QtCore.Qt.Key_Plus and event.modifiers() & Qt.ControlModifier:
+            # @key Cntrl+'+' or MouseWheel: zoom in
+            self.view.scaleOrigin(1.1, QtCore.QPoint(self.view.width()/2, self.view.height()/2))
+        if event.key() == QtCore.Qt.Key_Minus and event.modifiers() & Qt.ControlModifier:
+            # @key Ctrl+'-' or MouseWheel: zoom out
+            self.view.scaleOrigin(0.9, QtCore.QPoint(self.view.width()/2, self.view.height()/2))
+
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:
             # @key Left: previous image
