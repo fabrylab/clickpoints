@@ -31,6 +31,7 @@ from qtpy import QtGui, QtCore, QtWidgets
 import qtawesome as qta
 from QtShortCuts import AddQLabel, AddQSpinBox, AddQCheckBox, AddQHLine, AddQLineEdit, AddQComboBox
 from includes import BroadCastEvent
+from includes import LoadConfig
 
 
 def PrittyPrintSize(bytes):
@@ -50,7 +51,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
         self.data_file = data_file
 
         # Widget
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(450)
         self.setMinimumHeight(200)
         self.setWindowTitle("Options - ClickPoints")
 
@@ -66,6 +67,9 @@ class OptionEditorWindow(QtWidgets.QWidget):
         self.button_export = QtWidgets.QPushButton("Export")
         self.button_export.clicked.connect(self.Export)
         layout.addWidget(self.button_export)
+        self.button_import = QtWidgets.QPushButton("Import")
+        self.button_import.clicked.connect(self.Import)
+        layout.addWidget(self.button_import)
         layout.addStretch()
         self.button_ok = QtWidgets.QPushButton("Ok")
         self.button_ok.clicked.connect(self.Ok)
@@ -153,11 +157,60 @@ class OptionEditorWindow(QtWidgets.QWidget):
         self.edits_by_name["buffer_size"].setDisabled(options.buffer_mode != 1)
         self.edits_by_name["buffer_memory"].setDisabled(options.buffer_mode != 2)
 
+    def updateEditField(self, edit, value, option):
+        print(option.value_type, value, edit)
+        if option.value_type == "int":
+            if option.value_count > 1:
+                edit.setText(", ".join(str(v) for v in value))
+            else:
+                edit.setValue(value)
+        if option.value_type == "choice":
+            edit.setCurrentIndex(option.values.index(value))
+        if option.value_type == "float":
+            edit.setValue(value)
+        if option.value_type == "bool":
+            edit.setChecked(value)
+        if option.value_type == "string":
+            edit.setText(value)
+        edit.current_value = value
+
     def list_selected(self):
         pass
 
+    def Import(self):
+        config_path = QtWidgets.QFileDialog.getOpenFileName(self, "Import config - ClickPoints",
+                                                            os.path.join(os.getcwd(), "ConfigClickPoints.txt"),
+                                                            "ClickPoints Config *.txt")
+        if isinstance(config_path, tuple):
+            config_path = config_path[0]
+        else:
+            config_path = str(config_path)
+        if not config_path or not os.path.exists(config_path):
+            return
+        config = LoadConfig(config_path, just_load=True)
+        for key in config:
+            if key in self.edits_by_name:
+                edit = self.edits_by_name[key]
+                # check the new value
+                self.Changed(edit, config[key], self.data_file._options_by_key[key])
+                # fill in the edit field
+                self.updateEditField(edit, edit.current_value, self.data_file._options_by_key[key])
+                # set the option in the database
+                self.data_file.setOption(edit.option.key, edit.current_value)
+            else:
+                # if we don't have a field, set it directly
+                try:
+                    self.data_file.setOption(key, config[key])
+                except KeyError:
+                    # not a valid option
+                    pass
+        # notify everyone that the options have changed
+        self.data_file.optionsChanged()
+        BroadCastEvent(self.window.modules, "optionsChanged")
+        self.window.JumpFrames(0)
+
     def Export(self):
-        export_path = QtWidgets.QFileDialog.getSaveFileName(self.window, "Export config - ClickPoints", os.path.join(os.getcwd(), "ConfigClickPoints.txt"), "ClickPoints Config *.txt")
+        export_path = QtWidgets.QFileDialog.getSaveFileName(self, "Export config - ClickPoints", os.path.join(os.getcwd(), "ConfigClickPoints.txt"), "ClickPoints Config *.txt")
         if isinstance(export_path, tuple):
             export_path = export_path[0]
         else:

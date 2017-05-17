@@ -815,6 +815,15 @@ class MaskHandler:
         # don't accept the event, so that others can accept it
         return False
 
+    def optionsChanged(self):
+        for type_id, type_def in enumerate(self.config.draw_types):
+            if len(type_def) >= 3:
+                name = type_def[2]
+            else:
+                name = "Color%d" % type_id
+            self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
+        self.UpdateButtons()
+
     def keyPressEvent(self, event):
         numberkey = event.key() - 49
         # @key ---- Painting ----
