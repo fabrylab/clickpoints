@@ -200,6 +200,7 @@ class FolderEditor(QtWidgets.QWidget):
             self.text_input.setText(new_path)
 
     def add_folder(self):
+        self.data_file.resortSortIndex()
         selected_path = str(self.text_input.text())
         if selected_path == "":
             return
