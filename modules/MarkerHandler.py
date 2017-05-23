@@ -130,13 +130,22 @@ class MarkerFile:
     def get_track_points(self, track):
         return self.table_marker.select().where(self.table_marker.track == track)
 
-    def get_marker_frames(self):
-        # query all sort_indices which have a marker, rectangle or line entry
+    def get_marker_frames1(self):
+        # query all sort_indices which have a marker entry
         return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
-                                          .join(self.table_marker, "LEFT JOIN").switch(self.data_file.table_image)
-                                          .join(self.table_rectangle, "LEFT JOIN").switch(self.data_file.table_image)
-                                          .join(self.table_line, "LEFT JOIN")
-                                          .where( self.table_marker.id.is_null(False) | self.table_line.id.is_null(False) | self.table_rectangle.id.is_null(False) )
+                                          .join(self.table_marker)
+                                          .group_by(self.data_file.table_image.id))
+
+    def get_marker_frames2(self):
+        # query all sort_indices which have a rectangle entry
+        return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
+                                          .join(self.table_rectangle)
+                                          .group_by(self.data_file.table_image.id))
+
+    def get_marker_frames3(self):
+        # query all sort_indices which have a line entry
+        return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
+                                          .join(self.table_line)
                                           .group_by(self.data_file.table_image.id))
 
 
