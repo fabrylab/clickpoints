@@ -1874,6 +1874,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
 class MarkerHandler:
     points = None
     tracks = None
+    tracks_loaded = False
     lines = None
     rectangles = None
     display_lists = None
@@ -1952,6 +1953,7 @@ class MarkerHandler:
         self.config = data_file.getOptionAccess()
 
         self.marker_file = MarkerFile(data_file)
+        self.tracks_loaded = False
 
         # if a new database is created fill it with markers from the config
         if new_database:
@@ -2070,7 +2072,7 @@ class MarkerHandler:
         self.frame_number = framenumber
         image = self.data_file.image
 
-        if len(self.tracks) == 0:
+        if not self.tracks_loaded:
             self.LoadTracks()
         else:
             for track in self.tracks:
@@ -2103,6 +2105,7 @@ class MarkerHandler:
         for track in tracks:
             track = tracks[track]
             self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=self.frame_number))
+        self.tracks_loaded = True
 
     def ReloadTrack(self, track):
         track_item = self.GetMarkerItem(track)
