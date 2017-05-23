@@ -81,6 +81,29 @@ TYPE_Line = 2
 TYPE_Track = 4
 
 
+def addShapeNone(path, x, y, size):
+    pass
+
+def addShapeCircle(path, x, y, size):
+    path.addEllipse(x - .5 * size, y - .5 * size, size, size)
+    path.moveTo(x, y)
+
+def addShapeRect(path, x, y, size):
+    path.addRect(x - .5 * size, y - .5 * size, size, size)
+    path.moveTo(x, y)
+
+def connectTrackFirst(path_line, path_gap, x, y):
+    path_line.moveTo(x, y)
+    path_gap.moveTo(x, y)
+
+def connectTrackLine(path_line, path_gap, x, y):
+    path_line.lineTo(x, y)
+    path_gap.moveTo(x, y)
+
+def connectTrackGap(path_line, path_gap, x, y):
+    path_line.moveTo(x, y)
+    path_gap.lineTo(x, y)
+
 class MarkerFile:
     def __init__(self, datafile):
         self.data_file = datafile
@@ -1479,35 +1502,51 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.marker_handler.marker_edit_window.setMarker(self.marker)
 
     def updateDisplay(self):
+        # start with empty paths
         path_line = QtGui.QPainterPath()
         path_gap = QtGui.QPainterPath()
+
+        # get shape of track markers
         circle_width = self.scale_value * 10 * self.style.get("track-point-scale", 1)
-        last_frame = None
         shape = self.style.get("track-point-shape", "circle")
-        for frame in self.data.marker_list:
-            if self.marker_handler.data_file.getOption("tracking_show_trailing") != -1 and frame < self.current_frame - self.marker_handler.data_file.getOption("tracking_show_trailing"):
+        shape_funciton = lambda x, y: addShapeNone(path_line, x, y, circle_width)
+        if shape == "circle":
+            shape_funciton = lambda x, y: addShapeCircle(path_line, x, y, circle_width)
+        elif shape == "rect":
+            shape_funciton = lambda x, y: addShapeRect(path_line, x, y, circle_width)
+
+        # get start frame
+        if self.marker_handler.data_file.getOption("tracking_show_trailing") == -1:
+            start = self.min_frame
+        else:
+            start = max([self.min_frame, self.current_frame - self.marker_handler.data_file.getOption("tracking_show_trailing")])
+        # get end frame
+        if self.marker_handler.data_file.getOption("tracking_show_leading") == -1:
+            end = self.max_frame
+        else:
+            end = min([self.max_frame, self.current_frame + self.marker_handler.data_file.getOption("tracking_show_leading")])
+
+        # set first connect (moveTo for path_line and path_gap)
+        connect_function = connectTrackFirst
+        # iterate over range
+        for frame in range(start, end+1):
+            # with the track doesn't have marker at this frame, ignore the frame
+            if frame not in self.data.marker_list:
+                # next connect is a gap connect (moveTo for path_line and lineTo for path_gap)
+                connect_function = connectTrackGap
                 continue
-            if self.marker_handler.data_file.getOption("tracking_show_leading") != -1 and frame > self.current_frame + self.marker_handler.data_file.getOption("tracking_show_leading"):
-                break
+            # get the next point
             x, y = np.array([self.data.marker_list[frame]["x"], self.data.marker_list[frame]["y"]]) + self.getOffsetForFrame(frame) - self.current_offset
-            if last_frame == frame - 1:
-                path_line.lineTo(x, y)
-                path_gap.moveTo(x, y)
-            else:
-                path_line.moveTo(x, y)
-                if last_frame is not None:
-                    path_gap.lineTo(x, y)
-                else:
-                    path_gap.moveTo(x, y)
-            last_frame = frame
-            if shape == "circle":
-                path_line.addEllipse(x - .5 * circle_width, y - .5 * circle_width, circle_width,
-                                circle_width)
-            if shape == "rect":
-                path_line.addRect(x - .5 * circle_width, y - .5 * circle_width, circle_width, circle_width)
-            path_line.moveTo(x, y)
+            # connect path_line and path_gap according to the current function
+            connect_function(path_line, path_gap, x, y)
+            # next connect is a gap connect (lineTo for path_line and moveTo for path_gap)
+            connect_function = connectTrackLine
+            # add the track point shape
+            shape_funciton(x, y)
+        # set the line and gap path
         self.path2.setPath(path_gap)
         self.setPath(path_line)
+        # move the grapper
         if self.marker is not None:
             self.g1.setPos(self.marker["x"], self.marker["y"])
 
