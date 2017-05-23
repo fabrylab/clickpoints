@@ -1448,7 +1448,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                                                                      type=self.data.type,
                                                                      track=self.data, text=None)
             marker.save()
-            self.marker = dict(id=marker.id, type=marker.type, track=marker.track, image=image)
+            self.marker = dict(id=marker.id, type=marker.type, track=marker.track, image=image, text=None)
             self.marker_pos = None
             self.data.marker_list[self.current_frame] = self.marker
             self.min_frame = min(self.data.marker_list.keys())
