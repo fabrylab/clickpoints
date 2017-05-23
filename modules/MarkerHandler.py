@@ -137,7 +137,7 @@ class MarkerFile:
                                           .join(self.table_rectangle, "LEFT JOIN").switch(self.data_file.table_image)
                                           .join(self.table_line, "LEFT JOIN")
                                           .where( self.table_marker.id.is_null(False) | self.table_line.id.is_null(False) | self.table_rectangle.id.is_null(False) )
-                                          .group_by(self.data_file.table_image.sort_index))
+                                          .group_by(self.data_file.table_image.id))
 
 
 def ReadTypeDict(string):
@@ -1957,12 +1957,29 @@ class MarkerHandler:
             self.SetActiveMarkerType(self.config.selected_marker_type)
 
         # place tick marks for already present markers
-        # but lets take care that there are markers ...
+        # frames from markers
         try:
-            frames = np.array(self.marker_file.get_marker_frames().tuples())[:, 0]
-            BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
+
+            frames1 = np.array(self.marker_file.get_marker_frames1().tuples())[:, 0]
         except IndexError:
+            frames1 = []
+        # frames for rectangles
+        try:
+            frames2 = np.array(self.marker_file.get_marker_frames2().tuples())[:, 0]
+        except IndexError:
+            frames2 = []
             pass
+        # frames for lines
+        try:
+            frames3 = np.array(self.marker_file.get_marker_frames3().tuples())[:, 0]
+        except IndexError:
+            frames3 = []
+            pass
+        # join sets
+        frames = set(frames1) | set(frames2) | set(frames3)
+        # if we have marker, set ticks accordingly
+        if len(frames):
+            BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
 
     def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1):
         for list in self.display_lists:

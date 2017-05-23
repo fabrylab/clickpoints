@@ -71,7 +71,7 @@ class MaskFile:
         # query all sort_indices which have a mask
         return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
                 .join(self.table_mask)
-                .group_by(self.data_file.table_image.sort_index))
+                .group_by(self.data_file.table_image.id))
 
     def get_mask_path(self):
         if self.mask_path:
