@@ -22,6 +22,7 @@
 from __future__ import division, print_function
 import re
 import peewee
+import sqlite3
 
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
@@ -89,6 +90,10 @@ class MarkerFile:
         self.table_track = self.data_file.table_track
         self.table_line = self.data_file.table_line
         self.table_rectangle = self.data_file.table_rectangle
+
+        self.table_image = self.data_file.table_image
+        self.table_offset = self.data_file.table_offset
+        self.db = self.data_file.db
 
     def set_track(self, type):
         track = self.table_track(uid=uuid.uuid4().hex, type=type)
@@ -1007,8 +1012,8 @@ class MyDisplayItem:
     def GetText(self):
         # check for track marker text entry (only applicable for tracks)
         if isinstance(self.data, self.marker_handler.data_file.table_track) and \
-                        self.marker is not None and self.marker.text is not None:
-            return self.marker.text
+                        self.marker is not None and self.marker["text"] is not None:
+            return self.marker["text"]
 
         # check for self text entry (this should be a single marker or the track)
         if self.data.text is not None:
@@ -1364,37 +1369,38 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     g1 = None
 
     def __init__(self, marker_handler, parent, data=None, event=None, type=None, frame=None):
+        # store current frame
         self.current_frame = frame
+        # initialize QGraphicsPathItem
         QtWidgets.QGraphicsPathItem.__init__(self, parent)
+        # initialize MyDisplayItem
         MyDisplayItem.__init__(self, marker_handler, data, event, type)
 
     def newData(self, event, type):
+        # create track database entry
         self.data = self.marker_handler.data_file.table_track(uid=uuid.uuid1(), type=type)
         self.data.save()
-        self.marker = self.marker_handler.data_file.table_marker(image=self.marker_handler.data_file.image,
-                                                          x=event.pos().x(), y=event.pos().y(), type=type, track=self.data)
-        self.marker.save()
+        # create marker list
+        self.data.marker_list = SortedDict()
+        # add the first point
+        self.addPoint(event.pos())
+        # return database entry
         return self.data
 
     def init2(self):
-        self.points_data = SortedDict()
-        self.offsets = SortedDict()
-        for point in self.data.markers:
-            self.points_data[point.image.sort_index] = point
-            self.offsets[point.image.sort_index] = point.image.offset if point.image.offset is not None else np.zeros(2)
-        self.min_frame = min(self.points_data.keys())
-        self.max_frame = max(self.points_data.keys())
-        self.current_offset = self.marker_handler.marker_file.data_file.image.offset
-        if self.current_offset is None:
-            self.current_offset = np.zeros(2)
+        self.min_frame = min(self.data.marker_list.keys())
+        self.max_frame = max(self.data.marker_list.keys())
+        self.current_offset = self.getOffsetForFrame(self.current_frame)
         self.g1 = MyGrabberItem(self, self.color, 0, 0, shape="cross")
         self.text_parent = self.g1
         if self.marker is None:
             try:
-                self.marker = self.points_data[self.current_frame]
+                self.marker = self.data.marker_list[self.current_frame]
             except KeyError:
                 self.marker = None
-                self.g1.setPos(*point.pos())
+                index = next(self.data.marker_list.__iter__())
+                self.g1.setPos(self.data.marker_list[index]["x"], self.data.marker_list[index]["y"])
+        self.marker_pos = None
 
         self.path2 = QtWidgets.QGraphicsPathItem(self)  # second path for the lines to cover gaps
         pen = self.path2.pen()
@@ -1425,22 +1431,29 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.g1.setShape(self.style.get("shape", "cross"))
         self.g1.setScale(self.style.get("scale", 1))
 
-    def graberMoved(self, grabber, pos, event):
+    def addPoint(self, pos):
         if self.marker is None:
             image = self.marker_handler.marker_file.data_file.image
-            self.marker = self.marker_handler.marker_file.table_marker(image=image,
+            marker = self.marker_handler.marker_file.table_marker(image=image,
                                                                        x=pos.x(), y=pos.y(),
                                                                      type=self.data.type,
                                                                      track=self.data, text=None)
-            self.marker.save()
-            self.points_data[self.current_frame] = self.marker
-            self.offsets[self.current_frame] = image.offset if image.offset else np.zeros(2)
-            self.min_frame = min(self.points_data.keys())
-            self.max_frame = max(self.points_data.keys())
+            marker.save()
+            self.marker = dict(id=marker.id, type=marker.type, track=marker.track, image=image)
+            self.marker_pos = None
+            self.data.marker_list[self.current_frame] = self.marker
+            self.min_frame = min(self.data.marker_list.keys())
+            self.max_frame = max(self.data.marker_list.keys())
             self.SetTrackActive(True)
-        else:
-            self.marker.x = pos.x()
-            self.marker.y = pos.y()
+        self.marker_pos = [pos.x(), pos.y()]
+        if isinstance(self.marker, sqlite3.Row):
+            self.marker = {key: self.marker[key] for key in self.marker.keys()}
+        self.marker["x"] = self.marker_pos[0]
+        self.marker["y"] = self.marker_pos[1]
+        self.data.marker_list[self.current_frame] = self.marker
+
+    def graberMoved(self, grabber, pos, event):
+        self.addPoint(pos)
         self.updateDisplay()
 
     def graberReleased(self, grabber, event):
@@ -1462,12 +1475,12 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         circle_width = self.scale_value * 10 * self.style.get("track-point-scale", 1)
         last_frame = None
         shape = self.style.get("track-point-shape", "circle")
-        for frame in self.points_data:
+        for frame in self.data.marker_list:
             if self.marker_handler.data_file.getOption("tracking_show_trailing") != -1 and frame < self.current_frame - self.marker_handler.data_file.getOption("tracking_show_trailing"):
                 continue
             if self.marker_handler.data_file.getOption("tracking_show_leading") != -1 and frame > self.current_frame + self.marker_handler.data_file.getOption("tracking_show_leading"):
                 break
-            x, y = self.points_data[frame] + self.offsets[frame] - self.current_offset
+            x, y = np.array([self.data.marker_list[frame]["x"], self.data.marker_list[frame]["y"]]) + self.getOffsetForFrame(frame) - self.current_offset
             if last_frame == frame - 1:
                 path_line.lineTo(x, y)
                 path_gap.moveTo(x, y)
@@ -1487,22 +1500,28 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.path2.setPath(path_gap)
         self.setPath(path_line)
         if self.marker is not None:
-            self.g1.setPos(*self.marker.pos())
+            self.g1.setPos(self.marker["x"], self.marker["y"])
+
+    def getOffsetForFrame(self, frame):
+        try:
+            offset = self.marker_handler.offsets_by_id[frame]
+        except KeyError:
+            offset = np.zeros(2)
+        return offset
 
     def FrameChanged(self, frame):
 
         self.current_frame = frame
-        self.current_offset = self.marker_handler.marker_file.data_file.image.offset
-        if self.current_offset is None:
-            self.current_offset = np.zeros(2)
+        self.current_offset = self.getOffsetForFrame(self.current_frame)
         hide = not self.CheckToDisplay()
         if hide != self.hidden:
             self.hidden = hide
             self.setVisible(not self.hidden)
             self.g1.setVisible(not self.hidden)
 
-        if frame in self.points_data:
-            self.marker = self.points_data[frame]
+        if frame in self.data.marker_list:
+            self.marker = self.data.marker_list[frame]
+            self.marker_pos = None
             self.updateDisplay()
             self.SetTrackActive(True)
             #self.GetStyle()
@@ -1519,6 +1538,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.AddTrackPoint(frame, point)
             if frame == self.current_frame:
                 self.marker = self.marker.get(id=self.marker.id)
+                self.marker_pos = None
                 self.GetStyle()
         else:
             self.RemoveTrackPoint(frame)
@@ -1529,7 +1549,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             frame = self.current_frame
         if point is None:
             point = self.data
-        self.points_data[frame] = point
+        self.data.marker_list[frame] = point
         self.offsets[frame] = point.image.offset if point.image.offset is not None else np.zeros(2)
         self.min_frame = min(self.points_data.keys())
         self.max_frame = max(self.points_data.keys())
@@ -1543,19 +1563,23 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             frame = self.current_frame
         # delete the frame from points
         try:
-            data = self.points_data.pop(frame)
-            data.delete_instance()
+            # delete entry from list
+            data = self.data.marker_list.pop(frame)
+            # delete entry from database
+            self.marker_handler.marker_file.table_marker.delete().where(self.marker_handler.marker_file.table_marker.id == data["id"]).execute()
+            # if it is the current frame, delete reference to marker
             if frame == self.current_frame:
                 self.marker = None
+                self.marker_pos = None
         except KeyError:
             pass
         # if it was the last one delete the track, too
-        if len(self.points_data) == 0:
+        if len(self.data.marker_list) == 0:
             self.delete()
             return
         # adjust the frame range
-        self.min_frame = min(self.points_data.keys())
-        self.max_frame = max(self.points_data.keys())
+        self.min_frame = min(self.data.marker_list.keys())
+        self.max_frame = max(self.data.marker_list.keys())
         # set the track to inactive if the current marker was removed
         if frame == self.current_frame:
             self.SetTrackActive(False)
@@ -1629,10 +1653,10 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.updateDisplay()
 
     def save(self):
-        if self.active:
-            if len(self.marker.dirty_fields):
-                self.marker.processed = 0
-                self.marker.save(only=self.marker.dirty_fields)
+        if self.marker_pos is not None:
+            self.marker_handler.marker_file.table_marker.update(x=self.marker_pos[0], y=self.marker_pos[1], processed=0).where(self.marker_handler.marker_file.table_marker.id==self.marker["id"]).execute()
+            self.data.marker_list[self.current_frame] = self.marker
+            self.marker_pos = None
             MyDisplayItem.save(self)
 
 
@@ -2032,15 +2056,27 @@ class MarkerHandler:
     def LoadTracks(self):
         while len(self.tracks):
             self.tracks[0].delete(just_display=True)
-        track_list = (self.marker_file.table_track.select(self.marker_file.table_track, self.marker_file.table_markertype)
-                          .where(self.marker_file.table_track.hidden == False)
-                          .join(self.marker_file.table_markertype)
-                          .where(self.marker_file.table_markertype.hidden == False)
-                      )
-        for track in track_list:
-            data = track.markers
-            if data.count():
-                self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=self.frame_number))
+
+        db = self.marker_file
+        images = db.table_image.select(db.table_image.id, db.table_image.sort_index)
+        sort_index_by_id = {image.id: image.sort_index for image in images}
+        # get offsets
+        offsets = db.table_offset.select()
+        self.offsets_by_id = {offset.id: offset for offset in offsets}
+        # get tracks
+        tracks = db.table_track.select()
+        tracks = {track.id: track for track in tracks}
+        for id in tracks:
+            tracks[id].marker_list = SortedDict()
+        # get markers
+        db.db.get_conn().row_factory = sqlite3.Row
+        query = db.db.get_conn().execute('SELECT * FROM marker WHERE (track_id IS NOT NULL)')  # ORDER BY track_id')
+        for row in query:
+            tracks[row["track_id"]].marker_list[sort_index_by_id[row["image_id"]]] = row
+        db.db.get_conn().row_factory = None
+        for track in tracks:
+            track = tracks[track]
+            self.tracks.append(MyTrackItem(self, self.TrackParent, data=track, frame=self.frame_number))
 
     def ReloadTrack(self, track):
         track_item = self.GetMarkerItem(track)
