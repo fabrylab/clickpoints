@@ -1021,7 +1021,7 @@ class DataFile:
                                 "instead of starting a new track.\n"
                                 "To start a new track while Auto-Connect\n"
                                 "is turned on, hold down the 'alt' key")
-        self._AddOption(key="tracking_show_trailing", display_name="Track show trailing", default=-1, value_type="int", min_value=-1,
+        self._AddOption(key="tracking_show_trailing", display_name="Track show trailing", default=20, value_type="int", min_value=-1,
                         tooltip="Nr of track markers displayed\n"
                                 "before the current frame (past).\n"
                                 "-1 for all.")
