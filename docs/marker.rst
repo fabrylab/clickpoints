@@ -126,7 +126,7 @@ The styles use the JSON format for data storage. The following fields can be use
 -  **Marker Shape** -  ``"shape": "cross"``
       Defines the shape of the marker.
 
-      *values:* ``cross`` (default), ``circle``, ``rect``
+      *values:* ``cross`` (default), ``circle``, ``ring``, ``rect``
 
 -  **Marker Line Width** - ``"line-width": 1``
       Defines the line width of the markers symbol (e.g. width of the circle). Ignored if a filled symbol (e.g. the
@@ -159,7 +159,7 @@ The styles use the JSON format for data storage. The following fields can be use
 -  **Track Marker Shape** - ``"track-point-shape": "circle"``
       The marker shape used to display the track history.
 
-      *values:* ``circle`` (default), ``rect``, ``cross``, ``none``
+      *values:* ``circle``, ``ring`` (default), ``rect``, ``cross``, ``none``
 
 -  **Track Marker Scale** - ``"track-point-scale": 1``
       The scaling of markers used to display the track history.
