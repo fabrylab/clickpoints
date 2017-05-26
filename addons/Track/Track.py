@@ -29,8 +29,12 @@ class Addon(clickpoints.Addon):
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
-        self.lk_params = dict(winSize=(8, 8), maxLevel=0,
-                         criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+        self.addOption(key="winSize", display_name="Window Size", default=[8, 8], value_count=2, value_type="int",
+                       tooltip="Size of the search window around every marker.")
+        self.addOption(key="maxIterations", display_name="Max Iterations", default=10, value_type="int",
+                       tooltip="The maximum number of iterations.")
+        self.addOption(key="epsilon", display_name="Epsilon", default=0.03, value_type="float",
+                       tooltip="Iteration stops when the search window moves less than epsilon.")
 
         # find a track type
         for type in self.db.getMarkerTypes():
@@ -42,6 +46,11 @@ class Addon(clickpoints.Addon):
             self.cp.reloadTypes()
 
     def run(self, start_frame=0):
+        # parameters
+        lk_params = dict(winSize=tuple(self.getOption("winSize")), maxLevel=0,
+                          criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+                                    self.getOption("maxIterations"), self.getOption("epsilon")))
+
         # get the images
         images = self.db.getImageIterator(start_frame=start_frame)
 
@@ -63,7 +72,7 @@ class Addon(clickpoints.Addon):
             print("Tracking frame number %d, %d tracks" % (image.sort_index, len(tracks)), image.id, image_last.id)
 
             # calculate next positions
-            p1, st, err = cv2.calcOpticalFlowPyrLK(image_last.data8, image.data8, p0, None, **self.lk_params)
+            p1, st, err = cv2.calcOpticalFlowPyrLK(image_last.data8, image.data8, p0, None, **lk_params)
 
             # set the new positions
             self.db.setMarkers(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, track=tracks)
