@@ -1,0 +1,4 @@
+[addon]
+name=DronpaDiffusion
+file=Dronpa.py
+icon=fa.flask
