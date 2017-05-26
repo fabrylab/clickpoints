@@ -106,7 +106,7 @@ class Script(QtCore.QObject):
             sys.path.pop(0)
         if "Addon" not in dir(addon_module):
             raise NameError("No addon module found in " + path)
-        self.process = addon_module.Addon(script_launcher.data_file._database_filename, script_launcher)
+        self.process = addon_module.Addon(script_launcher.data_file, script_launcher, self.name)
         self.process.run = wrap_run(self.process.run, self)
 
         self.active = True

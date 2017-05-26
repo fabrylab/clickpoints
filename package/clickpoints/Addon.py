@@ -127,10 +127,27 @@ class Command:
 
 
 class Addon(QtWidgets.QWidget):
-    def __init__(self, database, command=None):
+    def __init__(self, database, command=None, name=""):
         QtWidgets.QWidget.__init__(self)
         self.cp = Command(command)
-        self.db = clickpoints.DataFile(database)
+        if isinstance(database, str):
+            self.db = clickpoints.DataFile(database)
+        else:
+            self.db = database
+        self.addon_name = name
+        self.db._last_category = "Addon - "+name
+
+    def _warpOptionKey(self, key):
+        return "addon_" + self.addon_name + "_" + key
+
+    def addOption(self, key="", **kwargs):
+        self.db._AddOption(key=self._warpOptionKey(key), **kwargs)
+
+    def getOption(self, key):
+        return self.db.getOption(key=self._warpOptionKey(key))
+
+    def setOption(self, key, value):
+        return self.db.setOption(key=self._warpOptionKey(key), value=value)
 
     def terminate(self):
         self.cp.stop = True
