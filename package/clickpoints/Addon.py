@@ -22,6 +22,37 @@
 from __future__ import division, print_function
 import time
 import clickpoints
+from qtpy import QtCore, QtGui, QtWidgets
+from matplotlib import pyplot as plt
+
+from matplotlibwidget import CanvasWindow
+from matplotlib import _pylab_helpers
+
+figures = {}
+
+
+def show():
+    global figures
+    canvas = _pylab_helpers.Gcf.get_active().canvas
+    canvas.draw()
+    if canvas.window:
+        canvas.window.scheduleShow()
+plt.show = show
+
+
+def figure(num=None, size=None, *args, **kwargs):
+    global figures
+    if num is None:
+        num = len(figures)
+    if num not in figures.keys():
+        canvas = CanvasWindow(num, *args, **kwargs).canvas
+        figures[num] = canvas
+    canvas = figures[num]
+    if size is not None:
+        figures[num].window.setGeometry(100, 100, size[0] * 80, size[1] * 80)
+    _pylab_helpers.Gcf.set_active(canvas.manager)
+    return canvas.figure
+plt.figure = figure
 
 
 class Command:
@@ -95,8 +126,9 @@ class Command:
         return self.stop
 
 
-class Addon:
+class Addon(QtWidgets.QWidget):
     def __init__(self, database, command=None):
+        QtWidgets.QWidget.__init__(self)
         self.cp = Command(command)
         self.db = clickpoints.DataFile(database)
 
