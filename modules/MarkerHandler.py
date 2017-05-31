@@ -2088,18 +2088,12 @@ class MarkerHandler:
             image_id = self.data_file.image.id
         else:
             image_id = self.data_file.get_image(frame).id
-        # Tracks
-        marker_list = self.data_file.table_marker.select().where(self.data_file.table_marker.image == image_id)
-        marker_list = {marker.track_id: marker for marker in marker_list}
-        for track in self.tracks:
-            if track.data.id in marker_list:
-                track.update(frame, marker_list[track.data.id])
-                marker_list.pop(track.data.id)
-            else:
-                track.update(frame, None)
+        # delete the current frame from cache to be able to reload it
+        self.cached_images = self.cached_images - set([frame])
         # Points
         if frame == self.frame_number:
             self.LoadPoints()
+            self.LoadTracks()
             self.LoadLines()
             self.LoadRectangles()
 
