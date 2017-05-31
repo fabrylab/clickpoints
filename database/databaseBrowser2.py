@@ -392,7 +392,8 @@ class DatabaseBrowser(QtWidgets.QWidget):
                     self.slider.setDisabled(False)
                     entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                                                         timestamp=entry.timestamp)
-                    self.parent.ImageDisplaySchedule(entry)
+                    self.parent.SliderChanged()
+                    #self.parent.ImageDisplaySchedule(entry)
 
                 if isinstance(entry, Day):
                     self.system_name.setText(entry.device.system.name)
@@ -418,7 +419,8 @@ class DatabaseBrowser(QtWidgets.QWidget):
                         .where(self.database.SQL_Files.device == entry.device.id) \
                         .where(self.database.SQL_Files.timestamp == entry.timestamp) \
                         .order_by(self.database.SQL_Files.timestamp)
-                    self.parent.ImageDisplaySchedule(entry)
+                    self.parent.SliderChanged()
+                    #self.parent.ImageDisplaySchedule(entry)
 
             def ExpandSystem(self, index, item, entry):
                 # change icon to hourglass during waiting
@@ -1030,7 +1032,8 @@ class DatabaseBrowser(QtWidgets.QWidget):
         # and a slider
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.layout2.addWidget(self.slider)
-        self.slider.sliderReleased.connect(self.SliderChanged)
+        self.slider.setTracking(False)
+        self.slider.valueChanged.connect(self.SliderChanged)
 
         # add a tabs widget to switch between modes
         self.tabWidget = QtWidgets.QTabWidget()
