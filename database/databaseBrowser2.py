@@ -370,9 +370,13 @@ class DatabaseBrowser(QtWidgets.QWidget):
                     self.device_name.setText(entry.device.name)
                     self.date_start.setDateTime(QtCore.QDateTime(QtCore.QDate(entry.year, 1, 1), QtCore.QTime(0, 0)))
                     self.date_end.setDateTime(QtCore.QDateTime(QtCore.QDate(entry.year + 1, 1, 1), QtCore.QTime(0, 0)))
-                    self.slider.setSliderPosition(0)
+
+                    self.parent.slider.blockSignals(True)
                     self.slider.setRange(0, entry.count)
                     self.slider.setDisabled(False)
+                    self.slider.setSliderPosition(0)
+                    self.parent.slider.blockSignals(False)
+
                     entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                                                         timestamp=entry.timestamp)
                     self.parent.ImageDisplaySchedule(entry)
@@ -387,9 +391,13 @@ class DatabaseBrowser(QtWidgets.QWidget):
                     else:
                         self.date_start.setDateTime(
                             QtCore.QDateTime(QtCore.QDate(entry.year, entry.month + 1, 1), QtCore.QTime(0, 0)))
-                    self.slider.setSliderPosition(0)
+
+                    self.parent.slider.blockSignals(True)
                     self.slider.setRange(0, entry.count)
                     self.slider.setDisabled(False)
+                    self.slider.setSliderPosition(0)
+                    self.parent.slider.blockSignals(False)
+
                     entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                                                         timestamp=entry.timestamp)
                     self.parent.SliderChanged()
@@ -409,9 +417,12 @@ class DatabaseBrowser(QtWidgets.QWidget):
                     else:
                         self.date_end.setDateTime(
                             QtCore.QDateTime(QtCore.QDate(entry.year, entry.month, entry.day + 1), QtCore.QTime(0, 0)))
-                    self.slider.setSliderPosition(0)
-                    self.slider.setRange(0, entry.count)
-                    self.slider.setDisabled(False)
+
+                    self.parent.slider.blockSignals(True)
+                    self.parent.slider.setRange(0, entry.count)
+                    self.parent.slider.setDisabled(False)
+                    self.parent.slider.setSliderPosition(0)
+                    self.parent.slider.blockSignals(False)
                     # entry = self.database.SQL_Files.get(system=entry.device.system.id, device=entry.device.id,
                     #                               timestamp=entry.timestamp)\
                     entry = self.database.SQL_Files.select().where(
