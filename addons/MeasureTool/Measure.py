@@ -58,8 +58,12 @@ class Addon(clickpoints.Addon):
         self.cp.reloadTypes()
 
         self.type = self.db.getMarkerType("ruler")
+        self.cp.selectMarkerType(self.type)
 
     def MarkerMoved(self, marker):
         if marker.data.type == self.type:
             marker.data.text = "%.2f %s" % (marker.data.length()*self.getOption("pixelSize"), self.getOption("unit"))
             marker.data.save()
+
+    def run(self, *args, **kwargs):
+        self.cp.selectMarkerType(self.type)

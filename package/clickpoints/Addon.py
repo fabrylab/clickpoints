@@ -122,6 +122,13 @@ class Command:
         image = self.window.data_file.get_image_data(int(value))
         return image
 
+    def selectMarkerType(self, type):
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
+        self.window.GetModule("MarkerHandler").SetActiveMarkerType(new_type=type)
+        self.window.GetModule("MarkerHandler").ToggleInterfaceEvent(hidden=False)
+
     def hasTerminateSignal(self):
         return self.stop
 

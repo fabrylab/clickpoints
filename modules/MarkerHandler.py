@@ -2123,7 +2123,12 @@ class MarkerHandler:
             for point in list:
                 point.save()
 
-    def SetActiveMarkerType(self, new_index):
+    def SetActiveMarkerType(self, new_index=None, new_type=None):
+        if new_type is not None:
+            for index in self.counter:
+                if self.counter[index].type == new_type:
+                    new_index = index
+                    break
         if new_index >= len(self.counter) - 1:
             return
         if self.active_type_index is not None:
