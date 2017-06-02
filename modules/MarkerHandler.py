@@ -1174,6 +1174,7 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.data.x = pos.x()
         self.data.y = pos.y()
         self.updateDisplay()
+        BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
         super(MyMarkerItem, self).drawMarker(image, start_x, start_y, scale=1, image_scale=1)
@@ -1234,6 +1235,7 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
             self.setLine(*self.data.getPos())
             self.g2.setPos(*self.data.getPos2())
             self.setText(self.GetText())
+        BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
 
     def drag(self, event):
         self.graberMoved(self.g2, event.pos(), event)
@@ -1328,6 +1330,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
             self.data.x = pos.x()
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
+        BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
 
     def drag(self, event):
         self.graberMoved(self.start_grabber, event.pos(), event)
@@ -1442,6 +1445,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.marker.x = pos.x()
             self.marker.y = pos.y()
         self.updateDisplay()
+        BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
 
     def graberReleased(self, grabber, event):
         if self.marker_handler.data_file.getOption("tracking_connect_nearest") and event.modifiers() & Qt.ShiftModifier:
