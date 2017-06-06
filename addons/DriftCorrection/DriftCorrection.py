@@ -32,6 +32,11 @@ class Addon(clickpoints.Addon):
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
+        self.addOption(key="borderSize", display_name="Border", default=[20, 20], value_count=2, value_type="int",
+                       tooltip="How much border in pixel the search window is allowed to move during the search in the new image.")
+        self.addOption(key="compareToFirst", display_name="Compare to first image", default=False, value_type="bool",
+                       tooltip="Weather each image should be compared to the first image or the previous image.")
+
         # Check if the marker type is present
         if not self.db.getMarkerType("drift_rect"):
             self.db.setMarkerType("drift_rect", [0, 255, 255], self.db.TYPE_Rect)
@@ -39,9 +44,8 @@ class Addon(clickpoints.Addon):
 
     def run(self, start_frame=0):
         # Define parameters
-        compare_to_first = False
-        border_x = 20
-        border_y = 20
+        compare_to_first = self.getOption("compareToFirst")
+        border_x, border_y = self.getOption("borderSize")
 
         # try to load marker
         rect = self.db.getRectangles(type="drift_rect")
