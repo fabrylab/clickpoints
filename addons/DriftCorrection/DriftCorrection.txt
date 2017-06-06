@@ -2,4 +2,4 @@
 name=DriftCorrection
 file=DriftCorrection.py
 icon=fa.object-ungroup
-description=This tool can be used to find cells
+description=This tool helps to stabilize an image sequence.

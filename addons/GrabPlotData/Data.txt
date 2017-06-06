@@ -1,5 +1,5 @@
 [addon]
 name=Grab Plot Data
 file=GrabPlotData.py
-icon=fa.th
-description=This tool can be used to find cells
+icon=fa.bar-chart
+description=This tool can be used to extract data from a plotted graph.
