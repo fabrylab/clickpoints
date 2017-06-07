@@ -41,7 +41,10 @@ try:
     import ConfigParser
 except ImportError:
     import configparser as ConfigParser
-import importlib
+try:
+    from importlib import import_module, reload
+except ImportError:
+    raise
 
 
 def wrap_run(run, script):
@@ -57,6 +60,7 @@ def wrap_run(run, script):
 
 
 class Script(QtCore.QObject):
+    loaded = False
     process = None
 
     active = False
@@ -101,12 +105,16 @@ class Script(QtCore.QObject):
         name = os.path.splitext(os.path.basename(path))[0]
         sys.path.insert(0, os.path.dirname(path))
         try:
-            addon_module = importlib.import_module(name)
+            if not self.loaded:
+                self.addon_module = import_module(name)
+                self.loaded = True
+            else:
+                self.addon_module = reload(self.addon_module)
         finally:
             sys.path.pop(0)
-        if "Addon" not in dir(addon_module):
+        if "Addon" not in dir(self.addon_module):
             raise NameError("No addon module found in " + path)
-        self.process = addon_module.Addon(script_launcher.data_file, script_launcher, self.name)
+        self.process = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name)
         self.process.run = wrap_run(self.process.run, self)
 
         self.active = True
@@ -148,6 +156,12 @@ class Script(QtCore.QObject):
             self.run_thread = threading.Thread(target=self.process.run, args=(start_frame, ))
             self.run_thread.daemon = True
             self.run_thread.start()
+
+    def reload(self):
+        button = self.button
+        self.deactivate()
+        self.activate(self.script_launcher)
+        self.button = button
 
 
 path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
@@ -362,12 +376,20 @@ class ScriptLauncher(QtCore.QObject):
         script.run(self.data_file.get_current_image())
         print("Launch", index)
 
+    def reload(self, index):
+        script = self.active_scripts[index]
+        script.reload()
+        print("Reload", index)
+
     def keyPressEvent(self, event):
         keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
         for index, key in enumerate(keys):
             # @key F12: Launch
             if event.key() == key:
-                self.launch(index)
+                if event.modifiers() & QtCore.Qt.ControlModifier:
+                    self.reload(index)
+                else:
+                    self.launch(index)
 
     def closeEvent(self, event):
         if self.scriptSelector:
