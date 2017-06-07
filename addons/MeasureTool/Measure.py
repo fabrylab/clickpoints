@@ -45,15 +45,13 @@ def get_meta(file):
 
 
 class Addon(clickpoints.Addon):
+    initialized = False
+
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
-        meta = get_meta(os.path.join(self.db.image.path.path, self.db.image.filename))
-
-        self.addOption(key="pixelSize", display_name="Pixel Size", default=meta.get("PixelSize", 6.45)/(meta.get("Magnification", 1)*meta.get("Coupler", 1)), value_type="float",
-                       tooltip="The size of a pixel.")
-        self.addOption(key="unit", display_name="Length Unit", default=u"µm", value_type="string",
-                       tooltip="The unit for this size.")
+        if self.db.image and self.db.image.path:
+            self.initializeOptions()
 
         self.db.setMarkerType("ruler", "#FFFF00", self.db.TYPE_Line)
         self.cp.reloadTypes()
@@ -61,8 +59,20 @@ class Addon(clickpoints.Addon):
         self.type = self.db.getMarkerType("ruler")
         self.cp.selectMarkerType(self.type)
 
+    def initializeOptions(self):
+        meta = get_meta(os.path.join(self.db.image.path.path, self.db.image.filename))
+
+        self.addOption(key="pixelSize", display_name="Pixel Size", default=meta.get("PixelSize", 6.45) / (
+        meta.get("Magnification", 1) * meta.get("Coupler", 1)), value_type="float",
+                       tooltip="The size of a pixel.")
+        self.addOption(key="unit", display_name="Length Unit", default=u"µm", value_type="string",
+                       tooltip="The unit for this size.")
+        self.initialized = True
+
     def MarkerMoved(self, marker):
-        if marker.data.type == self.type:
+        if not self.initialized:
+            self.initializeOptions()
+        if self.initialized and marker.data.type == self.type:
             marker.data.text = "%.2f %s" % (marker.data.length()*self.getOption("pixelSize"), self.getOption("unit"))
             marker.data.save()
 
