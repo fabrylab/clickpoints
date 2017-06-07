@@ -71,7 +71,7 @@ class MaskFile:
         # query all sort_indices which have a mask
         return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
                 .join(self.table_mask)
-                .group_by(self.data_file.table_image.sort_index))
+                .group_by(self.data_file.table_image.id))
 
     def get_mask_path(self):
         if self.mask_path:
@@ -814,6 +814,15 @@ class MaskHandler:
                     self.color_under_cursor = color
         # don't accept the event, so that others can accept it
         return False
+
+    def optionsChanged(self):
+        for type_id, type_def in enumerate(self.config.draw_types):
+            if len(type_def) >= 3:
+                name = type_def[2]
+            else:
+                name = "Color%d" % type_id
+            self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
+        self.UpdateButtons()
 
     def keyPressEvent(self, event):
         numberkey = event.key() - 49

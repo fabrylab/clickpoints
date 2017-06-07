@@ -1021,7 +1021,7 @@ class DataFile:
                                 "instead of starting a new track.\n"
                                 "To start a new track while Auto-Connect\n"
                                 "is turned on, hold down the 'alt' key")
-        self._AddOption(key="tracking_show_trailing", display_name="Track show trailing", default=-1, value_type="int", min_value=-1,
+        self._AddOption(key="tracking_show_trailing", display_name="Track show trailing", default=20, value_type="int", min_value=-1,
                         tooltip="Nr of track markers displayed\n"
                                 "before the current frame (past).\n"
                                 "-1 for all.")
@@ -1089,7 +1089,7 @@ class DataFile:
         self._AddOption(key="export_video_filename", default="export/export.avi", value_type="string", hidden=True)
         self._AddOption(key="export_image_filename", default="export/images%d.jpg", value_type="string", hidden=True)
         self._AddOption(key="export_single_image_filename", default="export/images%d.jpg", value_type="string", hidden=True)
-        self._AddOption(key="export_gif_filename", default="export/images%d.jpg", value_type="string", hidden=True)
+        self._AddOption(key="export_gif_filename", default="export/export.gif", value_type="string", hidden=True)
         self._AddOption(key="export_type", default=0, value_type="int", hidden=True)
         self._AddOption(key="video_codec", default="libx264", value_type="string", hidden=True)
         self._AddOption(key="video_quality", default=5, value_type="int", hidden=True)
