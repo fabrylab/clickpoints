@@ -65,18 +65,42 @@ class Command:
             self.window = self.script_launcher.window
 
     def jumpFrames(self, value):
+        """
+        Let ClickPoints jump the given amount of frames.
+
+        Parameters
+        ----------
+        value : int
+            the amount of frame which ClickPoints should jump.
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
         self.window.signal_jump.emit(int(value))
 
     def jumpToFrame(self, value):
+        """
+        Let ClickPoints jump to the given frame.
+
+        Parameters
+        ----------
+        value : int
+            the frame to which ClickPoints should jump.
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
         self.window.signal_jumpTo.emit(int(value))
 
     def jumpFramesWait(self, value):
+        """
+        Let ClickPoints jump the given amount of frames and wait for it to complete.
+
+        Parameters
+        ----------
+        value : int
+            the amount of frames which ClickPoints should jump.
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
@@ -86,6 +110,14 @@ class Command:
             time.sleep(0.01)
 
     def jumpToFrameWait(self, value):
+        """
+        Let ClickPoints jump to the given frame and wait for it to complete.
+
+        Parameters
+        ----------
+        value : int
+            the frame to which ClickPoints should jump.
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
@@ -95,21 +127,35 @@ class Command:
             time.sleep(0.01)
 
     def reloadMask(self):
+        """
+        Reloads the current mask file in ClickPoints.
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
         self.window.signal_broadcast.emit("ReloadMask", tuple())
 
-    def reloadMarker(self, value):
+    def reloadMarker(self, frame=None):
+        """
+        Reloads the marker from the given frame in ClickPoints.
+
+        Parameters
+        ----------
+        frame : int
+            the frame which ClickPoints should reload. Use `None` for the current frame.
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
-        frame = int(value)
-        if frame == -1:
+        # if no frame is given use the current frame
+        if frame is None:
             frame = self.data_file.get_current_image()
         self.window.signal_broadcast.emit("ReloadMarker", (frame,))
 
     def reloadTypes(self):
+        """
+        Reloads the marker types.
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
@@ -123,6 +169,14 @@ class Command:
         return image
 
     def selectMarkerType(self, type):
+        """
+        Select a given marker type in ClickPoints.
+        
+        Parameters
+        ----------
+        type : :py:class:`MarkerType`
+            the marker type which should be selected.
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
@@ -130,6 +184,9 @@ class Command:
         self.window.GetModule("MarkerHandler").ToggleInterfaceEvent(hidden=False)
 
     def hasTerminateSignal(self):
+        """
+        Weather the run function is scheduled to stop
+        """
         return self.stop
 
 
