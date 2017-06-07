@@ -202,7 +202,7 @@ class Addon(QtWidgets.QWidget):
         self.db._last_category = "Addon - "+name
 
     def _warpOptionKey(self, key):
-        return "addon_" + self.addon_name + "_" + key
+        return "addon_" + self.addon_name.replace(" ", "") + "_" + key
 
     def addOption(self, key="", **kwargs):
         self.db._AddOption(key=self._warpOptionKey(key), **kwargs)
