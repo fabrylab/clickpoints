@@ -197,14 +197,16 @@ class ScriptChooser(QtWidgets.QWidget):
 
         self.setWindowIcon(qta.icon("fa.code"))
 
-        """ """
-        #self.list = QtWidgets.QListWidget(self)
-        #self.layout.addWidget(self.list)
-        #self.list.itemSelectionChanged.connect(self.list_selected)
-
         self.list2 = QtWidgets.QListWidget(self)
         self.layout.addWidget(self.list2)
         self.list2.itemSelectionChanged.connect(self.list_selected2)
+
+        layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(layout)
+        self.button_import = QtWidgets.QPushButton("Import")
+        self.button_import.clicked.connect(self.importScript)
+        layout.addWidget(self.button_import)
+        layout.addStretch()
 
         self.nameDisplay = QtWidgets.QLabel(self)
         self.nameDisplay.setStyleSheet("font-weight: bold;")
@@ -228,6 +230,22 @@ class ScriptChooser(QtWidgets.QWidget):
         self.selected_script = None
 
         self.update_folder_list2()
+
+    def importScript(self):
+        srcpath = QtWidgets.QFileDialog.getOpenFileName(None, "Import script - ClickPoints", os.getcwd(), "ClickPoints Scripts *.txt")
+        if isinstance(srcpath, tuple):
+            srcpath = srcpath[0]
+        else:
+            srcpath = str(srcpath)
+        if srcpath:
+            try:
+                script = Script(srcpath)
+            except ConfigParser.NoSectionError:
+                reply = QtWidgets.QMessageBox.critical(self, 'Error', "Can not import selected file:\n%s\nThe selected file is no valid ClickPoints add-on file." % srcpath,
+                                                       QtWidgets.QMessageBox.Ok)
+            else:
+                self.script_launcher.scripts.append(script)
+                self.update_folder_list2()
 
     def list_selected2(self):
         selections = self.list2.selectedItems()
@@ -353,7 +371,9 @@ class ScriptLauncher(QtCore.QObject):
             if filename in filenames:
                 return self.scripts[filenames.index(filename)]
         try:
-            return Script(filename)
+            script = Script(filename)
+            self.scripts.append(script)
+            return script
         except FileNotFoundError:
             return None
 
