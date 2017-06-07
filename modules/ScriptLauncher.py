@@ -41,10 +41,13 @@ try:
     import ConfigParser
 except ImportError:
     import configparser as ConfigParser
+from importlib import import_module
 try:
-    from importlib import import_module, reload
+    # python 3
+    from importlib import reload
 except ImportError:
-    raise
+    # python 2
+    reload
 
 
 def wrap_run(run, script):
@@ -56,6 +59,15 @@ def wrap_run(run, script):
         finally:
             script.run_stopped()
 
+    return wrapper
+
+
+def wrap_get(function):
+    def wrapper(section, name, fallback=None):
+        try:
+            return function(section, name)
+        except ConfigParser.NoOptionError:
+            return fallback
     return wrapper
 
 
@@ -75,6 +87,8 @@ class Script(QtCore.QObject):
         QtCore.QObject.__init__(self)
         self.filename = filename
         parser = ConfigParser.ConfigParser()
+        # for python 2 compatibility implement the fallback parameter, which is already there for python 3
+        parser.get = wrap_get(parser.get)
         parser.read(filename)
         self.name = parser.get("addon", "name", fallback=os.path.split(os.path.dirname(filename))[1])
         try:
