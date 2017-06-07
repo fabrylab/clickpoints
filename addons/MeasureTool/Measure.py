@@ -22,6 +22,7 @@
 from __future__ import print_function, division
 import clickpoints
 import json
+import os
 
 try:
     import tifffile
@@ -47,7 +48,7 @@ class Addon(clickpoints.Addon):
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
-        meta = get_meta(self.db.image.filename)
+        meta = get_meta(os.path.join(self.db.image.path.path, self.db.image.filename))
 
         self.addOption(key="pixelSize", display_name="Pixel Size", default=meta.get("PixelSize", 6.45)/(meta.get("Magnification", 1)*meta.get("Coupler", 1)), value_type="float",
                        tooltip="The size of a pixel.")
