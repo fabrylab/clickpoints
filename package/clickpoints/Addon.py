@@ -189,6 +189,29 @@ class Command:
         """
         return self.stop
 
+    def getHUD(self, location="upper left"):
+        if location == "upper left":
+            return self.window.view.hud
+        elif location == "upper center":
+            return self.window.view.hud_upperCenter
+        elif location == "upper right":
+            return self.window.view.hud_upperRight
+        elif location == "left center":
+            return self.window.view.hud_leftCenter
+        elif location == "center":
+            return self.window.view.hud_center
+        elif location == "right center":
+            return self.window.view.hud_rightCenter
+        elif location == "lower left":
+            return self.window.view.hud_lowerLeft
+        elif location == "lower center":
+            return self.window.view.hud_lowerCenter
+        elif location == "lower right":
+            return self.window.view.hud_lowerRight
+        raise NameError("%s no valid location name" % location)
+
+
+
 
 class Addon(QtWidgets.QWidget):
     def __init__(self, database, command=None, name=""):

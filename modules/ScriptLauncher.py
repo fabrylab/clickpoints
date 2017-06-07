@@ -134,6 +134,7 @@ class Script(QtCore.QObject):
         self.active = True
 
     def deactivate(self):
+        self.process.delete()
         self.active = False
         self.button = None
 
