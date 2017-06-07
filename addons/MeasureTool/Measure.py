@@ -51,7 +51,7 @@ class Addon(clickpoints.Addon):
 
         self.addOption(key="pixelSize", display_name="Pixel Size", default=meta.get("PixelSize", 6.45)/(meta.get("Magnification", 1)*meta.get("Coupler", 1)), value_type="float",
                        tooltip="The size of a pixel.")
-        self.addOption(key="unit", display_name="Length Unit", default="µm", value_type="string",
+        self.addOption(key="unit", display_name="Length Unit", default=u"µm", value_type="string",
                        tooltip="The unit for this size.")
 
         self.db.setMarkerType("ruler", "#FFFF00", self.db.TYPE_Line)

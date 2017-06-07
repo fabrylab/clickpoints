@@ -63,9 +63,9 @@ def wrap_run(run, script):
 
 
 def wrap_get(function):
-    def wrapper(section, name, fallback=None):
+    def wrapper(section, name, raw=True, fallback=None):
         try:
-            return function(section, name)
+            return function(section, name, raw=raw)
         except ConfigParser.NoOptionError:
             return fallback
     return wrapper
