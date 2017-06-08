@@ -452,7 +452,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
     # jump absolute
     def JumpToFrame(self, target_id, threaded=True):
-        # if no frame is loaded yet, do nothingPageU
+        # if no frame is loaded yet, do nothing
         if self.data_file.get_image_count() == 0:
             return
 
@@ -495,13 +495,13 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         # Notify that the frame will be loaded TODO are all these events necessary?
         BroadCastEvent(self.modules, "FrameChangeEvent")
-        BroadCastEvent(self.modules, "FrameChangeEvent")
+        BroadCastEvent(self.modules, "FrameChangeEvent")  # TODO ask Alex why this is now here two times
         BroadCastEvent(self.modules, "PreLoadImageEvent", self.new_filename, self.new_frame_number)
         self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (self.new_filename, self.data_file.getFilename(), self.layer))
 
         # get image
         self.im = self.data_file.get_image_data()
-        print(self.im)
+
         # get offsets
         offset = self.data_file.get_offset()
 
@@ -594,7 +594,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
             try:
                 self.JumpFrames(0)
             except:
-                self.layer -=1
+                self.layer -= 1
 
         if event.key() == QtCore.Qt.Key_PageDown:
             # @key PageDown: show next lower layer
@@ -605,12 +605,11 @@ class ClickPointsWindow(QtWidgets.QWidget):
             try:
                 self.JumpFrames(0)
             except:
-                self.layer +=1
+                self.layer += 1
 
         if event.key() == QtCore.Qt.Key_Escape:
             # @key Escape: close window
             self.close()
-
 
         # @key ---- Modules ----
         if event.key() == QtCore.Qt.Key_P:
