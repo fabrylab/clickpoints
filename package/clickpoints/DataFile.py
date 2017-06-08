@@ -1924,10 +1924,6 @@ class DataFile:
             item = self.table_image()
             new_image = True
 
-#        if layer != 0:
-#            assert frame is not None, \
-#                "Frame should be specified, if layer is given."
-
         if filename is not None:
             item.filename = os.path.split(filename)[1]
             item.ext = os.path.splitext(filename)[1]
