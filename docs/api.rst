@@ -248,5 +248,9 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
 DataFile
 --------
 
+The DataFile is the interface to the ClickPoints database. This can either be used in external evaluation scripts that
+take data clicked in ClickPoints for further evaluation or in add-on scripts where it is accessible through the ``self.db``
+class variable.
+
 .. autoclass:: clickpoints.DataFile
    :members:

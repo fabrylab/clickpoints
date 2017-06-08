@@ -130,6 +130,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
     load_thread = None
     data_file = None
 
+    signal_jump = QtCore.Signal(int)
+    signal_jumpTo = QtCore.Signal(int)
+    signal_broadcast = QtCore.Signal(str, tuple)
+
     def __init__(self, my_config, app, parent=None):
         global config
         config = my_config
@@ -236,6 +240,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
         for i in range(self.layoutButtons.count()):
             if self.layoutButtons.itemAt(i).widget():
                 self.layoutButtons.itemAt(i).widget().setFocusPolicy(Qt.NoFocus)
+
+        self.signal_jump.connect(self.JumpFrames)
+        self.signal_jumpTo.connect(self.JumpToFrame)
+        self.signal_broadcast.connect(lambda s, a: BroadCastEvent(self.modules, s, *a))
 
         self.setFocus()
 
@@ -631,6 +639,14 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         if self.data_file is None:
             return
+
+        # @key ---- Zoom ----
+        if event.key() == QtCore.Qt.Key_Plus and event.modifiers() & Qt.ControlModifier:
+            # @key Cntrl+'+' or MouseWheel: zoom in
+            self.view.scaleOrigin(1.1, QtCore.QPoint(self.view.width()/2, self.view.height()/2))
+        if event.key() == QtCore.Qt.Key_Minus and event.modifiers() & Qt.ControlModifier:
+            # @key Ctrl+'-' or MouseWheel: zoom out
+            self.view.scaleOrigin(0.9, QtCore.QPoint(self.view.width()/2, self.view.height()/2))
 
         # @key ---- Frame jumps ----
         if event.key() == QtCore.Qt.Key_Left and not event.modifiers() & Qt.ControlModifier:

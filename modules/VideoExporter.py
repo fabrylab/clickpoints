@@ -31,7 +31,7 @@ import re
 from PIL import ImageDraw, Image, ImageFont
 from scipy.ndimage import shift
 
-from Tools import HTMLColorToRGB, BoundBy
+from Tools import HTMLColorToRGB, BoundBy, BroadCastEvent
 from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox, AddQColorChoose
 
 
@@ -308,9 +308,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
                 shape = np.array([self.preview_slice.shape[1], self.preview_slice.shape[0]])*options.export_image_scale
                 pil_image = pil_image.resize(shape.astype(int), Image.ANTIALIAS)
             draw = ImageDraw.Draw(pil_image)
+            draw.pil_image = pil_image
             # draw marker on the image
-            if marker_handler:
-                marker_handler.drawToImage(draw, start_x-offset[0], start_y-offset[1], options.export_marker_scale, options.export_image_scale)
+            BroadCastEvent(self.window.modules, "drawToImage", draw, start_x-offset[0], start_y-offset[1], options.export_marker_scale, options.export_image_scale)
             # draw timestamp
             if self.time_drawing is not None:
                 time = self.window.data_file.image.timestamp
