@@ -1,0 +1,5 @@
+[addon]
+name=Export Marker Count To XLS
+file=ExportMarkerCountToXLS.py
+icon=fa.file-excel-o
+description=This tool can be used to export marker counts to Excel.

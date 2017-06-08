@@ -1,0 +1,8 @@
+This add-on takes markers in one image and tries to find the corresponding image parts in the subsequent images.<br>
+<br>
+Create a marker type with mode <b>TYPE_Track</b>. Mark every object which should be tracked with a marker of this type.
+Start the add-on and watch the objects to be tracked. You can at any point hit the key again to stop the tracking.
+If the tracker has made errors, you can move the marker by hand and restart the tracking from the new position.<br>
+<br>
+The algorithm uses the current positions of the track and tries to find them in the next image using a sparse iterative
+Lucas-Kanade optical flow algorithm.

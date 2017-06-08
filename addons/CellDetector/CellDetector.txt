@@ -1,0 +1,4 @@
+[addon]
+name=CellDetector
+file=CellDetector.py
+icon=fa.bullseye

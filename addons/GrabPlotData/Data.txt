@@ -1,0 +1,5 @@
+[addon]
+name=Grab Plot Data
+file=GrabPlotData.py
+icon=fa.bar-chart
+description=This tool can be used to extract data from a plotted graph.
