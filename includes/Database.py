@@ -425,6 +425,10 @@ class DataFile(DataFileBase):
         # return the current image index
         return self.current_image_index
 
+    def get_current_layer(self):
+        # return the current image index
+        return self.current_layer
+
     def load_frame(self, index, threaded, layer=0):
         # check if frame is already buffered then we don't need to load it
         if self.buffer.get_frame(index) is not None:
