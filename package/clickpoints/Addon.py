@@ -147,7 +147,7 @@ class Command:
             return
         # if no frame is given use the current frame
         if frame is None:
-            frame = self.data_file.get_current_image()
+            frame = self.window.data_file.get_current_image()
         self.window.signal_broadcast.emit("ReloadMarker", (frame,))
 
     def reloadTypes(self):
