@@ -2706,7 +2706,7 @@ class DataFile:
 
         return query
 
-    def setMarker(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, style=None, text=None, id=None, layer=None):
+    def setMarker(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, style=None, text=None, id=None, layer=0):
         """
         Insert or update an :py:class:`Marker` object in the database.
 
