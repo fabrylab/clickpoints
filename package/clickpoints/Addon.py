@@ -181,6 +181,17 @@ class Command:
         self.window.GetModule("MarkerHandler").SetActiveMarkerType(new_type=type)
         self.window.GetModule("MarkerHandler").ToggleInterfaceEvent(hidden=False)
 
+    def updateImageCount(self):
+        """
+        Notify ClickPoints that the count of images has changed. Has to be called when layers of images have changed or images have been added or removed.
+
+        """
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
+        self.window.data_file.image_count = None
+        self.window.GetModule("Timeline").ImagesAddedMain()
+
     def hasTerminateSignal(self):
         """
         Weather the run function is scheduled to stop
