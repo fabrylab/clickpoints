@@ -241,3 +241,6 @@ class Addon(QtWidgets.QWidget):
 
     def run(self, start_frame=0):
         pass
+
+    def delete(self):
+        pass
