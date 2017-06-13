@@ -2136,35 +2136,37 @@ class MarkerHandler:
         # get the database connection and set query results to sqlite3.Row
         conn = self.data_file.db.get_conn()
         conn.row_factory = sqlite3.Row
-        # iterate over the frame range
-        for frame in range(start, end + 1):
-            # add to loaded images
-            loaded_images.append(frame)
-            # only load if it is not marked as cached
-            if frame not in self.cached_images:
-                # query image
-                im = conn.execute('SELECT id FROM image WHERE sort_index IS ? LIMIT 1', (frame,)).fetchone()
-                # query offset
-                offset = conn.execute('SELECT x, y FROM offset WHERE image_id IS ? LIMIT 1', (im["id"],)).fetchone()
-                if offset:
-                    offx, offy = (offset["x"], offset["y"])
-                else:
-                    offx, offy = (0, 0)
+        try:
+            # iterate over the frame range
+            for frame in range(start, end + 1):
+                # add to loaded images
+                loaded_images.append(frame)
+                # only load if it is not marked as cached
+                if frame not in self.cached_images:
+                    # query image
+                    im = conn.execute('SELECT id FROM image WHERE sort_index IS ? LIMIT 1', (frame,)).fetchone()
+                    # query offset
+                    offset = conn.execute('SELECT x, y FROM offset WHERE image_id IS ? LIMIT 1', (im["id"],)).fetchone()
+                    if offset:
+                        offx, offy = (offset["x"], offset["y"])
+                    else:
+                        offx, offy = (0, 0)
 
-                # query markers
-                query = conn.execute('SELECT * FROM marker WHERE image_id IS ? AND track_id', (im["id"],))
-                for marker in query:
-                    # get track id
-                    track_id = marker["track_id"]
-                    # add to marker_list
-                    if track_id not in self.marker_lists:
-                        self.marker_lists[track_id] = SortedDict()
-                    self.marker_lists[track_id][frame] = ((marker["x"] + offx, marker["y"] + offy), marker)
-                    # if the track doesn't have a display item we will query it later
-                    if track_id not in self.tracks:
-                        new_tracks.append(track_id)
-        # set query result type back to default
-        conn.row_factory = None
+                    # query markers
+                    query = conn.execute('SELECT * FROM marker WHERE image_id IS ? AND track_id', (im["id"],))
+                    for marker in query:
+                        # get track id
+                        track_id = marker["track_id"]
+                        # add to marker_list
+                        if track_id not in self.marker_lists:
+                            self.marker_lists[track_id] = SortedDict()
+                        self.marker_lists[track_id][frame] = ((marker["x"] + offx, marker["y"] + offy), marker)
+                        # if the track doesn't have a display item we will query it later
+                        if track_id not in self.tracks:
+                            new_tracks.append(track_id)
+        finally:
+            # set query result type back to default
+            conn.row_factory = None
 
         # query track entries for new tracks found in the images which were loaded
         if len(new_tracks):
