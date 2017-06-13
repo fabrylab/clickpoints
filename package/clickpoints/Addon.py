@@ -37,7 +37,6 @@ def show():
     canvas.draw()
     if canvas.window:
         canvas.window.scheduleShow()
-plt.show = show
 
 
 def figure(num=None, size=None, *args, **kwargs):
@@ -52,7 +51,6 @@ def figure(num=None, size=None, *args, **kwargs):
         figures[num].window.setGeometry(100, 100, size[0] * 80, size[1] * 80)
     _pylab_helpers.Gcf.set_active(canvas.manager)
     return canvas.figure
-plt.figure = figure
 
 
 class Command:
@@ -216,6 +214,8 @@ class Command:
 class Addon(QtWidgets.QWidget):
     def __init__(self, database, command=None, name=""):
         QtWidgets.QWidget.__init__(self)
+        plt.show = show
+        plt.figure = figure
         self.cp = Command(command)
         if isinstance(database, str):
             self.db = clickpoints.DataFile(database)
