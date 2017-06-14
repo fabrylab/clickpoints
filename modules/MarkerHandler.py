@@ -2144,7 +2144,7 @@ class MarkerHandler:
                 # only load if it is not marked as cached
                 if frame not in self.cached_images:
                     # query image
-                    im = conn.execute('SELECT id FROM image WHERE sort_index IS ? LIMIT 1', (frame,)).fetchone()
+                    im = conn.execute('SELECT id FROM image WHERE sort_index IS ? AND layer IS 0 LIMIT 1', (frame,)).fetchone()
                     # query offset
                     offset = conn.execute('SELECT x, y FROM offset WHERE image_id IS ? LIMIT 1', (im["id"],)).fetchone()
                     if offset:
