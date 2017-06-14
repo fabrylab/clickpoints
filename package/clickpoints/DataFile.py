@@ -617,6 +617,9 @@ class DataFile:
                       .format(self.id, self.image, self.x, self.y, self.type, self.processed, self.track, self.style, self.text))
 
             def correctedXY(self):
+                offset = self.image.offset
+                # print("---", self.image)
+                # print("----", offset)
                 join_condition = ((Marker.image == Offset.image))
 
                 querry = Marker.select(Marker.x,
@@ -628,6 +631,7 @@ class DataFile:
 
 
                 for q in querry:
+                    # print("query", q.offset.x)
                     if not (q.offset.x is None) or not (q.offset.y is None):
                         pt = [q.x + q.offset.x, q.y + q.offset.y]
                     else:
