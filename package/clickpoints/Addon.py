@@ -223,15 +223,24 @@ class Command:
 
 
 class Addon(QtWidgets.QWidget):
-    def __init__(self, database, command=None, name=""):
+    def __init__(self, database, command=None, name="", database_class=None):
         QtWidgets.QWidget.__init__(self)
         plt.show = show
         plt.figure = figure
         self.cp = Command(command)
         if isinstance(database, str):
-            self.db = clickpoints.DataFile(database)
+            if database_class:
+                self.db = database_class(database)
+            else:
+                self.db = clickpoints.DataFile(database)
         else:
             self.db = database
+            if database_class is not None:
+                _options = self.db._options
+                _options_by_key = self.db._options_by_key
+                self.db = database_class(self.db.db.database)
+                self.db._options = _options
+                self.db._options_by_key = _options_by_key
         self.addon_name = name
         self.db._last_category = "Addon - "+name
 
