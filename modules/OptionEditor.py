@@ -369,12 +369,11 @@ class OptionEditor:
         self.config = data_file.getOptionAccess()
 
     def showDialog(self):
-        if self.OptionsWindow:
-            self.OptionsWindow.raise_()
-            self.OptionsWindow.show()
-        else:
-            self.OptionsWindow = OptionEditorWindow(self.window, self.data_file)
-            self.OptionsWindow.show()
+        if self.OptionsWindow is not None:
+            self.OptionsWindow.close()
+            self.OptionsWindow = None
+        self.OptionsWindow = OptionEditorWindow(self.window, self.data_file)
+        self.OptionsWindow.show()
 
     def closeEvent(self, event):
         if self.OptionsWindow:
