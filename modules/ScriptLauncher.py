@@ -128,7 +128,7 @@ class Script(QtCore.QObject):
             sys.path.pop(0)
         if "Addon" not in dir(self.addon_module):
             raise NameError("No addon module found in " + path)
-        self.process = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name)
+        self.process = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name, icon=self.icon)
         self.process.run = wrap_run(self.process.run, self)
 
         self.active = True
@@ -163,14 +163,18 @@ class Script(QtCore.QObject):
         self.timer.stop()
 
     def run(self, start_frame):
-        if self.run_thread and self.run_thread.isAlive():
-            self.process.terminate()
-            self.run_thread.join(1)
-            self.run_thread = None
+        if "interface" in dir(self.process):
+            self.process.interface()
         else:
-            self.run_thread = threading.Thread(target=self.process.run, args=(start_frame, ))
-            self.run_thread.daemon = True
-            self.run_thread.start()
+            self.process.run_threaded()
+            #if self.run_thread and self.run_thread.isAlive():
+            #    self.process.terminate()
+            #    self.run_thread.join(1)
+            #    self.run_thread = None
+            #else:
+            #    self.run_thread = threading.Thread(target=self.process.run, args=(start_frame, ))
+            #    self.run_thread.daemon = True
+            #    self.run_thread.start()
 
     def reload(self):
         button = self.button
@@ -429,6 +433,8 @@ class ScriptLauncher(QtCore.QObject):
     def closeEvent(self, event):
         if self.scriptSelector:
             self.scriptSelector.close()
+        for script in self.active_scripts:
+            script.process.close()
 
     @staticmethod
     def file():

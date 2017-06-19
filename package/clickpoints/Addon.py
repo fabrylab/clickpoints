@@ -27,6 +27,7 @@ from matplotlib import pyplot as plt
 
 from matplotlibwidget import CanvasWindow
 from matplotlib import _pylab_helpers
+import threading
 
 figures = {}
 
@@ -166,6 +167,21 @@ class Command:
         image = self.window.data_file.get_image_data(int(value))
         return image
 
+    def getCurrentFrame(self):
+        """
+        Get the current ClickPoints frame.
+        
+        Returns
+        -------
+        frame : int
+            the currently selected frame in ClickPoints
+
+        """
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
+        return self.window.data_file.current_image_index
+
     def selectMarkerType(self, type):
         """
         Select a given marker type in ClickPoints.
@@ -223,7 +239,9 @@ class Command:
 
 
 class Addon(QtWidgets.QWidget):
-    def __init__(self, database, command=None, name="", database_class=None):
+    _run_thread = None
+
+    def __init__(self, database, command=None, name="", database_class=None, icon=None):
         QtWidgets.QWidget.__init__(self)
         plt.show = show
         plt.figure = figure
@@ -245,6 +263,8 @@ class Addon(QtWidgets.QWidget):
         self._options_category = "Addon - "+name
         self.db._last_category = self._options_category
 
+        self.setWindowIcon(icon)
+
     def _warpOptionKey(self, key):
         return "addon_" + self.addon_name.replace(" ", "") + "_" + key
 
@@ -262,6 +282,23 @@ class Addon(QtWidgets.QWidget):
 
     def terminate(self):
         self.cp.stop = True
+        self._run_thread.join(1)
+        self._run_thread = None
+
+    def is_running(self):
+        if self._run_thread and self._run_thread.isAlive():
+            return True
+        return False
+
+    def run_threaded(self, start_frame=None):
+        if self.is_running():
+            self.terminate()
+        else:
+            if start_frame is None or isinstance(start_frame, bool):
+                start_frame = self.cp.getCurrentFrame()
+            self._run_thread = threading.Thread(target=self.run, args=(start_frame,))
+            self._run_thread.daemon = True
+            self._run_thread.start()
 
     def run(self, start_frame=0):
         pass
