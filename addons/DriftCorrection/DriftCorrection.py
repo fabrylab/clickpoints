@@ -47,8 +47,11 @@ class Addon(clickpoints.Addon):
         compare_to_first = self.getOption("compareToFirst")
         border_x, border_y = self.getOption("borderSize")
 
+        # get range
+        start_frame, end_frame = self.cp.getFrameRange()
+
         # try to load marker
-        rect = self.db.getRectangles(type="drift_rect")
+        rect = self.db.getRectangles(type="drift_rect", frame=start_frame)
         print(rect)
         print("count:", rect.count())
         if rect.count() < 1:
@@ -57,7 +60,7 @@ class Addon(clickpoints.Addon):
         rect = rect[0]
 
         # Get images and template
-        images = self.db.getImageIterator(start_frame=start_frame)
+        images = self.db.getImageIterator(start_frame=start_frame, end_frame=end_frame)
         print('slices:', rect.slice_y(), rect.slice_x)
         print(rect.slice_y().start - border_y, rect.slice_y().stop + border_y, rect.slice_x().start - border_x,
               rect.slice_x().stop + border_x)

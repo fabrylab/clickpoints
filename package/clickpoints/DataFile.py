@@ -1784,6 +1784,7 @@ class DataFile:
             return self.table_image.get(**kwargs)
         except peewee.DoesNotExist:
             KeyError("No image with %s found." % VerboseDict(kwargs))
+
     def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, layer=0, order_by="sort_index"):
         """
         Get all :py:class:`Image` entries sorted by sort index. For large databases
