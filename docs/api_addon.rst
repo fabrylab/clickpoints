@@ -122,6 +122,23 @@ add, get and set options:
         - **key** *(str)* - the name of the option.
         - **value** *(str, int, float, list)* - the new value of the option.
 
+.. py:function:: getOptions()
+
+   Return a list of all options of this add-on. The list contains option objects with the following properties:
+
+   Properties:
+        - **key** *(str)* - the name of the option.
+        - **value** *(str, int, float, list)* - the current value of the option.
+        - **default** *(str, int, float, list)* - the default value for the option.
+        - **value_type** *(str)* - the type of the value, can be *string*, *int*, *float*, *bool*, *choice*
+        - **values** *(list)* - allowed values if the type is *choice*.
+        - **display_name** *(str)* - the name to display in the option menu.
+        - **hidden** *(bool)* - weather the option should be displayed in the option menu.
+        - **tooltip** *(str)* - the tooltip of the option in the option menu.
+        - **min_value** *(number)* - the minimal value for a *int* or *float* option.
+        - **max_value** *(number)* - the maximum value for a *int* or *float* option.
+        - **value_count** *(int)* - it the option should accept a list of values. Only for *int* values.
+
 Commands
 --------
 
