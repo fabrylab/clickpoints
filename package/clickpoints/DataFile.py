@@ -399,7 +399,7 @@ class DataFile:
                     # compose the path
                     if platform.system() == 'Linux' and self.path.path.startswith("\\\\"):
                         # replace samba path for linux
-                        path = os.path.join("/mnt", self.path.path[2:], self.filename)
+                        path = os.path.join("/mnt", self.path.path[2:], self.filename).replace("\\", "/")
                     else:
                         path = os.path.join(os.path.dirname(self.database_class._database_filename), self.path.path, self.filename)
                     # get the reader (open the file)
