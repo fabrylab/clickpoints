@@ -182,6 +182,22 @@ class Command:
             return
         return self.window.data_file.current_image_index
 
+    def getFrameRange(self):
+        """
+        Get the current ClickPoints frame range from the start marker to the end marker.
+
+        Returns
+        -------
+        range : list
+            the start and end marker position.
+
+        """
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
+        timeline = self.window.GetModule("Timeline")
+        return [timeline.frameSlider.startValue(), timeline.frameSlider.endValue()]
+
     def selectMarkerType(self, type):
         """
         Select a given marker type in ClickPoints.
