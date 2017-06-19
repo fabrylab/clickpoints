@@ -242,7 +242,8 @@ class Addon(QtWidgets.QWidget):
                 self.db._options = _options
                 self.db._options_by_key = _options_by_key
         self.addon_name = name
-        self.db._last_category = "Addon - "+name
+        self._options_category = "Addon - "+name
+        self.db._last_category = self._options_category
 
     def _warpOptionKey(self, key):
         return "addon_" + self.addon_name.replace(" ", "") + "_" + key
@@ -252,6 +253,9 @@ class Addon(QtWidgets.QWidget):
 
     def getOption(self, key):
         return self.db.getOption(key=self._warpOptionKey(key))
+
+    def getOptions(self):
+        return self.db._options_by_key[self._options_category]
 
     def setOption(self, key, value):
         return self.db.setOption(key=self._warpOptionKey(key), value=value)
