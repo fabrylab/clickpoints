@@ -109,6 +109,23 @@ def connectTrackGap(path_line, path_gap, x, y):
     path_line.moveTo(x, y)
     path_gap.lineTo(x, y)
 
+
+class TrackMarkerObject:
+    save_pos = None
+
+    def __init__(self, pos, data):
+        self.pos = pos
+        self.data = data
+        if self.data["style"]:
+            self.style = json.loads(self.data["style"])
+            if "color" in self.style:
+                self.style["color"] = QtGui.QColor(*HTMLColorToRGB(self.style["color"]))
+
+    def getStyle(self, name, default):
+        if self.data["style"] and name in self.style:
+            return self.style[name]
+        return default
+
 class MarkerFile:
     def __init__(self, datafile):
         self.data_file = datafile
@@ -978,11 +995,14 @@ class MyNonGrabberItem(QtWidgets.QGraphicsPathItem):
         # adjust scale
         super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value*self.scale_animation*self.scale_hover)
 
-    def delete(self):
-        self.setAcceptedMouseButtons(Qt.MouseButtons(0))
-        self.setAcceptHoverEvents(False)
-        self.setParentItem(self.parentItem().parentItem())
-        AnimationChangeScale(self, start=1, end=0, endcall=lambda: self.scene().removeItem(self))
+    def delete(self, just_remove=False):
+        if just_remove:
+            self.scene().removeItem(self)
+        else:
+            self.setAcceptedMouseButtons(Qt.MouseButtons(0))
+            self.setAcceptHoverEvents(False)
+            self.setParentItem(self.parentItem().parentItem())
+            AnimationChangeScale(self, start=1, end=0, endcall=lambda: self.scene().removeItem(self))
 
 
 class MyDisplayItem:
@@ -1094,8 +1114,8 @@ class MyDisplayItem:
     def GetText(self):
         # check for track marker text entry (only applicable for tracks)
         if isinstance(self.data, self.marker_handler.data_file.table_track) and \
-                        self.marker is not None and self.marker["text"] is not None:
-            return self.marker["text"]
+                        self.marker is not None and self.marker.data["text"] is not None:
+            return self.marker.data["text"]
 
         # check for self text entry (this should be a single marker or the track)
         if self.data.text is not None:
@@ -1128,9 +1148,15 @@ class MyDisplayItem:
             else:
                 text = text.replace('$track_id', '??')
         if '$marker_id' in text:
-            data = self.data if type(self.data) is not self.marker_handler.data_file.table_track else self.marker
-            if data and data.id:
-                text = text.replace('$marker_id', '%d' % data.id)
+            id = None
+            data = self.data if type(self.data) is not self.marker_handler.data_file.table_track else self.marker.data if self.marker else None
+            if data:
+                try:
+                    id = data.id
+                except AttributeError:
+                    id = data["id"]
+            if id:
+                text = text.replace('$marker_id', '%d' % id)
             else:
                 text = text.replace('$marker_id', '??')
         if '$x' in text:
@@ -1475,7 +1501,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def init2(self):
         self.g1 = MyGrabberItem(self, self.color, 0, 0, shape="cross")
         self.text_parent = self.g1
-        self.marker_draw_items = []
+        self.marker_draw_items = {}
 
         self.path2 = QtWidgets.QGraphicsPathItem(self)  # second path for the lines to cover gaps
         pen = self.path2.pen()
@@ -1488,7 +1514,12 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.updateDisplay()
 
     def update(self, frame, marker_new):
-        self.markers[frame] = ((marker_new.x + self.cur_off[0], marker_new.y + self.cur_off[1]), dict(text=marker_new.text, style=marker_new.style))
+        marker_new = dict(x=marker_new.x, y=marker_new.y, id=marker_new.id, type=marker_new.type, style=marker_new.style, text=marker_new.text)
+        self.markers[frame] = TrackMarkerObject((marker_new["x"] + self.cur_off[0], marker_new["y"] + self.cur_off[1]), marker_new)
+
+        self.marker_draw_items[frame].delete(just_remove=True)
+        del self.marker_draw_items[frame]
+
         self.ApplyStyle()
         self.updateDisplay()
 
@@ -1507,17 +1538,21 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         if shape not in paths:
             shape = None
 
+        for frame in self.marker_draw_items:
+            self.marker_draw_items[frame].to_remove = True
+
         # set first connect (moveTo for path_line and path_gap)
         connect_function = connectTrackFirst
         # iterate over range
         last_frame = None
-        for index, frame in enumerate(markers):
+        for frame in markers:
+            marker = markers[frame]
             # with the track doesn't have marker at this frame, ignore the frame
             if last_frame is not None and frame-1 != last_frame:
                 # next connect is a gap connect (moveTo for path_line and lineTo for path_gap)
                 connect_function = connectTrackGap
             # get the next point
-            x, y = (markers[frame][0][0]-cur_off[0], markers[frame][0][1]-cur_off[1])
+            x, y = (marker.pos[0]-cur_off[0], marker.pos[1]-cur_off[1])
             # connect path_line and path_gap according to the current function
             connect_function(path_line, path_gap, x, y)
             # next connect is a gap connect (lineTo for path_line and moveTo for path_gap)
@@ -1525,23 +1560,22 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             last_frame = frame
             # add or move a point marker to this position
             if shape:
-                if index >= len(self.marker_draw_items):
-                    self.marker_draw_items.append(MyNonGrabberItem(self, self.color, x, y, shape=shape, scale=circle_width))
-                else:
-                    self.marker_draw_items[index].setPos(x, y)
-        index += 1
-        if index < len(self.marker_draw_items):
-            for index2 in range(index, len(self.marker_draw_items)):
-                self.marker_draw_items[index2].delete()
-            self.marker_draw_items = self.marker_draw_items[:index]
+                if frame not in self.marker_draw_items:
+                    self.marker_draw_items[frame] = MyNonGrabberItem(self, marker.getStyle("color", self.color), x, y, shape=marker.getStyle("shape", shape), scale=marker.getStyle("scale", circle_width))
+                self.marker_draw_items[frame].to_remove = False
+        frames = [k for k in self.marker_draw_items.keys()]
+        for frame in frames:
+            if self.marker_draw_items[frame].to_remove:
+                self.marker_draw_items[frame].delete()
+                del self.marker_draw_items[frame]
 
         # set the line and gap path
         self.path2.setPath(path_gap)
         self.setPath(path_line)
         # move the grabber
         if framenumber in markers:
-            self.g1.setPos(*markers[framenumber][0])
-            self.marker = markers[framenumber][1]
+            self.g1.setPos(*markers[framenumber].pos)
+            self.marker = markers[framenumber]
             self.setTrackActive(True)
         else:
             self.marker = None
@@ -1579,9 +1613,11 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                                                                      type=self.data.type,
                                                                      track=self.data, text=None)
             marker.save()
-            self.marker = dict(id=marker.id, type=marker.type, track=marker.track, image=image, text=None)
+            self.marker = TrackMarkerObject([0, 0], dict(id=marker.id, type=marker.type, track=marker.track, image=image, text=None, style={}))
             self.setTrackActive(True)
-        self.markers[self.current_frame] = ((pos.x()+self.cur_off[0], pos.y()+self.cur_off[1]), self.marker, (pos.x(), pos.y()))
+        self.markers[self.current_frame].pos = (pos.x()+self.cur_off[0], pos.y()+self.cur_off[1])
+        self.markers[self.current_frame].save_pos = (pos.x(), pos.y())
+        self.marker_draw_items[self.current_frame].setPos(*self.markers[self.current_frame].pos)
 
     def graberMoved(self, grabber, pos, event):
         self.addPoint(pos)
@@ -1679,12 +1715,15 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         MyDisplayItem.delete(self, just_display=True)
 
     def save(self):
+        pass
         # if there is a marker at the current frame and it has a new position, save it
-        if self.current_frame in self.markers and len(self.markers[self.current_frame]) == 3:
+        if self.current_frame in self.markers and self.markers[self.current_frame].save_pos is not None:
             # get new position
-            _, _, pos = self.markers[self.current_frame]
+            pos = self.markers[self.current_frame].save_pos
             # store it in the database
-            self.marker_handler.marker_file.table_marker.update(x=pos[0], y=pos[1], processed=0).where(self.marker_handler.marker_file.table_marker.id == self.marker["id"]).execute()
+            self.marker_handler.marker_file.table_marker.update(x=pos[0], y=pos[1], processed=0).where(self.marker_handler.marker_file.table_marker.id == self.marker.data["id"]).execute()
+            # set the save position to None
+            self.markers[self.current_frame].save_pos = None
 
 
 class Crosshair(QtWidgets.QGraphicsPathItem):
@@ -2163,7 +2202,7 @@ class MarkerHandler:
                         # add to marker_list
                         if track_id not in self.marker_lists:
                             self.marker_lists[track_id] = SortedDict()
-                        self.marker_lists[track_id][frame] = ((marker["x"] + offx, marker["y"] + offy), marker)
+                        self.marker_lists[track_id][frame] = TrackMarkerObject((marker["x"] + offx, marker["y"] + offy), marker)
                         # if the track doesn't have a display item we will query it later
                         if track_id not in self.tracks:
                             new_tracks.append(track_id)
