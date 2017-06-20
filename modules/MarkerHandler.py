@@ -110,6 +110,66 @@ def connectTrackGap(path_line, path_gap, x, y):
     path_gap.lineTo(x, y)
 
 
+def colorToTuple(color):
+    return (color.red(), color.green(), color.blue())
+
+
+def drawLine(image, start, end, color, width, style):
+
+    if not isinstance(color, tuple):
+        color = colorToTuple(color)
+
+    pattern = [1]
+    if style == "dash":
+        pattern = [7, 4]
+    elif style == "dot":
+        pattern = [1, 3]
+    elif style == "dashdot":
+        pattern = [7, 4, 2, 4]
+    elif style == "dashdotdot":
+        pattern = [7, 4, 2, 4, 2, 4]
+    pattern = np.array(pattern) * width / 2
+    total = sum(pattern)
+    repetitions = int(len(pattern) / 2)
+
+    # solid line
+    if len(pattern) == 1:
+        image.line(np.concatenate((start, end)).tolist(), color, width=int(width))
+    else:
+        difference = end - start
+        distance = np.linalg.norm(difference)
+        difference = difference / distance
+
+        current_pos = start
+        for i in range(int(distance / total)):
+            for rep in range(repetitions):
+                new_pos = current_pos + difference * pattern[rep * 2]
+                image.line(np.concatenate((current_pos, new_pos)).tolist(), color, width=int(width))
+                current_pos = new_pos + difference * pattern[rep * 2 + 1]
+        image.line(np.concatenate((current_pos, end)).tolist(), color, width=int(width))
+
+
+def drawMarker(image, point, color, width, shape):
+    if not isinstance(color, tuple):
+        color = colorToTuple(color)
+
+    if shape == "ring":
+        image.arc(np.concatenate((point - .5 * width, point + .5 * width)).tolist(), 0, 360, color)
+    elif shape == "circle":
+        image.arc(np.concatenate((point - .5 * width, point + .5 * width)).tolist(), color)
+    elif shape == "rect":
+        image.rectangle(np.concatenate((point - .5 * width, point + .5 * width)).tolist(), color)
+    elif shape == "cross":
+        w = 1. * width / 10
+        b = (10 - 7) * width / 10
+        r2 = 10 * width / 10
+        x, y = point
+        image.rectangle([x - w, y - r2, x + w, y - b], color)
+        image.rectangle([x - w, y + b, x + w, y + r2], color)
+        image.rectangle([x - r2, y - w, x - b, y + w], color)
+        image.rectangle([x + b, y - w, x + r2, y + w], color)
+
+
 class TrackMarkerObject:
     save_pos = None
 
@@ -1204,17 +1264,12 @@ class MyDisplayItem:
         pass
 
     def drawMarker(self, image, start_x, start_y, scale=1, image_scale=1):
-        w = 1. * scale * self.style.get("scale", 1)
-        b = (10 - 7) * scale * self.style.get("scale", 1)
-        r2 = 10 * scale * self.style.get("scale", 1)
+        marker_scale = scale * self.style.get("scale", 1)
+        marker_shape = self.style.get("shape", "cross")
         x, y = self.g1.pos().x() - start_x, self.g1.pos().y() - start_y
         x *= image_scale
         y *= image_scale
-        color = (self.color.red(), self.color.green(), self.color.blue())
-        image.rectangle([x - w, y - r2, x + w, y - b], color)
-        image.rectangle([x - w, y + b, x + w, y + r2], color)
-        image.rectangle([x - r2, y - w, x - b, y + w], color)
-        image.rectangle([x + b, y - w, x + r2, y + w], color)
+        drawMarker(image, np.array([x, y]), self.color, marker_scale*10, marker_shape)
 
     def graberDelete(self, grabber):
         self.delete()
@@ -1614,10 +1669,12 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                                                                      track=self.data, text=None)
             marker.save()
             self.marker = TrackMarkerObject([0, 0], dict(id=marker.id, type=marker.type, track=marker.track, image=image, text=None, style={}))
+            self.markers[self.current_frame] = self.marker
             self.setTrackActive(True)
         self.markers[self.current_frame].pos = (pos.x()+self.cur_off[0], pos.y()+self.cur_off[1])
         self.markers[self.current_frame].save_pos = (pos.x(), pos.y())
-        self.marker_draw_items[self.current_frame].setPos(*self.markers[self.current_frame].pos)
+        if self.marker_draw_items and self.current_frame in self.marker_draw_items:
+            self.marker_draw_items[self.current_frame].setPos(*self.markers[self.current_frame].pos)
 
     def graberMoved(self, grabber, pos, event):
         self.addPoint(pos)
@@ -1646,7 +1703,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             # delete entry from list
             data = self.markers.pop(frame)
             # delete entry from database
-            self.marker_handler.marker_file.table_marker.delete().where(self.marker_handler.marker_file.table_marker.id == data[1]["id"]).execute()
+            self.marker_handler.marker_file.table_marker.delete().where(self.marker_handler.marker_file.table_marker.id == data.data["id"]).execute()
             # if it is the current frame, delete reference to marker
             if frame == self.current_frame:
                 self.marker = None
@@ -1691,24 +1748,35 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.path2.setPen(pen)
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
+        if self.active:
+            super(MyTrackItem, self).drawMarker(image, start_x, start_y, scale, image_scale)
         scale *= self.style.get("scale", 1)
+
         color = (self.color.red(), self.color.green(), self.color.blue())
-        circle_width = 10 * scale
+        circle_width = scale * self.style.get("track-point-scale", 1)
+        shape = self.style.get("track-point-shape", "ring")
+        line_style = self.style.get("track-line-style", "solid")
+        line_width = scale * self.style.get("track-line-width", 2)
+        gap_line_style = self.style.get("track-gap-line-style", "dash")
+        gap_line_width = scale * self.style.get("track-gap-line-width", self.style.get("track-line-width", 2))
         last_frame = None
         last_point = np.array([0, 0])
         offset = np.array([start_x, start_y])
         for frame in self.markers:
-            x, y = self.markers[frame][0]
+            marker = self.markers[frame]
+            x, y = marker.pos
             point = np.array([x + self.cur_off[0], y + self.cur_off[1]]) - offset
             point *= image_scale
 
             if last_frame == frame - 1:
-                image.line(np.concatenate((last_point, point)).tolist(), color, width=int(2 * scale))
-            image.arc(np.concatenate((point - .5 * circle_width, point + .5 * circle_width)).tolist(), 0, 360, color)
+                drawLine(image, last_point, point, color, line_width, line_style)
+            elif last_frame:
+                drawLine(image, last_point, point, color, gap_line_width, gap_line_style)
+            marker_shape = marker.getStyle("shape", shape)
+            marker_width = marker.getStyle("scale", circle_width)*10
+            drawMarker(image, point, marker.getStyle("color", self.color), marker_width, marker_shape)
             last_point = point
             last_frame = frame
-        if self.active:
-            super(MyTrackItem, self).drawMarker(image, start_x, start_y, scale, image_scale)
 
     def delete(self, just_display=False):
         # as the track entry removes itself, we always just want do delete the display
@@ -2464,10 +2532,6 @@ class MarkerHandler:
         if self.active and 0 <= numberkey < 9 and event.modifiers() != Qt.KeypadModifier:
             # @key 0-9: change marker type
             self.SetActiveMarkerType(numberkey)
-
-        if event.key() == QtCore.Qt.Key_T:
-            # @key T: toggle marker shape
-            self.toggleMarkerShape()
 
     def ToggleInterfaceEvent(self, event=None, hidden=None):
         if hidden is None:
