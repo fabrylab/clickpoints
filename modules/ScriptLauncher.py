@@ -50,18 +50,10 @@ except ImportError:
     reload
 
 
-def wrap_run(run, script):
-
-    def wrapper(*args, **kwargs):
-        script.run_started()
-        try:
-            run(*args, **kwargs)
-        finally:
-            script.run_stopped()
-
-    return wrapper
+path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
 
 
+# implement the fallback keyword for the ConfigParser in Python 2.7
 def wrap_get(function):
     def wrapper(section, name, raw=True, fallback=None):
         try:
@@ -72,16 +64,13 @@ def wrap_get(function):
 
 
 class Script(QtCore.QObject):
-    loaded = False
-    process = None
-
     active = False
-    is_running = False
+    loaded = False
 
+    addon_class_instance = None
+
+    script_launcher = None
     button = None
-    run_thread = None
-
-    start_timer = QtCore.Signal()
 
     def __init__(self, filename):
         QtCore.QObject.__init__(self)
@@ -104,14 +93,13 @@ class Script(QtCore.QObject):
         self.script = parser.get("addon", "file", fallback="Script.py")
         self.script = os.path.join(os.path.dirname(filename), self.script)
 
-        if self.icon.startswith("fa."):
+        if self.icon.startswith("fa.") or self.icon.startswith("ei."):
             self.icon = qta.icon(self.icon)
         else:
             self.icon = QtGui.QIcon(self.icon)
 
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.checkProcessRunning)
-        self.start_timer.connect(self.startTimer)
+        self.hourglassAnimationTimer = QtCore.QTimer()
+        self.hourglassAnimationTimer.timeout.connect(self.displayHourglassAnimation)
 
     def activate(self, script_launcher):
         self.script_launcher = script_launcher
@@ -128,53 +116,40 @@ class Script(QtCore.QObject):
             sys.path.pop(0)
         if "Addon" not in dir(self.addon_module):
             raise NameError("No addon module found in " + path)
-        self.process = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name, icon=self.icon)
-        self.process.run = wrap_run(self.process.run, self)
+        self.addon_class_instance = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name, icon=self.icon)
 
         self.active = True
 
     def deactivate(self):
-        self.process.delete()
+        self.addon_class_instance.delete()
         self.active = False
         self.button = None
 
-    def run_started(self):
-        self.process.cp.stop = False
-        self.is_running = True
-        self.start_timer.emit()
+    def displayHourglassAnimation(self):
+        spin_icon = qta.icon(self.icon_name, 'fa.hourglass-%d' % (int(self.hourglassAnimationTimer.duration() * 2) % 3 + 1),
+                             options=[{}, {'scale_factor': 0.9, 'offset': (0.3, 0.2), 'color': QtGui.QColor(128, 0, 0)}])
+        self.button.setIcon(spin_icon)
+        self.button.setChecked(True)
 
-    def run_stopped(self):
-        self.is_running = False
-
-    def startTimer(self):
-        self.timer.start_time = time.time()
-        self.timer.duration = lambda: time.time() - self.timer.start_time
-        self.timer.start(10)
-
-    def checkProcessRunning(self):
-        if self.is_running:
-            spin_icon = qta.icon(self.icon_name, 'fa.hourglass-%d' % (int(self.timer.duration() * 2) % 3 + 1),
-                                 options=[{}, {'scale_factor': 0.9, 'offset': (0.3, 0.2), 'color': QtGui.QColor(128, 0, 0)}])
-            self.button.setIcon(spin_icon)
+    def setStatus(self, status):
+        # STATUS_Running
+        if status == 2:
+            self.hourglassAnimationTimer.start_time = time.time()
+            self.hourglassAnimationTimer.duration = lambda: time.time() - self.hourglassAnimationTimer.start_time
+            self.hourglassAnimationTimer.start()
+        # STATUS_Active
+        elif status == 1:
+            self.button.setIcon(self.icon)
             self.button.setChecked(True)
-            return
-        self.button.setIcon(self.icon)
-        self.button.setChecked(False)
-        self.timer.stop()
-
-    def run(self, start_frame):
-        if "interface" in dir(self.process):
-            self.process.interface()
+            self.hourglassAnimationTimer.stop()
+        # STATUS_Idle
         else:
-            self.process.run_threaded()
-            #if self.run_thread and self.run_thread.isAlive():
-            #    self.process.terminate()
-            #    self.run_thread.join(1)
-            #    self.run_thread = None
-            #else:
-            #    self.run_thread = threading.Thread(target=self.process.run, args=(start_frame, ))
-            #    self.run_thread.daemon = True
-            #    self.run_thread.start()
+            self.button.setIcon(self.icon)
+            self.button.setChecked(False)
+            self.hourglassAnimationTimer.stop()
+
+    def run(self):
+        self.addon_class_instance.buttonPressedEvent()
 
     def reload(self):
         button = self.button
@@ -182,8 +157,6 @@ class Script(QtCore.QObject):
         self.activate(self.script_launcher)
         self.button = button
 
-
-path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
 
 class ScriptChooser(QtWidgets.QWidget):
     def __init__(self, script_launcher):
@@ -309,13 +282,6 @@ class ScriptLauncher(QtCore.QObject):
         self.window = window
         self.modules = modules
 
-        process_dict = {'process': None, 'command_port': None, 'broadcast_port': None}
-
-        self.running_processes = [process_dict] * 10
-        self.memmap = None
-        self.memmap_path = None
-        self.memmap_size = 0
-
         self.button = QtWidgets.QPushButton()
         self.button.setIcon(qta.icon("fa.external-link"))
         self.button.clicked.connect(self.showScriptSelector)
@@ -402,8 +368,8 @@ class ScriptLauncher(QtCore.QObject):
 
     def receiveBroadCastEvent(self, function, *args, **kwargs):
         for script in self.scripts:
-            if function in dir(script.process):
-                eval("script.process." + function + "(*args, **kwargs)")
+            if function in dir(script.addon_class_instance):
+                eval("script.addon_class_instance." + function + "(*args, **kwargs)")
 
     def showScriptSelector(self):
         self.scriptSelector = ScriptChooser(self)
@@ -412,7 +378,7 @@ class ScriptLauncher(QtCore.QObject):
     def launch(self, index):
         self.window.Save()
         script = self.active_scripts[index]
-        script.run(self.data_file.get_current_image())
+        script.run()
         print("Launch", index)
 
     def reload(self, index):
@@ -434,7 +400,12 @@ class ScriptLauncher(QtCore.QObject):
         if self.scriptSelector:
             self.scriptSelector.close()
         for script in self.active_scripts:
-            script.process.close()
+            script.addon_class_instance.close()
+
+    def setStatus(self, name, status):
+        for script in self.active_scripts:
+            if script.name == name:
+                script.setStatus(status)
 
     @staticmethod
     def file():
