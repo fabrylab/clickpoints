@@ -1617,6 +1617,8 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             if shape:
                 if frame not in self.marker_draw_items:
                     self.marker_draw_items[frame] = MyNonGrabberItem(self, marker.getStyle("color", self.color), x, y, shape=marker.getStyle("shape", shape), scale=marker.getStyle("scale", circle_width))
+                else:
+                    self.marker_draw_items[frame].setPos(x, y)
                 self.marker_draw_items[frame].to_remove = False
         frames = [k for k in self.marker_draw_items.keys()]
         for frame in frames:
@@ -1629,7 +1631,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.setPath(path_line)
         # move the grabber
         if framenumber in markers:
-            self.g1.setPos(*markers[framenumber].pos)
+            self.g1.setPos(markers[framenumber].pos[0]-cur_off[0], markers[framenumber].pos[1]-cur_off[1])
             self.marker = markers[framenumber]
             self.setTrackActive(True)
         else:
@@ -1765,7 +1767,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         for frame in self.markers:
             marker = self.markers[frame]
             x, y = marker.pos
-            point = np.array([x + self.cur_off[0], y + self.cur_off[1]]) - offset
+            point = np.array([x - start_x - self.cur_off[0], y - start_y - self.cur_off[1]])# + offset
             point *= image_scale
 
             if last_frame == frame - 1:
