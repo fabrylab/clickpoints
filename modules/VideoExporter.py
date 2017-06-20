@@ -311,6 +311,18 @@ class VideoExporterDialog(QtWidgets.QWidget):
             draw.pil_image = pil_image
             # draw marker on the image
             BroadCastEvent(self.window.modules, "drawToImage", draw, start_x-offset[0], start_y-offset[1], options.export_marker_scale, options.export_image_scale)
+            # rotate the image
+            if self.data_file.getOption("rotation") != 0:
+                angle = self.data_file.getOption("rotation")
+                if angle == 90:
+                    pil_image = pil_image.transpose(Image.ROTATE_270)
+                elif angle == 180:
+                    pil_image = pil_image.transpose(Image.ROTATE_180)
+                elif angle == 270:
+                    pil_image = pil_image.transpose(Image.ROTATE_90)
+                else:
+                    pil_image = pil_image.rotate(-angle)
+                draw = ImageDraw.Draw(pil_image)
             # draw timestamp
             if self.time_drawing is not None:
                 time = self.window.data_file.image.timestamp
