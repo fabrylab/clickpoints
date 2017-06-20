@@ -324,8 +324,8 @@ class ScriptLauncher(QtCore.QObject):
     def activateScript(self, script):
         script = self.getScriptByFilename(script)
         if script is not None:
-            self.active_scripts.append(script)
             script.activate(self)
+            self.active_scripts.append(script)
 
     def deactivateScript(self, script):
         script = self.getScriptByFilename(script)

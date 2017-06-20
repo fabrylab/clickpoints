@@ -1547,6 +1547,9 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             self.marker = None
             self.setTrackActive(False)
 
+        # update text
+        self.setText(self.GetText())
+
     def ApplyStyle(self):
         MyDisplayItem.ApplyStyle(self)
         line_styles = dict(solid=Qt.SolidLine, dash=Qt.DashLine, dot=Qt.DotLine, dashdot=Qt.DashDotLine,
