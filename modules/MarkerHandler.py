@@ -826,6 +826,7 @@ class MarkerEditor(QtWidgets.QWidget):
             # get the track and remove it
             track = self.marker_handler.GetMarkerItem(self.data)
             track.delete()
+            self.data.delete_instance()
             # and then delete the tree view item
             item.parent().removeRow(item.row())
             del self.marker_modelitems[index]
