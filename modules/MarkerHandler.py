@@ -1273,6 +1273,10 @@ class MyDisplayItem:
         x *= image_scale
         y *= image_scale
         drawMarker(image, np.array([x, y]), self.color, marker_scale*10, marker_shape)
+        if self.text is not None:
+            from PIL import ImageFont
+            font = ImageFont.truetype("arial.ttf", int(12*scale))
+            image.text((x+6*scale, y+6*scale), self.text.text(), colorToTuple(self.color), font=font)
 
     def graberDelete(self, grabber):
         self.delete()
@@ -1348,18 +1352,7 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
-        super(MyMarkerItem, self).drawMarker(image, start_x, start_y, scale=1, image_scale=1)
-        # w = 1. * scale * self.style.get("scale", 1)
-        # b = (10 - 7) * scale * self.style.get("scale", 1)
-        # r2 = 10 * scale * self.style.get("scale", 1)
-        # x, y = self.g1.pos().x() - start_x, self.g1.pos().y() - start_y
-        # x *= image_scale
-        # y *= image_scale
-        # color = (self.color.red(), self.color.green(), self.color.blue())
-        # image.rectangle([x - w, y - r2, x + w, y - b], color)
-        # image.rectangle([x - w, y + b, x + w, y + r2], color)
-        # image.rectangle([x - r2, y - w, x - b, y + w], color)
-        # image.rectangle([x + b, y - w, x + r2, y + w], color)
+        super(MyMarkerItem, self).drawMarker(image, start_x, start_y, scale=scale, image_scale=image_scale)
 
     def delete(self, just_display=False):
         if not just_display:
