@@ -1002,7 +1002,7 @@ class DataFile:
         self._AddOption(key="contrast_max", default=255, value_type="float", hidden=True)
         self._AddOption(key="contrast_min", default=0, value_type="float", hidden=True)
 
-        self._AddOption(key="contrast", default={-1: [1.0, 255, 0]}, value_type="dict", hidden=True)
+        self._AddOption(key="contrast", default={0: [1.0, 255, 0]}, value_type="dict", hidden=True)
 
         self._last_category = "Marker"
         self._AddOption(key="types", default={0: ["marker", [255, 0, 0], self.TYPE_Normal]}, value_type="dict", hidden=True)
@@ -1138,6 +1138,7 @@ class DataFile:
         if self._config is not None and option.key in self._config and not entry_found:
             self.setOption(option.key, self._config[option.key])
             #print("Config", option.key, self._config[option.key])
+            #print("Config", option.key, self._config[option.key])
 
     def _stringToList(self, value):
         value = value.strip()
@@ -1161,7 +1162,6 @@ class DataFile:
             except peewee.DoesNotExist:
                 return
         else:
-
             try:
                 entry = self.table_option.get(key=option.key)
                 entry.value = value
