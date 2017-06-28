@@ -89,7 +89,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.hidden = False
         self.ToggleInterfaceEvent(hidden=True)
 
-        self.current_layer=-1
+        self.current_layer=0
 
     def closeDataFile(self):
         self.data_file = None
@@ -108,7 +108,10 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         #     self.image.Change(min_brightness=values[2])
 
         self.ToggleInterfaceEvent(hidden=self.config.contrast_interface_hidden)
-        if self.config.contrast_gamma != 1 or self.config.contrast_max != 255 or self.config.contrast_min != 0:
+        # if self.config.contrast_gamma != 1 or self.config.contrast_max != 255 or self.config.contrast_min != 0:
+        #     self.schedule_update = True
+        if self.config.contrast[self.current_layer][0] != 1. or self.config.contrast[self.current_layer][1] != 255 or \
+                        self.config.contrast[self.current_layer][2] != 0:
             self.schedule_update = True
 
     def updateHist(self, hist):
@@ -134,12 +137,15 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             self.updateHist(self.image.hist)
         if self.config:
             # self.config.contrast_gamma = value
-
-            if self.current_layer in self.config.contrast:
-                self.config.contrast[self.current_layer][0] = value
+            contrast_old = dict(self.config.contrast)
+            if self.current_layer in contrast_old:
+                old_value = contrast_old[self.current_layer]
+                old_value[0] = value
+                contrast_old.update({self.current_layer: old_value})
+                self.config.contrast = contrast_old
             else:
-                # self.config.contrast[-1][0] = value
-                self.config.contrast.update({self.current_layer: [1., 255, 0]})
+                contrast_old.update({self.current_layer: [value, 255, 0]})
+                self.config.contrast = contrast_old
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateBrightnes(self, value):
@@ -151,11 +157,15 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             self.updateHist(self.image.hist)
         if self.config:
             # self.config.contrast_max = value
-            if self.current_layer in self.config.contrast:
-                self.config.contrast[self.current_layer][1] = value
+            contrast_old = dict(self.config.contrast)
+            if self.current_layer in contrast_old:
+                old_value = contrast_old[self.current_layer]
+                old_value[1] = value
+                contrast_old.update({self.current_layer: old_value})
+                self.config.contrast = contrast_old
             else:
-                # self.config.contrast[-1][1] = value
-                self.config.contrast.update({self.current_layer: [1., 255, 0]})
+                contrast_old.update({self.current_layer: [1.0, value, 0]})
+                self.config.contrast = contrast_old
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def updateContrast(self, value):
@@ -167,12 +177,16 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             self.updateHist(self.image.hist)
         if self.config:
             # self.config.contrast_min = value
-
-            if self.current_layer in self.config.contrast:
-                self.config.contrast[self.current_layer][2] = value
+            contrast_old = dict(self.config.contrast)
+            if self.current_layer in contrast_old:
+                old_value = contrast_old[self.current_layer]
+                old_value[2] = value
+                contrast_old.update({self.current_layer: old_value})
+                self.config.contrast = contrast_old
             else:
-                # self.config.contrast[-1][2] = value
-                self.config.contrast.update({self.current_layer: [1., 255, 0]})
+                contrast_old.update({self.current_layer: [1.0, 255, value]})
+                self.config.contrast = contrast_old
+
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def setActiveLayer(self, new_index):
@@ -190,7 +204,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             if update_hist:
                 self.updateHist(self.image.hist)
         else:
-            values = self.config.contrast[-1]
+            values = self.config.contrast[0]
             for i, name in enumerate(self.sliders):
                 self.sliders[name].setValue(values[i])
             self.image.Change(gamma=values[0])
