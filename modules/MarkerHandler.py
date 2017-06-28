@@ -131,6 +131,8 @@ def drawLine(image, start, end, color, width, style):
     pattern = np.array(pattern) * width / 2
     total = sum(pattern)
     repetitions = int(len(pattern) / 2)
+    if total == 0:
+        return
 
     # solid line
     if len(pattern) == 1:
