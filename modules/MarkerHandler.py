@@ -1753,6 +1753,8 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.path2.setPen(pen)
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1):
+        if self.data.hidden or self.data.type.hidden:
+            return
         if self.active:
             super(MyTrackItem, self).drawMarker(image, start_x, start_y, scale, image_scale)
         scale *= self.style.get("scale", 1)
