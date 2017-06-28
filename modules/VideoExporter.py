@@ -374,6 +374,11 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.button_start.setHidden(False)
         self.button_stop.setHidden(True)
 
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.parent.ExporterWindow = None
+            self.close()
+
 class VideoExporter:
     data_file = None
     config = None
