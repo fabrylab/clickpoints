@@ -88,7 +88,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(videoWidget)
         Vlayout = QtWidgets.QVBoxLayout(videoWidget)
 
-        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename), "Choose Video - ClickPoints", "Videos (*.avi)")
+        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename), "Choose Video - ClickPoints", "Videos (*.avi)", lambda name: self.checkExtension(name, ".avi"))
         self.leCodec = AddQLineEdit(Vlayout, "Codec:", options.video_codec, strech=True)
         self.sbQuality = AddQSpinBox(Vlayout, 'Quality (0 lowest, 10 highest):', options.video_quality, float=False, strech=True)
         self.sbQuality.setRange(0, 10)
@@ -110,7 +110,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(gifWidget)
         Vlayout = QtWidgets.QVBoxLayout(gifWidget)
 
-        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_gif_filename), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)")
+        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_gif_filename), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)", lambda name: self.checkExtension(name, ".gif"))
 
         Vlayout.addStretch()
 
@@ -120,7 +120,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
         self.leANameIS = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_single_image_filename),
-                                           "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)")
+                                           "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", lambda name: self.checkExtension(name, ".jpg"))
         AddQLabel(Vlayout, 'Single Image will only export the current frame. Optionally, a %d placeholder will be filled with the frame number')
 
         Vlayout.addStretch()
@@ -163,6 +163,13 @@ class VideoExporterDialog(QtWidgets.QWidget):
         Hlayout.addWidget(self.button_stop)
         self.layout.addLayout(Hlayout)
 
+    def checkExtension(self, name, ext):
+        # in some versions the Qt file dialog doesn't automatically add an extension
+        basename, current_extension = os.path.splitext(name)
+        if current_extension == "":
+            return name+ext
+        return name
+
     def CheckImageFilename(self, srcpath):
         # ensure that image filenames contain %d placeholder for the number
         match = re.match(r"%\s*\d*d", srcpath)
@@ -174,7 +181,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
             if basename_new == basename:
                 basename_new = basename+"%04d"
             srcpath = os.path.join(path, basename_new+ext)
-        return srcpath
+        return self.checkExtension(srcpath, ".jpg")
 
     def StopSaving(self):
         # schedule an abortion of the export
