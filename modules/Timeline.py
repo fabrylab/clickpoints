@@ -1220,6 +1220,13 @@ class Timeline(QtCore.QObject):
             tick = self.frameSlider.getNextTickChange(self.get_current_frame())
             self.window.JumpToFrame(tick)
 
+        if event.key() == QtCore.Qt.Key_Home and event.modifiers() & Qt.ControlModifier:
+            # @key Ctrl+Home: jump to start marker
+            self.window.JumpToFrame(self.frameSlider.startValue())
+        if event.key() == QtCore.Qt.Key_End and event.modifiers() & Qt.ControlModifier:
+            # @key Ctrl+End: jump to end marker
+            self.window.JumpToFrame(self.frameSlider.endValue())
+
     def closeEvent(self, event):
         self.Play(False)
 

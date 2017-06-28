@@ -656,10 +656,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
             # @key Right: next image
             self.JumpFrames(+1)
 
-        if event.key() == QtCore.Qt.Key_Home:
+        if event.key() == QtCore.Qt.Key_Home and not event.modifiers() & Qt.ControlModifier:
             # @key Home: jump to beginning
             self.JumpToFrame(0)
-        if event.key() == QtCore.Qt.Key_End:
+        if event.key() == QtCore.Qt.Key_End and not event.modifiers() & Qt.ControlModifier:
             # @key End: jump to end
             self.JumpToFrame(self.data_file.get_image_count()-1)
 
