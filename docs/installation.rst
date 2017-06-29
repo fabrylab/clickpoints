@@ -28,11 +28,12 @@ Cutting Edge Version (Mercurial)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you prefer to have the latest version with the latest features and bugfixes, you can grab the tip version from our
-mercurial repository.
+mercurial repository. To do so, you need to install `Mercurial <https://www.mercurial-scm.org/>`_. Then you can open a command
+line in the folder where you want to install ClickPoints and run the following command:
 
     ``hg clone https://bitbucket.org/fabry_biophysics/clickpoints``
 
-For adding clickpoints to the right click menu in the file explorer, execute the ``install_clickpoints.bat`` in the installation folder.
+For adding clickpoints to the right click menu in the file explorer, execute the ``install_clickpoints.bat`` in the subfolder `installation` of your ClickPoints folder.
 
 .. warning::
     If you don't use our provided Python installation, you need to install the required packages. Missing packages will
