@@ -693,22 +693,25 @@ class DataFile(DataFileBase):
     def get_meta(self, file):
         import tifffile
         import json
-        with tifffile.TiffFile(file) as tif:
-            try:
-                metadata = tif[0].image_description
-            except AttributeError:
-                return None
-            try:
-                t = json.loads(metadata.decode('utf-8'))["Time"]
-            except (AttributeError, ValueError, KeyError):
-                return None
-            try:
-                return datetime.strptime(t, '%Y%m%d-%H%M%S')
-            except ValueError:
+        try:
+            with tifffile.TiffFile(file) as tif:
                 try:
-                    return datetime.strptime(t, '%Y%m%d-%H%M%S-%f')
-                except ValueError:
+                    metadata = tif[0].image_description
+                except AttributeError:
                     return None
+                try:
+                    t = json.loads(metadata.decode('utf-8'))["Time"]
+                except (AttributeError, ValueError, KeyError):
+                    return None
+                try:
+                    return datetime.strptime(t, '%Y%m%d-%H%M%S')
+                except ValueError:
+                    try:
+                        return datetime.strptime(t, '%Y%m%d-%H%M%S-%f')
+                    except ValueError:
+                        return None
+        except ValueError:  # invalid tiff file
+            return None
         return None
 
 
