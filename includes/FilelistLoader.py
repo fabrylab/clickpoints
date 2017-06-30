@@ -284,7 +284,7 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
                         print("ERROR:", err)
                     if len(data) > 100 or filename == select_file:
                         # split the data array in slices of 100
-                        for i in range(int(len(data)/100)):
+                        for i in range(int(len(data)/100)+1):
                             data_file.add_bulk(data[i*100:i*100+100])
                         data = []
                         # if the file is the file which should be selected jump to that frame
