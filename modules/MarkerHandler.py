@@ -21,6 +21,7 @@
 
 from __future__ import division, print_function
 import re
+import os
 import peewee
 import sqlite3
 
@@ -1293,7 +1294,10 @@ class MyDisplayItem:
             x, y = (y, image.pil_image.size[1]-x)
         # draw the text
         from PIL import ImageFont
-        font = ImageFont.truetype("arial.ttf", int(12*scale))
+        try:
+            font = ImageFont.truetype("arial.ttf", int(12*scale))
+        except IOError:
+            font = ImageFont.truetype(os.path.join(self.marker_handler.window.icon_path, "FantasqueSansMono-Regular.ttf"), int(12*scale))
         text = self.text.text()
         #alignment = image.textsize(text, font=font)
         offsetx, offsety = (6*scale, 6*scale)
