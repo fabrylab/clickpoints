@@ -1263,20 +1263,41 @@ class MyDisplayItem:
         if scale is not None:
             self.scale_value = scale
 
-    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         pass
 
-    def drawMarker(self, image, start_x, start_y, scale=1, image_scale=1):
+    def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        pass
+
+    def drawMarker(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         marker_scale = scale * self.style.get("scale", 1)
         marker_shape = self.style.get("shape", "cross")
         x, y = self.g1.pos().x() - start_x, self.g1.pos().y() - start_y
         x *= image_scale
         y *= image_scale
         drawMarker(image, np.array([x, y]), self.color, marker_scale*10, marker_shape)
-        if self.text is not None:
-            from PIL import ImageFont
-            font = ImageFont.truetype("arial.ttf", int(12*scale))
-            image.text((x+6*scale, y+6*scale), self.text.text(), colorToTuple(self.color), font=font)
+
+    def drawText(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        # only if there is a text
+        if self.text is None:
+            return
+        x, y = self.text_parent.parentItem().pos().x() - start_x, self.text_parent.parentItem().pos().y() - start_y
+        x *= image_scale
+        y *= image_scale
+        # transform coordinates, because we are printing on the rotated image
+        if rotation == 90:
+            x, y = (image.pil_image.size[0]-y, x)
+        if rotation == 180:
+            x, y = (image.pil_image.size[0] - x, image.pil_image.size[1]-y)
+        if rotation == 270:
+            x, y = (y, image.pil_image.size[1]-x)
+        # draw the text
+        from PIL import ImageFont
+        font = ImageFont.truetype("arial.ttf", int(12*scale))
+        text = self.text.text()
+        #alignment = image.textsize(text, font=font)
+        offsetx, offsety = (6*scale, 6*scale)
+        image.text((x+offsetx, y+offsety), text, colorToTuple(self.color), font=font)
 
     def graberDelete(self, grabber):
         self.delete()
@@ -1351,8 +1372,11 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.updateDisplay()
         BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
 
-    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
-        super(MyMarkerItem, self).drawMarker(image, start_x, start_y, scale=scale, image_scale=image_scale)
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyMarkerItem, self).drawMarker(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyMarkerItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def delete(self, just_display=False):
         if not just_display:
@@ -1404,12 +1428,15 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
     def drag(self, event):
         self.graberMoved(self.g2, event.pos(), event)
 
-    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
         x2, y2 = self.data.getPos2()[0] - start_x, self.data.getPos2()[1] - start_y
         x1, y1, x2, y2 = np.array([x1, y1, x2, y2])*image_scale
         color = (self.color.red(), self.color.green(), self.color.blue())
         image.line([x1, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
+
+    def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyLineItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def delete(self, just_display=False):
         if not just_display:
@@ -1499,7 +1526,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
     def drag(self, event):
         self.graberMoved(self.start_grabber, event.pos(), event)
 
-    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
         x2, y2 = self.data.getPos3()[0] - start_x, self.data.getPos3()[1] - start_y
         x1, y1, x2, y2 = np.array([x1, y1, x2, y2]) * image_scale
@@ -1508,6 +1535,9 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         image.line([x2, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
         image.line([x2, y2, x1, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
         image.line([x1, y2, x1, y1], color, width=int(3 * scale * self.style.get("scale", 1)))
+
+    def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyRectangleItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def delete(self, just_display=False):
         if not just_display:
@@ -1745,11 +1775,11 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         pen.setWidthF(self.style.get("track-gap-line-width", self.style.get("track-line-width", 2))*scale)
         self.path2.setPen(pen)
 
-    def draw(self, image, start_x, start_y, scale=1, image_scale=1):
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         if self.data.hidden or self.data.type.hidden:
             return
         if self.active:
-            super(MyTrackItem, self).drawMarker(image, start_x, start_y, scale, image_scale)
+            super(MyTrackItem, self).drawMarker(image, start_x, start_y, scale, image_scale, rotation)
         scale *= self.style.get("scale", 1)
 
         color = (self.color.red(), self.color.green(), self.color.blue())
@@ -1777,6 +1807,10 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             drawMarker(image, point, marker.getStyle("color", self.color), marker_width, marker_shape)
             last_point = point
             last_frame = frame
+
+    def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        if self.active:
+            super(MyTrackItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def delete(self, just_display=False):
         # as the track entry removes itself, we always just want do delete the display
@@ -2141,10 +2175,15 @@ class MarkerHandler:
         if len(frames):
             BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
 
-    def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1):
+    def drawToImage(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         for list in self.display_lists:
             for point in list:
-                point.draw(image, start_x, start_y, scale, image_scale)
+                point.draw(image, start_x, start_y, scale, image_scale, rotation)
+
+    def drawToImage2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        for list in self.display_lists:
+            for point in list:
+                point.draw2(image, start_x, start_y, scale, image_scale, rotation)
 
     def UpdateCounter(self):
         for counter in self.counter:
