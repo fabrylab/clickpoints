@@ -25,6 +25,7 @@ __testname__ = "Marker Handler"
 import sys
 import os
 import unittest
+import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -76,6 +77,10 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
         self.assertTrue(45 < data.x < 55, "Marker x position is added wrong")
         self.assertTrue(45 < data.y < 55, "Marker y position is added wrong")
 
+        # process the event
+        self.window.app.processEvents()
+        time.sleep(0.1)
+
         # Test moving the marker
         self.mouseDrag(50, 50, 100, 100)
 
@@ -96,11 +101,12 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
 
         # check if no marker is present
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "At the beginning already some markers where present")
-
         # add a marker
         self.mouseClick(50, 50)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 1, "Marker wasn't added by clicking")
-
+        # process the event
+        self.window.app.processEvents()
+        time.sleep(0.1)
         # Test deletion of marker
         self.mouseClick(50, 50, modifier=Qt.ControlModifier)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "Marker deletion didn't work")
