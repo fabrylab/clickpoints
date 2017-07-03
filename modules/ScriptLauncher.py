@@ -86,8 +86,11 @@ class Script(QtCore.QObject):
             self.description = ""
         if self.description is "":
             path = os.path.join(os.path.dirname(filename), "Desc.html")
-            with open(path) as fp:
-                self.description = fp.read()
+            try:
+                with open(path) as fp:
+                    self.description = fp.read()
+            except IOError:
+                self.description = "<i>no description available</i>"
         self.icon = parser.get("addon", "icon", fallback="fa.code")
         self.icon_name = self.icon
         self.script = parser.get("addon", "file", fallback="Script.py")
