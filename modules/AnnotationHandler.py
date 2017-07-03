@@ -34,6 +34,15 @@ from datetime import datetime
 import sqlite3
 
 
+# enables .access on dicts
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    def __getattr__(self, attr):
+        return self.get(attr)
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
 class AnnotationFile:
     def __init__(self, datafile, server=None):
         self.data_file = datafile
@@ -173,19 +182,22 @@ class AnnotationFile:
                 annotation.image_sort_index = id_to_sort_index[annotation.image_id]
             # return composed annotations
             return annotations
+        db = self.data_file
         # no server? than we can use a direct query with join
-        return (self.table_annotation.select(peewee.SQL("t1.id as id"), peewee.SQL("t1.timestamp as timestamp"),
-                                            peewee.SQL("t1.comment as comment"),
-                                            peewee.SQL("t3.filename as image_filename"),
-                                            peewee.SQL("t3.sort_index as image_sort_index"),
-                                            peewee.SQL("t1.image_id as image_id"), peewee.SQL("t1.rating as rating"),
-                                            peewee.SQL("GROUP_CONCAT(t4.name) as tags"))
-               .where(self.table_annotation.id << id_list)
-               .join(self.table_tagassociation, join_type="LEFT JOIN")
-               .join(self.table_tag, join_type="LEFT JOIN")
-               .group_by(self.table_annotation.id)
-               .switch(self.table_annotation)
-               .join(self.data_file.table_image))
+        query = (db.table_annotation.select(db.table_annotation.id, db.table_annotation.timestamp,
+                                        db.table_annotation.comment,
+                                        db.table_image.filename.alias("image_filename"),
+                                        db.table_image.sort_index.alias("image_sort_index"),
+                                        db.table_annotation.image_id, db.table_annotation.rating,
+                                        peewee.fn.GROUP_CONCAT(db.table_tag.name).alias("tags"))
+             # .where(db.table_annotation.id << id_list)
+             .join(db.table_tagassociation, join_type="LEFT JOIN")
+             .join(db.table_tag, join_type="LEFT JOIN")
+             .group_by(db.table_annotation.id)
+             .switch(db.table_annotation)
+             .join(db.table_image))
+        query = [dotdict(item) for item in query.dicts()]
+        return query
 
 class pyQtTagSelector(QtWidgets.QWidget):
     class unCheckBox(QtWidgets.QCheckBox):
@@ -384,6 +396,7 @@ class AnnotationOverview(QtWidgets.QWidget):
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
         self.setWindowTitle('Annotations Overview - ClickPoints')
+        self.setWindowIcon(qta.icon("fa.list"))
         self.layout = QtWidgets.QGridLayout(self)
         self.annoation_ids = annoation_ids
         self.window = window
