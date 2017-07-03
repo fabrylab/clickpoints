@@ -408,7 +408,7 @@ class DataFile:
                 # return the image
                 return self.database_class._reader.get_data(self.frame)
 
-            def __getattr__(self, item):
+            def __getattribute__(self, item):
                 if item == "mask":
                     try:
                         return self.masks[0]
@@ -438,8 +438,8 @@ class DataFile:
                         data >>= 8
                         return data.astype(np.uint8)
                     return data
-                else:
-                    return BaseModel(self, item)
+
+                return BaseModel.__getattribute__(self, item)
 
             def getShape(self):
                 if self.width is not None and self.height is not None:
@@ -550,7 +550,7 @@ class DataFile:
             type = peewee.ForeignKeyField(MarkerType, related_name="tracks", on_delete='CASCADE')
             hidden = peewee.BooleanField(default=False)
 
-            def __getattr__(self, item):
+            def __getattribute__(self, item):
                 if item == "points":
                     return np.array([[point.x, point.y] for point in self.markers])
                 if item == "points_corrected":
@@ -563,7 +563,7 @@ class DataFile:
                     return np.array([point.image.sort_index for point in self.markers])
                 if item == "image_ids":
                     return np.array([point.image.id for point in self.markers])
-                return BaseModel(self, item)
+                return BaseModel.__getattribute__(self, item)
 
             def __str__(self):
                 return "TrackObject id%s:\ttype=%s\ttext=%s\tstyle=%s\thidden=%s" \
@@ -592,12 +592,12 @@ class DataFile:
             class Meta:
                 indexes = ((('image', 'track'), True),)
 
-            def __getattr__(self, item):
+            def __getattribute__(self, item):
                 if item == "correctedXY":
                     return self.correctedXY()
                 if item == "pos":
                     return self.pos()
-                return BaseModel(self, item)
+                return BaseModel.__getattribute__(self, item)
 
             def __str__(self):
                 return "Marker Object: id=%s\timage=#%s\tx=%s\tx=%s\ttype=%s\tprocessed=%s\ttrack=#%s\tstyle=%s\ttext=%s" \
@@ -686,14 +686,14 @@ class DataFile:
             def getPos2(self):
                 return [self.x2, self.y2]
 
-            def __getattr__(self, item):
+            def __getattribute__(self, item):
                 if item == "correctedXY":
                     return self.correctedXY()
                 if item == "pos":
                     return self.pos()
                 if item == "length":
                     return self.length()
-                return BaseModel(self, item)
+                return BaseModel.__getattribute__(self, item)
 
             def correctedXY(self):
                 join_condition = (Marker.image == Offset.image)
@@ -774,7 +774,7 @@ class DataFile:
             def getPos4(self):
                 return [self.x, self.y+self.height]
 
-            def __getattr__(self, item):
+            def __getattribute__(self, item):
                 if item == "correctedXY":
                     return self.correctedXY()
                 if item == "pos":
@@ -785,7 +785,7 @@ class DataFile:
                     return self.slice_y()
                 if item == "area":
                     return self.area()
-                return BaseModel(self, item)
+                return BaseModel.__getattribute__(self, item)
 
             def correctedXY(self):
                 join_condition = (Marker.image == Offset.image)
@@ -883,11 +883,10 @@ class DataFile:
             comment = peewee.TextField(default="")
             rating = peewee.IntegerField(default=0)
 
-            def __getattr__(self, item):
+            def __getattribute__(self, item):
                 if item == "tags":
                     return [tagassociations.tag for tagassociations in self.tagassociations]
-                else:
-                    return BaseModel(self, item)
+                return BaseModel.__getattribute__(self, item)
 
             def __str__(self):
                 return "AnnotationObject id%s:\timage=%s\ttimestamp=%s\tcomment=%s\trating=%s" \
@@ -905,11 +904,10 @@ class DataFile:
         class Tag(BaseModel):
             name = peewee.CharField()
 
-            def __getattr__(self, item):
+            def __getattribute__(self, item):
                 if item == "annotations":
                     return [tagassociations.annotation for tagassociations in self.tagassociations]
-                else:
-                    return BaseModel(self, item)
+                return BaseModel.__getattribute__(self, item)
 
             def __str__(self):
                 return "TagObject id%s:\timage=%s" \
