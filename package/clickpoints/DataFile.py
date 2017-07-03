@@ -774,19 +774,6 @@ class DataFile:
             def getPos4(self):
                 return [self.x, self.y+self.height]
 
-            def __getattribute__(self, item):
-                if item == "correctedXY":
-                    return self.correctedXY()
-                if item == "pos":
-                    return self.pos()
-                if item == "slice_x":
-                    return self.slice_x()
-                if item == "slice_y":
-                    return self.slice_y()
-                if item == "area":
-                    return self.area()
-                return BaseModel.__getattribute__(self, item)
-
             def correctedXY(self):
                 join_condition = (Marker.image == Offset.image)
 
