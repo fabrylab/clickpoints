@@ -890,7 +890,7 @@ class DataFile:
 
             def __str__(self):
                 return "AnnotationObject id%s:\timage=%s\ttimestamp=%s\tcomment=%s\trating=%s" \
-                       % (self.id, self.image, self.timestmap, self.comment, self.rating)
+                       % (self.id, self.image, self.timestamp, self.comment, self.rating)
 
             def print_details(self):
                 print("AnnotationObject:\n"
@@ -899,7 +899,7 @@ class DataFile:
                       "timestamp:\t{2}\n"
                       "comment:\t{3}\n"
                       "rating:\t{4}\n"
-                      .format(self.id, self.image, self.timestmap, self.comment, self.rating))
+                      .format(self.id, self.image, self.timestamp, self.comment, self.rating))
 
         class Tag(BaseModel):
             name = peewee.CharField()
