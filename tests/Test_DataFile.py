@@ -793,6 +793,11 @@ class Test_DataFile(unittest.TestCase):
         self.assertEqual(self.db.getMarkers().count(), 9, "Deleting markers does not work properly.")
         self.db.deleteMarkers()
 
+        # test printing of lines details
+        for marker in self.db.getMarkers():
+            print(marker)
+            marker.print_details()
+
     ''' Test Line functions '''
 
     def test_setLine(self):
@@ -1031,6 +1036,11 @@ class Test_DataFile(unittest.TestCase):
         self.db.deleteLines(type="Test1")
         self.assertEqual(self.db.getLines().count(), 5, "Deleting Lines does not work properly.")
         self.db.deleteLines()
+
+        # test printing of lines details
+        for line in self.db.getLines():
+            print(line)
+            line.print_details()
 
     ''' Test Rectangle functions '''
 
@@ -1283,6 +1293,11 @@ class Test_DataFile(unittest.TestCase):
         self.assertEqual(self.db.getRectangles().count(), 5, "Deleting Rectangles does not work properly.")
         self.db.deleteRectangles()
 
+        # test printing of rectangles details
+        for rect in self.db.getRectangles():
+            print(rect)
+            rect.print_details()
+
     def test_setgetTag(self):
 
         tag1 = self.db.setTag(name='tag1')
@@ -1319,6 +1334,11 @@ class Test_DataFile(unittest.TestCase):
         # by ids
         tags = self.db.getTags(id=[1,2])
         self.assertEqual(tags.count(), 2, 'Failed retrieving tags by ID list')
+
+        # test printing of tag details
+        for tag in tags:
+            print(tag)
+            tag.print_details()
 
     def test_deleteTags(self):
         tag1 = self.db.setTag(name='tag1')
@@ -1428,6 +1448,7 @@ class Test_DataFile(unittest.TestCase):
         anns = self.db.getAnnotations()
         for an in anns:
             print(an)
+            an.print_details()
         print(self.db.getAnnotations().count())
         self.assertEqual(self.db.getAnnotations().count(), 2, "Failed to delete all annotation.")
 
