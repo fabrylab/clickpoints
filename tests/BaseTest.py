@@ -65,6 +65,7 @@ class BaseTest():
         event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos, w.mapToGlobal(pos), Qt.NoButton, Qt.NoButton, Qt.NoModifier)
         QApplication.postEvent(w, event)
         QTest.qWait(delay)
+        self.window.app.processEvents()
 
     def mouseDrag(self, x, y, x2, y2, button=None, delay=10, coordinates="origin"):
         if button is None:
@@ -89,6 +90,7 @@ class BaseTest():
         event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, pos2, w.mapToGlobal(pos2), button, button, Qt.NoModifier)
         QApplication.postEvent(w, event)
         QTest.qWait(delay)
+        self.window.app.processEvents()
 
     def mouseClick(self, x, y, button=None, modifier=None, delay=10, coordinates="origin"):
         if button is None:
@@ -102,6 +104,7 @@ class BaseTest():
                 x = self.window.local_scene.width()+x
             pos = self.window.view.mapFromScene(x, y)
         QTest.mouseClick(self.window.view.viewport(), button, modifier, pos=pos, delay=delay)
+        self.window.app.processEvents()
 
     def keyPress(self, key, modifier=None, delay=10):
         if modifier is None:
