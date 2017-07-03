@@ -151,7 +151,7 @@ class Addon(clickpoints.Addon):
             self.initializeOptions()
         self.scaleBar.zoomEvent(scale, pos)
 
-    def drawToImage(self, image, start_x, start_y, scale, image_scale):
+    def drawToImage2(self, image, start_x, start_y, scale, image_scale):
         self.scaleBar.drawToImage(image, start_x, start_y, scale, image_scale)
 
     def optionsChanged(self):
