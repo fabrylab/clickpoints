@@ -30,7 +30,7 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from BaseTest import BaseTest
-from includes import ExceptionNoFilesFound, ExceptionExtensionNotSupported, ExceptionPathDoesntExist
+#from includes import ExceptionNoFilesFound, ExceptionExtensionNotSupported, ExceptionPathDoesntExist
 
 class Test_MediaHandler(unittest.TestCase, BaseTest):
 
@@ -40,18 +40,19 @@ class Test_MediaHandler(unittest.TestCase, BaseTest):
     def test_loadImages(self):
         """ Open an image """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002", "frame0000.jpg"))
-        self.assertEqual(len(self.window.media_handler.id_lookup), 68, "Not all images loaded")
+        self.assertEqual(self.db.getImages().count(), 68, "Not all images loaded")
 
     def test_loadFolder(self):
         """ Open a folder """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002"))
-        self.assertEqual(len(self.window.media_handler.id_lookup), 68, "Not all images loaded")
+        self.assertEqual(self.db.getImages().count(), 68, "Not all images loaded")
 
+    '''
     def test_loadEmptyFolder(self):
         """ Test Exception for opening folder without files / valid files """
         print("PATH:", os.getcwd())
 
-        test_folder = os.path.join("..", "..", "..", "ClickPointsExamples","EmptyFolder")
+        test_folder = os.path.join("..", "..", "ClickPointsExamples","EmptyFolder")
         if not os.path.exists(test_folder):
             os.mkdir(test_folder)
 
@@ -100,32 +101,32 @@ class Test_MediaHandler(unittest.TestCase, BaseTest):
             pass
         else:
             raise self.failureException("Failed to detect invalid .txt file")
+    '''
 
     def test_loadFolderSlash(self):
         """ Open a folder ending with a slash """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos", "002")+os.path.sep)
-        self.assertEqual(len(self.window.media_handler.id_lookup), 68, "Not all images loaded")
+        self.assertEqual(self.db.getImages().count(), 68, "Not all images loaded")
 
     def test_loadFolderRecursive(self):
         """ Open a folder containing two folders """
         self.createInstance(os.path.join("ClickPointsExamples", "TweezerVideos"))
-        self.assertEqual(len(self.window.media_handler.id_lookup), 68+68, "Not all images in two folders loaded")
+        self.assertEqual(self.db.getImages().count(), 68+68, "Not all images in two folders loaded")
 
     def test_loadFolderVideos(self):
         """ Open a folder containing two videos """
         self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack"))
-        self.assertEqual(len(self.window.media_handler.id_lookup), 569, "Didn't load two videos properly")
+        self.assertEqual(self.db.getImages().count(), 569, "Didn't load two videos properly")
 
     def test_loadVideo(self):
         """ Open a video """
         self.createInstance(os.path.join("ClickPointsExamples", "BirdAttack", "attack1.avi"))
-        self.assertEqual(len(self.window.media_handler.id_lookup), 206, "Didn't load video properly")
+        self.assertEqual(self.db.getImages().count(), 206, "Didn't load video properly")
 
     def test_loadTiff(self):
-        """ Open a video """
-        self.createInstance(os.path.join("ClickPointsExamples", "Dronpa"))
-        self.assertEqual(len(self.window.media_handler.id_lookup), 6, "Didn't load tiff properly")
-        self.wait_for_image_load()
+        """ Open tiff files """
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
+        self.assertEqual(self.db.getImages().count(), 6, "Didn't load tiff properly")
         self.assertEqual(self.window.ImageDisplay.image.shape, (1024, 1024, 3))
         self.assertTrue(8 < np.mean(self.window.ImageDisplay.image) < 128)
 

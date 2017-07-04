@@ -28,6 +28,7 @@ import unittest
 from PIL import Image
 import imageio
 import numpy as np
+import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -42,51 +43,47 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
     def test_loadMasks(self):
         """ Load a database with masks """
-        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"), "plant_root.cdb", "mask")
+        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot", "plant_root.cdb"))
         self.window.JumpFrames(1)
         self.wait_for_image_load()
 
     def test_createMask(self):
         """ Test if creating a mask works """
         self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
-        path = os.path.join(self.mask_folder+".db_mask.png", "1-0min_tif_000_mask.png")
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
-
-        # wait for image to be loaded
-        self.wait_for_image_load()
+        self.keyPress(Qt.Key_P)
+        self.keyPress(Qt.Key_2)
 
         # draw a line
-        self.mouseDrag(50, 50, 50, 100)
+        self.mouseDrag(200, 200, 250, 200)
 
         # save and check
         self.window.JumpFrames(1)
         self.wait_for_image_load()
-        self.assertTrue(os.path.exists(path), "Mask was not created")
+        self.assertTrue(self.db.getMask(frame=0), "Mask was not created")
 
     def test_missingMask(self):
         """ Test if a mask is missing """
         self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
-        path = os.path.join(self.mask_folder+".db_mask.png", "1-0min_tif_000_mask.png")
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
-
-        # wait for image to be loaded
-        self.wait_for_image_load()
+        self.keyPress(Qt.Key_P)
+        self.keyPress(Qt.Key_2)
 
         # draw something
-        self.mouseClick(50, 50)
+        self.mouseClick(200, 200)
 
         # save and verify
         self.window.JumpFrames(1)
         self.wait_for_image_load()
-        self.assertTrue(os.path.exists(path), "Mask was not created")
+        self.assertTrue(self.db.getMask(frame=0), "Mask was not created")
 
         # remove mask
-        os.remove(path)
-        self.assertFalse(os.path.exists(path), "Mask was deleted")
+        self.db.deleteMasks(frame=0)
+        self.assertFalse(self.db.getMask(frame=0), "Mask was deleted")
 
         # go to the frame used and see if an error occurs
         self.window.JumpFrames(-1)
@@ -101,9 +98,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
-
-        # wait for image to be loaded
-        self.wait_for_image_load()
+        self.keyPress(Qt.Key_P)
 
         # select color 1 by pressing 1
         self.keyPress(Qt.Key_1)
@@ -114,8 +109,8 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by pressing 2 doesn't work")
 
         # select color 3 by pressing 3
-        self.keyPress(Qt.Key_3)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type selection by pressing 3 doesn't work")
+        #self.keyPress(Qt.Key_3)
+        #self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type selection by pressing 3 doesn't work")
 
     def test_maskTypeSelectorClick(self):
         """ Test if the buttons can change the mask draw type """
@@ -123,9 +118,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
-
-        # wait for image to be loaded
-        self.wait_for_image_load()
+        self.keyPress(Qt.Key_P)
 
         # click on first button
         self.mouseClick(-50, 20, coordinates="scene")
@@ -133,11 +126,11 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # click on second button
         self.mouseClick(-50, 40, coordinates="scene")
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by pressing 2 doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by clicking button 2 doesn't work")
 
         # click on third button
-        self.mouseClick(-50, 60, coordinates="scene")
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type selection by pressing 3 doesn't work")
+        #self.mouseClick(-50, 60, coordinates="scene")
+        #self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type selection by pressing 3 doesn't work")
 
     def test_brushSizeMask(self):
         """ Test if increasing and decreasing the brush size works """
@@ -146,19 +139,15 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # wait for image to be loaded
         self.wait_for_image_load()
 
-        path = os.path.join(self.mask_folder+".db_mask.png", "1-0min_tif_000_mask.png")
-
         # switch interface on
         self.keyPress(Qt.Key_F2)
+        self.keyPress(Qt.Key_P)
         self.keyPress(Qt.Key_2)
-
-        # wait for image to be loaded
-        self.wait_for_image_load()
 
         ''' Test size of normal circle '''
 
         # draw circle at 50 50
-        self.mouseClick(50, 50)
+        self.mouseClick(250, 250)
 
         # change frame to save mask
         self.window.JumpFrames(1)
@@ -167,7 +156,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         self.wait_for_image_load()
 
         # check size of circle
-        im = np.asarray(Image.open(path))
+        im = self.db.getMask(frame=0).data
         self.assertEqual(np.sum(im == 1), 101, "Brush size does not match")
 
         ''' Test size of increased circle '''
@@ -177,7 +166,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
             self.keyPress(Qt.Key_Plus)
 
         # draw again circle at 50 50
-        self.mouseClick(50, 50)
+        self.mouseClick(250, 250)
 
         # save mask
         self.window.JumpFrames(1)
@@ -186,14 +175,14 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         self.wait_for_image_load()
 
         # check size of bigger circle
-        im = np.asarray(Image.open(path))
+        im = self.db.getMask(frame=0).data
         self.assertEqual(np.sum(im == 1), 137, "Brush size increasing does not work")
 
         ''' Test size of decreased circle '''
 
         # delete circle
         self.keyPress(Qt.Key_1)
-        self.mouseClick(50, 50)
+        self.mouseClick(250, 250)
 
         # decrease brush size
         for i in range(3):
@@ -201,7 +190,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # draw again circle at 50 50
         self.keyPress(Qt.Key_2)
-        self.mouseClick(50, 50)
+        self.mouseClick(250, 250)
 
         # save mask
         self.window.JumpFrames(1)
@@ -210,7 +199,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         self.wait_for_image_load()
 
         # check size of smaller circle
-        im = np.asarray(Image.open(path))
+        im = self.db.getMask(frame=0).data
         self.assertEqual(np.sum(im == 1), 101, "Brush size decreasing does not work")
 
     def test_colorPickerMask(self):
@@ -219,69 +208,37 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # switch interface on
         self.keyPress(Qt.Key_F2)
+        self.keyPress(Qt.Key_P)
 
         # wait for image to be loaded
         self.wait_for_image_load()
 
         # draw circle at 50 50 with color 1
         self.keyPress(Qt.Key_1)
-        self.mouseClick(50, 50)
+        self.mouseClick(250, 250)
 
         # draw circle at 100 50 with color 2
         self.keyPress(Qt.Key_2)
-        self.mouseClick(100, 50)
+        self.mouseClick(450, 250)
 
         # draw circle at 150 50 with color 3
         self.keyPress(Qt.Key_3)
-        self.mouseClick(150, 50)
+        self.mouseClick(350, 250)
 
         # move to first circle and pick the color, check if it is the right one
-        self.mouseMove(50, 50)
+        self.mouseMove(250, 250)
         self.keyPress(Qt.Key_K)
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 0, "Draw Type 0 selection by color picker doesn't work")
 
         # move to second circle and pick the color, check if it is the right one
-        self.mouseMove(100, 50)
+        self.mouseMove(450, 250)
         self.keyPress(Qt.Key_K)
         self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type 1 selection by color picker doesn't work")
 
         # move to third circle and pick the color, check if it is the right one
-        self.mouseMove(150, 50)
-        self.keyPress(Qt.Key_K)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type 2 selection by color picker doesn't work")
-
-    def test_colorPaletteMask(self):
-        """ Test if increasing and decreasing the brush size works """
-        self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
-        path = os.path.join(self.mask_folder+".db_mask.png", "1-0min_tif_000_mask.png")
-
-        # switch interface on
-        self.keyPress(Qt.Key_F2)
-
-        # wait for image to be loaded
-        self.wait_for_image_load()
-
-        # draw circle at 50 50 with color 2
-        self.keyPress(Qt.Key_2)
-        self.mouseClick(50, 50)
-
-        # draw circle at 100 50 with color 3
-        self.keyPress(Qt.Key_3)
-        self.mouseClick(100, 50)
-
-        # draw circle at 150 50 with color 4
-        self.keyPress(Qt.Key_4)
-        self.mouseClick(150, 50)
-
-        # save mask
-        self.window.JumpFrames(1)
-        self.wait_for_image_load()
-
-        # read mask and check colors
-        im2 = imageio.imread(path)[:, :, :3]
-        self.assertEqual(im2[50, 50, :].tolist(), [255, 255, 255], "Palette for color 1 does not match")
-        self.assertEqual(im2[50, 100, :].tolist(), [230, 180, 180], "Palette for color 2 does not match")
-        self.assertEqual(im2[50, 150, :].tolist(), [210, 210, 140], "Palette for color 3 does not match")
+        #self.mouseMove(350, 250)
+        #self.keyPress(Qt.Key_K)
+        #self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 2, "Draw Type 2 selection by color picker doesn't work")
 
 
 if __name__ == '__main__':
