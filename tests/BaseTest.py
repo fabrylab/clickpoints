@@ -55,6 +55,11 @@ class BaseTest():
         self.window = ClickPoints.ClickPointsWindow(config, app)
         #self.window.show()
 
+        # wait for image to be loaded
+        self.wait_for_image_load()
+
+        self.db = self.window.data_file
+
     def mouseMove(self, x, y, delay=10, coordinates="origin"):
         v = self.window.view
         w = v.viewport()
@@ -110,6 +115,7 @@ class BaseTest():
         if modifier is None:
             modifier = Qt.NoModifier
         QTest.keyPress(self.window, key, modifier, delay=delay)
+        self.window.app.processEvents()
 
     def wait(self, millies=100):
         QTest.qWait(millies)
@@ -118,6 +124,7 @@ class BaseTest():
         # wait for image to be loaded
         while self.window.loading_image:
             QTest.qWait(1)
+        self.db = self.window.data_file
 
     def tearDown(self):
         # close window
