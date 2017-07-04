@@ -39,18 +39,19 @@ def tracking():
         commit_hash = data['push']['changes'][0]['new']['target']['hash'][:7]
         commit_url = data['push']['changes'][0]['new']['target']['links']['html']['href']
         print('Webhook received! %s committed %s' % (commit_author, commit_hash))
-        HgPull("..")
-        HgPull("../../mediahandler", update=True)
-        HgPull("../../qextendedgraphicsview", update=True)
-        HgPull("../../../ClickpointsExamples", update=True)
-        TestRevisions()#commit_hash)
-        return 'OK'
+    HgPull("..")
+    HgPull("../../ClickpointsExamples", update=True)
+    TestRevisions()#commit_hash)
+    return 'OK'
    #else:
    #   return displayHTML(request)
 
 @app.route('/log/<path:path>')
 def send_log(path):
-    return send_from_directory('log', path)
+    path = os.path.join('..', '..', 'fabry_biophysics.bitbucket.org', 'clickpoints', 'tests', path.replace("/", os.path.sep))
+    print(path)
+    with open(path) as fp:
+        return fp.read()
 
 @app.route('/webhook')
 def tracking2():
@@ -71,17 +72,18 @@ def TestRevisions():#hash):
         #if current_hash.startswith(hash):
         #    break
         #print(os.popen('hg id -n').read().strip())
-        current_number = int(os.popen('hg id -n').read().strip())
+        try:
+            current_number = int(os.popen('hg id -n').read().strip())
+        except ValueError:
+            break
         if current_number == current_tip_number:
             break
         os.system("hg update -r %d -C" % (current_number+1))
         os.system(sys.executable+" TestResultsX.py")
 
 if __name__ == "__main__":
-    HgPull("..")
-    HgPull("../../mediahandler")
-    HgPull("../../qextendedgraphicsview")
-    HgPull("../../../ClickpointsExamples")
+    #HgPull("..")
+    #HgPull("../../ClickpointsExamples")
     #revision = os.popen('hg log -r-1 --template "{node}" -l 1').read()
     TestRevisions()#revision[:7])
     app.run(host='0.0.0.0')

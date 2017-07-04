@@ -26,15 +26,20 @@ import glob
 import re
 import shutil
 
-def PushResults(log_file, key, name, link):
+sys.path.insert(0, os.path.dirname(__file__))
 
-    with open(log_file, "r") as f:
-        tests = f.readline().strip()
-        tests = [c == "." for c in tests]
-        desc = "%d of %d tests passed" % (sum(tests), len(tests))
-        state = "SUCCESSFUL" if sum(tests) == len(tests) else "FAILED"
-    print(desc)
-    print("Finished")
+def PushResults(log_file, key, name, link):
+    if log_file is None:
+        state = "INPROGRESS"
+        desc = ""
+    else:
+        with open(log_file, "r") as f:
+            tests = f.readline().strip()
+            tests = [c == "." for c in tests]
+            desc = "%d of %d tests passed" % (sum(tests), len(tests))
+            state = "SUCCESSFUL" if sum(tests) == len(tests) else "FAILED"
+        print(desc)
+        print("Finished")
 
     revision = os.popen('hg log -r-1 --template "{node}" -l 1').read()
     print(revision)
@@ -58,10 +63,12 @@ def PushResults(log_file, key, name, link):
 
     # Post the status to Bitbucket. (Include valid credentials here for basic auth.
     # You could also use team name and API key.)
-    r = requests.post(api_url, auth=('FabryBioPhysicsUser', '12345678'), json=data)
-    print(r.text)
+    r = requests.post(api_url, auth=('richard.gerum@yahoo.de', 'carlmureg'), json=data)
+    print("Response:", r.text)
+
 
 def RunTest(script_file):
+    print(sys.executable+" "+script_file)
     os.system(sys.executable+" "+script_file)
 
 def GetMetaData(script_file):
@@ -95,13 +102,15 @@ if __name__ == '__main__':
     scripts = glob.glob("Test_*.py")
     revision = os.popen('hg log -r-1 --template "{node}" -l 1').read()
     print("Working dir", os.getcwd())
-    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "fabry_biophysics.bitbucket.org", "clickpoints", "tests")
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "fabry_biophysics.bitbucket.org", "clickpoints", "tests")
     path = os.path.join(path, revision)
     if not os.path.exists(path):
         os.mkdir(path)
     data = []
     for script in scripts:
         metadata = GetMetaData(script)
+        link = "http://131.188.117.62:5000/log/%s/log_%s.txt" % (revision, metadata["key"])
+        PushResults(None, metadata["key"], metadata["testname"], link)
         RunTest(script)
         log_file = 'log_'+metadata["key"]+'.txt'
         shutil.copy(log_file, os.path.join(path, log_file))
@@ -110,11 +119,12 @@ if __name__ == '__main__':
         #print("http://fabry_biophysics.bitbucket.org/clickpoints/tests/"+revision+"/"+log_file)
         #data.append([log_file, metadata["key"], metadata["testname"], "http://fabry_biophysics.bitbucket.org/clickpoints/images/Logo.png"])
         #data.append([log_file, metadata["key"], metadata["testname"], "https://fabry_biophysics.bitbucket.org/clickpoints/tests/1c448d26826ace770af9ee2e67765c0d4a25a35c/log_DATAFILE.txt"])#"http://fabry_biophysics.bitbucket.org/clickpoints/tests/"+revision+"/"])
-        data.append([log_file, metadata["key"], metadata["testname"], "http://example.com/path/to/build/info"])#"http://fabry_biophysics.bitbucket.org/clickpoints/tests/"+revision+"/"])
+        data.append([log_file, metadata["key"], metadata["testname"], link])#"http://fabry_biophysics.bitbucket.org/clickpoints/tests/"+revision+"/"])
+        PushResults(log_file, metadata["key"], metadata["testname"], link)
     #HgCommit(path, "Test results revision "+revision, push=True)
-    for args in data:
-        print("--------------")
-        PushResults(*args)
-        print("--------------")
+    #for args in data:
+    #    print("--------------")
+    #    PushResults(*args)
+    #    print("--------------")
 
 
