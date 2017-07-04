@@ -168,9 +168,9 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             self.hidden = not self.hidden
         else:
             self.hidden = hidden
-        if self.config.info_hud_string == "":
+        if self.config is not None and self.config.info_hud_string == "":
             self.hidden = True
-        self.setVisible( not self.hidden)
+        self.setVisible(not self.hidden)
         if self.config is not None:
             self.config.infohud_interface_hidden = self.hidden
 
