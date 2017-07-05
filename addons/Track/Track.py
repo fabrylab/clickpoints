@@ -35,6 +35,8 @@ class Addon(clickpoints.Addon):
                        tooltip="The maximum number of iterations.")
         self.addOption(key="epsilon", display_name="Epsilon", default=0.03, value_type="float",
                        tooltip="Iteration stops when the search window moves less than epsilon.")
+        self.addOption(key="maxLevel", display_name="Maximum Pyramid Level", default=0, value_type="int",
+                       tooltip="How many pyramids the Lucas Kanade Algorithm should use.")
 
         # find a track type
         for type in self.db.getMarkerTypes():
@@ -47,7 +49,7 @@ class Addon(clickpoints.Addon):
 
     def run(self, start_frame=0):
         # parameters
-        lk_params = dict(winSize=tuple(self.getOption("winSize")), maxLevel=0,
+        lk_params = dict(winSize=tuple(self.getOption("winSize")), maxLevel=self.getOption("maxLevel"),
                           criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
                                     self.getOption("maxIterations"), self.getOption("epsilon")))
 
