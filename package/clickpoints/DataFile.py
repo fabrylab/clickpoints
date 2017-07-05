@@ -686,14 +686,14 @@ class DataFile:
             def getPos2(self):
                 return [self.x2, self.y2]
 
-            def __getattribute__(self, item):
-                if item == "correctedXY":
-                    return self.correctedXY()
-                if item == "pos":
-                    return self.pos()
-                if item == "length":
-                    return self.length()
-                return BaseModel.__getattribute__(self, item)
+            # def __getattribute__(self, item):
+            #     if item == "correctedXY":
+            #         return self.correctedXY()
+            #     if item == "pos":
+            #         return self.pos()
+            #     if item == "length":
+            #         return self.length()
+            #     return BaseModel.__getattribute__(self, item)
 
             def correctedXY(self):
                 join_condition = (Marker.image == Offset.image)
