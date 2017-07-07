@@ -613,8 +613,6 @@ class MarkerEditor(QtWidgets.QWidget):
 
             self.prevent_recursion = False
 
-            data2 = data.partner if data.partner_id is not None else None
-
             text = ''
 
             if marker_type.mode & TYPE_Line:
