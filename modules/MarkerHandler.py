@@ -580,7 +580,8 @@ class MarkerEditor(QtWidgets.QWidget):
             self.marker_handler.window.CenterOn(self.data.x, self.data.y)
         if (type(data)in [self.data_file.table_track]) and self.data == data:
             # center view on first track marker
-            self.marker_handler.window.CenterOn(self.data.markers[0].x, self.data.markers[0].y)
+            self.marker_handler.window.JumpToFrame(self.data.markers[-1].image.sort_index)
+            self.marker_handler.window.CenterOn(self.data.markers[-1].x, self.data.markers[-1].y)
 
     def setMarker(self, data, data_type=None):
         if self.prevent_recursion:
