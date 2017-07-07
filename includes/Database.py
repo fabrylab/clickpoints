@@ -16,8 +16,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
 
 from __future__ import division, print_function
 import os
@@ -187,14 +187,17 @@ class DataFile(DataFileBase):
                 find = None
                 replace = None
                 with open(replace_file) as fp:
-                    for line in fp:
-                        line = line.strip()
-                        key, value = line.split("=")
-                        print("key", key, line)
-                        if key == "find":
-                            find = value
-                        if key == "replace":
-                            replace = value
+                    try:
+                        for line in fp:
+                            line = line.strip()
+                            key, value = line.split("=")
+                            print("key", key, line)
+                            if key == "find":
+                                find = value
+                            if key == "replace":
+                                replace = value
+                    except:
+                        print("Invalid replacement files. Skipping!")
                 if find is not None and replace is not None:
                     self.replace = [find, replace]
         else:
