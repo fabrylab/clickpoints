@@ -394,6 +394,9 @@ class MarkerEditor(QtWidgets.QWidget):
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.openContextMenu)
 
+        # add hover highlight
+        self.tree.viewport().setMouseTracking(True)
+        self.tree.viewport().installEventFilter(self)
 
         self.layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(self.layout)
@@ -473,7 +476,7 @@ class MarkerEditor(QtWidgets.QWidget):
         """ Event Filter for Mouse Hover Events"""
         self.event_last_item = None
 
-    def eventFilter(self,object, event):
+    def eventFilter(self, object, event):
         """ event filter for tree view port to handle mouse over events and marker highlighting"""
         if event.type() == QtCore.QEvent.HoverMove:
             index = self.tree.indexAt(event.pos())
@@ -488,7 +491,7 @@ class MarkerEditor(QtWidgets.QWidget):
 
                 # deactivate last hover item
                 if self.event_last_item is not None:
-                    if type(self.event_last_item.entry) in [self.data_file.table_marker, self.data_file.table_line ,self.data_file.table_rectangle, self.data_file.table_track]:
+                    if type(self.event_last_item.entry) in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle, self.data_file.table_track]:
                         # print("Exit Item", self.event_last_item)
                         marker_item = self.marker_handler.GetMarkerItem(self.event_last_item.entry)
                         # TODO how to handle markers in tracks?
@@ -514,7 +517,6 @@ class MarkerEditor(QtWidgets.QWidget):
         return False
 
 
-
     def openContextMenu(self, position):
         # retrieve selected item and hierarchie level
         indexes = self.tree.selectedIndexes()
@@ -525,10 +527,9 @@ class MarkerEditor(QtWidgets.QWidget):
                 index = index.parent()
                 level += 1
 
-
-        index = indexes[0]      # to get the item
-        item = index.model().itemFromIndex(index) # contains the query object as entry
-        entry = item.entry # query object of various db table types
+        index = indexes[0]  # to get the item
+        item = index.model().itemFromIndex(index)  # contains the query object as entry
+        entry = item.entry  # query object of various db table types
         if level > 0:
             parent = item.parent().entry
         else:
@@ -551,12 +552,6 @@ class MarkerEditor(QtWidgets.QWidget):
         # open menu at mouse click position
         if menu:
             menu.exec_(self.tree.viewport().mapToGlobal(position))
-
-    # def dummy(self):
-    #     print("Hello!")
-    #
-    # def dummy2(self):
-    #     print("this would delete all points after this one!")
 
 
     def ExpandType(self, item_type, entry):
@@ -1045,7 +1040,6 @@ class MarkerEditor(QtWidgets.QWidget):
             self.close()
         if event.key() == QtCore.Qt.Key_Return:
             self.saveMarker()
-
 
 def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36, endcall=None):
     timer = QtCore.QTimer()
