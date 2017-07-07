@@ -1532,6 +1532,12 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyMarkerItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
+    def hoverEnter(self):
+        self.g1.hoverEnterEvent(None)
+
+    def hoverLeave(self):
+        self.g1.hoverLeaveEvent(None)
+
     def delete(self, just_display=False):
         if not just_display:
             self.g1.delete()
@@ -1591,6 +1597,14 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyLineItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def hoverEnter(self):
+        self.g1.hoverEnterEvent(None)
+        self.g2.hoverEnterEvent(None)
+
+    def hoverLeave(self):
+        self.g1.hoverLeaveEvent(None)
+        self.g2.hoverLeaveEvent(None)
 
     def delete(self, just_display=False):
         if not just_display:
@@ -1692,6 +1706,18 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyRectangleItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def hoverEnter(self):
+        self.g1.hoverEnterEvent(None)
+        self.g2.hoverEnterEvent(None)
+        self.g3.hoverEnterEvent(None)
+        self.g4.hoverEnterEvent(None)
+
+    def hoverLeave(self):
+        self.g1.hoverLeaveEvent(None)
+        self.g2.hoverLeaveEvent(None)
+        self.g3.hoverLeaveEvent(None)
+        self.g4.hoverLeaveEvent(None)
 
     def delete(self, just_display=False):
         if not just_display:
@@ -1965,6 +1991,15 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         if self.active:
             super(MyTrackItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def hoverEnter(self):
+        self.g1.hoverEnterEvent(None)
+        self.graberHoverEnter(None,None)
+
+    def hoverLeave(self):
+        self.g1.hoverLeaveEvent(None)
+        self.graberHoverLeave(None,None)
+
 
     def delete(self, just_display=False):
         # as the track entry removes itself, we always just want do delete the display
