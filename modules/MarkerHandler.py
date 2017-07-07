@@ -2583,6 +2583,11 @@ class MarkerHandler:
             # @key 0-9: change marker type
             self.SetActiveMarkerType(numberkey)
 
+            # add mouse functions
+            # @key MB1: set marker
+            # @key ctrl + MB1: delete marker
+            # @key MB2: open marker editor
+
     def ToggleInterfaceEvent(self, event=None, hidden=None):
         if hidden is None:
             self.hidden = not self.hidden
