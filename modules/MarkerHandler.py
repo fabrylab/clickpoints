@@ -390,11 +390,23 @@ class MarkerEditor(QtWidgets.QWidget):
         self.tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMarker(
             selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
 
+        # add context menu
+        self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self.openContextMenu)
+
+
         self.layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(self.layout)
 
         self.StackedWidget = QtWidgets.QStackedWidget(self)
         self.layout.addWidget(self.StackedWidget)
+
+        """ Context Menue Actions """
+        self.act_delete = QtWidgets.QAction(qta.icon("fa.trash"),self.tr("Delete"),self)
+        self.act_delete.triggered.connect(self.removeMarker)
+
+        self.act_delete_after = QtWidgets.QAction(qta.icon("fa.trash-o"),self.tr("Delete after this marker"),self)
+        self.act_delete_after.triggered.connect(self.removeMarkersAfter)
 
         """ Marker Properties """
         self.markerWidget = QtWidgets.QGroupBox()
@@ -457,6 +469,95 @@ class MarkerEditor(QtWidgets.QWidget):
         self.pushbutton_Exit = QtWidgets.QPushButton('&Exit', self)
         self.pushbutton_Exit.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Exit)
+
+        """ Event Filter for Mouse Hover Events"""
+        self.event_last_item = None
+
+    def eventFilter(self,object, event):
+        """ event filter for tree view port to handle mouse over events and marker highlighting"""
+        if event.type() == QtCore.QEvent.HoverMove:
+            index = self.tree.indexAt(event.pos())
+
+            try:
+                item = index.model().itemFromIndex(index)
+            except:
+                item = None
+
+            # check for new item
+            if item != self.event_last_item:
+
+                # deactivate last hover item
+                if self.event_last_item is not None:
+                    if type(self.event_last_item.entry) in [self.data_file.table_marker, self.data_file.table_line ,self.data_file.table_rectangle, self.data_file.table_track]:
+                        # print("Exit Item", self.event_last_item)
+                        marker_item = self.marker_handler.GetMarkerItem(self.event_last_item.entry)
+                        # TODO how to handle markers in tracks?
+                        try:
+                            marker_item.hoverLeave()
+                        except:
+                            pass
+
+                # activate current hover item
+                if item is not None:
+                    if type(item.entry) in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle, self.data_file.table_track]:
+                        # print("Enter Item ", item)
+                        marker_item = self.marker_handler.GetMarkerItem(item.entry)
+                        # TODO how to handle markers in tracks?
+                        try:
+                            marker_item.hoverEnter()
+                        except:
+                            pass
+
+                self.event_last_item = item
+                return True
+
+        return False
+
+
+
+    def openContextMenu(self, position):
+        # retrieve selected item and hierarchie level
+        indexes = self.tree.selectedIndexes()
+        if len(indexes) > 0:
+            level = 0
+            index = indexes[0]
+            while index.parent().isValid():
+                index = index.parent()
+                level += 1
+
+
+        index = indexes[0]      # to get the item
+        item = index.model().itemFromIndex(index) # contains the query object as entry
+        entry = item.entry # query object of various db table types
+        if level > 0:
+            parent = item.parent().entry
+        else:
+            parent = None
+
+        """ DEBUG"""
+        # print("item", item)
+        # print("entry", entry)
+        # print("level", level)
+        # print("parent",parent)
+
+        # context menue
+        menu = QtWidgets.QMenu()
+        menu.addAction(self.act_delete)
+
+        # add remove after action ONLY for track points
+        if type(entry) == self.data_file.table_marker and type(parent) == self.data_file.table_track:
+            menu.addAction(self.act_delete_after)
+
+        # open menu at mouse click position
+        if menu:
+            menu.exec_(self.tree.viewport().mapToGlobal(position))
+
+    # def dummy(self):
+    #     print("Hello!")
+    #
+    # def dummy2(self):
+    #     print("this would delete all points after this one!")
+
 
     def ExpandType(self, item_type, entry):
         if item_type.entry.expanded is True:
@@ -798,6 +899,48 @@ class MarkerEditor(QtWidgets.QWidget):
             if new_type:
                 self.setMarker(self.new_type)
         self.data_file.data_file.setChangesMade()
+
+    def removeMarkersAfter(self):
+        """ remove markers from track that appear after this marker """
+        print("Remove ...")
+        # currently selected a marker -> remove the marker
+        if type(self.data) == self.data_file.table_marker:
+
+            # get current sortindex
+            marker_item = self.marker_handler.GetMarkerItem(self.data)
+            print("sortindex:",self.data.image.sort_index)
+
+            # collect all markers that belong to this track and have a higher sort index
+            q_marker = self.data_file.table_marker.select().join(self.data_file.table_image).where(self.data_file.table_marker.track == self.data.track and
+                                                                  self.data_file.table_image.sort_index >= self.data.image.sort_index)
+
+            # collect tree view items
+            tree_view_items = []
+            tree_view_index = []
+            for marker in q_marker:
+                tree_view_index.append("M%d" % marker.id)
+                tree_view_items.append(self.marker_modelitems["M%d" % marker.id])
+
+
+            print("Deleting %d marker ..." % len(tree_view_items))
+
+            # delete marker from db and markerhandler/trackobject
+            for marker in q_marker:
+                index = "M%d" % marker.id
+                item = self.marker_modelitems[index]
+
+
+                # find corresponding track and remove the point
+                track_item = self.marker_handler.GetMarkerItem(marker.track)
+                track_item.removeTrackPoint(marker.image.sort_index)
+                # TODO: somehow this only removes one track point ...
+
+                # if it is the last item from a track deletet the track item
+                if (marker.type.mode & TYPE_Track) and item.parent().rowCount() == 1:
+                    item = item.parent()
+                # and then delete the tree view item
+                item.parent().removeRow(item.row())
+                del self.marker_modelitems[index]
 
     def removeMarker(self):
         print("Remove ...")
