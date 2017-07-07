@@ -570,9 +570,17 @@ class MarkerEditor(QtWidgets.QWidget):
             thread.start()
 
     def treeClicked(self, index):
+        # upon selecting one of the tree elements
         data = index.model().itemFromIndex(index).entry
         if (type(data)in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle]) and self.data == data:
+            # got to the frame of the selected object
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
+        if (type(data)in [self.data_file.table_marker]) and self.data == data:
+            # center view on marker
+            self.marker_handler.window.CenterOn(self.data.x, self.data.y)
+        if (type(data)in [self.data_file.table_track]) and self.data == data:
+            # center view on first track marker
+            self.marker_handler.window.CenterOn(self.data.markers[0].x, self.data.markers[0].y)
 
     def setMarker(self, data, data_type=None):
         if self.prevent_recursion:

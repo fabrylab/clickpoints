@@ -493,6 +493,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
         else:
             self.data_file.load_frame(target_id, layer=self.layer, threaded=0)
 
+    def CenterOn(self, x, y):
+        print("Center on: %d %d" % (x,y))
+        self.view.centerOn(float(x),float(y))
+
     def FrameLoaded(self, frame_number, layer, threaded=True):
         # set the index of the current frame
         self.data_file.set_image(frame_number, layer)
