@@ -18,6 +18,14 @@ holding the control key.
 
 To save the markers press ``S`` or change to the next image, which automatically saves the current markers.
 
+ ``MB1``
+     place a marker or track point at the current mouse position 
+ ``ctrl + MB1``
+     delete the marker under the mouse pointer
+ ``MB2``
+     open the marker editor
+     
+
 Marker types
 ------------
 
