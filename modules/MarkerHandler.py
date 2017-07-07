@@ -2596,7 +2596,7 @@ class MarkerHandler:
             self.counter[key].setVisible(not self.hidden)
         for point in self.points:
             point.setActive(not self.hidden)
-        for track in self.tracks:
+        for key, track in self.tracks.iteritems():
             track.setActive(not self.hidden)
         self.button.setChecked(not self.hidden)
 
