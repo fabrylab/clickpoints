@@ -578,6 +578,59 @@ class DataFile:
                       "hidden:\t{4}\n"
                       .format(self.id, self.type, self.style, self.text, self.hidden))
 
+            def split(self, marker=None):
+                if not isinstance(marker, Marker):
+                    marker = Marker.get(id=marker)
+                    if marker is None:
+                        raise ValueError("No valid marker given.")
+                print(marker)
+                markers = self.markers.where(Image.sort_index > marker.image.sort_index)
+                markers = [m.id for m in markers]
+                #print([m.id for m in markers])
+                #return None
+                new_track = Track(style=self.style, text=self.text, type=self.type, hidden=self.hidden)
+                new_track.save(force_insert=True)
+                Marker.update(track=new_track.id).where(Marker.id << markers).execute()
+                return new_track
+
+            def removeAfter(self, marker=None):
+                if not isinstance(marker, Marker):
+                    marker = Marker.get(id=marker)
+                    if marker is None:
+                        raise ValueError("No valid marker given.")
+                print(marker)
+                markers = self.markers.where(Image.sort_index > marker.image.sort_index)
+                markers = [m.id for m in markers]
+                #print([m.id for m in markers])
+                #return None
+                return Marker.delete().where(Marker.id << markers).execute()
+
+            def changeType(self, new_type=None):
+                if not isinstance(new_type, MarkerType):
+                    if isinstance(new_type, int):
+                        new_type = MarkerType.get(id=new_type)
+                    else:
+                        new_type = MarkerType.get(name=new_type)
+                    if new_type is None:
+                        raise ValueError("No valid marker type given.")
+                if new_type.mode != self.database_class.TYPE_Track:
+                    raise ValueError("Given type has not the mode TYPE_Track")
+                self.type = new_type
+                self.save()
+                return Marker.update(type=new_type).where(Marker.track_id == self.id).execute()
+
+            def merge(self, track=None):
+                if not isinstance(track, Track):
+                    track = Track.get(id=track)
+                    if track is None:
+                        raise ValueError("No valid track given.")
+                my_sort_indices = [m.image.sort_index for m in self.markers]
+                other_sort_indices = [m.image.sort_index for m in track.markers]
+                if set(my_sort_indices) & set(other_sort_indices):
+                    raise ValueError("Can't merge tracks, because they have markers in the same images.")
+                count = Marker.update(track=self.id).where(Marker.id << track.markers).execute()
+                track.delete_instance()
+                return count
 
         class Marker(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="markers", on_delete='CASCADE')
@@ -656,6 +709,19 @@ class DataFile:
 
             def __array__(self):
                 return np.array([self.x, self.y])
+
+            def changeType(self, new_type=None):
+                if not isinstance(new_type, MarkerType):
+                    if isinstance(new_type, int):
+                        new_type = MarkerType.get(id=new_type)
+                    else:
+                        new_type = MarkerType.get(name=new_type)
+                    if new_type is None:
+                        raise ValueError("No valid marker type given.")
+                if new_type.mode != self.database_class.TYPE_Marker:
+                    raise ValueError("Given type has not the mode TYPE_Marker")
+                self.type = new_type
+                return self.save()
 
 
         class Line(BaseModel):
@@ -739,6 +805,19 @@ class DataFile:
                       .format(self.id, self.image, self.x1, self.y1, self.x2, self.y2, self.type, self.processed,
                               self.style,
                               self.text))
+
+            def changeType(self, new_type=None):
+                if not isinstance(new_type, MarkerType):
+                    if isinstance(new_type, int):
+                        new_type = MarkerType.get(id=new_type)
+                    else:
+                        new_type = MarkerType.get(name=new_type)
+                    if new_type is None:
+                        raise ValueError("No valid marker type given.")
+                if new_type.mode != self.database_class.TYPE_Line:
+                    raise ValueError("Given type has not the mode TYPE_Line")
+                self.type = new_type
+                return self.save()
 
         class Rectangle(BaseModel):
             image = peewee.ForeignKeyField(Image, related_name="rectangles", on_delete='CASCADE')
@@ -830,6 +909,19 @@ class DataFile:
                       .format(self.id, self.image, self.x, self.y, self.width, self.height, self.type, self.processed,
                               self.style,
                               self.text))
+
+            def changeType(self, new_type=None):
+                if not isinstance(new_type, MarkerType):
+                    if isinstance(new_type, int):
+                        new_type = MarkerType.get(id=new_type)
+                    else:
+                        new_type = MarkerType.get(name=new_type)
+                    if new_type is None:
+                        raise ValueError("No valid marker type given.")
+                if new_type.mode != self.database_class.TYPE_Rect:
+                    raise ValueError("Given type has not the mode TYPE_Rect")
+                self.type = new_type
+                return self.save()
 
         self.table_marker = Marker
         self.table_line = Line
@@ -2854,8 +2946,6 @@ class DataFile:
         query = addFilter(query, text, self.table_marker.text)
 
         return query.execute()
-
-
 
     def getLine(self, id):
         """
