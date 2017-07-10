@@ -575,8 +575,16 @@ class MarkerEditor(QtWidgets.QWidget):
             # delete child entries
             item = self.index.model().itemFromIndex(self.index)
             parent = item.parent()
-            parent.removeRows(0, parent.rowCount())
 
+            self.tree.selectionModel().blockSignals(True)
+
+            if parent.parent() is not None:
+                parent = parent.parent()
+
+            if parent.hasChildren():
+                parent.removeRows(0, parent.rowCount())
+
+            self.tree.selectionModel().blockSignals(False)
         else:
             if item_type.entry.expanded is True:
                 self.tree.expand(item_type.index())
