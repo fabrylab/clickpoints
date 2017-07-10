@@ -323,6 +323,293 @@ class DeleteType(QtWidgets.QDialog):
         layout2.addWidget(button3)
 
 
+class MyTreeView(QtWidgets.QTreeView):
+    item_selected = lambda x: 0
+    item_clicked = lambda x: 0
+    item_hoverEnter = lambda x: 0
+    item_hoverLeave = lambda x: 0
+
+    last_selection = None
+    last_hover = None
+
+    def __init__(self, parent, layout):
+        super(QtWidgets.QTreeView, self).__init__()
+
+        self.data_file = parent.data_file
+
+        layout.addWidget(self)
+
+        # start a list for backwards search (from marker entry back to tree entry)
+        self.marker_modelitems = {}
+        self.marker_type_modelitems = {}
+
+        # model for tree view
+        self.model = QtGui.QStandardItemModel(0, 0)
+
+        # some settings for the tree
+        self.setUniformRowHeights(True)
+        self.setHeaderHidden(True)
+        self.setAnimated(True)
+        self.setModel(self.model)
+        self.expanded.connect(self.TreeExpand)
+        self.clicked.connect(self.treeClicked)
+        self.selectionModel().selectionChanged.connect(self.selectionChanged)
+
+        # add context menu
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+
+        # add hover highlight
+        self.viewport().setMouseTracking(True)
+        self.viewport().installEventFilter(self)
+
+        self.item_lookup = {}
+
+        self.expand(None)
+
+    def selectionChanged(self, selection, y):
+        try:
+            entry = selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry
+        except IndexError:
+            entry = None
+        if self.last_selection != entry:
+            self.last_selection = entry
+            #print("selectionChanged", selection, y)
+            #print(entry)
+            self.item_selected(entry)
+
+    def setCurrentIndex(self, entry):
+        item = self.getItemFromEntry(entry)
+        super(QtWidgets.QTreeView, self).setCurrentIndex(item.index())
+
+    def treeClicked(self, index):
+        # upon selecting one of the tree elements
+        data = index.model().itemFromIndex(index).entry
+        return self.item_clicked(data)
+
+    def eventFilter(self, object, event):
+        """ event filter for tree view port to handle mouse over events and marker highlighting"""
+        if event.type() == QtCore.QEvent.HoverMove:
+            index = self.indexAt(event.pos())
+            try:
+                item = index.model().itemFromIndex(index)
+                entry = item.entry
+            except:
+                item = None
+                entry = None
+
+            # check for new item
+            if entry != self.last_hover:
+
+                # deactivate last hover item
+                if self.last_hover is not None:
+                    self.item_hoverLeave(self.last_hover)
+
+                # activate current hover item
+                if entry is not None:
+                    self.item_hoverEnter(entry)
+
+                self.last_hover = entry
+                return True
+
+        return False
+
+    def queryToExpandEntry(self, entry):
+        if entry is None:
+            return self.data_file.table_markertype.select()
+        if isinstance(entry, self.data_file.table_markertype):
+            if entry.mode == TYPE_Normal:
+                return self.data_file.table_marker.select().where(self.data_file.table_marker.type == entry)
+            elif entry.mode == TYPE_Line:
+                return self.data_file.table_line.select().where(self.data_file.table_line.type == entry)
+            elif entry.mode == TYPE_Rect:
+                return self.data_file.table_rectangle.select().where(self.data_file.table_rectangle.type == entry)
+            elif entry.mode == TYPE_Track:
+                return self.data_file.table_track.select().where(self.data_file.table_track.type == entry)
+        if isinstance(entry, self.data_file.table_track):
+            return self.data_file.table_marker.select().where(self.data_file.table_marker.track == entry)
+
+    def getParentEntry(self, entry):
+        if isinstance(entry, self.data_file.table_markertype):
+            return None
+        if isinstance(entry, self.data_file.table_marker):
+            if entry.track:
+                return entry.track
+        return entry.type
+
+    def getNameOfEntry(self, entry):
+        if isinstance(entry, self.data_file.table_markertype):
+            return entry.name
+        if isinstance(entry, self.data_file.table_marker):
+            return "Marker #%d (frame %d)" % (entry.id, entry.image.sort_index)
+        if isinstance(entry, self.data_file.table_line):
+            return "Line #%d (frame %d)" % (entry.id, entry.image.sort_index)
+        if isinstance(entry, self.data_file.table_rectangle):
+            return "Rectangle #%d (frame %d)" % (entry.id, entry.image.sort_index)
+        if isinstance(entry, self.data_file.table_track):
+            return "Track #%d (count %d)" % (entry.id, entry.track_markers.count())
+        return "nix"
+
+    def getIconOfEntry(self, entry):
+        if isinstance(entry, self.data_file.table_markertype):
+            return qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
+
+    def getKey(self, entry):
+        return type(entry).__name__ + str(entry.id)
+
+    def getItemFromEntry(self, entry):
+        if entry is None:
+            return None
+        key = self.getKey(entry)
+        try:
+            return self.item_lookup[key]
+        except KeyError:
+            return None
+
+    def setItemForEntry(self, entry, item):
+        key = self.getKey(entry)
+        self.item_lookup[key] = item
+
+    def expand(self, entry, force_reload=True):
+        query = self.queryToExpandEntry(entry)
+        parent_item = self.getItemFromEntry(entry)
+
+        if parent_item:
+            if parent_item.expanded is False:
+                # remove the dummy child
+                parent_item.removeRow(0)
+                parent_item.expanded = True
+            # force_reload: delete all child entries and re query content from DB
+            elif force_reload:
+                # delete child entries
+                parent_item.removeRows(0, parent_item.rowCount())
+            else:
+                return
+
+        if parent_item:
+            print("ParentItem", type(entry).__name__ + str(entry.id))
+        # add all marker types
+        row = -1
+        for row, entry in enumerate(query):
+            self.addChild(parent_item, entry)
+
+        if parent_item is None:
+            # add entry for new type
+            self.new_type = self.data_file.table_markertype()
+            self.new_type.color = GetColorByIndex(self.data_file.table_markertype.select().count()-1)
+            item_type = QtGui.QStandardItem("add type")
+            item_type.entry = self.new_type
+            item_type.setIcon(qta.icon("fa.plus"))
+            item_type.setEditable(False)
+            self.model.setItem(row + 1, 0, item_type)
+            self.setItemForEntry(self.new_type, item_type)
+            #self.marker_type_modelitems[-1] = item_type
+
+
+    def addChild(self, parent_item, entry, row=None):
+        if parent_item is None:
+            parent_item = self.model
+
+        # add item
+        item = QtGui.QStandardItem(self.getNameOfEntry(entry))
+        item.expanded = False
+        item.entry = entry
+
+        icon = self.getIconOfEntry(entry)
+        if icon:
+            item.setIcon(icon)
+        item.setEditable(False)
+
+        if parent_item is None:
+            if row is None:
+                row = self.model.rowCount()
+            self.model.insertRow(row)
+            self.model.setItem(row, 0, item)
+        else:
+            if row is None:
+                parent_item.appendRow(item)
+            else:
+                parent_item.insertRow(row, item)
+        self.setItemForEntry(entry, item)
+
+        # add dummy child
+        if self.queryToExpandEntry(entry) is not None:
+            print("add expand")
+            child = QtGui.QStandardItem("loading")
+            child.entry = None
+            child.setEditable(False)
+            item.appendRow(child)
+            item.expanded = False
+            #self.model.setItem(row, 0, item)
+        return item
+
+    def TreeExpand(self, index):
+        # Get item and entry
+        item = index.model().itemFromIndex(index)
+        entry = item.entry
+
+        return self.expand(entry)
+
+        thread = None
+
+        # Expand marker type
+        if isinstance(entry, self.data_file.table_markertype) and entry.expanded is False:
+            thread = Thread(target=self.ExpandType, args=(item, entry))
+
+        # Expand track
+        if isinstance(entry, self.data_file.table_track) and entry.expanded is False:
+            thread = Thread(target=self.ExpandTrack, args=(item, entry))
+
+        # Start thread as daemonic
+        if thread:
+            thread.setDaemon(True)
+            thread.start()
+
+    def updateEntry(self, entry, update_children=False, insert_before=None, insert_after=None):
+        # get the tree view item for the database entry
+        item = self.getItemFromEntry(entry)
+        # if we haven't one yet, we have to create it
+        if item is None:
+            # get the parent entry
+            parent_entry = self.getParentEntry(entry)
+            parent_item = None
+            # if we have a parent and are not at the top level try to get the corresponding item
+            if parent_entry:
+                parent_item = self.getItemFromEntry(parent_entry)
+                # parent item not in list or not expanded, than we don't need to update it because it is not shown
+                if parent_item is None or parent_item.expanded is False:
+                    return
+
+            # define the row where the new item should be
+            row = None
+            if insert_before:
+                row = self.getItemFromEntry(insert_before).row()
+            if insert_after:
+                row = self.getItemFromEntry(insert_after).row() + 1
+
+            # add the item as a child of its parent
+            self.addChild(parent_item, entry, row)
+        else:
+            # update the items name, icon and children
+            icon = self.getIconOfEntry(entry)
+            if icon:
+                item.setIcon(icon)
+            item.setText(self.getNameOfEntry(entry))
+            if update_children:
+                self.expand(entry, force_reload=True)
+
+    def deleteEntry(self, entry):
+        item = self.getItemFromEntry(entry)
+        if item is None:
+            return
+        key = self.getKey(entry)
+        del self.item_lookup[key]
+
+        if item.parent() is None:
+            self.model.removeRow(item.row())
+        else:
+            item.parent().removeRow(item.row())
+
+
 class MarkerEditor(QtWidgets.QWidget):
     data = None
     prevent_recursion = False
@@ -341,62 +628,17 @@ class MarkerEditor(QtWidgets.QWidget):
         self.setWindowIcon(qta.icon("fa.crosshairs"))
         main_layout = QtWidgets.QHBoxLayout(self)
 
-        """ Tree View """
-        self.tree = QtWidgets.QTreeView()
-        main_layout.addWidget(self.tree)
+        # create tree view
+        self.tree = MyTreeView(self, main_layout)
 
-        # start a list for backwards search (from marker entry back to tree entry)
-        self.marker_modelitems = {}
-        self.marker_type_modelitems = {}
-
-        # model for tree view
-        model = QtGui.QStandardItemModel(0, 0)
-
-        # add all marker types
-        marker_types = self.data_file.table_markertype.select()
-        row = -1
-        for row, marker_type in enumerate(marker_types):
-            # add item
-            item_type = QtGui.QStandardItem(marker_type.name)
-            marker_type.expanded = False
-            item_type.entry = marker_type
-            item_type.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(marker_type.color))))
-            item_type.setEditable(False)
-            model.setItem(row, 0, item_type)
-            self.marker_type_modelitems[marker_type.id] = item_type
-
-            # add dummy child
-            child = QtGui.QStandardItem()
-            child.setEditable(False)
-            item_type.appendRow(child)
-            model.setItem(row, 0, item_type)
-        # add entry for new type
-        self.new_type = self.data_file.table_markertype()
-        self.new_type.color = GetColorByIndex(marker_types.count())
-        item_type = QtGui.QStandardItem("add type")
-        item_type.entry = self.new_type
-        item_type.setIcon(qta.icon("fa.plus"))
-        item_type.setEditable(False)
-        model.setItem(row + 1, 0, item_type)
-        self.marker_type_modelitems[-1] = item_type
-
-        # some settings for the tree
-        self.tree.setUniformRowHeights(True)
-        self.tree.setHeaderHidden(True)
-        self.tree.setAnimated(True)
-        self.tree.setModel(model)
-        self.tree.expanded.connect(self.TreeExpand)
-        self.tree.clicked.connect(self.treeClicked)
-        self.tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMarker(
-            selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
+        # connect tree view callbacks
+        self.tree.item_selected = self.setMarker
+        self.tree.item_clicked = self.treeClicked
+        self.tree.item_hoverEnter = self.hoverEnter
+        self.tree.item_hoverLeave = self.hoverLeave
 
         # add context menu
-        self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.openContextMenu)
-
-        # add hover highlight
-        self.tree.viewport().setMouseTracking(True)
-        self.tree.viewport().installEventFilter(self)
 
         self.layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(self.layout)
@@ -479,49 +721,27 @@ class MarkerEditor(QtWidgets.QWidget):
         self.pushbutton_Exit.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Exit)
 
-        """ Event Filter for Mouse Hover Events"""
-        self.event_last_item = None
-
-    def eventFilter(self, object, event):
-        """ event filter for tree view port to handle mouse over events and marker highlighting"""
-        if event.type() == QtCore.QEvent.HoverMove:
-            index = self.tree.indexAt(event.pos())
-
+    def hoverLeave(self, entry):
+        if type(entry) in [self.data_file.table_marker, self.data_file.table_line,
+                                                self.data_file.table_rectangle, self.data_file.table_track]:
+            # print("Exit Item", self.event_last_item)
+            marker_item = self.marker_handler.GetMarkerItem(entry)
+            # TODO how to handle markers in tracks?
             try:
-                item = index.model().itemFromIndex(index)
+                marker_item.hoverLeave()
             except:
-                item = None
+                pass
 
-            # check for new item
-            if item != self.event_last_item:
-
-                # deactivate last hover item
-                if self.event_last_item is not None:
-                    if type(self.event_last_item.entry) in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle, self.data_file.table_track]:
-                        # print("Exit Item", self.event_last_item)
-                        marker_item = self.marker_handler.GetMarkerItem(self.event_last_item.entry)
-                        # TODO how to handle markers in tracks?
-                        try:
-                            marker_item.hoverLeave()
-                        except:
-                            pass
-
-                # activate current hover item
-                if item is not None:
-                    if type(item.entry) in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle, self.data_file.table_track]:
-                        # print("Enter Item ", item)
-                        marker_item = self.marker_handler.GetMarkerItem(item.entry)
-                        # TODO how to handle markers in tracks?
-                        try:
-                            marker_item.hoverEnter()
-                        except:
-                            pass
-
-                self.event_last_item = item
-                return True
-
-        return False
-
+    def hoverEnter(self, entry):
+        if type(entry) in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle,
+                                self.data_file.table_track]:
+            # print("Enter Item ", item)
+            marker_item = self.marker_handler.GetMarkerItem(entry)
+            # TODO how to handle markers in tracks?
+            try:
+                marker_item.hoverEnter()
+            except:
+                pass
 
     def openContextMenu(self, position):
         # retrieve selected item and hierarchie level
@@ -551,9 +771,10 @@ class MarkerEditor(QtWidgets.QWidget):
         # print("level", level)
         # print("parent",parent)
 
-        # context menue
+        # context menu
         menu = QtWidgets.QMenu()
-        menu.addAction(self.act_delete)
+        if entry is not self.tree.new_type:
+            menu.addAction(self.act_delete)
 
         # add remove after action ONLY for track points
         if type(entry) == self.data_file.table_marker and type(parent) == self.data_file.table_track:
@@ -568,148 +789,8 @@ class MarkerEditor(QtWidgets.QWidget):
         if menu:
             menu.exec_(self.tree.viewport().mapToGlobal(position))
 
-
-    def ExpandType(self, item_type, entry, force_reload=False):
-        """ force_reload: delete all child entries and re query content from DB """
-        if force_reload:
-            # delete child entries
-            item = self.index.model().itemFromIndex(self.index)
-            parent = item.parent()
-
-            self.tree.selectionModel().blockSignals(True)
-
-            if parent.parent() is not None:
-                parent = parent.parent()
-
-            if parent.hasChildren():
-                parent.removeRows(0, parent.rowCount())
-
-            self.tree.selectionModel().blockSignals(False)
-        else:
-            if item_type.entry.expanded is True:
-                self.tree.expand(item_type.index())
-                return
-        # change icon to hourglass during waiting
-        item_type.setIcon(qta.icon("fa.hourglass-o", color=QtGui.QColor(*HTMLColorToRGB(entry.color))))
-        # remove the dummy child
-        item_type.removeRow(0)
-
-        # if type is track type
-        if entry.mode & TYPE_Track:
-            # add all tracks for this type
-            tracks = self.data_file.table_track.select().where(self.data_file.table_track.type == entry)
-            for track in tracks:
-                # get markers for track
-                markers = (self.data_file.table_marker.select()
-                           .where(self.data_file.table_marker.track == track)
-                           .join(self.data_file.data_file.table_image)
-                           .order_by(self.data_file.data_file.table_image.sort_index))
-
-                # add item
-                item_track = QtGui.QStandardItem("Track #%d (%d)" % (track.id, markers.count()))
-                track.expanded = False
-                item_track.entry = track
-                item_track.setEditable(False)
-                item_type.appendRow(item_track)
-                self.marker_modelitems["T%d" % track.id] = item_track
-
-                # add dummy child
-                child = QtGui.QStandardItem()
-                child.setEditable(False)
-                item_track.appendRow(child)
-        elif entry.mode & TYPE_Line:
-            # add marker for the type
-            lines = self.data_file.table_line.select().where(self.data_file.table_line.type == entry)
-            for line in lines:
-                item_line = QtGui.QStandardItem("Line #%d (frame %d)" % (line.id, line.image.sort_index))
-                item_line.entry = line
-                item_line.setEditable(False)
-                item_type.appendRow(item_line)
-                self.marker_modelitems["L%d" % line.id] = item_line
-        elif entry.mode & TYPE_Rect:
-            # add marker for the type
-            rectangles = self.data_file.table_rectangle.select().where(self.data_file.table_rectangle.type == entry)
-            for rect in rectangles:
-                item_rect = QtGui.QStandardItem("Rectangle #%d (frame %d)" % (rect.id, rect.image.sort_index))
-                item_rect.entry = rect
-                item_rect.setEditable(False)
-                item_type.appendRow(item_rect)
-                self.marker_modelitems["R%d" % rect.id] = item_rect
-        else:
-            # add marker for the type
-            markers = self.data_file.table_marker.select().where(self.data_file.table_marker.type == entry)
-            for marker in markers:
-                item_marker = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
-                item_marker.entry = marker
-                item_marker.setEditable(False)
-                item_type.appendRow(item_marker)
-                self.marker_modelitems["M%d" % marker.id] = item_marker
-
-        # mark the entry as expanded and rest the icon
-        item_type.entry.expanded = True
-        item_type.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color))))
-        self.tree.expand(item_type.index())
-
-    def ExpandTrack(self, item_track, entry, force_reload = False):
-        """ force_reload: delete all child entries and re query content from DB """
-        if force_reload:
-            # delete child entries
-            item = self.index.model().itemFromIndex(self.index)
-            parent = item.parent()
-            parent.removeRows(0, parent.rowCount())
-
-        else:
-            if item_track.entry.expanded is True:
-                self.tree.expand(item_track.index())
-                return
-            # change icon to hourglass during waiting
-            item_track.setIcon(qta.icon("fa.hourglass-o"))
-            # remove the dummy child
-            item_track.removeRow(0)
-
-        # add marker for the type
-        # get markers for track
-        markers = (self.data_file.table_marker.select()
-                   .where(self.data_file.table_marker.track == entry)
-                   .join(self.data_file.data_file.table_image)
-                   .order_by(self.data_file.data_file.table_image.sort_index))
-        for marker in markers:
-            item_marker = QtGui.QStandardItem("Marker #%d (frame %d)" % (marker.id, marker.image.sort_index))
-            item_marker.entry = marker
-            item_marker.setEditable(False)
-            item_track.appendRow(item_marker)
-            self.marker_modelitems["M%d" % marker.id] = item_marker
-
-        # mark the entry as expanded and rest the icon
-        item_track.entry.expanded = True
-        self.tree.expand(item_track.index())
-        item_track.setIcon(QtGui.QIcon())
-
-        # update track text if changed (track label is parent to markers)
-        item_marker.parent().setText("Track #%d (%d)" % (item_marker.entry.track.id, markers.count()))
-
-    def TreeExpand(self, index):
-        # Get item and entry
-        item = index.model().itemFromIndex(index)
-        entry = item.entry
-        thread = None
-
-        # Expand marker type
-        if isinstance(entry, self.data_file.table_markertype) and entry.expanded is False:
-            thread = Thread(target=self.ExpandType, args=(item, entry))
-
-        # Expand track
-        if isinstance(entry, self.data_file.table_track) and entry.expanded is False:
-            thread = Thread(target=self.ExpandTrack, args=(item, entry))
-
-        # Start thread as daemonic
-        if thread:
-            thread.setDaemon(True)
-            thread.start()
-
-    def treeClicked(self, index):
+    def treeClicked(self, data):
         # upon selecting one of the tree elements
-        data = index.model().itemFromIndex(index).entry
         if (type(data)in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle]) and self.data == data:
             # got to the frame of the selected object
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
@@ -722,8 +803,6 @@ class MarkerEditor(QtWidgets.QWidget):
             self.marker_handler.window.CenterOn(self.data.markers[-1].x, self.data.markers[-1].y)
 
     def setMarker(self, data, data_type=None):
-        if self.prevent_recursion:
-            return
         self.data = data
 
         self.pushbutton_Remove.setHidden(False)
@@ -736,21 +815,6 @@ class MarkerEditor(QtWidgets.QWidget):
             for widget in self.markerWidget.widget_types[marker_type.mode]:
                 widget.setHidden(False)
             self.markerWidget.setTitle("Marker #%d" % data.id)
-
-            self.prevent_recursion = True
-
-            data_string = {self.data_file.table_marker: "M%d", self.data_file.table_line: "L%d", self.data_file.table_rectangle: "R%d"}
-            # get the tree view item (don't delete it right away because this changes the selection)
-            index = data_string[type(self.data)] % self.data.id
-
-            self.ExpandType(self.marker_type_modelitems[marker_type.id], marker_type)
-            if marker_type.mode & TYPE_Track:
-                item_track = self.marker_modelitems["T%d" % self.data.track.id]
-                self.ExpandTrack(item_track, self.data.track)
-            item = self.marker_modelitems[index]
-            self.tree.setCurrentIndex(item.index())
-
-            self.prevent_recursion = False
 
             text = ''
 
@@ -784,26 +848,20 @@ class MarkerEditor(QtWidgets.QWidget):
 
         elif type(data) == self.data_file.table_markertype or data_type == "type":
             if data is None:
-                data = self.new_type
+                data = self.tree.new_type
                 self.data = data
             self.StackedWidget.setCurrentIndex(1)
             if data.name is None:
                 self.pushbutton_Remove.setHidden(True)
                 self.typeWidget.setTitle("add type")
-                self.prevent_recursion = True
-                self.tree.setCurrentIndex(self.marker_type_modelitems[-1].index())
-                self.prevent_recursion = False
+                self.tree.setCurrentIndex(self.data)
             else:
                 self.typeWidget.setTitle("Type #%s" % data.name)
-                self.prevent_recursion = True
-                self.tree.setCurrentIndex(self.marker_type_modelitems[self.data.id].index())
-                self.prevent_recursion = False
+                self.tree.setCurrentIndex(self.data)
             self.typeWidget.name.setText(data.name)
             try:
                 index = self.typeWidget.mode_indices[data.mode]
-                self.prevent_recursion = True
                 self.typeWidget.mode.setCurrentIndex(index)
-                self.prevent_recursion = False
             except KeyError:
                 pass
             self.typeWidget.style.setText(data.style if data.style else "")
@@ -859,7 +917,7 @@ class MarkerEditor(QtWidgets.QWidget):
         elif type(self.data) == self.data_file.table_markertype:
             new_type = self.data.id is None
             if new_type:
-                self.new_type.color = GetColorByIndex(len(self.marker_type_modelitems))
+                self.tree.new_type.color = GetColorByIndex(self.data_file.table_markertype.select().count())
                 self.data = self.data_file.table_markertype()
             self.data.name = self.typeWidget.name.text()
             new_mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
@@ -917,6 +975,10 @@ class MarkerEditor(QtWidgets.QWidget):
             if self.marker_handler.active_type is not None and self.marker_handler.active_type.id == self.data.id:
                 self.marker_handler.active_type = self.data
 
+            self.tree.updateEntry(self.data, insert_before=self.tree.new_type)
+            self.tree.setCurrentIndex(self.data)
+
+            '''
             # get the item from tree or insert a new one
             if new_type:
                 item = QtGui.QStandardItem()
@@ -935,6 +997,7 @@ class MarkerEditor(QtWidgets.QWidget):
             # if a new type was created switch selection to create a new type
             if new_type:
                 self.setMarker(self.new_type)
+            '''
         self.data_file.data_file.setChangesMade()
 
     def mergeTrack(self):
@@ -953,17 +1016,22 @@ class MarkerEditor(QtWidgets.QWidget):
             all_tracks.remove("%d" % own_track_id)
 
             merge_target, ok = QtWidgets.QInputDialog.getItem(self, "Merge with TrackID:", "", all_tracks, 1, True)
-            merge_target = np.uint(merge_target)
+            if merge_target:
+                merge_target = np.uint(merge_target)
+                merge_target = self.data_file.table_track.get(id=merge_target)
 
             if ok:
                 track.merge(merge_target)
 
                 # refresh display
-                self.marker_handler.ReloadTrack(track)
-
-                # refresh marker editor display
-                type_item = self.marker_type_modelitems[self.data.type.id]
-                self.ExpandType(type_item, self.data.type, force_reload=True)
+                try:
+                    self.marker_handler.ReloadTrack(track)
+                finally:
+                    # refresh marker editor display
+                    #type_item = self.marker_type_modelitems[self.data.type.id]
+                    #self.ExpandType(type_item, self.data.type, force_reload=True)
+                    self.tree.deleteEntry(merge_target)
+                    self.tree.updateEntry(track, update_children=True)
 
 
 
@@ -975,16 +1043,15 @@ class MarkerEditor(QtWidgets.QWidget):
             first_track = self.data.track
 
             # remove points from Track in DB
-            second_track = self.data.track.split(self.data)
+            second_track = first_track.split(self.data)
 
             # refresh display
-            self.marker_handler.ReloadTrack(first_track)
-
-
-            # refresh marker editor display
-            type_item = self.marker_type_modelitems[first_track.type.id]
-            self.ExpandType(type_item, first_track.type, force_reload=True)
-
+            try:
+                self.marker_handler.ReloadTrack(first_track)
+            finally:
+                # refresh marker editor display
+                self.tree.updateEntry(first_track, update_children=True)
+                self.tree.updateEntry(second_track, insert_after=first_track)
 
             #TODO: how to handle update in MarkerEditor
 
@@ -997,25 +1064,24 @@ class MarkerEditor(QtWidgets.QWidget):
             track = self.data.track
 
             # remove points from Track in DB
-            self.data.track.removeAfter(self.data)
+            track.removeAfter(self.data)
 
             # refresh display
-            self.marker_handler.ReloadTrack(self.data.track)
-
-            # refresh marker editor display
-            track_item = self.marker_modelitems["T%d" % self.data.track.id]
-            self.ExpandTrack(track_item, track, force_reload=True)
+            try:
+                self.marker_handler.ReloadTrack(self.data.track)
+            finally:
+                self.tree.updateEntry(track, update_children=True)
 
     def removeMarker(self):
         print("Remove ...")
         # currently selected a marker -> remove the marker
         if type(self.data) == self.data_file.table_marker or type(self.data) == self.data_file.table_line or type(self.data) == self.data_file.table_rectangle:
-            data_string = {self.data_file.table_marker: "M%d", self.data_file.table_line: "L%d", self.data_file.table_rectangle: "R%d"}
-            # get the tree view item (don't delete it right away because this changes the selection)
-            index = data_string[type(self.data)] % self.data.id
-            item = self.marker_modelitems[index]
 
-            if not (self.data.type.mode & TYPE_Track):
+            marker_type = self.data.type
+            if marker_type is None:
+                marker_type = self.data.track.type
+
+            if not (marker_type.mode & TYPE_Track):
                 # find point
                 marker_item = self.marker_handler.GetMarkerItem(self.data)
                 # delete marker
@@ -1023,37 +1089,27 @@ class MarkerEditor(QtWidgets.QWidget):
                     marker_item.delete()
                 else:
                     self.data.delete_instance()
+                self.tree.deleteEntry(self.data)
             else:
                 # find corresponding track and remove the point
                 track_item = self.marker_handler.GetMarkerItem(self.data.track)
-                track_item.removeTrackPoint(self.data.image.sort_index)
-
-            # if it is the last item from a track deletet the track item
-            if (self.data.type.mode & TYPE_Track) and item.parent().rowCount() == 1:
-                item = item.parent()
-            # and then delete the tree view item
-            item.parent().removeRow(item.row())
-            del self.marker_modelitems[index]
+                if track_item.removeTrackPoint(self.data.image.sort_index):
+                    self.tree.deleteEntry(self.data.track)
+                else:
+                    self.tree.deleteEntry(self.data)
 
         # currently selected a track -> remove the track
         elif type(self.data) == self.data_file.table_track:
-            # get the tree view item (don't delete it right away because this changes the selection)
-            index = "T%d" % self.data.id
-            item = self.marker_modelitems[index]
             # get the track and remove it
             track = self.marker_handler.GetMarkerItem(self.data)
-            track.delete()
+            if track:
+                track.delete()
             self.data.delete_instance()
             # and then delete the tree view item
-            item.parent().removeRow(item.row())
-            del self.marker_modelitems[index]
+            self.tree.deleteEntry(self.data)
 
         # currently selected a type -> remove the type
         elif type(self.data) == self.data_file.table_markertype:
-            # get the tree view item (don't delete it right away because this changes the selection)
-            index = self.data.id
-            item = self.marker_type_modelitems[index]
-
             count = self.data.markers.count()+self.data.lines.count()+self.data.rectangles.count()
             # if this type doesn't have markers delete it without asking
             if count == 0:
@@ -1097,11 +1153,11 @@ class MarkerEditor(QtWidgets.QWidget):
             self.marker_handler.removeCounter(self.data)
 
             # delete item from list
-            del self.marker_type_modelitems[index]
-            self.new_type.color = GetColorByIndex(len(self.marker_type_modelitems)-1)
+            # TODO
+            #self.new_type.color = GetColorByIndex(len(self.marker_type_modelitems)-1)
 
             # and then delete the tree view item
-            self.tree.model().removeRow(item.row())
+            self.tree.deleteEntry(self.data)
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Escape:
@@ -1983,7 +2039,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         # if it was the last one delete the track, too
         if len(self.markers) == 0:
             self.delete()
-            return
+            return True  # True indicates that we remove the track too
         # set the track to inactive if the current marker was removed
         if frame == self.current_frame:
             self.setTrackActive(False)
@@ -2841,8 +2897,8 @@ class MarkerHandler:
             self.counter[key].setVisible(not self.hidden)
         for point in self.points:
             point.setActive(not self.hidden)
-        for key, track in self.tracks.iteritems():
-            track.setActive(not self.hidden)
+        for key in self.tracks:
+            self.tracks[key].setActive(not self.hidden)
         self.button.setChecked(not self.hidden)
 
     def closeEvent(self, event):
