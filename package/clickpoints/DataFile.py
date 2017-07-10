@@ -578,57 +578,76 @@ class DataFile:
                       "hidden:\t{4}\n"
                       .format(self.id, self.type, self.style, self.text, self.hidden))
 
-            def split(self, marker=None):
+            def split(self, marker):
+                # if we are not given a marker entry..
                 if not isinstance(marker, Marker):
+                    # we try to get it over its id
                     marker = Marker.get(id=marker)
+                    # if not complain
                     if marker is None:
                         raise ValueError("No valid marker given.")
-                print(marker)
+                # get the markers after the given marker
                 markers = self.markers.where(Image.sort_index > marker.image.sort_index)
-                markers = [m.id for m in markers]
-                #print([m.id for m in markers])
-                #return None
+                # create a new track as a copy of this track
                 new_track = Track(style=self.style, text=self.text, type=self.type, hidden=self.hidden)
                 new_track.save(force_insert=True)
+                # move the markers after the given marker to the new track
                 Marker.update(track=new_track.id).where(Marker.id << markers).execute()
+                # return the new track
                 return new_track
 
-            def removeAfter(self, marker=None):
+            def removeAfter(self, marker):
+                # if we are not given a marker entry..
                 if not isinstance(marker, Marker):
+                    # we try to get it over its id
                     marker = Marker.get(id=marker)
+                    # if not complain
                     if marker is None:
                         raise ValueError("No valid marker given.")
-                print(marker)
+                # get the markers after the given marker
                 markers = self.markers.where(Image.sort_index > marker.image.sort_index)
-                markers = [m.id for m in markers]
-                #print([m.id for m in markers])
-                #return None
+                # and delete them
                 return Marker.delete().where(Marker.id << markers).execute()
 
-            def changeType(self, new_type=None):
+            def changeType(self, new_type):
+                # if we are not given a MarkerType entry..
                 if not isinstance(new_type, MarkerType):
+                    # we try to get it by its id
                     if isinstance(new_type, int):
                         new_type = MarkerType.get(id=new_type)
+                    # or by its name
                     else:
                         new_type = MarkerType.get(name=new_type)
+                    # if we don't find anything, complain
                     if new_type is None:
                         raise ValueError("No valid marker type given.")
+                # ensure that the mode is correct
                 if new_type.mode != self.database_class.TYPE_Track:
                     raise ValueError("Given type has not the mode TYPE_Track")
+                # change the type and save
                 self.type = new_type
                 self.save()
+                # and change the type of the markers
                 return Marker.update(type=new_type).where(Marker.track_id == self.id).execute()
 
-            def merge(self, track=None):
+            def merge(self, track):
+                # if we are not given a track..
                 if not isinstance(track, Track):
+                    # interpret it as a track id and get the track entry
                     track = Track.get(id=track)
+                    # if we don't get it, complain
                     if track is None:
                         raise ValueError("No valid track given.")
-                my_sort_indices = [m.image.sort_index for m in self.markers]
-                other_sort_indices = [m.image.sort_index for m in track.markers]
-                if set(my_sort_indices) & set(other_sort_indices):
+                # find the image ids from this track and the other track
+                my_image_ids = [m.image_id for m in self.markers]
+                other_image_ids = [m.image_id for m in track.markers]
+                # test if they share any image ids
+                if set(my_image_ids) & set(other_image_ids):
+                    # they are not allowed to share any images
                     raise ValueError("Can't merge tracks, because they have markers in the same images.")
+                # move the markers from the other track to this track
                 count = Marker.update(track=self.id).where(Marker.id << track.markers).execute()
+                # and delete the other track
                 track.delete_instance()
                 return count
 
@@ -710,16 +729,22 @@ class DataFile:
             def __array__(self):
                 return np.array([self.x, self.y])
 
-            def changeType(self, new_type=None):
+            def changeType(self, new_type):
+                # if we are not given a MarkerType entry..
                 if not isinstance(new_type, MarkerType):
+                    # we try to get it by its id
                     if isinstance(new_type, int):
                         new_type = MarkerType.get(id=new_type)
+                    # or by its name
                     else:
                         new_type = MarkerType.get(name=new_type)
+                    # if we don't find anything, complain
                     if new_type is None:
                         raise ValueError("No valid marker type given.")
-                if new_type.mode != self.database_class.TYPE_Marker:
-                    raise ValueError("Given type has not the mode TYPE_Marker")
+                # ensure that the mode is correct
+                if new_type.mode != self.database_class.TYPE_Normal:
+                    raise ValueError("Given type has not the mode TYPE_Normal")
+                # change the type and save
                 self.type = new_type
                 return self.save()
 
@@ -806,16 +831,22 @@ class DataFile:
                               self.style,
                               self.text))
 
-            def changeType(self, new_type=None):
+            def changeType(self, new_type):
+                # if we are not given a MarkerType entry..
                 if not isinstance(new_type, MarkerType):
+                    # we try to get it by its id
                     if isinstance(new_type, int):
                         new_type = MarkerType.get(id=new_type)
+                    # or by its name
                     else:
                         new_type = MarkerType.get(name=new_type)
+                    # if we don't find anything, complain
                     if new_type is None:
                         raise ValueError("No valid marker type given.")
+                # ensure that the mode is correct
                 if new_type.mode != self.database_class.TYPE_Line:
                     raise ValueError("Given type has not the mode TYPE_Line")
+                # change the type and save
                 self.type = new_type
                 return self.save()
 
@@ -910,16 +941,22 @@ class DataFile:
                               self.style,
                               self.text))
 
-            def changeType(self, new_type=None):
+            def changeType(self, new_type):
+                # if we are not given a MarkerType entry..
                 if not isinstance(new_type, MarkerType):
+                    # we try to get it by its id
                     if isinstance(new_type, int):
                         new_type = MarkerType.get(id=new_type)
+                    # or by its name
                     else:
                         new_type = MarkerType.get(name=new_type)
+                    # if we don't find anything, complain
                     if new_type is None:
                         raise ValueError("No valid marker type given.")
+                # ensure that the mode is correct
                 if new_type.mode != self.database_class.TYPE_Rect:
                     raise ValueError("Given type has not the mode TYPE_Rect")
+                # change the type and save
                 self.type = new_type
                 return self.save()
 
