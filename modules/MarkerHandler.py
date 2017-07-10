@@ -411,6 +411,12 @@ class MarkerEditor(QtWidgets.QWidget):
         self.act_delete_after = QtWidgets.QAction(qta.icon("fa.trash-o"),self.tr("Delete after this marker"),self)
         self.act_delete_after.triggered.connect(self.removeMarkersAfter)
 
+        self.act_split = QtWidgets.QAction(qta.icon("fa.scissors"),self.tr("Split"),self)
+        self.act_split.triggered.connect(self.splitTrack)
+
+        self.act_merge = QtWidgets.QAction(qta.icon("fa.compress"),self.tr("Merge ..."),self)
+        self.act_merge.triggered.connect(self.mergeTrack)
+
         """ Marker Properties """
         self.markerWidget = QtWidgets.QGroupBox()
         self.StackedWidget.addWidget(self.markerWidget)
@@ -535,6 +541,10 @@ class MarkerEditor(QtWidgets.QWidget):
         else:
             parent = None
 
+        self.index = index
+        self.parent = parent
+
+
         """ DEBUG"""
         # print("item", item)
         # print("entry", entry)
@@ -548,16 +558,29 @@ class MarkerEditor(QtWidgets.QWidget):
         # add remove after action ONLY for track points
         if type(entry) == self.data_file.table_marker and type(parent) == self.data_file.table_track:
             menu.addAction(self.act_delete_after)
+            menu.addAction(self.act_split)
+            menu.addAction(self.act_merge)
+
+        if type(entry) == self.data_file.table_track:
+            menu.addAction(self.act_merge)
 
         # open menu at mouse click position
         if menu:
             menu.exec_(self.tree.viewport().mapToGlobal(position))
 
 
-    def ExpandType(self, item_type, entry):
-        if item_type.entry.expanded is True:
-            self.tree.expand(item_type.index())
-            return
+    def ExpandType(self, item_type, entry, force_reload=False):
+        """ force_reload: delete all child entries and re query content from DB """
+        if force_reload:
+            # delete child entries
+            item = self.index.model().itemFromIndex(self.index)
+            parent = item.parent()
+            parent.removeRows(0, parent.rowCount())
+
+        else:
+            if item_type.entry.expanded is True:
+                self.tree.expand(item_type.index())
+                return
         # change icon to hourglass during waiting
         item_type.setIcon(qta.icon("fa.hourglass-o", color=QtGui.QColor(*HTMLColorToRGB(entry.color))))
         # remove the dummy child
@@ -619,14 +642,22 @@ class MarkerEditor(QtWidgets.QWidget):
         item_type.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color))))
         self.tree.expand(item_type.index())
 
-    def ExpandTrack(self, item_track, entry):
-        if item_track.entry.expanded is True:
-            self.tree.expand(item_track.index())
-            return
-        # change icon to hourglass during waiting
-        item_track.setIcon(qta.icon("fa.hourglass-o"))
-        # remove the dummy child
-        item_track.removeRow(0)
+    def ExpandTrack(self, item_track, entry, force_reload = False):
+        """ force_reload: delete all child entries and re query content from DB """
+        if force_reload:
+            # delete child entries
+            item = self.index.model().itemFromIndex(self.index)
+            parent = item.parent()
+            parent.removeRows(0, parent.rowCount())
+
+        else:
+            if item_track.entry.expanded is True:
+                self.tree.expand(item_track.index())
+                return
+            # change icon to hourglass during waiting
+            item_track.setIcon(qta.icon("fa.hourglass-o"))
+            # remove the dummy child
+            item_track.removeRow(0)
 
         # add marker for the type
         # get markers for track
@@ -645,6 +676,9 @@ class MarkerEditor(QtWidgets.QWidget):
         item_track.entry.expanded = True
         self.tree.expand(item_track.index())
         item_track.setIcon(QtGui.QIcon())
+
+        # update track text if changed (track label is parent to markers)
+        item_marker.parent().setText("Track #%d (%d)" % (item_marker.entry.track.id, markers.count()))
 
     def TreeExpand(self, index):
         # Get item and entry
@@ -895,47 +929,74 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.setMarker(self.new_type)
         self.data_file.data_file.setChangesMade()
 
-    def removeMarkersAfter(self):
-        """ remove markers from track that appear after this marker """
-        print("Remove ...")
-        # currently selected a marker -> remove the marker
+    def mergeTrack(self):
+        print("Merge ...")
+
+        if type(self.data) in [self.data_file.table_marker, self.data_file.table_track]:
+            if type(self.data) == self.data_file.table_marker:
+                own_track_id = self.data.track.id
+                track = self.data.track
+            elif type(self.data) == self.data_file.table_track:
+                own_track_id = self.data.id
+                track = self.data
+
+            q_tracks = self.data_file.table_track.select()
+            all_tracks = ["%d" % t.id for t in q_tracks]
+            all_tracks.remove("%d" % own_track_id)
+
+            merge_target, ok = QtWidgets.QInputDialog.getItem(self, "Merge with TrackID:", "", all_tracks, 1, True)
+            merge_target = np.uint(merge_target)
+
+            if ok:
+                track.merge(merge_target)
+
+                # refresh display
+                self.marker_handler.ReloadTrack(track)
+
+                # refresh marker editor display
+                type_item = self.marker_type_modelitems[self.data.type.id]
+                self.ExpandType(type_item, self.data.type, force_reload=True)
+
+
+
+    def splitTrack(self):
+        print("Split ...")
+
         if type(self.data) == self.data_file.table_marker:
 
-            # get current sortindex
-            marker_item = self.marker_handler.GetMarkerItem(self.data)
-            print("sortindex:",self.data.image.sort_index)
+            first_track = self.data.track
 
-            # collect all markers that belong to this track and have a higher sort index
-            q_marker = self.data_file.table_marker.select().join(self.data_file.table_image).where(self.data_file.table_marker.track == self.data.track and
-                                                                  self.data_file.table_image.sort_index >= self.data.image.sort_index)
+            # remove points from Track in DB
+            second_track = self.data.track.split(self.data)
 
-            # collect tree view items
-            tree_view_items = []
-            tree_view_index = []
-            for marker in q_marker:
-                tree_view_index.append("M%d" % marker.id)
-                tree_view_items.append(self.marker_modelitems["M%d" % marker.id])
+            # refresh display
+            self.marker_handler.ReloadTrack(first_track)
 
 
-            print("Deleting %d marker ..." % len(tree_view_items))
-
-            # delete marker from db and markerhandler/trackobject
-            for marker in q_marker:
-                index = "M%d" % marker.id
-                item = self.marker_modelitems[index]
+            # refresh marker editor display
+            type_item = self.marker_type_modelitems[first_track.type.id]
+            self.ExpandType(type_item, first_track.type, force_reload=True)
 
 
-                # find corresponding track and remove the point
-                track_item = self.marker_handler.GetMarkerItem(marker.track)
-                track_item.removeTrackPoint(marker.image.sort_index)
-                # TODO: somehow this only removes one track point ...
+            #TODO: how to handle update in MarkerEditor
 
-                # if it is the last item from a track deletet the track item
-                if (marker.type.mode & TYPE_Track) and item.parent().rowCount() == 1:
-                    item = item.parent()
-                # and then delete the tree view item
-                item.parent().removeRow(item.row())
-                del self.marker_modelitems[index]
+    def removeMarkersAfter(self):
+        """ remove markers from track that appear after this marker """
+        print("Remove after ...")
+
+        if type(self.data) == self.data_file.table_marker:
+
+            track = self.data.track
+
+            # remove points from Track in DB
+            self.data.track.removeAfter(self.data)
+
+            # refresh display
+            self.marker_handler.ReloadTrack(self.data.track)
+
+            # refresh marker editor display
+            track_item = self.marker_modelitems["T%d" % self.data.track.id]
+            self.ExpandTrack(track_item, track, force_reload=True)
 
     def removeMarker(self):
         print("Remove ...")
