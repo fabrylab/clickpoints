@@ -107,6 +107,51 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **frames** *(list of int)* - a list containing all the frame numbers for the images of the associated markers.
         - **image_ids** *(list of int)* - a list containing all the ids for the images of the associated markers.
 
+    Methods:
+        .. py:function:: split(marker)
+
+            Split the track after the given marker and create a new track which contains all the markers after the given marker.
+
+            Parameters:
+                 - **marker** *(int,* :py:class:`Marker` *)* - the marker id or marker entry at which to split.
+
+            Returns:
+                 - **new_track**  *(* :py:class:`Track` *)* - the new track which contains the markers after the given marker.
+
+        .. py:function:: removeAfter(marker)
+
+            Remove all the markers from the track after the given marker.
+
+            Parameters:
+                 - **marker** *(int,* :py:class:`Marker` *)* - the marker id or marker entry after which to remove markers.
+
+            Returns:
+                 - **count**  *(int)* - the amount of deleted markers.
+
+        .. py:function:: merge(track)
+
+            Merge the track with the given track. All markers from the other track are moved to this track. The other track
+            which is then empty will be removed. Only works if the tracks don't have markers in the same images, as this would
+            cause ambiguities.
+
+            Parameters:
+                 - **track** *(int,* :py:class:`Track` *)* - the track id or track entry whose markers should be merged to this track.
+
+            Returns:
+                 - **count**  *(int)* - the amount of new markers for this track.
+
+        .. py:function:: changeType(new_type)
+
+            Change the type of the track and its markers to another type.
+
+            Parameters:
+                 - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this track. It has to be of mode TYPE_Track.
+
+            Returns:
+                 - **count**  *(int)* - the amount of markers that have been changed.
+
+
+
 .. py:class:: MarkerType()
 
     A marker type.
@@ -143,6 +188,14 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **correctedXY()** *(array)* - the marker position corrected by the offset of the image.
         - **pos()** *(array)* - an array containing the coordinates of the marker: [x, y].
 
+    Methods:
+        .. py:function:: changeType(new_type)
+
+            Change the type of the marker.
+
+            Parameters:
+                 - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this marker. It has to be of mode TYPE_Normal.
+
 .. py:class:: Line()
 
     A line.
@@ -163,6 +216,14 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **correctedXY()** *(array)* - the line positions corrected by the offset of the image.
         - **pos()** *(array)* - an array containing the coordinates of the line: [x, y].
         - **length** *(float)* - the length of the line in pixel.
+
+    Methods:
+        .. py:function:: changeType(new_type)
+
+            Change the type of the line.
+
+            Parameters:
+                 - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this line. It has to be of mode TYPE_Line.
 
 .. py:class:: Rectangle()
 
@@ -186,6 +247,14 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **slice_x()** *(slice*) - a slice object to use the rectangle to cut out a region of an image
         - **slice_y()** *(slice)* - a slice object to use the rectangle to cut out a region of an image
         - **area()** *(float)* - the area of the rectangle
+
+    Methods:
+        .. py:function:: changeType(new_type)
+
+            Change the type of the rectangle.
+
+            Parameters:
+                 - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this rectangle. It has to be of mode TYPE_Rect.
 
 .. py:class:: Mask()
 
