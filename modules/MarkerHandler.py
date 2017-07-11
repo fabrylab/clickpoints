@@ -2339,7 +2339,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
 
     def setIndex(self, index):
         self.index = index
-        self.setPos(10, 10 + 25 * self.index + 30)
+        self.setPos(10, 10 + 25 * self.index + 25)
         self.AddCount(0)
 
     def Update(self, type):
@@ -2418,10 +2418,10 @@ class MyCommandButton(QtWidgets.QGraphicsRectItem):
         self.setZValue(9)
 
         self.pixmap = QtWidgets.QGraphicsPixmapItem(self)
-        self.pixmap.setPixmap(icon.pixmap(28))
+        self.pixmap.setPixmap(icon.pixmap(16))
 
-        self.setRect(0, 0, 28, 28)
-        self.setPos(5 + (28+5)*index, 5)
+        self.setRect(-5, -3, 26, 22)
+        self.setPos(10 + (26+5)*index, 10)
 
         self.clicked = lambda: 0
 
@@ -3013,14 +3013,13 @@ class MarkerHandler:
             # @key ctrl + MB1: delete marker
             # @key MB2: open marker editor
 
-        print(event.key(), Qt.Key_Control)
+        # show the erase tool highlighted when Control is pressed
         if event.key() == Qt.Key_Control and self.tool_index == 0:
             self.button2.SetToActiveColor()
             self.button1.SetToInactiveColor()
 
     def keyReleaseEvent(self, event):
-
-        print("release", event.key(), Qt.Key_Control)
+        # show the erase tool highlighted when Control is pressed
         if event.key() == Qt.Key_Control and self.tool_index == 0:
             self.button1.SetToActiveColor()
             self.button2.SetToInactiveColor()
