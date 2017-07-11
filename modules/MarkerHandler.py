@@ -373,13 +373,12 @@ class MyTreeView(QtWidgets.QTreeView):
             entry = None
         if self.last_selection != entry:
             self.last_selection = entry
-            #print("selectionChanged", selection, y)
-            #print(entry)
             self.item_selected(entry)
 
     def setCurrentIndex(self, entry):
         item = self.getItemFromEntry(entry)
-        super(QtWidgets.QTreeView, self).setCurrentIndex(item.index())
+        if item is not None:
+            super(QtWidgets.QTreeView, self).setCurrentIndex(item.index())
 
     def treeClicked(self, index):
         # upon selecting one of the tree elements
@@ -489,8 +488,6 @@ class MyTreeView(QtWidgets.QTreeView):
             else:
                 return
 
-        if parent_item:
-            print("ParentItem", type(entry).__name__ + str(entry.id))
         # add all marker types
         row = -1
         for row, entry in enumerate(query):
@@ -537,14 +534,12 @@ class MyTreeView(QtWidgets.QTreeView):
 
         # add dummy child
         if self.queryToExpandEntry(entry) is not None:
-            print("add expand")
             child = QtGui.QStandardItem("loading")
             child.entry = None
             child.setEditable(False)
             child.setIcon(qta.icon("fa.hourglass-half"))
             item.appendRow(child)
             item.expanded = False
-            #self.model.setItem(row, 0, item)
         return item
 
     def TreeExpand(self, index):
@@ -722,7 +717,6 @@ class MarkerEditor(QtWidgets.QWidget):
     def hoverLeave(self, entry):
         if type(entry) in [self.data_file.table_marker, self.data_file.table_line,
                                                 self.data_file.table_rectangle, self.data_file.table_track]:
-            # print("Exit Item", self.event_last_item)
             marker_item = self.marker_handler.GetMarkerItem(entry)
             # TODO how to handle markers in tracks?
             try:
@@ -733,7 +727,6 @@ class MarkerEditor(QtWidgets.QWidget):
     def hoverEnter(self, entry):
         if type(entry) in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle,
                                 self.data_file.table_track]:
-            # print("Enter Item ", item)
             marker_item = self.marker_handler.GetMarkerItem(entry)
             # TODO how to handle markers in tracks?
             try:
@@ -761,7 +754,6 @@ class MarkerEditor(QtWidgets.QWidget):
 
         self.index = index
         self.parent = parent
-
 
         """ DEBUG"""
         # print("item", item)
@@ -800,7 +792,17 @@ class MarkerEditor(QtWidgets.QWidget):
             self.marker_handler.window.JumpToFrame(self.data.markers[-1].image.sort_index)
             self.marker_handler.window.CenterOn(self.data.markers[-1].x, self.data.markers[-1].y)
 
-    def setMarker(self, data, data_type=None):
+    def setMarkerData(self, data):
+        # None should select the "new type" button
+        if data is None:
+            data = self.tree.new_type
+        # try to select the item, will automatically call self.setMarker
+        self.tree.setCurrentIndex(data)
+        # if the data hasn't been selected at least display it in the right menu part
+        if self.data != data:
+            self.setMarker(data)
+
+    def setMarker(self, data):
         self.data = data
 
         self.pushbutton_Remove.setHidden(False)
@@ -844,7 +846,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.trackWidget.text.setText(data.text if data.text else "")
             self.trackWidget.hidden.setChecked(data.hidden)
 
-        elif type(data) == self.data_file.table_markertype or data_type == "type":
+        elif type(data) == self.data_file.table_markertype:
             if data is None:
                 data = self.tree.new_type
                 self.data = data
@@ -852,10 +854,8 @@ class MarkerEditor(QtWidgets.QWidget):
             if data.name is None:
                 self.pushbutton_Remove.setHidden(True)
                 self.typeWidget.setTitle("add type")
-                self.tree.setCurrentIndex(self.data)
             else:
                 self.typeWidget.setTitle("Type #%s" % data.name)
-                self.tree.setCurrentIndex(self.data)
             self.typeWidget.name.setText(data.name)
             try:
                 index = self.typeWidget.mode_indices[data.mode]
@@ -866,7 +866,6 @@ class MarkerEditor(QtWidgets.QWidget):
             self.typeWidget.color.setColor(data.color)
             self.typeWidget.text.setText(data.text if data.text else "")
             self.typeWidget.hidden.setChecked(data.hidden)
-            print("hidden", data.hidden, self.typeWidget.hidden.isChecked())
 
     def filterText(self, input):
         # if text field is empty - add Null instead of "" to sql db
@@ -1609,7 +1608,7 @@ class MyDisplayItem:
             mh.marker_edit_window.show()
         else:
             mh.marker_edit_window.raise_()
-        mh.marker_edit_window.setMarker(self.data)
+        mh.marker_edit_window.setMarkerData(self.data)
 
     def save(self):
         # only if there are fields which are changed
@@ -2341,7 +2340,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
                 self.marker_handler.marker_edit_window.show()
             else:
                 self.marker_handler.marker_edit_window.raise_()
-            self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
+            self.marker_handler.marker_edit_window.setMarkerData(self.type)
         elif event.button() == QtCore.Qt.LeftButton:
             if not self.marker_handler.active:
                 BroadCastEvent([module for module in self.marker_handler.modules if module != self.marker_handler],
@@ -2349,7 +2348,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
                 self.marker_handler.setActiveModule(True)
             self.marker_handler.SetActiveMarkerType(self.index)
             if self.marker_handler.marker_edit_window:
-                self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
+                self.marker_handler.marker_edit_window.setMarkerData(self.type)
 
     def delete(self):
         # delete from scene
