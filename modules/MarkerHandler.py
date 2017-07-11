@@ -418,15 +418,19 @@ class MyTreeView(QtWidgets.QTreeView):
             return self.data_file.table_markertype.select()
         if isinstance(entry, self.data_file.table_markertype):
             if entry.mode == TYPE_Normal:
-                return self.data_file.table_marker.select().where(self.data_file.table_marker.type == entry)
+                return self.data_file.table_marker.select().where(self.data_file.table_marker.type == entry)\
+                .join(self.data_file.table_image).order_by(self.data_file.table_image.sort_index)
             elif entry.mode == TYPE_Line:
-                return self.data_file.table_line.select().where(self.data_file.table_line.type == entry)
+                return self.data_file.table_line.select().where(self.data_file.table_line.type == entry)\
+                .join(self.data_file.table_image).order_by(self.data_file.table_image.sort_index)
             elif entry.mode == TYPE_Rect:
-                return self.data_file.table_rectangle.select().where(self.data_file.table_rectangle.type == entry)
+                return self.data_file.table_rectangle.select().where(self.data_file.table_rectangle.type == entry)\
+                .join(self.data_file.table_image).order_by(self.data_file.table_image.sort_index)
             elif entry.mode == TYPE_Track:
                 return self.data_file.table_track.select().where(self.data_file.table_track.type == entry)
         if isinstance(entry, self.data_file.table_track):
-            return self.data_file.table_marker.select().where(self.data_file.table_marker.track == entry)
+            return self.data_file.table_marker.select().where(self.data_file.table_marker.track == entry)\
+                .join(self.data_file.table_image).order_by(self.data_file.table_image.sort_index)
 
     def getParentEntry(self, entry):
         if isinstance(entry, self.data_file.table_markertype):
