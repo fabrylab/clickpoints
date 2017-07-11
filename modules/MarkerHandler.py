@@ -589,6 +589,7 @@ class MyTreeView(QtWidgets.QTreeView):
             # add the item as a child of its parent
             self.addChild(parent_item, entry, row)
         else:
+            # TODO check if we have to change the parent
             # update the items name, icon and children
             icon = self.getIconOfEntry(entry)
             if icon:
@@ -866,6 +867,8 @@ class MarkerEditor(QtWidgets.QWidget):
             if data is None:
                 data = self.tree.new_type
                 self.data = data
+            if self.data.id is not None:
+                self.marker_handler.SetActiveMarkerType(new_type=self.data)
             self.StackedWidget.setCurrentIndex(1)
             if data.name is None:
                 self.pushbutton_Remove.setHidden(True)
