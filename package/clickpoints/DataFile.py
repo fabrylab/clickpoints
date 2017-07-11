@@ -644,9 +644,16 @@ class DataFile:
                 # test if they share any image ids
                 if set(my_image_ids) & set(other_image_ids):
                     # they are not allowed to share any images
-                    raise ValueError("Can't merge tracks, because they have markers in the same images.")
+                    image_list = set(my_image_ids) & set(other_image_ids)
+                    # list first 10 images with a conflict
+                    if len(image_list) < 10:
+                        image_list = ", ".join("#%d" % i for i in image_list)
+                    else:
+                        image_list = ", ".join(["#%d" % i for i in image_list][:10])+", ..."
+                    # raise an exception
+                    raise ValueError("Can't merge track #%d with #%d, because they have markers in the same images.\n(images %s)" % (self.id, track.id, image_list))
                 # move the markers from the other track to this track
-                count = Marker.update(track=self.id).where(Marker.id << track.markers).execute()
+                count = Marker.update(track=self.id, type=self.type).where(Marker.id << track.markers).execute()
                 # and delete the other track
                 track.delete_instance()
                 return count
