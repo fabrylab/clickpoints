@@ -627,8 +627,12 @@ class DataFile:
                 # change the type and save
                 self.type = new_type
                 self.save()
+
                 # and change the type of the markers
-                return Marker.update(type=new_type).where(Marker.track_id == self.id).execute()
+                #TODO: figure out why peewee ignores the where condition on some systems - works with raw query
+                # q = self.database_class.table_marker.update(type=new_type).where(self.database_class.table_marker.track_id == self.id)
+                count = self.database_class.db.execute_sql("UPDATE marker SET type_id = %d WHERE track_id = %d" % (new_type.id, self.id))
+                return count
 
             def merge(self, track):
                 # if we are not given a track..

@@ -652,6 +652,9 @@ class MarkerEditor(QtWidgets.QWidget):
         self.act_merge = QtWidgets.QAction(qta.icon("fa.compress"),self.tr("Merge ..."),self)
         self.act_merge.triggered.connect(self.mergeTrack)
 
+        self.act_changeType = QtWidgets.QAction(qta.icon("fa.arrow-right"),self.tr("Change Type ..."),self)
+        self.act_changeType.triggered.connect(self.changeType)
+
         """ Marker Properties """
         self.markerWidget = QtWidgets.QGroupBox()
         self.StackedWidget.addWidget(self.markerWidget)
@@ -766,11 +769,16 @@ class MarkerEditor(QtWidgets.QWidget):
         if entry is not self.tree.new_type:
             menu.addAction(self.act_delete)
 
+        if not type(entry) == self.data_file.table_markertype:
+            menu.addAction(self.act_changeType)
+
         # add remove after action ONLY for track points
         if type(entry) == self.data_file.table_marker and type(parent) == self.data_file.table_track:
             menu.addAction(self.act_delete_after)
             menu.addAction(self.act_split)
             menu.addAction(self.act_merge)
+            # remove default action for track markers
+            menu.removeAction(self.act_changeType)
 
         if type(entry) == self.data_file.table_track:
             menu.addAction(self.act_merge)
@@ -997,6 +1005,39 @@ class MarkerEditor(QtWidgets.QWidget):
             '''
         self.data_file.data_file.setChangesMade()
 
+    def changeType(self):
+        print("Change Type ...")
+
+        # ie for marker, track, line, rect
+        own_type = self.data.type
+
+        # check for own type and select matching types
+        q_types = self.data_file.table_markertype.select().where(self.data_file.table_markertype.mode == own_type.mode)
+        all_types = ["%s" % t.name for t in q_types]
+
+        # remove own type from list
+        all_types.remove("%s" % own_type.name)
+
+        old_type = own_type
+
+        type_target, ok = QtWidgets.QInputDialog.getItem(self, "Select new Type:", "", all_types, 1, True)
+
+        if ok:
+            type_target = self.data_file.table_markertype.get(name=type_target)
+            print("type:", type(self.data))
+            self.data.changeType(type_target)
+
+            # refresh display
+            try:
+                if not type(self.data) in [self.data_file.table_track]:
+                    self.marker_handler.ReloadMarker(self.data.image.sort_index)
+                else:
+                    self.marker_handler.ReloadTrack(self.data)
+            finally:
+                self.tree.updateEntry(old_type, update_children=True)
+                self.tree.updateEntry(type_target, update_children=True)
+
+
     def mergeTrack(self):
         print("Merge ...")
 
@@ -1039,7 +1080,6 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.tree.updateEntry(track, update_children=True)
 
 
-
     def splitTrack(self):
         print("Split ...")
 
@@ -1058,7 +1098,6 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.tree.updateEntry(first_track, update_children=True)
                 self.tree.updateEntry(second_track, insert_after=first_track)
 
-            #TODO: how to handle update in MarkerEditor
 
     def removeMarkersAfter(self):
         """ remove markers from track that appear after this marker """
