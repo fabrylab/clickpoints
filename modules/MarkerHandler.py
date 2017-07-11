@@ -541,6 +541,7 @@ class MyTreeView(QtWidgets.QTreeView):
             child = QtGui.QStandardItem("loading")
             child.entry = None
             child.setEditable(False)
+            child.setIcon(qta.icon("fa.hourglass-half"))
             item.appendRow(child)
             item.expanded = False
             #self.model.setItem(row, 0, item)
@@ -550,18 +551,11 @@ class MyTreeView(QtWidgets.QTreeView):
         # Get item and entry
         item = index.model().itemFromIndex(index)
         entry = item.entry
-
-        return self.expand(entry)
-
         thread = None
 
-        # Expand marker type
-        if isinstance(entry, self.data_file.table_markertype) and entry.expanded is False:
-            thread = Thread(target=self.ExpandType, args=(item, entry))
-
-        # Expand track
-        if isinstance(entry, self.data_file.table_track) and entry.expanded is False:
-            thread = Thread(target=self.ExpandTrack, args=(item, entry))
+        # Expand
+        if item.expanded is False:
+            thread = Thread(target=self.expand, args=(entry,))
 
         # Start thread as daemonic
         if thread:
