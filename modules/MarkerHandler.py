@@ -589,7 +589,35 @@ class MyTreeView(QtWidgets.QTreeView):
             # add the item as a child of its parent
             self.addChild(parent_item, entry, row)
         else:
-            # TODO check if we have to change the parent
+            # check if we have to change the parent
+            parent_entry = self.getParentEntry(entry)
+            parent_item = self.getItemFromEntry(parent_entry)
+            if parent_item != item.parent():
+                # remove the item from the old position
+                if item.parent() is None:
+                    self.model.takeRow(item.row())
+                else:
+                    item.parent().takeRow(item.row())
+
+                # determine a potential new position
+                row = None
+                if insert_before:
+                    row = self.getItemFromEntry(insert_before).row()
+                if insert_after:
+                    row = self.getItemFromEntry(insert_after).row() + 1
+
+                # move the item to the new position
+                if parent_item is None:
+                    if row is None:
+                        row = self.model.rowCount()
+                    self.model.insertRow(row)
+                    self.model.setItem(row, 0, item)
+                else:
+                    if row is None:
+                        parent_item.appendRow(item)
+                    else:
+                        parent_item.insertRow(row, item)
+
             # update the items name, icon and children
             icon = self.getIconOfEntry(entry)
             if icon:
@@ -994,26 +1022,6 @@ class MarkerEditor(QtWidgets.QWidget):
             self.tree.updateEntry(self.data, insert_before=self.tree.new_type)
             self.tree.setCurrentIndex(self.data)
 
-            '''
-            # get the item from tree or insert a new one
-            if new_type:
-                item = QtGui.QStandardItem()
-                item.setEditable(False)
-                item.entry = self.data
-                self.marker_type_modelitems[self.data.id] = item
-                new_row = self.marker_type_modelitems[-1].row()
-                self.tree.model().insertRow(new_row)
-                self.tree.model().setItem(new_row, 0, item)
-            else:
-                item = self.marker_type_modelitems[self.data.id]
-
-            # update item
-            item.setIcon(qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(self.data.color))))
-            item.setText(self.data.name)
-            # if a new type was created switch selection to create a new type
-            if new_type:
-                self.setMarker(self.new_type)
-            '''
         self.data_file.data_file.setChangesMade()
 
     def changeType(self):
@@ -1045,9 +1053,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 else:
                     self.marker_handler.ReloadTrack(self.data)
             finally:
-                self.tree.updateEntry(old_type, update_children=True)
-                self.tree.updateEntry(type_target, update_children=True)
-
+                self.tree.updateEntry(self.data)
 
     def mergeTrack(self):
         print("Merge ...")
@@ -1085,11 +1091,8 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.marker_handler.ReloadTrack(track)
                 finally:
                     # refresh marker editor display
-                    #type_item = self.marker_type_modelitems[self.data.type.id]
-                    #self.ExpandType(type_item, self.data.type, force_reload=True)
                     self.tree.deleteEntry(merge_target)
                     self.tree.updateEntry(track, update_children=True)
-
 
     def splitTrack(self):
         print("Split ...")
@@ -1108,6 +1111,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 # refresh marker editor display
                 self.tree.updateEntry(first_track, update_children=True)
                 self.tree.updateEntry(second_track, insert_after=first_track)
+                self.tree.setCurrentIndex(second_track)
 
 
     def removeMarkersAfter(self):
