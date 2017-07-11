@@ -1014,11 +1014,19 @@ class MarkerEditor(QtWidgets.QWidget):
 
             merge_target, ok = QtWidgets.QInputDialog.getItem(self, "Merge with TrackID:", "", all_tracks, 1, True)
             if merge_target:
-                merge_target = np.uint(merge_target)
-                merge_target = self.data_file.table_track.get(id=merge_target)
+                try:
+                    merge_target = np.uint(merge_target)
+                    merge_target = self.data_file.table_track.get(id=merge_target)
+                except peewee.DoesNotExist as err:
+                    QtWidgets.QMessageBox.critical(self, 'Error - ClickPoints', "Track #%d does not exist." % merge_target, QtWidgets.QMessageBox.Ok)
+                    return
 
             if ok:
-                track.merge(merge_target)
+                try:
+                    track.merge(merge_target)
+                except ValueError as err:
+                    QtWidgets.QMessageBox.critical(self, 'Error - ClickPoints', str(err), QtWidgets.QMessageBox.Ok)
+                    return
 
                 # refresh display
                 try:
