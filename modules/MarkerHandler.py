@@ -1150,12 +1150,13 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.data.delete_instance()
                 self.tree.deleteEntry(self.data)
             else:
+                data = self.data
+                self.tree.deleteEntry(data)
                 # find corresponding track and remove the point
-                track_item = self.marker_handler.GetMarkerItem(self.data.track)
-                if track_item.removeTrackPoint(self.data.image.sort_index):
-                    self.tree.deleteEntry(self.data.track)
-                else:
-                    self.tree.deleteEntry(self.data)
+                track_item = self.marker_handler.GetMarkerItem(data.track)
+                if track_item:
+                    if track_item.removeTrackPoint(data.image.sort_index):
+                        self.tree.deleteEntry(data.track)
 
         # currently selected a track -> remove the track
         elif type(self.data) == self.data_file.table_track:
@@ -1428,6 +1429,7 @@ class MyDisplayItem:
         else:
             self.data = self.newData(event, type)
             self.data.save()
+            self.marker_handler.markerAddedEvent(self.data)
             self.is_new = True
         # extract the style information
         self.GetStyle()
@@ -1645,6 +1647,7 @@ class MyDisplayItem:
     def changeTypeEvent(self):
         if self.marker_handler.active_type.mode == self.data.type.mode:
             self.changeType(self.marker_handler.active_type)
+            self.marker_handler.markerAddedEvent(self.data)
 
     def changeType(self, type):
         self.data.changeType(type)
@@ -1682,6 +1685,7 @@ class MyDisplayItem:
         # delete the database entry
         if not just_display:
             self.data.delete_instance()
+            self.marker_handler.markerRemovedEvent(self.data)
 
         # delete from marker handler list
         self.marker_handler.RemoveFromList(self)
@@ -2073,6 +2077,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                                                                      type=self.data.type,
                                                                      track=self.data, text=None)
             marker.save()
+            self.marker_handler.markerAddedEvent(marker)
             self.marker = TrackMarkerObject([0, 0], dict(id=marker.id, type=marker.type, track=marker.track, image=image, text=None, style={}))
             self.markers[self.current_frame] = self.marker
             self.setTrackActive(True)
@@ -2107,6 +2112,9 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         try:
             # delete entry from list
             data = self.markers.pop(frame)
+            print("data", data)
+            print("data id", data.data["id"])
+            self.marker_handler.markerRemovedEvent(self.marker_handler.marker_file.table_marker(id=data.data["id"]))
             # delete entry from database
             self.marker_handler.marker_file.table_marker.delete().where(self.marker_handler.marker_file.table_marker.id == data.data["id"]).execute()
             # if it is the current frame, delete reference to marker
@@ -2117,6 +2125,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         # if it was the last one delete the track, too
         if len(self.markers) == 0:
             self.delete()
+            self.marker_handler.markerRemovedEvent(self.data)
             return True  # True indicates that we remove the track too
         # set the track to inactive if the current marker was removed
         if frame == self.current_frame:
@@ -3008,6 +3017,14 @@ class MarkerHandler:
             self.active_drag.drag(event)
             return True
         return False
+
+    def markerAddedEvent(self, entry):
+        if self.marker_edit_window:
+            self.marker_edit_window.tree.updateEntry(entry)
+
+    def markerRemovedEvent(self, entry):
+        if self.marker_edit_window:
+            self.marker_edit_window.tree.deleteEntry(entry)
 
     def optionsChanged(self):
         for type_id, type_def in self.config.types.items():
