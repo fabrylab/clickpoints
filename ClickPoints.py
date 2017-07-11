@@ -562,6 +562,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # broadcast event to the modules
         BroadCastEvent(self.modules, "zoomEvent", scale, pos)
 
+    def keyReleaseEvent(self, event):
+        # broadcast event to the modules
+        BroadCastEvent(self.modules, "keyReleaseEvent", event)
+
     def keyPressEvent(self, event):
         # broadcast event to the modules
         BroadCastEvent(self.modules, "keyPressEvent", event)

@@ -1201,6 +1201,7 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         # init and store parent
         QtWidgets.QGraphicsPathItem.__init__(self, parent)
         self.use_crosshair = use_crosshair
+        self.parent = parent
 
         # set path
         self.setPath(paths[shape])
@@ -1236,20 +1237,26 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         self.parentItem().graberHoverLeave(self, event)
 
     def mousePressEvent(self, event):
+        self.grabbed = False
         # store start position of move
         if event.button() == QtCore.Qt.LeftButton:
             # left click + control -> remove
-            if event.modifiers() == QtCore.Qt.ControlModifier:
+            if self.parent.marker_handler.tool_index == 1:
                 self.parentItem().graberDelete(self)
+            elif self.parent.marker_handler.tool_index == 2:
+                self.parentItem().changeTypeEvent()
             # normal left click -> move
             else:
-                if self.use_crosshair:
-                    # display crosshair
-                    self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
-                    self.parentItem().marker_handler.Crosshair.Show(self)
-                    self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
-                self.grabbed = True
-                self.mouseMoveEvent(event)
+                if event.modifiers() == QtCore.Qt.ControlModifier:
+                    self.parentItem().graberDelete(self)
+                else:
+                    if self.use_crosshair:
+                        # display crosshair
+                        self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
+                        self.parentItem().marker_handler.Crosshair.Show(self)
+                        self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+                    self.grabbed = True
+                    self.mouseMoveEvent(event)
         if event.button() == QtCore.Qt.RightButton:
             # right button -> open menu
             self.parentItem().rightClick(self)
@@ -1435,6 +1442,7 @@ class MyDisplayItem:
             if grabber is None:
                 break
             grabber.setShape(self.style.get("shape", self.default_shape))
+            grabber.setBrush(QtGui.QBrush(self.color))
             if self.style.get("transform", "screen") == "screen":
                 grabber.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
                 grabber.setScale(self.style.get("scale", 1))
@@ -1574,6 +1582,17 @@ class MyDisplayItem:
 
     def graberDelete(self, grabber):
         self.delete()
+
+    def changeTypeEvent(self):
+        if self.marker_handler.active_type.mode == self.data.type.mode:
+            self.changeType(self.marker_handler.active_type)
+
+    def changeType(self, type):
+        self.data.changeType(type)
+        self.ReloadData()
+        #self.GetStyle()
+        #self.ApplyStyle()
+        #self.setText(self.GetText())
 
     def graberReleased(self, grabber, event):
         pass
@@ -2276,7 +2295,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
 
     def setIndex(self, index):
         self.index = index
-        self.setPos(10, 10 + 25 * self.index)
+        self.setPos(10, 10 + 25 * self.index + 30)
         self.AddCount(0)
 
     def Update(self, type):
@@ -2333,6 +2352,54 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
             self.marker_handler.SetActiveMarkerType(self.index)
             if self.marker_handler.marker_edit_window:
                 self.marker_handler.marker_edit_window.setMarker(self.type, data_type="type")
+
+    def delete(self):
+        # delete from scene
+        self.scene().removeItem(self)
+
+
+class MyCommandButton(QtWidgets.QGraphicsRectItem):
+
+    def __init__(self, parent, marker_handler, icon, index=0):
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
+        self.parent = parent
+        self.marker_handler = marker_handler
+
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+
+        self.setAcceptHoverEvents(True)
+        self.active = False
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
+
+        self.setZValue(9)
+
+        self.pixmap = QtWidgets.QGraphicsPixmapItem(self)
+        self.pixmap.setPixmap(icon.pixmap(28))
+
+        self.setRect(0, 0, 28, 28)
+        self.setPos(5 + (28+5)*index, 5)
+
+        self.clicked = lambda: 0
+
+    def SetToActiveColor(self):
+        self.active = True
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
+
+    def SetToInactiveColor(self):
+        self.active = False
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
+
+    def hoverEnterEvent(self, event):
+        if self.active is False:
+            self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
+
+    def hoverLeaveEvent(self, event):
+        if self.active is False:
+            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.clicked()
 
     def delete(self):
         # delete from scene
@@ -2419,6 +2486,22 @@ class MarkerHandler:
         self.display_lists = [self.points, IterableDict(self.tracks), self.lines, self.rectangles]
 
         self.closeDataFile()
+
+        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.plus"), 0)
+        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.trash"), 1)
+        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.tint"), 2)
+        self.button1.SetToActiveColor()
+        self.tool_buttons = [self.button1, self.button2, self.button3]
+        self.tool_index = 0
+        self.button1.clicked = lambda: self.selectTool(0)
+        self.button2.clicked = lambda: self.selectTool(1)
+        self.button3.clicked = lambda: self.selectTool(2)
+
+    def selectTool(self, index):
+        self.tool_index = index
+        for button in self.tool_buttons:
+            button.SetToInactiveColor()
+        self.tool_buttons[index].SetToActiveColor()
 
     def closeDataFile(self):
         self.data_file = None
@@ -2835,7 +2918,8 @@ class MarkerHandler:
     def sceneEventFilter(self, event):
         if self.hidden or self.data_file.image is None:
             return False
-        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and not event.modifiers() & Qt.ControlModifier and self.active_type is not None:
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and \
+                not event.modifiers() & Qt.ControlModifier and self.active_type is not None and self.tool_index == 0:
             self.active_drag = None
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
@@ -2884,6 +2968,18 @@ class MarkerHandler:
             # @key MB1: set marker
             # @key ctrl + MB1: delete marker
             # @key MB2: open marker editor
+
+        print(event.key(), Qt.Key_Control)
+        if event.key() == Qt.Key_Control and self.tool_index == 0:
+            self.button2.SetToActiveColor()
+            self.button1.SetToInactiveColor()
+
+    def keyReleaseEvent(self, event):
+
+        print("release", event.key(), Qt.Key_Control)
+        if event.key() == Qt.Key_Control and self.tool_index == 0:
+            self.button1.SetToActiveColor()
+            self.button2.SetToInactiveColor()
 
     def ToggleInterfaceEvent(self, event=None, hidden=None):
         if hidden is None:
