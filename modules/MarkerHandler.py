@@ -3034,6 +3034,8 @@ class MarkerHandler:
             self.config.marker_interface_hidden = self.hidden
         for key in self.counter:
             self.counter[key].setVisible(not self.hidden)
+        for button in self.tool_buttons:
+            button.setVisible(not self.hidden)
         for point in self.points:
             point.setActive(not self.hidden)
         for key in self.tracks:
