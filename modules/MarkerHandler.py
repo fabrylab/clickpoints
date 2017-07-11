@@ -326,6 +326,7 @@ class DeleteType(QtWidgets.QDialog):
 class MyTreeView(QtWidgets.QTreeView):
     item_selected = lambda x: 0
     item_clicked = lambda x: 0
+    item_activated = lambda x: 0
     item_hoverEnter = lambda x: 0
     item_hoverLeave = lambda x: 0
 
@@ -353,6 +354,7 @@ class MyTreeView(QtWidgets.QTreeView):
         self.setModel(self.model)
         self.expanded.connect(self.TreeExpand)
         self.clicked.connect(self.treeClicked)
+        self.activated.connect(self.treeActivated)
         self.selectionModel().selectionChanged.connect(self.selectionChanged)
 
         # add context menu
@@ -384,6 +386,11 @@ class MyTreeView(QtWidgets.QTreeView):
         # upon selecting one of the tree elements
         data = index.model().itemFromIndex(index).entry
         return self.item_clicked(data)
+
+    def treeActivated(self, index):
+        # upon selecting one of the tree elements
+        data = index.model().itemFromIndex(index).entry
+        return self.item_activated(data)
 
     def eventFilter(self, object, event):
         """ event filter for tree view port to handle mouse over events and marker highlighting"""
@@ -627,6 +634,7 @@ class MarkerEditor(QtWidgets.QWidget):
         # connect tree view callbacks
         self.tree.item_selected = self.setMarker
         self.tree.item_clicked = self.treeClicked
+        self.tree.item_activated = self.treeClicked
         self.tree.item_hoverEnter = self.hoverEnter
         self.tree.item_hoverLeave = self.hoverLeave
 
