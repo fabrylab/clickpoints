@@ -760,6 +760,9 @@ class MarkerEditor(QtWidgets.QWidget):
         self.markerWidget.style = AddQLineEdit(layout, "Style:")
         self.markerWidget.text = AddQLineEdit(layout, "Text:")
         self.markerWidget.label = AddQLabel(layout)
+
+        self.addValueChangedSignals(self.markerWidget)
+
         layout.addStretch()
 
         """ Type Properties """
@@ -774,6 +777,9 @@ class MarkerEditor(QtWidgets.QWidget):
         self.typeWidget.color = AddQColorChoose(layout, "Color:")
         self.typeWidget.text = AddQLineEdit(layout, "Text:")
         self.typeWidget.hidden = AddQCheckBox(layout, "Hidden:")
+
+        self.addValueChangedSignals(self.typeWidget)
+
         layout.addStretch()
 
         """ Track Properties """
@@ -783,6 +789,9 @@ class MarkerEditor(QtWidgets.QWidget):
         self.trackWidget.style = AddQLineEdit(layout, "Style:")
         self.trackWidget.text = AddQLineEdit(layout, "Text:")
         self.trackWidget.hidden = AddQCheckBox(layout, "Hidden:")
+
+        self.addValueChangedSignals(self.trackWidget)
+
         layout.addStretch()
 
         """ empty """
@@ -792,17 +801,38 @@ class MarkerEditor(QtWidgets.QWidget):
         """ Control Buttons """
         horizontal_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(horizontal_layout)
-        self.pushbutton_Confirm = QtWidgets.QPushButton('S&ave', self)
+        self.pushbutton_Ok = QtWidgets.QPushButton('&Ok', self)
+        def ok():
+            self.saveMarker()
+            self.close()
+        self.pushbutton_Ok.pressed.connect(ok)
+        horizontal_layout.addWidget(self.pushbutton_Ok)
+
+        self.pushbutton_Exit = QtWidgets.QPushButton('&Cancel', self)
+        self.pushbutton_Exit.pressed.connect(self.close)
+        horizontal_layout.addWidget(self.pushbutton_Exit)
+
+        self.pushbutton_Confirm = QtWidgets.QPushButton('&Apply', self)
         self.pushbutton_Confirm.pressed.connect(self.saveMarker)
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
-        self.pushbutton_Remove = QtWidgets.QPushButton('R&emove', self)
-        self.pushbutton_Remove.pressed.connect(self.removeMarker)
-        horizontal_layout.addWidget(self.pushbutton_Remove)
+        #self.pushbutton_Remove = QtWidgets.QPushButton('R&emove', self)
+        #self.pushbutton_Remove.pressed.connect(self.removeMarker)
+        #horizontal_layout.addWidget(self.pushbutton_Remove)
 
-        self.pushbutton_Exit = QtWidgets.QPushButton('&Exit', self)
-        self.pushbutton_Exit.pressed.connect(self.close)
-        horizontal_layout.addWidget(self.pushbutton_Exit)
+    def addValueChangedSignals(self, parent):
+        for key in dir(parent):
+            obj = getattr(parent, key)
+            if isinstance(obj, QtWidgets.QWidget):
+                for signal in ["valueChanged", "currentIndexChanged", "textChanged", "stateChanged"]:
+                    try:
+                        getattr(obj, signal).connect(self.valueChanged)
+                        break
+                    except AttributeError:
+                        continue
+
+    def valueChanged(self):
+        self.pushbutton_Confirm.setDisabled(False)
 
     def hoverLeave(self, entry):
         if type(entry) in [self.data_file.table_marker, self.data_file.table_line,
@@ -900,7 +930,7 @@ class MarkerEditor(QtWidgets.QWidget):
     def setMarker(self, data):
         self.data = data
 
-        self.pushbutton_Remove.setHidden(False)
+        #self.pushbutton_Remove.setHidden(False)
 
         if type(data) == self.data_file.table_marker or type(data) == self.data_file.table_line or type(data) == self.data_file.table_rectangle:
             self.StackedWidget.setCurrentIndex(0)
@@ -952,7 +982,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_handler.SetActiveMarkerType(new_type=self.data)
             self.StackedWidget.setCurrentIndex(1)
             if data.name is None:
-                self.pushbutton_Remove.setHidden(True)
+                #self.pushbutton_Remove.setHidden(True)
                 self.typeWidget.setTitle("add type")
             else:
                 self.typeWidget.setTitle("Type #%s" % data.name)
@@ -968,6 +998,7 @@ class MarkerEditor(QtWidgets.QWidget):
             self.typeWidget.hidden.setChecked(data.hidden)
         else:
             self.StackedWidget.setCurrentIndex(3)
+        self.pushbutton_Confirm.setDisabled(True)
 
     def filterText(self, input):
         # if text field is empty - add Null instead of "" to sql db
