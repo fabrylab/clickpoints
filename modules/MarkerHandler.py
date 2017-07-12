@@ -2237,7 +2237,8 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def rightClick(self, grabber):
         MyDisplayItem.rightClick(self, grabber)
         if self.marker is not None:
-            self.marker_handler.marker_edit_window.setMarker(self.marker)
+            entry = self.marker_handler.marker_file.table_marker.get(id=self.marker.data["id"])
+            self.marker_handler.marker_edit_window.setMarkerData(entry)
 
     def removeTrackPoint(self, frame=None):
         # use the current frame if no frame is supplied
