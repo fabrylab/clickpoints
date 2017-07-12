@@ -197,7 +197,7 @@ The keywords are depending on the type for marker, as explained in the following
 
 
 **General**
-    ``/n``
+    ``\n``
         insert a new line
 
     ``$marker_id``
