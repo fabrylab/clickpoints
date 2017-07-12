@@ -837,6 +837,10 @@ class MarkerEditor(QtWidgets.QWidget):
     def hoverLeave(self, entry):
         if type(entry) in [self.data_file.table_marker, self.data_file.table_line,
                                                 self.data_file.table_rectangle, self.data_file.table_track]:
+            if isinstance(entry, self.data_file.table_marker) and entry.track_id:
+                track_item = self.marker_handler.GetMarkerItem(entry.track)
+                if track_item:
+                    track_item.hoverTrackMarkerLeave(entry)
             marker_item = self.marker_handler.GetMarkerItem(entry)
             # TODO how to handle markers in tracks?
             try:
@@ -847,6 +851,10 @@ class MarkerEditor(QtWidgets.QWidget):
     def hoverEnter(self, entry):
         if type(entry) in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle,
                                 self.data_file.table_track]:
+            if isinstance(entry, self.data_file.table_marker) and entry.track_id:
+                track_item = self.marker_handler.GetMarkerItem(entry.track)
+                if track_item:
+                    track_item.hoverTrackMarkerEnter(entry)
             marker_item = self.marker_handler.GetMarkerItem(entry)
             # TODO how to handle markers in tracks?
             try:
@@ -1490,6 +1498,16 @@ class MyNonGrabberItem(QtWidgets.QGraphicsPathItem):
 
     def setShape(self, shape):
         self.setPath(paths[shape])
+
+    def hoverEnterEventCustom(self, event):
+        # a bit bigger during hover
+        self.setScale(hover_scale=1.2)
+        #self.parentItem().graberHoverEnter(self, event)
+
+    def hoverLeaveEventCustom(self, event):
+        # switch back to normal size
+        self.setScale(hover_scale=1)
+        #self.parentItem().graberHoverLeave(self, event)
 
     def setScale(self, scale=None, animation_scale=None, hover_scale=None):
         # store scale
@@ -2154,6 +2172,16 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
         # update text
         self.setText(self.GetText())
+
+    def hoverTrackMarkerEnter(self, marker):
+        frame = marker.image.sort_index
+        if frame in self.marker_draw_items:
+            self.marker_draw_items[frame].hoverEnterEventCustom(None)
+
+    def hoverTrackMarkerLeave(self, marker):
+        frame = marker.image.sort_index
+        if frame in self.marker_draw_items:
+            self.marker_draw_items[frame].hoverLeaveEventCustom(None)
 
     def ApplyStyle(self):
         MyDisplayItem.ApplyStyle(self)
