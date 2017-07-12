@@ -356,6 +356,16 @@ def HTMLColorToRGB(colorstring):
     return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
 
 
+def IconFromFile(filename, color=None):
+    pixmap = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "..", "icons", filename))
+    if color is not None:
+        mask = pixmap.createMaskFromColor(QtGui.QColor('black'), QtCore.Qt.MaskOutColor)
+        pixmap.fill((color))
+        pixmap.setMask(mask)
+
+    return QtGui.QIcon(pixmap)
+
+
 def BoundBy(value, min, max):
     # return value bound by min and max
     if value is None:

@@ -41,7 +41,7 @@ import matplotlib.pyplot as plt
 from threading import Thread
 
 from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
-from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
+from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile
 
 w = 1.
 b = 7
@@ -480,7 +480,14 @@ class MyTreeView(QtWidgets.QTreeView):
 
     def getIconOfEntry(self, entry):
         if isinstance(entry, self.data_file.table_markertype):
-            return qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
+            if entry.mode == TYPE_Normal:
+                return qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
+            if entry.mode == TYPE_Line:
+                return IconFromFile("Line.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
+            if entry.mode == TYPE_Rect:
+                return IconFromFile("Rectangle.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
+            if entry.mode == TYPE_Track:
+                return IconFromFile("Track.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
         return QtGui.QIcon()
 
     def getEntrySortRole(self, entry):
