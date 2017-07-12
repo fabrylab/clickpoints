@@ -1373,22 +1373,19 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         # store start position of move
         if event.button() == QtCore.Qt.LeftButton:
             # left click + control -> remove
-            if self.parent.marker_handler.tool_index == 1:
+            if self.parent.marker_handler.tool_index == 1 or event.modifiers() == QtCore.Qt.ControlModifier:
                 self.parentItem().graberDelete(self)
             elif self.parent.marker_handler.tool_index == 2:
                 self.parentItem().changeTypeEvent()
             # normal left click -> move
             else:
-                if event.modifiers() == QtCore.Qt.ControlModifier:
-                    self.parentItem().graberDelete(self)
-                else:
-                    if self.use_crosshair:
-                        # display crosshair
-                        self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
-                        self.parentItem().marker_handler.Crosshair.Show(self)
-                        self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
-                    self.grabbed = True
-                    self.mouseMoveEvent(event)
+                if self.use_crosshair:
+                    # display crosshair
+                    self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
+                    self.parentItem().marker_handler.Crosshair.Show(self)
+                    self.parentItem().marker_handler.Crosshair.MoveCrosshair(self.pos().x(), self.pos().y())
+                self.grabbed = True
+                self.mouseMoveEvent(event)
         if event.button() == QtCore.Qt.RightButton:
             # right button -> open menu
             self.parentItem().rightClick(self)
@@ -3118,14 +3115,14 @@ class MarkerHandler:
             # @key MB2: open marker editor
 
         # show the erase tool highlighted when Control is pressed
-        if event.key() == Qt.Key_Control and self.tool_index == 0:
+        if event.key() == Qt.Key_Control and self.tool_index != 1:
             self.button2.SetToActiveColor()
-            self.button1.SetToInactiveColor()
+            self.tool_buttons[self.tool_index].SetToInactiveColor()
 
     def keyReleaseEvent(self, event):
         # show the erase tool highlighted when Control is pressed
-        if event.key() == Qt.Key_Control and self.tool_index == 0:
-            self.button1.SetToActiveColor()
+        if event.key() == Qt.Key_Control and self.tool_index != 1:
+            self.tool_buttons[self.tool_index].SetToActiveColor()
             self.button2.SetToInactiveColor()
 
     def ToggleInterfaceEvent(self, event=None, hidden=None):
