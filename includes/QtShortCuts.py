@@ -147,6 +147,14 @@ def AddQComboBox(layout, text, values=None, selectedValue=None):
         comboBox.addItem(value)
     if selectedValue:
         comboBox.setCurrentIndex(values.index(selectedValue))
+    comboBox.values = values
+    def setValues(new_values):
+        for i in range(len(comboBox.values)):
+            comboBox.removeItem(0)
+        for value in new_values:
+            comboBox.addItem(value)
+        comboBox.values = new_values
+    comboBox.setValues = setValues
     horizontal_layout.addWidget(text)
     horizontal_layout.addWidget(comboBox)
     comboBox.managingLayout = horizontal_layout

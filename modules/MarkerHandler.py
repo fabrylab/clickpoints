@@ -322,6 +322,21 @@ class DeleteType(QtWidgets.QDialog):
         button3.clicked.connect(lambda: self.done(0))
         layout2.addWidget(button3)
 
+class myTreeWidgetItem(QtGui.QStandardItem):
+    def __init__(self, parent=None):
+        QtGui.QStandardItem.__init__(self, parent)
+
+    def __lt__(self, otherItem):
+        if self.sort is None:
+            return 0
+        return self.sort < otherItem.sort
+        column = self.treeWidget().sortColumn()
+
+        if column == 0 or column == 6 or column == 7 or column == 8:
+            return float(self.text(column)) < float(otherItem.text(column))
+        else:
+            return self.text(column) < otherItem.text(column)
+
 
 class MyTreeView(QtWidgets.QTreeView):
     item_selected = lambda x: 0
@@ -456,12 +471,22 @@ class MyTreeView(QtWidgets.QTreeView):
         if isinstance(entry, self.data_file.table_rectangle):
             return "Rectangle #%d (frame %d)" % (entry.id, entry.image.sort_index)
         if isinstance(entry, self.data_file.table_track):
-            return "Track #%d (count %d)" % (entry.id, entry.track_markers.count())
+            count = entry.track_markers.count()
+            if count == 0:
+                self.deleteEntry(entry)
+                return None
+            return "Track #%d (count %d)" % (entry.id, count)
         return "nix"
 
     def getIconOfEntry(self, entry):
         if isinstance(entry, self.data_file.table_markertype):
             return qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
+        return QtGui.QIcon()
+
+    def getEntrySortRole(self, entry):
+        if isinstance(entry, self.data_file.table_marker):
+            return entry.image.sort_index
+        return None
 
     def getKey(self, entry):
         return type(entry).__name__ + str(entry.id)
@@ -504,7 +529,7 @@ class MyTreeView(QtWidgets.QTreeView):
             # add entry for new type
             self.new_type = self.data_file.table_markertype()
             self.new_type.color = GetColorByIndex(self.data_file.table_markertype.select().count()-1)
-            item_type = QtGui.QStandardItem("add type")
+            item_type = myTreeWidgetItem("add type")
             item_type.entry = self.new_type
             item_type.setIcon(qta.icon("fa.plus"))
             item_type.setEditable(False)
@@ -518,14 +543,13 @@ class MyTreeView(QtWidgets.QTreeView):
             parent_item = self.model
 
         # add item
-        item = QtGui.QStandardItem(self.getNameOfEntry(entry))
+        item = myTreeWidgetItem(self.getNameOfEntry(entry))
         item.expanded = False
         item.entry = entry
 
-        icon = self.getIconOfEntry(entry)
-        if icon:
-            item.setIcon(icon)
+        item.setIcon(self.getIconOfEntry(entry))
         item.setEditable(False)
+        item.sort = self.getEntrySortRole(entry)
 
         if parent_item is None:
             if row is None:
@@ -577,6 +601,8 @@ class MyTreeView(QtWidgets.QTreeView):
                 parent_item = self.getItemFromEntry(parent_entry)
                 # parent item not in list or not expanded, than we don't need to update it because it is not shown
                 if parent_item is None or parent_item.expanded is False:
+                    if parent_item:
+                        parent_item.setText(self.getNameOfEntry(parent_entry))
                     return
 
             # define the row where the new item should be
@@ -588,6 +614,11 @@ class MyTreeView(QtWidgets.QTreeView):
 
             # add the item as a child of its parent
             self.addChild(parent_item, entry, row)
+            if parent_item:
+                if row is None:
+                    parent_item.sortChildren(0)
+                if parent_entry:
+                    parent_item.setText(self.getNameOfEntry(parent_entry))
         else:
             # check if we have to change the parent
             parent_entry = self.getParentEntry(entry)
@@ -619,9 +650,7 @@ class MyTreeView(QtWidgets.QTreeView):
                         parent_item.insertRow(row, item)
 
             # update the items name, icon and children
-            icon = self.getIconOfEntry(entry)
-            if icon:
-                item.setIcon(icon)
+            item.setIcon(self.getIconOfEntry(entry))
             item.setText(self.getNameOfEntry(entry))
             if update_children:
                 self.expand(entry, force_reload=True)
@@ -630,13 +659,22 @@ class MyTreeView(QtWidgets.QTreeView):
         item = self.getItemFromEntry(entry)
         if item is None:
             return
+
+        parent_item = item.parent()
+        parent_entry = parent_item.entry
+
         key = self.getKey(entry)
         del self.item_lookup[key]
 
-        if item.parent() is None:
+        if parent_item is None:
             self.model.removeRow(item.row())
         else:
             item.parent().removeRow(item.row())
+
+        if parent_item:
+            name = self.getNameOfEntry(parent_entry)
+            if name is not None:
+                parent_item.setText(name)
 
 
 class MarkerEditor(QtWidgets.QWidget):
@@ -738,6 +776,10 @@ class MarkerEditor(QtWidgets.QWidget):
         self.trackWidget.text = AddQLineEdit(layout, "Text:")
         self.trackWidget.hidden = AddQCheckBox(layout, "Hidden:")
         layout.addStretch()
+
+        """ empty """
+        self.emptyWidget = QtWidgets.QGroupBox()
+        self.StackedWidget.addWidget(self.emptyWidget)
 
         """ Control Buttons """
         horizontal_layout = QtWidgets.QHBoxLayout()
@@ -878,6 +920,9 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.markerWidget.x.setValue(data.x)
                 self.markerWidget.y.setValue(data.y)
 
+            #if marker_type.mode & TYPE_Track and data.track_id:
+            #    self.markerWidget.type.setHidden(True)
+
             self.markerWidget.label.setText(text)
 
             self.markerWidget.type.setCurrentIndex(self.markerWidget.type_indices[marker_type.id])
@@ -913,6 +958,8 @@ class MarkerEditor(QtWidgets.QWidget):
             self.typeWidget.color.setColor(data.color)
             self.typeWidget.text.setText(data.text if data.text else "")
             self.typeWidget.hidden.setChecked(data.hidden)
+        else:
+            self.StackedWidget.setCurrentIndex(3)
 
     def filterText(self, input):
         # if text field is empty - add Null instead of "" to sql db
@@ -1021,6 +1068,10 @@ class MarkerEditor(QtWidgets.QWidget):
 
             self.tree.updateEntry(self.data, insert_before=self.tree.new_type)
             self.tree.setCurrentIndex(self.data)
+
+            # update the drop-down menus for the types
+            self.markerWidget.type_indices = {t.id: index for index, t in enumerate(self.data_file.get_type_list())}
+            self.markerWidget.type.setValues([t.name for t in self.data_file.get_type_list()])
 
         self.data_file.data_file.setChangesMade()
 
@@ -1133,84 +1184,88 @@ class MarkerEditor(QtWidgets.QWidget):
 
     def removeMarker(self):
         print("Remove ...")
+        data = self.data
         # currently selected a marker -> remove the marker
-        if type(self.data) == self.data_file.table_marker or type(self.data) == self.data_file.table_line or type(self.data) == self.data_file.table_rectangle:
-
-            marker_type = self.data.type
+        if type(data) == self.data_file.table_marker or type(data) == self.data_file.table_line or type(data) == self.data_file.table_rectangle:
+            marker_type = data.type
             if marker_type is None:
-                marker_type = self.data.track.type
+                marker_type = data.track.type
 
             if not (marker_type.mode & TYPE_Track):
                 # find point
-                marker_item = self.marker_handler.GetMarkerItem(self.data)
+                marker_item = self.marker_handler.GetMarkerItem(data)
                 # delete marker
                 if marker_item:
                     marker_item.delete()
                 else:
-                    self.data.delete_instance()
-                self.tree.deleteEntry(self.data)
-            else:
-                data = self.data
+                    data.delete_instance()
                 self.tree.deleteEntry(data)
+            else:
+
                 # find corresponding track and remove the point
                 track_item = self.marker_handler.GetMarkerItem(data.track)
+                # if we have a track display item, tell it to remove a point (removes the point from the database, too)
                 if track_item:
                     if track_item.removeTrackPoint(data.image.sort_index):
                         self.tree.deleteEntry(data.track)
+                # if not, we have to delete it from the database
+                else:
+                    data.delete_instance()
+                self.tree.deleteEntry(data)
 
         # currently selected a track -> remove the track
-        elif type(self.data) == self.data_file.table_track:
+        elif type(data) == self.data_file.table_track:
             # get the track and remove it
-            track = self.marker_handler.GetMarkerItem(self.data)
+            track = self.marker_handler.GetMarkerItem(data)
             if track:
                 track.delete()
-            self.data.delete_instance()
+            data.delete_instance()
             # and then delete the tree view item
-            self.tree.deleteEntry(self.data)
+            self.tree.deleteEntry(data)
 
         # currently selected a type -> remove the type
-        elif type(self.data) == self.data_file.table_markertype:
-            count = self.data.markers.count()+self.data.lines.count()+self.data.rectangles.count()
+        elif type(data) == self.data_file.table_markertype:
+            count = data.markers.count()+data.lines.count()+data.rectangles.count()
             # if this type doesn't have markers delete it without asking
             if count == 0:
-                self.data.delete_instance()
+                data.delete_instance()
             else:
                 # Ask the user if he wants to delete all markers from this type or assign them to a different type
-                self.window = DeleteType(self.data, count,
+                self.window = DeleteType(data, count,
                                          [marker_type for marker_type in self.data_file.get_type_list() if
-                                          marker_type != self.data])
+                                          marker_type != data])
                 value = self.window.exec_()
                 if value == 0:  # canceled
                     return
                 self.marker_handler.save()
                 if value == -1:  # delete all of them
                     # delete all markers from this type
-                    self.data_file.table_marker.delete().where(self.data_file.table_marker.type == self.data.id).execute()
-                    self.data_file.table_line.delete().where(self.data_file.table_line.type == self.data.id).execute()
-                    self.data_file.table_rectangle.delete().where(self.data_file.table_rectangle.type == self.data.id).execute()
-                    self.data_file.table_track.delete().where(self.data_file.table_track.type == self.data.id).execute()
+                    self.data_file.table_marker.delete().where(self.data_file.table_marker.type == data.id).execute()
+                    self.data_file.table_line.delete().where(self.data_file.table_line.type == data.id).execute()
+                    self.data_file.table_rectangle.delete().where(self.data_file.table_rectangle.type == data.id).execute()
+                    self.data_file.table_track.delete().where(self.data_file.table_track.type == data.id).execute()
                 else:
                     # change the type of all markers which belonged to this type
-                    self.data_file.table_marker.update(type=value).where(self.data_file.table_marker.type == self.data.id).execute()
-                    self.data_file.table_line.update(type=value).where(self.data_file.table_line.type == self.data.id).execute()
-                    self.data_file.table_rectangle.update(type=value).where(self.data_file.table_rectangle.type == self.data.id).execute()
-                    self.data_file.table_track.update(type=value).where(self.data_file.table_track.type == self.data.id).execute()
+                    self.data_file.table_marker.update(type=value).where(self.data_file.table_marker.type == data.id).execute()
+                    self.data_file.table_line.update(type=value).where(self.data_file.table_line.type == data.id).execute()
+                    self.data_file.table_rectangle.update(type=value).where(self.data_file.table_rectangle.type == data.id).execute()
+                    self.data_file.table_track.update(type=value).where(self.data_file.table_track.type == data.id).execute()
                 # delete type
-                if self.marker_handler.active_type is not None and self.marker_handler.active_type.id == self.data.id:
+                if self.marker_handler.active_type is not None and self.marker_handler.active_type.id == data.id:
                     self.marker_handler.active_type = None
-                self.data.delete_instance()
+                data.delete_instance()
                 # reload marker
-                if self.data.mode == TYPE_Normal:
+                if data.mode == TYPE_Normal:
                     self.marker_handler.LoadPoints()
-                elif self.data.mode & TYPE_Line:
+                elif data.mode & TYPE_Line:
                     self.marker_handler.LoadLines()
-                elif self.data.mode & TYPE_Rect:
+                elif data.mode & TYPE_Rect:
                     self.marker_handler.LoadRectangles()
-                elif self.data.mode & TYPE_Track:
-                    self.marker_handler.DeleteTrackType(self.data)
+                elif data.mode & TYPE_Track:
+                    self.marker_handler.DeleteTrackType(data)
 
             # update the counters
-            self.marker_handler.removeCounter(self.data)
+            self.marker_handler.removeCounter(data)
 
             # delete item from list
             # TODO
@@ -1218,6 +1273,10 @@ class MarkerEditor(QtWidgets.QWidget):
 
             # and then delete the tree view item
             self.tree.deleteEntry(self.data)
+
+            # update the drop-down menus for the types
+            self.markerWidget.type_indices = {t.id: index for index, t in enumerate(self.data_file.get_type_list())}
+            self.markerWidget.type.setValues([t.name for t in self.data_file.get_type_list()])
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Escape:
@@ -2112,11 +2171,11 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         try:
             # delete entry from list
             data = self.markers.pop(frame)
-            print("data", data)
-            print("data id", data.data["id"])
-            self.marker_handler.markerRemovedEvent(self.marker_handler.marker_file.table_marker(id=data.data["id"]))
+            entry = self.marker_handler.marker_file.table_marker(id=data.data["id"])
             # delete entry from database
             self.marker_handler.marker_file.table_marker.delete().where(self.marker_handler.marker_file.table_marker.id == data.data["id"]).execute()
+            # notify marker_handler
+            self.marker_handler.markerRemovedEvent(entry)
             # if it is the current frame, delete reference to marker
             if frame == self.current_frame:
                 self.marker = None
