@@ -352,7 +352,7 @@ def HTMLColorToRGB(colorstring):
     colorstring = str(colorstring).strip()
     if colorstring[0] == '#': colorstring = colorstring[1:]
     if len(colorstring) != 6 and len(colorstring) != 8:
-        raise (ValueError, "input #%s is not in #RRGGBB format" % colorstring)
+        raise ValueError("input #%s is not in #RRGGBB format" % colorstring)
     return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
 
 

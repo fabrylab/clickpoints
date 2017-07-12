@@ -661,7 +661,8 @@ class MyTreeView(QtWidgets.QTreeView):
             return
 
         parent_item = item.parent()
-        parent_entry = parent_item.entry
+        if parent_item:
+            parent_entry = parent_item.entry
 
         key = self.getKey(entry)
         del self.item_lookup[key]
@@ -1035,6 +1036,7 @@ class MarkerEditor(QtWidgets.QWidget):
                         elif self.data.mode & TYPE_Track:
                             self.data_file.table_track.delete().where(self.data_file.table_track.type == self.data).execute()
                             self.marker_handler.LoadTracks()
+                        self.tree.updateEntry(self.data, update_children=True)
                 self.data.mode = new_mode
             self.data.style = self.typeWidget.style.text()
             self.data.color = self.typeWidget.color.getColor()
@@ -1183,6 +1185,13 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.tree.updateEntry(track, update_children=True)
 
     def removeMarker(self):
+        reply = QtWidgets.QMessageBox.question(self, 'Delete %s - ClickPoints' % type(self.data).__name__,
+                                              'Do you really want to delete %s #%d?' % (type(self.data).__name__, self.data.id),
+                                              QtWidgets.QMessageBox.Yes,
+                                              QtWidgets.QMessageBox.No)
+
+        if reply != QtWidgets.QMessageBox.Yes:
+            return
         print("Remove ...")
         data = self.data
         # currently selected a marker -> remove the marker
@@ -1250,6 +1259,8 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.data_file.table_line.update(type=value).where(self.data_file.table_line.type == data.id).execute()
                     self.data_file.table_rectangle.update(type=value).where(self.data_file.table_rectangle.type == data.id).execute()
                     self.data_file.table_track.update(type=value).where(self.data_file.table_track.type == data.id).execute()
+                    new_entry = self.data_file.table_markertype.get(id=value)
+                    self.tree.updateEntry(new_entry, update_children=True)
                 # delete type
                 if self.marker_handler.active_type is not None and self.marker_handler.active_type.id == data.id:
                     self.marker_handler.active_type = None
@@ -1284,6 +1295,8 @@ class MarkerEditor(QtWidgets.QWidget):
             self.close()
         if event.key() == QtCore.Qt.Key_Return:
             self.saveMarker()
+        if event.key() == QtCore.Qt.Key_Delete:
+            self.removeMarker()
 
 def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36, endcall=None):
     timer = QtCore.QTimer()
