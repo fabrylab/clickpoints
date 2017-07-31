@@ -266,6 +266,8 @@ class Command:
             the button can have three states, STATUS_Idle for an non active button, STATUS_Active for an active button and
             STATUS_Running for an active button with an hourglass symbol.
         """
+        if self.script_launcher is None:
+            return
 
         self.script_launcher.setStatus(self.script.addon_name, status)
 
