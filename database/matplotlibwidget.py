@@ -34,23 +34,28 @@ Copyright © 2005 Florent Rougon, 2006 Darren Dale
 
 __version__ = "1.0.0"
 
-from PyQt4.QtGui import QSizePolicy
-from PyQt4.QtCore import QSize
+import qtawesome as qta
+from qtpy import QtWidgets, QtCore
+from qtpy import API_NAME as QT_API_NAME
 
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
+if QT_API_NAME.startswith("PyQt4"):
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
+    from matplotlib.backends.backend_qt4agg import FigureManager
+    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
+else:
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
+    from matplotlib.backends.backend_qt5agg import FigureManager
+    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-
-from matplotlib import rcParams
-rcParams['font.size'] = 9
 
 
 class MatplotlibWidget(Canvas):
     """
     MatplotlibWidget inherits PyQt4.QtGui.QWidget
     and matplotlib.backend_bases.FigureCanvasBase
-    
+
     Options: option_name (default_value)
-    -------    
+    -------
     parent (None): parent widget
     title (''): figure title
     xlabel (''): X-axis label
@@ -63,12 +68,12 @@ class MatplotlibWidget(Canvas):
     height (3): height in inches
     dpi (100): resolution in dpi
     hold (False): if False, figure will be cleared each time plot is called
-    
+
     Widget attributes:
     -----------------
     figure: instance of matplotlib.figure.Figure
     axes: figure axes
-    
+
     Example:
     -------
     self.widget = MatplotlibWidget(self, yscale='log', hold=True)
@@ -77,10 +82,12 @@ class MatplotlibWidget(Canvas):
     self.widget.axes.plot(x, x**2)
     self.wdiget.axes.plot(x, x**3)
     """
+
     def __init__(self, parent=None, title='', xlabel='', ylabel='',
                  xlim=None, ylim=None, xscale='linear', yscale='linear',
-                 width=4, height=3, dpi=100, hold=False):
+                 width=4, height=3, dpi=100):
         self.figure = Figure(figsize=(width, height), dpi=dpi)
+        self.figure.patch.set_facecolor([0, 1, 0, 0])
         self.axes = self.figure.add_subplot(111)
         self.axes.set_title(title)
         self.axes.set_xlabel(xlabel)
@@ -93,48 +100,44 @@ class MatplotlibWidget(Canvas):
             self.axes.set_xlim(*xlim)
         if ylim is not None:
             self.axes.set_ylim(*ylim)
-        self.axes.hold(hold)
 
         Canvas.__init__(self, self.figure)
         self.setParent(parent)
 
-        Canvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        Canvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         Canvas.updateGeometry(self)
+
+        self.manager = FigureManager(self, 1)
+        self.manager._cidgcf = self.figure
+
+    def show(self):
+        self.draw()
 
     def sizeHint(self):
         w, h = self.get_width_height()
-        return QSize(w, h)
+        return QtCore.QSize(w, h)
 
     def minimumSizeHint(self):
-        return QSize(10, 10)
+        return QtCore.QSize(10, 10)
 
 
+class CanvasWindow(QtWidgets.QWidget):
+    signal = QtCore.Signal()
 
-#===============================================================================
-#   Example
-#===============================================================================
-if __name__ == '__main__':
-    import sys
-    from PyQt4.QtGui import QMainWindow, QApplication
-    from numpy import linspace
-    
-    class ApplicationWindow(QMainWindow):
-        def __init__(self):
-            QMainWindow.__init__(self)
-            self.mplwidget = MatplotlibWidget(self, title='Example',
-                                              xlabel='Linear scale',
-                                              ylabel='Log scale',
-                                              hold=True, yscale='log')
-            self.mplwidget.setFocus()
-            self.setCentralWidget(self.mplwidget)
-            self.plot(self.mplwidget.axes)
-            
-        def plot(self, axes):
-            x = linspace(-10, 10)
-            axes.plot(x, x**2)
-            axes.plot(x, x**3)
-        
-    app = QApplication(sys.argv)
-    win = ApplicationWindow()
-    win.show()
-    sys.exit(app.exec_())
+    def __init__(self, num="", *args, **kwargs):
+        QtWidgets.QWidget.__init__(self)
+        self.setWindowTitle("Figure %s" % num)
+        self.setWindowIcon(qta.icon("fa.bar-chart"))
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        self.canvas = MatplotlibWidget(self, *args, **kwargs)
+        self.canvas.window = self
+        self.layout.addWidget(self.canvas)
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        self.layout.addWidget(self.toolbar)
+
+        self.signal.connect(self.show)
+
+    def scheduleShow(self):
+        self.signal.emit()
