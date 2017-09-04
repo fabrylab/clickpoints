@@ -215,7 +215,8 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **text** *(str)* - an additional text associated with the line. It is displayed next to the line in ClickPoints.
         - **correctedXY()** *(array)* - the line positions corrected by the offset of the image.
         - **pos()** *(array)* - an array containing the coordinates of the line: [x, y].
-        - **length** *(float)* - the length of the line in pixel.
+        - **length()** *(float)* - the length of the line in pixel.
+        - **angle()** *(float)* - the angle of the line to the horizontal in radians.
 
     Methods:
         .. py:function:: changeType(new_type)
