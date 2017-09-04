@@ -821,6 +821,9 @@ class DataFile:
             def length(self):
                 return np.sqrt((self.x1-self.x2)**2 + (self.y1-self.y2)**2)
 
+            def angle(self):
+                return np.arctan2(self.x1 - self.x2, self.y1 - self.y2)
+
             def __str__(self):
                 return "LineObject id%s:\timage=%s\tx1=%s\ty1=%s\tx2=%s\ty2=%s\ttype=%s\tprocessed=%s\tstyle=%s\ttext=%s" \
                        % (self.id, self.image, self.x1, self.y1, self.x2, self.y2, self.type, self.processed, self.style,
