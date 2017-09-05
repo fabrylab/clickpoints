@@ -1,4 +1,4 @@
-includes/qextendedgraphicsview = qextendedgraphicsview
+clickpoints/includes/qextendedgraphicsview = qextendedgraphicsview
 
 [subpaths]
 https://bitbucket\.org/fabry_biophysics/clickpoints/qextendedgraphicsview = https://bitbucket.org/fabry_biophysics/qextendedgraphicsview
