@@ -20,18 +20,6 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "includes"))
-sys.path.append(os.path.dirname(__file__))
-from MaskHandler import MaskHandler
-from MarkerHandler import MarkerHandler
-from Timeline import Timeline
-from AnnotationHandler import AnnotationHandler
-from GammaCorrection import GammaCorrection
-from FolderBrowser import FolderBrowser
-from ScriptLauncher import ScriptLauncher
-from VideoExporter import VideoExporter
-from InfoHud import InfoHud
-from Overview import Overview
-from OptionEditor import OptionEditor
-from Console import Console
+from os.path import join, dirname
+# hack to be able to import sibling modules from includes
+sys.path.append(join(dirname(__file__), ".."))

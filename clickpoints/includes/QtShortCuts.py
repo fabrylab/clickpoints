@@ -23,7 +23,7 @@ from qtpy import QtGui, QtWidgets
 import os
 import colorsys
 import numpy as np
-from Tools import HTMLColorToRGB
+from . import HTMLColorToRGB
 
 def AddQSpinBox(layout, text, value=0, float=True, strech=False):
     horizontal_layout = QtWidgets.QHBoxLayout()

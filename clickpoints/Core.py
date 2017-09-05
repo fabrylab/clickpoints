@@ -24,83 +24,29 @@ import os
 import glob
 import natsort
 
-""" some magic to prevent PyQt5 from swallowing exceptions """
-# Back up the reference to the exceptionhook
-sys._excepthook = sys.excepthook
-# Set the exception hook to our wrapping function
-sys.excepthook = lambda *args: sys._excepthook(*args)
-
-
-sys.path.insert(0, os.path.dirname(__file__))
-
-if __name__ == "__main__":
-    from ClickPointsBooster import BoosterRunning
-    BoosterRunning()
-    from SplashScreen import StartSplashScreen, StopSplashScreen
-    StartSplashScreen()
-
-icon_path = os.path.join(os.path.dirname(__file__), ".", "icons")
-clickpoints_path = os.path.dirname(__file__)
-if not os.path.exists(icon_path):  # different position if installed with the installer
-    icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
-    clickpoints_path = os.path.join(os.path.dirname(__file__), "..")
-if sys.platform[:3] == 'win':
-    storage_path = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
-else:
-    storage_path = os.path.expanduser("~/.clickpoints/")
-if not os.path.exists(storage_path):
-    os.makedirs(storage_path)
-
-print(os.path.join(storage_path, "checked"))
-if not os.path.exists(os.path.join(storage_path, "checked")):
-    from includes import CheckPackages
-
-    errors = CheckPackages()
-    if errors == 0:
-        with open(os.path.join(storage_path, "checked"), 'w') as fp:
-            fp.write("\n")
-
-import ctypes
 import threading
 import time
 
-try:
-    with open(os.path.join(os.path.dirname(__file__), "version.txt")) as fp:
-        version = fp.read().strip()
-except IOError:
-    try:
-        with open(os.path.join(os.path.dirname(__file__), "..", "version.txt")) as fp:
-            version = fp.read().strip()
-    except IOError:
-        version = "unknown"
-
-print("ClickPoints", version)
-
-print("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro), sys.version_info.releaselevel, "64bit" if sys.maxsize > 2**32 else "32bit")
-
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
-from qtpy import API_NAME as QT_API_NAME
-print("Using %s" % QT_API_NAME)
 import qtawesome as qta
 
-from includes import HelpText, BroadCastEvent, SetBroadCastModules, rotate_list
-from includes import LoadConfig
-from includes import BigImageDisplay
-from includes import QExtendedGraphicsView
-from includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats
-from includes import DataFile
+from .includes import HelpText, BroadCastEvent, SetBroadCastModules, rotate_list
+from .includes import BigImageDisplay
+from .includes import QExtendedGraphicsView
+from .includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats
+from .includes import Database
 
-from modules import MaskHandler
-from modules import MarkerHandler
-from modules import Timeline
-from modules import AnnotationHandler
-from modules import GammaCorrection
-from modules import ScriptLauncher
-from modules import VideoExporter
-from modules import InfoHud
-from modules import Console
-from modules import OptionEditor
+from .modules.MaskHandler import MaskHandler
+from .modules.MarkerHandler import MarkerHandler
+from .modules.Timeline import Timeline
+from .modules.AnnotationHandler import AnnotationHandler
+from .modules.GammaCorrection import GammaCorrection
+from .modules.ScriptLauncher import ScriptLauncher
+from .modules.VideoExporter import VideoExporter
+from .modules.InfoHud import InfoHud
+from .modules.Console import Console
+from .modules.OptionEditor import OptionEditor
 
 class AddVLine():
     def __init__(self, window):
@@ -135,11 +81,12 @@ class ClickPointsWindow(QtWidgets.QWidget):
     signal_broadcast = QtCore.Signal(str, tuple)
 
     def __init__(self, my_config, app, parent=None):
-        global config
+        global config, storage_path
         config = my_config
+
         self.app = app
         super(QtWidgets.QWidget, self).__init__(parent)
-        self.setWindowIcon(QtGui.QIcon(QtGui.QIcon(os.path.join(icon_path, "ClickPoints.ico"))))
+        self.setWindowIcon(QtGui.QIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "ClickPoints.ico"))))
 
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
@@ -160,11 +107,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.setLayout(self.layout)
 
         # setup mono space font
-        QtGui.QFontDatabase.addApplicationFont(os.path.join(clickpoints_path, "icons", "FantasqueSansMono-Regular.ttf"))
+        QtGui.QFontDatabase.addApplicationFont(os.path.join(os.environ["CLICKPOINTS_ICON"], "FantasqueSansMono-Regular.ttf"))
         self.mono_font = QtGui.QFont("Fantasque Sans Mono")
 
-        self.icon_path = icon_path
-        self.storage_path = storage_path
         self.layoutButtons = QtWidgets.QHBoxLayout()
         self.layoutButtons.setSpacing(5)
         self.layoutButtons.setContentsMargins(0, 0, 0, 5)
@@ -248,11 +193,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.setFocus()
 
         self.start_timer = QtCore.QTimer.singleShot(1, lambda: self.loadUrl(config.srcpath))
-
-        self.log("ClickPoints", version)
-        self.log("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro),
-              sys.version_info.releaselevel, "64bit" if sys.maxsize > 2 ** 32 else "32bit")
-        self.log("Using %s" % QT_API_NAME)
 
         self.app.processEvents()
 
@@ -395,7 +335,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.data_file.closeEvent(None)
             BroadCastEvent(self.modules, "closeDataFile")
         # open new database
-        self.data_file = DataFile(filename, config, storage_path=storage_path)
+        self.data_file = Database.DataFileExtended(filename, config, storage_path=os.environ["CLICKPOINTS_TMP"])
         self.data_file.signals.loaded.connect(self.FrameLoaded)
         # apply image rotation from config
         if self.data_file.getOption("rotation") != 0:
@@ -680,27 +620,3 @@ class ClickPointsWindow(QtWidgets.QWidget):
         for key, jump in zip(keys, self.data_file.getOption("jumps")):
             if event.key() == key and event.modifiers() == Qt.KeypadModifier:
                 self.JumpFrames(jump)
-
-
-def main():
-    from ClickPointsBooster import BoosterRunning
-    BoosterRunning()
-    app, splash = StartSplashScreen()
-
-    # set an application id, so that windows properly stacks them in the task bar
-    if sys.platform[:3] == 'win':
-        myappid = 'fabrybiophysics.clickpoints'  # arbitrary string
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-
-    # load config and exec addon code
-    config = LoadConfig()
-
-    # init and open the ClickPoints window
-    window = ClickPointsWindow(config, app)
-    window.show()
-    StopSplashScreen(window)
-    app.exec_()
-
-# start the main function as entry point
-if __name__ == '__main__':
-    main()

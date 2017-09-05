@@ -72,14 +72,14 @@ if __name__ == '__main__':
     print("running install registry script - mode: %s" % mode)
 
     # file extentions for which to add to Clickpoint shortcut
-    extension = [".png",".jpg",".jpeg",".tiff",".tif",".bmp",".gif",".avi",".mp4"]
+    extension = [".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif", ".avi", ".mp4"]
 
     if mode == 'install':
         ### add to DIRECTORYS
         # create entry under HKEY_CURRENT_USER to show in dropdown menu for folders
         print("setup for directory")
-        icon_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "icons", "ClickPoints.ico")
-        bat_path = ntpath.join(os.path.abspath(os.path.dirname(__file__)), "..", "ClickPoints.bat \"%1\"")
+        icon_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "clickpoints", "icons", "ClickPoints.ico")
+        bat_path = ntpath.join(os.path.abspath(os.path.dirname(__file__)), "..", "clickpoints", "ClickPoints.bat \"%1\"")
 
         reg_path = r"Software\Classes\Directory\shell\1ClickPoint\\"
         set_reg(winreg.HKEY_CURRENT_USER,reg_path,None,"ClickPoints")
@@ -108,8 +108,6 @@ if __name__ == '__main__':
             print("install for extension:%s" % ext)
             reg_path = r"SOFTWARE\Classes\\"  + ext + r"\OpenWithList\ClickPoints.bat\\"
             set_reg(winreg.HKEY_CURRENT_USER,reg_path,None,None)
-
-
 
     elif mode == 'uninstall':
         ### remove from DIRECTORY

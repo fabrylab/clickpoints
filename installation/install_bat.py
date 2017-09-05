@@ -23,20 +23,14 @@ import sys, os
 import subprocess
 
 directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-os.chdir("..")
+os.chdir("../clickpoints")
 script_path = os.path.normpath(os.path.join(directory, "ClickPoints.py"))
 icon_path = os.path.join(directory, "icons", "ClickPoints.ico")
 if sys.platform.startswith('win'):
     with open("ClickPoints.bat", 'w') as fp:
         print("Writing ClickPoints.bat")
         fp.write("@echo off\n")
-        fp.write("\"")
-        fp.write(sys.executable)
-        fp.write("\"")
-        fp.write(" ")
-        fp.write("\"")
-        fp.write(script_path)
-        fp.write("\"")
+        fp.write("clickpoints")
         fp.write(" -srcpath=%1\n")
         fp.write("IF %ERRORLEVEL% NEQ 0 pause\n")
 else:

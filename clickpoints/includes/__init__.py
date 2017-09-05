@@ -19,21 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-import sys, os
+from .ConfigLoad import LoadConfig, ExceptionPathDoesntExist
+from .Tools import GraphicsItemEventFilter, HelpText, BroadCastEvent, BroadCastEvent2, SetBroadCastModules, rotate_list, HTMLColorToRGB, TextButton, StartHooks, GetHooks, IconFromFile
+from .BigImageDisplay import BigImageDisplay
+#from .Database import DataFileExtended
+from .MemMap import MemMap
+from .matplotlibwidget import CanvasWindow
+from .ImageQt_Stride import *
 
-sys.path.insert(0, os.path.dirname(__file__))
-#from DependencyChecker import CheckPackages
-try:
-    from ConfigLoad import LoadConfig, ExceptionPathDoesntExist
-    from Tools import HelpText, BroadCastEvent, BroadCastEvent2, SetBroadCastModules, rotate_list, HTMLColorToRGB, TextButton, StartHooks, GetHooks, IconFromFile
-    from BigImageDisplay import BigImageDisplay
-    from Database import DataFile
-    from MemMap import MemMap
-
-
-    path = os.path.join(os.path.dirname(__file__), "qextendedgraphicsview")
-    if os.path.exists(path):
-        sys.path.append(path)
-    from QExtendedGraphicsView import QExtendedGraphicsView
-except ImportError:  # if the exception is not cached CheckPackages can't be loaded
-    pass
+from .qextendedgraphicsview.QExtendedGraphicsView import QExtendedGraphicsView

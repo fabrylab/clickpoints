@@ -38,8 +38,7 @@ from qtpy import QtCore
 import numpy as np
 import platform
 
-from clickpoints import DataFile as DataFileBase
-
+from ..DataFile import DataFile
 import re
 
 
@@ -170,7 +169,7 @@ def date_linspace(start_date, end_date, frames):
         start_date = start_date + delta
 
 
-class DataFile(DataFileBase):
+class DataFileExtended(DataFile):
     def __init__(self, database_filename=None, config=None, storage_path=None):
         self.exists = os.path.exists(database_filename)
         self._config = config
@@ -209,7 +208,7 @@ class DataFile(DataFileBase):
             self.temporary_db = database_filename
             #self.db = peewee.SqliteDatabase(":memory:")
 
-        DataFileBase.__init__(self, database_filename, mode='r+')
+        DataFile.__init__(self, database_filename, mode='r+')
 
         # compile regexp for timestamp extraction
         self.reg_timestamp = []

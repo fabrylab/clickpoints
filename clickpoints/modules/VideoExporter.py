@@ -31,8 +31,8 @@ import re
 from PIL import ImageDraw, Image, ImageFont
 from scipy.ndimage import shift
 
-from Tools import HTMLColorToRGB, BoundBy, BroadCastEvent
-from QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox, AddQColorChoose
+from includes.Tools import HTMLColorToRGB, BoundBy, BroadCastEvent
+from includes.QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox, AddQColorChoose
 
 
 def MakePathRelative(abs_path):

@@ -25,7 +25,7 @@ import clickpoints
 from qtpy import QtCore, QtGui, QtWidgets
 from matplotlib import pyplot as plt
 
-from matplotlibwidget import CanvasWindow
+from .includes import CanvasWindow
 from matplotlib import _pylab_helpers
 import threading
 
