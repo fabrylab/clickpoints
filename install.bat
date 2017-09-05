@@ -9,11 +9,18 @@ NET FILE 1>NUL 2>NUL & IF ERRORLEVEL 1 (ECHO You must right-click and select & E
 :: switch path back after UAC elevation
 cd /d %~dp0
 
+:: install ClickPoints python package
+pip install -e .
+IF %ERRORLEVEL% NEQ 0 python setup.py develop
+
+
+cd installation
+
 :: add WinPython for ClickPoints to PATH (if installed)
 set PATH=%CLICKPOINTS_PATH%;%PATH%
 
 :: generate Clickpoints.bat
-python install_bat.py 
+python install_bat.py
 echo DONE
 echo.
 
@@ -32,10 +39,6 @@ python install_registry.py install
 echo DONE
 echo.
 
-:: install ClickPoints python package
-cd ..
-cd package
-python setup.py develop --no-deps
 cd ..
 
 pause

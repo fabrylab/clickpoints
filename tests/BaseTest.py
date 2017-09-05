@@ -24,16 +24,13 @@ import shutil
 import sys
 
 import qtawesome as qta
-import ClickPoints
+import clickpoints
+from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtTest import QTest
-from qtpy.QtCore import Qt
-from qtpy import QtGui
-from qtpy import QtCore
-from qtpy.QtWidgets import QApplication
 
-from includes import LoadConfig
+from clickpoints.includes import LoadConfig
 
-app = QApplication(sys.argv)
+app = QtWidgets.QApplication(sys.argv)
 
 class BaseTest():
     test_path = None
@@ -51,8 +48,8 @@ class BaseTest():
         sys.argv = [__file__, r"-srcpath="+self.test_path]
         config = LoadConfig()
 
-        app = QApplication(sys.argv)
-        self.window = ClickPoints.ClickPointsWindow(config, app)
+        app = QtWidgets.QApplication(sys.argv)
+        self.window = clickpoints.ClickPointsWindow(config, app)
         #self.window.show()
 
         # wait for image to be loaded
@@ -67,14 +64,14 @@ class BaseTest():
             pos = self.window.view.mapFromOrigin(x, y)
         elif coordinates == "scene":
             pos = self.window.view.mapFromScene(x, y)
-        event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos, w.mapToGlobal(pos), Qt.NoButton, Qt.NoButton, Qt.NoModifier)
-        QApplication.postEvent(w, event)
+        event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos, w.mapToGlobal(pos), QtCore.Qt.NoButton, QtCore.Qt.NoButton, QtCore.Qt.NoModifier)
+        QtWidgets.QApplication.postEvent(w, event)
         QTest.qWait(delay)
         self.window.app.processEvents()
 
     def mouseDrag(self, x, y, x2, y2, button=None, delay=10, coordinates="origin"):
         if button is None:
-            button = Qt.LeftButton
+            button = QtCore.Qt.LeftButton
         v = self.window.view
         w = v.viewport()
         if coordinates == "origin":
@@ -83,25 +80,25 @@ class BaseTest():
         elif coordinates == "scene":
             pos = self.window.view.mapFromScene(x, y)
             pos2 = self.window.view.mapFromScene(x2, y2)
-        event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos, w.mapToGlobal(pos), button, button, Qt.NoModifier)
-        QApplication.postEvent(w, event)
+        event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos, w.mapToGlobal(pos), button, button, QtCore.Qt.NoModifier)
+        QtWidgets.QApplication.postEvent(w, event)
         QTest.qWait(delay)
-        event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonPress, pos, w.mapToGlobal(pos), button, button, Qt.NoModifier)
-        QApplication.postEvent(w, event)
+        event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonPress, pos, w.mapToGlobal(pos), button, button, QtCore.Qt.NoModifier)
+        QtWidgets.QApplication.postEvent(w, event)
         QTest.qWait(delay)
-        event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos2, w.mapToGlobal(pos2), button, button, Qt.NoModifier)
-        QApplication.postEvent(w, event)
+        event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, pos2, w.mapToGlobal(pos2), button, button, QtCore.Qt.NoModifier)
+        QtWidgets.QApplication.postEvent(w, event)
         QTest.qWait(delay)
-        event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, pos2, w.mapToGlobal(pos2), button, button, Qt.NoModifier)
-        QApplication.postEvent(w, event)
+        event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, pos2, w.mapToGlobal(pos2), button, button, QtCore.Qt.NoModifier)
+        QtWidgets.QApplication.postEvent(w, event)
         QTest.qWait(delay)
         self.window.app.processEvents()
 
     def mouseClick(self, x, y, button=None, modifier=None, delay=10, coordinates="origin"):
         if button is None:
-            button = Qt.LeftButton
+            button = QtCore.Qt.LeftButton
         if modifier is None:
-            modifier = Qt.NoModifier
+            modifier = QtCore.Qt.NoModifier
         if coordinates == "origin":
             pos = self.window.view.mapFromOrigin(x, y)
         elif coordinates == "scene":
@@ -113,7 +110,7 @@ class BaseTest():
 
     def keyPress(self, key, modifier=None, delay=10):
         if modifier is None:
-            modifier = Qt.NoModifier
+            modifier = QtCore.Qt.NoModifier
         QTest.keyPress(self.window, key, modifier, delay=delay)
         self.window.app.processEvents()
 

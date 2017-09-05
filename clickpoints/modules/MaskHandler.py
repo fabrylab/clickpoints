@@ -21,6 +21,7 @@
 
 from __future__ import division, print_function
 import os
+import sys
 import peewee
 
 from qtpy import QtGui, QtCore, QtWidgets
@@ -30,11 +31,11 @@ import qtawesome as qta
 import numpy as np
 
 from PIL import Image, ImageDraw
-import ImageQt_Stride as ImageQt
+import includes.ImageQt_Stride as ImageQt
 from qimage2ndarray import array2qimage
 
-from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
-from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex
+from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB
+from includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex
 
 
 class MaskFile:

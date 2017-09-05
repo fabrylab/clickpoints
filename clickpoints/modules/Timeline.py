@@ -31,10 +31,9 @@ from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
 import qtawesome as qta
 
-from QtShortCuts import AddQSpinBox
-from Tools import MySpinBox, HiddeableLayout
+from includes.QtShortCuts import AddQSpinBox
+from includes.Tools import MySpinBox, HiddeableLayout
 
-icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
 def timedelta_mul(self, other):
     if isinstance(other, (int, float)):
@@ -1085,11 +1084,11 @@ class Timeline(QtCore.QObject):
     def Play(self, state):
         if state:
             self.timer.start(1000 / self.fps)
-            self.button_play.setIcon(QtGui.QIcon(os.path.join(icon_path, "media-playback-pause.png")))
+            self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "media-playback-pause.png")))
             self.playing = True
         else:
             self.timer.stop()
-            self.button_play.setIcon(QtGui.QIcon(os.path.join(icon_path, "media-playback-start.png")))
+            self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "media-playback-start.png")))
             self.playing = False
 
     def updateFrame(self, nr=-1):

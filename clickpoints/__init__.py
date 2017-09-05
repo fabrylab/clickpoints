@@ -19,9 +19,35 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-import sys
-import os
-sys.path.append(os.path.dirname(__file__))
-from Addon import Addon
-from SendCommands import Commands
-from DataFile import DataFile, GetCommandLineArgs, DoesNotExist, ImageDoesNotExist, MarkerTypeDoesNotExist, MaskDimensionMismatch, MaskDimensionUnknown, MaskDtypeMismatch
+__version__ = '1.2.0'
+
+from .Addon import Addon
+from .DataFile import DataFile
+
+def print_status():
+    # ClickPoints Version
+    print("ClickPoints", __version__)
+
+    # Python Version
+    import sys
+    print("Using Python", "%d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro),
+          sys.version_info.releaselevel, "64bit" if sys.maxsize > 2 ** 32 else "32bit")
+
+    # Qt Version
+    from qtpy import API_NAME as QT_API_NAME
+    print("Using %s" % QT_API_NAME)
+
+def define_paths():
+    import os
+    import sys
+
+    directory = os.path.dirname(__file__)
+    os.environ["CLICKPOINTS_PATH"] = directory
+    os.environ["CLICKPOINTS_ICON"] = os.path.join(directory, "icons")
+
+    if sys.platform[:3] == 'win':
+        os.environ["CLICKPOINTS_TMP"] = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
+    else:
+        os.environ["CLICKPOINTS_TMP"] = os.path.expanduser("~/.clickpoints/")
+    if not os.path.exists(os.environ["CLICKPOINTS_TMP"]):
+        os.makedirs(os.environ["CLICKPOINTS_TMP"])

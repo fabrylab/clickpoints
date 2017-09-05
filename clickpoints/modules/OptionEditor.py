@@ -29,7 +29,7 @@ from includes import BroadCastEvent2
 
 from qtpy import QtGui, QtCore, QtWidgets
 import qtawesome as qta
-from QtShortCuts import AddQLabel, AddQSpinBox, AddQCheckBox, AddQHLine, AddQLineEdit, AddQComboBox
+from includes.QtShortCuts import AddQLabel, AddQSpinBox, AddQCheckBox, AddQHLine, AddQLineEdit, AddQComboBox
 from includes import BroadCastEvent
 from includes import LoadConfig
 

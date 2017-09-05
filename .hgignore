@@ -4,15 +4,16 @@ syntax: glob
 *.py.orig
 *.py~
 */_*
+clickpoints.egg-info*
+clickpoints/ClickPoints.bat
+.cache/*
+*.cdb
 
 # Python egg metadata, regenerated from source files by setuptools.
 
 syntax: regexp
 database/sql.cfg
 ^.idea/.*
-^package/.*\.egg-info.*
-^package/dist.*
-^package/build.*
 .directory
 lastnotified.log
 ^ClickPoints$

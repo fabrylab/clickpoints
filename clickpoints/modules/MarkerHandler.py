@@ -40,8 +40,8 @@ import json
 import matplotlib.pyplot as plt
 from threading import Thread
 
-from QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
-from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile
+from includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
+from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile
 
 w = 1.
 b = 7
@@ -1760,7 +1760,7 @@ class MyDisplayItem:
         try:
             font = ImageFont.truetype("arial.ttf", int(12*scale))
         except IOError:
-            font = ImageFont.truetype(os.path.join(self.marker_handler.window.icon_path, "FantasqueSansMono-Regular.ttf"), int(12*scale))
+            font = ImageFont.truetype(os.path.join(os.environ["CLICKPOINTS_ICON"], "FantasqueSansMono-Regular.ttf"), int(12*scale))
         text = self.text.text()
         #alignment = image.textsize(text, font=font)
         offsetx, offsety = (6*scale, 6*scale)
