@@ -1,0 +1,39 @@
+package:
+  name: clickpoints
+  version: 1.2.2
+
+build:
+  number: 2
+  preserve_egg_dir: True
+  script: python setup.py install --single-version-externally-managed --record record.txt
+  entry_points:
+    - clickpoints = clickpoints.launch:main
+
+source:
+    path: .
+
+requirements:
+  build:
+    - python
+    - setuptools
+    
+  run:
+    - python
+    - scipy
+    - matplotlib
+    - qtawesome
+    - qimage2ndarray
+    - pillow
+    - peewee  
+    - natsort
+    - sortedcontainers
+    - psutil
+    - imageio
+
+about:
+    home: https://bitbucket.org/fabry_biophysics/clickpoints
+    license: GPLv3
+    license-family: GPL
+    doc_url: http://clickpoints.readthedocs.io/
+    dev_url: https://bitbucket.org/fabry_biophysics/clickpoints
+    summary: Scientific toolbox for manual and automatic image evaluation

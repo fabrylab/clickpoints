@@ -26,14 +26,14 @@ if os.path.dirname(__file__) != "":
     os.chdir(os.path.dirname(__file__))  # for call from the installer
 
 setup(name='clickpoints',
-      version="1.2.1",
+      version="1.2.2",
       description='Scientific toolbox for manual and automatic image evaluation.',
       long_description=open('README.rst').read(),
       url='https://bitbucket.org/fabry_biophysics/clickpoints',
       license="GPLv3",
       author='Richard Gerum, Sebastian Richter',
       author_email='richard.gerum@fau.de',
-      packages=['clickpoints'],
+      packages=['clickpoints', 'clickpoints.addons', 'clickpoints.includes', 'clickpoints.modules', 'clickpoints.includes.qextendedgraphicsview'],
       entry_points = {
               'console_scripts': ['clickpoints=clickpoints.launch:main'],
               'gui_scripts': ['clickpoints_gui=clickpoints.launch:main'],
@@ -53,4 +53,5 @@ setup(name='clickpoints',
           'natsort',
           'sortedcontainers',
           'psutil'
-      ])
+      ],
+      include_package_data=True)
