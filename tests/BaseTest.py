@@ -29,8 +29,10 @@ from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtTest import QTest
 
 from clickpoints.includes import LoadConfig
+from clickpoints import define_paths
 
 app = QtWidgets.QApplication(sys.argv)
+define_paths()
 
 class BaseTest():
     test_path = None
@@ -39,10 +41,10 @@ class BaseTest():
         global __path__
         """ Create the GUI """
         if "__path__" in globals():
-            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", path)))
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(os.environ["CLICKPOINTS_TMP"], "test", path)))
         else:
             __path__ = os.path.dirname(__file__)
-            self.test_path = os.path.abspath(os.path.normpath(os.path.join(__path__, "..", "..", path)))
+            self.test_path = os.path.abspath(os.path.normpath(os.path.join(os.environ["CLICKPOINTS_TMP"], "test", path)))
 
         print("Test Path", self.test_path)
         sys.argv = [__file__, r"-srcpath="+self.test_path]

@@ -129,7 +129,6 @@ class Test_DataFile(unittest.TestCase):
 
     def test_getImage(self):
         """ Test the setImage function """
-        self.db = DataFile("getImage.cdb", "w")
 
         self.db.setImage("test1.jpg")
         self.db.setImage("test2.jpg")
