@@ -8,9 +8,12 @@ clickpoints.egg-info*
 clickpoints/ClickPoints.bat
 .cache/*
 *.cdb
+.coverage
 
 # Python egg metadata, regenerated from source files by setuptools.
 
+build/*
+dist/*
 syntax: regexp
 database/sql.cfg
 ^.idea/.*

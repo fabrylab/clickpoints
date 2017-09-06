@@ -26,22 +26,31 @@ if os.path.dirname(__file__) != "":
     os.chdir(os.path.dirname(__file__))  # for call from the installer
 
 setup(name='clickpoints',
-      version="1.2.0",
-      description='The clickpoints package enables communicating with the clickpoints software and to save and load clickpoints files.',
+      version="1.2.1",
+      description='Scientific toolbox for manual and automatic image evaluation.',
+      long_description=open('README.rst').read(),
       url='https://bitbucket.org/fabry_biophysics/clickpoints',
-      author='FabryLab',
+      license="GPLv3",
+      author='Richard Gerum, Sebastian Richter',
       author_email='richard.gerum@fau.de',
-      license='MIT',
       packages=['clickpoints'],
       entry_points = {
               'console_scripts': ['clickpoints=clickpoints.launch:main'],
-              'gui_scripts': [],
+              'gui_scripts': ['clickpoints_gui=clickpoints.launch:main'],
           },
       install_requires=[
           'numpy',
-          'peewee',
-          'pillow',
+          'scipy',
+          'matplotlib',
           'imageio',
-          'sphinxcontrib-bibtex',
-      ],
-      zip_safe=False)
+          'PyQt5',
+          'qtpy',
+          'qtawesome',
+          'qimage2ndarray',
+          'pillow',
+          'peewee',
+          'imageio',
+          'natsort',
+          'sortedcontainers',
+          'psutil'
+      ])
