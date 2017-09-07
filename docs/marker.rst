@@ -231,11 +231,9 @@ The keywords are depending on the type for marker, as explained in the following
    # SmartText
    Track: "ID_$track_id"                               # shows the track ID
    Line: "$x_pos | $y_pos \n$length px"                # shows the x & y coordinate and length
-   Rect: "ID_$marker_id\n$x_pos | $y_pos \n$area px�"  # shows the object_id, its x & y coordinate and area
+   Rect: "ID_$marker_id\n$x_pos | $y_pos \n$area px²"  # shows the object_id, its x & y coordinate and area
 
 .. figure:: images/ModulesMarkerSmartText.png
    :alt: Using the Marker Text and SmartText feature
 
-    Using regular text and SmartText features for lines, rectangles and tracks
-
-
+   Using regular text and SmartText features for lines, rectangles and tracks

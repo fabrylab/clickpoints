@@ -131,7 +131,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
 * connect-nearest mode
     ``left click`` - place marker, autoconnect to nearest track
     ``alt`` + ``left click`` - create new track
-    ``shift`` + ``left click` - place marker & load next frame
+    ``shift`` + ``left click`` - place marker & load next frame
 
 
 8. Advances Options
@@ -150,7 +150,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
 
     * edit the text field by inserting
 
-        .. code-block:: python
+        .. code-block:: none
 
             $track_id
 

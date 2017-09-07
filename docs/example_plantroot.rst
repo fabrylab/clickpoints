@@ -78,3 +78,4 @@ The fluorescence intensities be evaluated using a small script:
 .. bibliography:: refs.bib
    :style: plain
    :filter: docname in docnames
+   :labelprefix: B
