@@ -16,6 +16,7 @@ or respectively ``ClickPoints`` from a terminal (Linux).
 
 Images can be added by using |the folder button|.
 
+.. |the folder button| image:: images/IconFolder.png
 
 via Context Menu
 ----------------

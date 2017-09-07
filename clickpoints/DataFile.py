@@ -290,8 +290,7 @@ class DataFile:
 
     def max_sql_variables(self):
         """Get the maximum number of arguments allowed in a query by the current
-        sqlite3 implementation. Based on `this question
-        `_
+        sqlite3 implementation.
 
         Returns
         -------
