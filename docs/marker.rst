@@ -182,7 +182,7 @@ The styles use the JSON format for data storage. The following fields can be use
 .. |the marker icon| image:: images/IconMarker.png
 
 Marker Text & SmartText
-------------------------
+-----------------------
 
 The text field allows to attache text to marker, line, rectangle and track objects.
 Text properties are inherited from the marker type to the track and from the track to the marker itself.

@@ -26,5 +26,5 @@ which features to use or which add-ons to include.
 
 .. note::
 
-	A graphical user interface to view and change config values is available too.
+   A graphical user interface to view and change config values is available too.
 

@@ -56,7 +56,7 @@ Keys
 .. |the play icon| image:: images/IconPlay.png
 
 Date Timeline
-------------------
+-------------
 .. figure:: images/ModulesDateTimeline.png
    :alt: Date Timeline Example
    :scale: 60

@@ -8,12 +8,12 @@ Getting started
 ---------------
 
 1. Open the image sequence or video(s) in ClickPoints
-***************************************************
+*****************************************************
 
    For example: right click on the folder containing your images and select ClickPoints on the context menue
 
 2. Save the project
-*******************************
+*******************
 
    Marked results and correlated images must be stored some where, there for the project hast to be named and saved.
    Click on the save button |the save button| and select a storage location and file name.
@@ -60,7 +60,7 @@ Getting started
 
     * Navigating the dataset:
 
-    	``left`` & ``right`` cursor keys to go one frame forward and backward
+        ``left`` & ``right`` cursor keys to go one frame forward and backward
 
         * Jump a specified set of frames with the numbad keys. See `Jumping Frames <general.html#jumping-frames>`_
 
@@ -71,12 +71,12 @@ Getting started
         * Press |the play icon| to play the dataset with the specifed frame rate or as fast as feasible.
 
 .. note::
-	Due to the sequential compression of videos, traversing a video backwards is computational expensive. ClickPoints provides a
-	buffer so that the last N frames are stored and can be retrieved without any further computational cost. The default buffer size
-	can be specified in the config.
+    Due to the sequential compression of videos, traversing a video backwards is computational expensive. ClickPoints provides a
+    buffer so that the last N frames are stored and can be retrieved without any further computational cost. The default buffer size
+    can be specified in the config.
 
 .. warning::
-	Be careful not to reserve too much RAM for the frame buffer as it will drastically reduce performance!
+    Be careful not to reserve too much RAM for the frame buffer as it will drastically reduce performance!
 
 
 5. Basic Tracking Procedure
@@ -108,7 +108,7 @@ The setup steps are completed, we can begin to mark some tracks.
        A - Track without update in current frame B - Track with update in current frame C - Track with missing marker
 
 6. "Connect-nearest" Tracking Mode
-**************************
+**********************************
 For low density tracks ClickPoints provides the "connect nearest" mode. Clicking on the image will automatically connect
 the new marker to the closest Track in the last frame. Speeding up tracking for low track density scenes. The dragging of
 markers is still support and is usefull for intersecting tracks.
@@ -186,19 +186,6 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
        :scale: 60%
 
        Figure 3 | Tracks with modified style
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 .. |the save button| image:: images/IconSave.png
