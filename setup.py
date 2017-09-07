@@ -25,6 +25,27 @@ import os
 if os.path.dirname(__file__) != "":
     os.chdir(os.path.dirname(__file__))  # for call from the installer
 
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+if on_rtd:
+    install_requires = []
+else:
+    install_requires = [
+                           'numpy',
+                           'scipy',
+                           'matplotlib',
+                           'imageio',
+                           'PyQt5',
+                           'qtpy',
+                           'qtawesome',
+                           'qimage2ndarray',
+                           'pillow',
+                           'peewee',
+                           'imageio',
+                           'natsort',
+                           'sortedcontainers',
+                           'psutil'
+                       ],
+
 setup(name='clickpoints',
       version="1.2.2",
       description='Scientific toolbox for manual and automatic image evaluation.',
@@ -38,20 +59,5 @@ setup(name='clickpoints',
               'console_scripts': ['clickpoints=clickpoints.launch:main'],
               'gui_scripts': ['clickpoints_gui=clickpoints.launch:main'],
           },
-      install_requires=[
-          'numpy',
-          'scipy',
-          'matplotlib',
-          'imageio',
-          'PyQt5',
-          'qtpy',
-          'qtawesome',
-          'qimage2ndarray',
-          'pillow',
-          'peewee',
-          'imageio',
-          'natsort',
-          'sortedcontainers',
-          'psutil'
-      ],
+      install_requires=install_requires,
       include_package_data=True)

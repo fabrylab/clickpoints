@@ -46,8 +46,8 @@ or
 
 .. note::
 
-	To use the short version of calling ClickPoints without the path, you have to add ClickPoints base path to
-	the systems or users ``PATH`` variable (Windows) or create an alias (Linux).
+    To use the short version of calling ClickPoints without the path, you have to add ClickPoints base path to
+    the systems or users ``PATH`` variable (Windows) or create an alias (Linux).
 
 via .txt File
 -------------
