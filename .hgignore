@@ -14,6 +14,7 @@ clickpoints/ClickPoints.bat
 
 build/*
 dist/*
+*/.ipynb_checkpoints/*
 syntax: regexp
 database/sql.cfg
 ^.idea/.*
@@ -23,3 +24,4 @@ lastnotified.log
 ^ClickPoints.sh
 ^ClickPoints.bat
 ^database/files.txt
+docs\/examples\/.*\.(?!ipynb)

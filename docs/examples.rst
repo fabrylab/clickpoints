@@ -11,7 +11,7 @@ To kept the download size of ClickPoints down, the examples are kept in a separa
     :caption: List of Examples
     :maxdepth: 2
 
-    example_countpenguins
-    example_plantroot
-    Bead Tracking <example_tweezer>
-    Simulation Visualisation <example_simulation>
+    Count Animals <examples/example_count.ipynb>
+    Flourescence intensities in plant roots <examples/example_plantroot.ipynb>
+    Bead Tracking <examples/example_tweezer.ipynb>
+    Simulation Visualisation <examples/example_simulation.ipynb>
