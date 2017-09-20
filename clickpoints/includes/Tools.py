@@ -321,6 +321,57 @@ class TextButton(QtWidgets.QGraphicsRectItem):
         pass
 
 
+class MyCommandButton(QtWidgets.QGraphicsRectItem):
+
+    def __init__(self, parent, marker_handler, icon, pos):
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
+        self.parent = parent
+        self.marker_handler = marker_handler
+
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+
+        self.setAcceptHoverEvents(True)
+        self.active = False
+
+        self.setZValue(9)
+
+        self.pixmap = QtWidgets.QGraphicsPixmapItem(self)
+        self.pixmap.setPixmap(icon.pixmap(16))
+
+        self.setRect(-5, -3, 26, 22)
+        self.setPos(*pos)
+
+        self.clicked = lambda: 0
+
+        self.SetToInactiveColor()
+
+    def SetToActiveColor(self):
+        self.active = True
+        self.setBrush(QtGui.QBrush(QtGui.QColor(204, 228, 247, 255)))
+        self.setPen(QtGui.QPen(QtGui.QColor(0, 84, 153)))
+
+    def SetToInactiveColor(self):
+        self.active = False
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
+        self.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0)))
+
+    def hoverEnterEvent(self, event):
+        if self.active is False:
+            self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128+128/2)))
+
+    def hoverLeaveEvent(self, event):
+        if self.active is False:
+            self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.clicked()
+
+    def delete(self):
+        # delete from scene
+        self.scene().removeItem(self)
+
+
 class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):
     def __init__(self, parent, command_object):
         super(GraphicsItemEventFilter, self).__init__(parent)
