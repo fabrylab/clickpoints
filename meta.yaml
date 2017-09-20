@@ -29,6 +29,8 @@ requirements:
     - sortedcontainers
     - psutil
     - imageio
+    - scikit-image
+    - opencv
 
 about:
     home: https://bitbucket.org/fabry_biophysics/clickpoints

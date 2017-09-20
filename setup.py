@@ -34,6 +34,7 @@ else:
                            'scipy',
                            'matplotlib',
                            'imageio',
+                           'scikit-image',
                            'PyQt5',
                            'qtpy',
                            'qtawesome',

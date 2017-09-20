@@ -33,6 +33,7 @@ import numpy as np
 from sortedcontainers import SortedDict
 
 from qimage2ndarray import array2qimage, rgb_view
+import imageio
 
 import uuid
 
@@ -41,7 +42,7 @@ import matplotlib.pyplot as plt
 from threading import Thread
 
 from includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
-from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile
+from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile, MyCommandButton
 
 w = 1.
 b = 7
@@ -2562,54 +2563,6 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
         self.scene().removeItem(self)
 
 
-class MyCommandButton(QtWidgets.QGraphicsRectItem):
-
-    def __init__(self, parent, marker_handler, icon, index=0):
-        QtWidgets.QGraphicsRectItem.__init__(self, parent)
-        self.parent = parent
-        self.marker_handler = marker_handler
-
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-
-        self.setAcceptHoverEvents(True)
-        self.active = False
-        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-
-        self.setZValue(9)
-
-        self.pixmap = QtWidgets.QGraphicsPixmapItem(self)
-        self.pixmap.setPixmap(icon.pixmap(16))
-
-        self.setRect(-5, -3, 26, 22)
-        self.setPos(10 + (26+5)*index, 10)
-
-        self.clicked = lambda: 0
-
-    def SetToActiveColor(self):
-        self.active = True
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
-
-    def SetToInactiveColor(self):
-        self.active = False
-        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-
-    def hoverEnterEvent(self, event):
-        if self.active is False:
-            self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
-
-    def hoverLeaveEvent(self, event):
-        if self.active is False:
-            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.clicked()
-
-    def delete(self):
-        # delete from scene
-        self.scene().removeItem(self)
-
-
 class IterableDict:
     def __init__(self, dict):
         self.dict = dict
@@ -2691,21 +2644,72 @@ class MarkerHandler:
 
         self.closeDataFile()
 
-        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.plus"), 0)
-        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.trash"), 1)
-        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.tint"), 2)
-        self.button1.SetToActiveColor()
+        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.plus"), (10 + (26+5)*0, 10))
+        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.trash"), (10 + (26+5)*1, 10))
+        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.tint"), (10 + (26+5)*2, 10))
         self.tool_buttons = [self.button1, self.button2, self.button3]
-        self.tool_index = 0
+        self.tool_index = -1
+        self.tool_index_clicked = -1
         self.button1.clicked = lambda: self.selectTool(0)
         self.button2.clicked = lambda: self.selectTool(1)
         self.button3.clicked = lambda: self.selectTool(2)
 
-    def selectTool(self, index):
+    def selectTool(self, index, temporary=False):
         self.tool_index = index
+        if not temporary:
+            self.tool_index_clicked = index
         for button in self.tool_buttons:
             button.SetToInactiveColor()
-        self.tool_buttons[index].SetToActiveColor()
+        if index >= 0:
+            self.tool_buttons[index].SetToActiveColor()
+            BroadCastEvent(self.modules, "eventToolSelected", "Marker", self.tool_index)
+            if not self.active:
+                self.setActiveModule(True)
+            if self.active_type_index is None:
+                self.SetActiveMarkerType(0)
+            self.counter[self.active_type_index].SetToActiveColor()
+        else:
+            for index in self.counter:
+                self.counter[index].SetToInactiveColor()
+
+        # set the cursor according to the tool
+        cursor_name = ["fa.plus", "fa.trash", "fa.tint", None][self.tool_index]
+        self.setCursor(cursor_name)
+
+    def setCursor(self, cursor_name):
+        # if no cursor is given, hide the cursor
+        if cursor_name is None:
+            for pixmap in self.window.ImageDisplay.pixMapItems:
+                pixmap.unsetCursor()
+        else:
+            # get the cursor from file or name
+            if cursor_name.startswith("fa."):
+                icon = qta.icon(cursor_name, color=QtGui.QColor(255, 255, 255))
+            else:
+                icon = IconFromFile(cursor_name, color=QtGui.QColor(255, 255, 255))
+            # convert icon to numpy array
+            buffer = icon.pixmap(16, 16).toImage().constBits()
+            cursor2 = np.ndarray(shape=(16, 16, 4), buffer=buffer.asarray(size=16 * 16 * 4), dtype=np.uint8)
+            # load the cursor image
+            cursor = imageio.imread(os.path.join(os.environ["CLICKPOINTS_ICON"], "Cursor.png"))
+            # compose them
+            cursor3 = np.zeros([cursor.shape[0] + cursor2.shape[0], cursor.shape[1] + cursor2.shape[1], 4],
+                               cursor.dtype)
+            cursor3[:cursor.shape[0], :cursor.shape[1], :] = cursor
+            y, x = (cursor.shape[0] - 6, cursor.shape[1] - 4)
+            cursor3[y:y + cursor2.shape[0], x:x + cursor2.shape[1], :] = cursor2
+            # create a cursor
+            cursor = QtGui.QCursor(QtGui.QPixmap(array2qimage(cursor3)), 0, 0)
+
+            # and the the cursor as the active one
+            for pixmap in self.window.ImageDisplay.pixMapItems:
+                pixmap.setCursor(cursor)
+
+    def eventToolSelected(self, module, tool):
+        if module == "Marker":
+            return
+        # if another module has selected a tool, we deselect our tool
+        self.selectTool(-1)
 
     def closeDataFile(self):
         self.data_file = None
@@ -3083,6 +3087,8 @@ class MarkerHandler:
             self.counter[self.active_type_index].SetToInactiveColor()
         self.active_type = self.counter[new_index].type
         self.active_type_index = new_index
+        if self.tool_index != 0 and self.tool_index != 2:
+            self.selectTool(0)
         self.config.selected_marker_type = new_index
         self.counter[self.active_type_index].SetToActiveColor()
 
@@ -3120,7 +3126,7 @@ class MarkerHandler:
             track.UpdatePath()
 
     def sceneEventFilter(self, event):
-        if self.hidden or self.data_file.image is None:
+        if self.hidden or self.data_file.image is None or self.tool_index == -1:
             return False
         if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and \
                 not event.modifiers() & Qt.ControlModifier and self.active_type is not None and self.tool_index == 0:
@@ -3172,7 +3178,7 @@ class MarkerHandler:
         numberkey = event.key() - 49
 
         # @key ---- Marker ----
-        if self.active and 0 <= numberkey < 9 and event.modifiers() != Qt.KeypadModifier:
+        if self.tool_index >= 0 and 0 <= numberkey < 9 and event.modifiers() != Qt.KeypadModifier:
             # @key 0-9: change marker type
             self.SetActiveMarkerType(numberkey)
 
@@ -3181,16 +3187,16 @@ class MarkerHandler:
             # @key ctrl + MB1: delete marker
             # @key MB2: open marker editor
 
-        # show the erase tool highlighted when Control is pressed
-        if event.key() == Qt.Key_Control and self.tool_index != 1:
-            self.button2.SetToActiveColor()
-            self.tool_buttons[self.tool_index].SetToInactiveColor()
+        if self.tool_index != -1:
+            # show the erase tool highlighted when Control is pressed
+            if event.key() == Qt.Key_Control and self.tool_index != 1:
+                self.selectTool(1, temporary=True)
 
     def keyReleaseEvent(self, event):
-        # show the erase tool highlighted when Control is pressed
-        if event.key() == Qt.Key_Control and self.tool_index != 1:
-            self.tool_buttons[self.tool_index].SetToActiveColor()
-            self.button2.SetToInactiveColor()
+        if self.tool_index != -1:
+            # show the erase tool highlighted when Control is pressed
+            if event.key() == Qt.Key_Control:
+                self.selectTool(self.tool_index_clicked)
 
     def ToggleInterfaceEvent(self, event=None, hidden=None):
         if hidden is None:
