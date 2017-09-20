@@ -1882,6 +1882,17 @@ class DataFile:
             query = query.where(self.table_path.path.startswith(base_path))
         return query.execute()
 
+    def getImageCount(self):
+        """
+        Returns the number of images in the database.
+        
+        Returns
+        -------
+        count : int
+            the number of images.
+        """
+        return self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
+
     def getImage(self, frame=None, filename=None, id=None, layer=0):
         """
         Returns the :py:class:`Image` entry with the given frame number and layer.
