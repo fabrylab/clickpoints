@@ -50,9 +50,6 @@ except ImportError:
     reload
 
 
-path_addons = os.path.join(os.path.dirname(__file__), "..", "addons")
-
-
 # implement the fallback keyword for the ConfigParser in Python 2.7
 def wrap_get(function):
     def wrapper(section, name, raw=True, fallback=None):
@@ -296,13 +293,12 @@ class ScriptLauncher(QtCore.QObject):
         self.script_buttons = []
         self.window.layoutButtons.addLayout(self.button_group_layout)
 
-        self.script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "addons"))
+        self.script_path = os.path.normpath(os.environ["CLICKPOINTS_ADDON"])
 
         self.closeDataFile()
 
     def loadScripts(self):
-        script_path = os.path.join(os.path.dirname(__file__), "..", "addons")
-        scripts = glob.glob(os.path.join(script_path, "*", '*.txt'))
+        scripts = glob.glob(os.path.join(os.environ["CLICKPOINTS_ADDON"], "*", '*.txt'))
         return [Script(filename) for filename in scripts]
 
     def closeDataFile(self):

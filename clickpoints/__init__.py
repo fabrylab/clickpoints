@@ -45,6 +45,7 @@ def define_paths():
     directory = os.path.dirname(__file__)
     os.environ["CLICKPOINTS_PATH"] = directory
     os.environ["CLICKPOINTS_ICON"] = os.path.join(directory, "icons")
+    os.environ["CLICKPOINTS_ADDON"] = os.path.join(directory, "addons")
 
     if sys.platform[:3] == 'win':
         os.environ["CLICKPOINTS_TMP"] = os.path.join(os.getenv('APPDATA'), "..", "Local", "Temp", "ClickPoints")
