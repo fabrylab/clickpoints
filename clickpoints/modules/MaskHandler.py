@@ -550,6 +550,10 @@ class MaskHandler:
         self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.eraser"), (-30 - (26 + 5) * 1, 10))
         self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.eyedropper"), (-30 - (26 + 5) * 2, 10))
         self.button4 = MyCommandButton(self.parent_hud, self, IconFromFile("Bucket.png"), (-30 - (26 + 5) * 3, 10))
+        self.button1.setToolTip("paint mask color <b>P</b>")
+        self.button2.setToolTip("erase mask<br/>(<b>E</b> or hold <b>ctrl</b>)")
+        self.button3.setToolTip("pick mask color<br/>(<b>K</b> or hold <b>alt</b>)")
+        self.button4.setToolTip("fill with mask color<br/>(<b>B</b> or hold <b>shift</b>)")
         self.tool_buttons = [self.button1, self.button2, self.button3, self.button4]
         self.tool_index = -1
         self.tool_index_clicked = -1
@@ -933,9 +937,21 @@ class MaskHandler:
             # @key 0-9: change brush type
             self.selectType(numberkey)
 
-        if self.tool_index >= 0 and event.key() == QtCore.Qt.Key_K:
+        if event.key() == QtCore.Qt.Key_K:
             # @key K: pick color of brush
-            self.PickColor()
+            self.selectTool(2)
+
+        if event.key() == QtCore.Qt.Key_P:
+            # @key P: paint brush
+            self.selectTool(0)
+
+        if event.key() == QtCore.Qt.Key_E:
+            # @key E: eraser
+            self.selectTool(1)
+
+        if event.key() == QtCore.Qt.Key_B:
+            # @key E: fill bucket
+            self.selectTool(3)
 
         if event.key() == QtCore.Qt.Key_Plus:
             # @key +: increase brush radius
@@ -951,9 +967,9 @@ class MaskHandler:
             # @key I: decrease mask transparency
             self.changeOpacity(-0.1)
 
-        if event.key() == QtCore.Qt.Key_M:
-            # @key M: redraw the mask
-            self.RedrawMask()
+        #if event.key() == QtCore.Qt.Key_M:
+        #    # @ key M: redraw the mask
+        #    self.RedrawMask()
 
         # show the erase tool highlighted when Control is pressed
         if self.tool_index != -1:
@@ -961,6 +977,8 @@ class MaskHandler:
                 self.selectTool(1, temporary=True)
             if event.key() == Qt.Key_Alt and self.tool_index != 2:
                 self.selectTool(2, temporary=True)
+            if event.key() == Qt.Key_Shift and self.tool_index != 3:
+                self.selectTool(3, temporary=True)
 
     def keyReleaseEvent(self, event):
         if self.tool_index != -1:
@@ -968,6 +986,8 @@ class MaskHandler:
             if event.key() == Qt.Key_Control:
                 self.selectTool(self.tool_index_clicked)
             if event.key() == Qt.Key_Alt:
+                self.selectTool(self.tool_index_clicked)
+            if event.key() == Qt.Key_Shift:
                 self.selectTool(self.tool_index_clicked)
             
     def ToggleInterfaceEvent(self, event=None, hidden=None):
