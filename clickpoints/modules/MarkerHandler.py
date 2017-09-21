@@ -2647,6 +2647,9 @@ class MarkerHandler:
         self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.plus"), (10 + (26+5)*0, 10))
         self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.trash"), (10 + (26+5)*1, 10))
         self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.tint"), (10 + (26+5)*2, 10))
+        self.button1.setToolTip("add or move marker <b>M</b>")
+        self.button2.setToolTip("delete mask<br/>(<b>D</b> or hold <b>ctrl</b>)")
+        self.button3.setToolTip("change marker type <b>C</b>")
         self.tool_buttons = [self.button1, self.button2, self.button3]
         self.tool_index = -1
         self.tool_index_clicked = -1
@@ -3186,6 +3189,18 @@ class MarkerHandler:
             # @key MB1: set marker
             # @key ctrl + MB1: delete marker
             # @key MB2: open marker editor
+
+        if event.key() == QtCore.Qt.Key_M:
+            # @key M: add/move marker
+            self.selectTool(0)
+
+        if event.key() == QtCore.Qt.Key_D:
+            # @key D: delete marker
+            self.selectTool(1)
+
+        if event.key() == QtCore.Qt.Key_C:
+            # @key C: change marker type
+            self.selectTool(2)
 
         if self.tool_index != -1:
             # show the erase tool highlighted when Control is pressed
