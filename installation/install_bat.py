@@ -24,8 +24,8 @@ import subprocess
 
 directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 os.chdir("../clickpoints")
-script_path = os.path.normpath(os.path.join(directory, "ClickPoints.py"))
-icon_path = os.path.join(directory, "icons", "ClickPoints.ico")
+script_path = os.path.normpath(os.path.join(directory, "clickpoints", "launch.py"))
+icon_path = os.path.normpath(os.path.join(directory, "clickpoints", "icons", "ClickPoints.ico"))
 if sys.platform.startswith('win'):
     with open("ClickPoints.bat", 'w') as fp:
         print("Writing ClickPoints.bat")
@@ -34,7 +34,7 @@ if sys.platform.startswith('win'):
         fp.write(" -srcpath=%1\n")
         fp.write("IF %ERRORLEVEL% NEQ 0 pause\n")
 else:
-    sh_file = os.path.join(directory, "clickpoints")
+    sh_file = os.path.join(directory, "clickpoints.sh")
     with open(sh_file, 'w') as fp:
         print("Writing ClickPoints bash file")
         fp.write("#!/bin/bash\n")
@@ -69,10 +69,10 @@ else:
         fp.write("Terminal=true\n")
         fp.write("Icon="+icon_path+"\n")
         fp.write("Categories=Development;Science;IDE;Qt;\n")
-        fp.write("MimeType=inode/directory;video/*;image/*;video/mp4;video/x-msvideo;video/mpeg;image/bmp;image/png;image/jpeg;image/tiff;image/gif;$\n")
+        fp.write("MimeType=video/*;image/*;video/mp4;video/x-msvideo;video/mpeg;image/bmp;image/png;image/jpeg;image/tiff;image/gif;$\n")
         fp.write("InitialPreference=10\n")
 
-    for ext in ["inode/directory", "ideo/mp4", "video/x-msvideo", "video/mpeg", "image/bmp", "image/png", "image/jpeg", "image/gif", "image/tiff"]:
+    for ext in ["application/cdb", "ideo/mp4", "video/x-msvideo", "video/mpeg", "image/bmp", "image/png", "image/jpeg", "image/gif", "image/tiff"]:
         print("Setting ClickPoints as default application for %s" % ext)
         os.popen("sudo xdg-mime default clickpoints.desktop "+ext)
     
@@ -81,11 +81,12 @@ else:
                             shell=True, stdin=None, executable="/bin/bash")
     proc.wait()
 
+    os.chdir("..")
     print("Installing packets via pip ...")
     import pip
     pip.main(['install','-r', 'installation/pip_req.txt', '--no-deps'])
 
-    os.chdir("package")
+    #os.chdir("package")
     proc = subprocess.Popen("sudo python setup.py develop",shell=True, stdin=None, executable="/bin/bash")
     proc.wait()
     os.chdir("..")
