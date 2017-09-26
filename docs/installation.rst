@@ -4,6 +4,12 @@ Installation
 ClickPoints can be installed in different ways, you can choose the one which is the most comfortable for you and the
 operating system you are using.
 
+If you are already familiar with python, you can choose one of the following ways:
+
+- If you are in a conda env: ``conda install -c rgerum clickpoints``
+- If you have pip: ``pip install clickpoints``
+- Or with ``python setup.py install``
+
 Windows
 -------
 
@@ -33,7 +39,8 @@ line in the folder where you want to install ClickPoints and run the following c
 
     ``hg clone https://bitbucket.org/fabry_biophysics/clickpoints``
 
-For adding clickpoints to the right click menu in the file explorer, execute the ``install_clickpoints.bat`` in the subfolder `installation` of your ClickPoints folder.
+Then execute the file ``install.bat`` in the installed directory. This will register the `clickpoints` package and add
+clickpoints to the right click menu in the file explorer.
 
 .. warning::
     If you don't use our provided Python installation, you need to install the required packages. Missing packages will
