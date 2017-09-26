@@ -1,1 +1,1 @@
-recursive-include clickpoints/icons *.ico *.png
+recursive-include clickpoints/icons *.ico *.png *.ttf
