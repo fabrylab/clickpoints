@@ -700,8 +700,8 @@ class MaskHandler:
         #self.buttons[0] = MaskTypeButton(self.parent_hud, self, self.mask_file.table_mask(name="delete", color="#B0B0B0", index=0), 0)
 
         # set "delete" the active draw type
-        self.active_draw_type = self.buttons[0].type
-        self.active_draw_type_index = 0
+        self.active_draw_type = self.buttons[-1].type
+        self.active_draw_type_index = -1
 
         # update the colormap of the displayed mask
         self.MaskDisplay.UpdateColormap(type_list)
