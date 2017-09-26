@@ -1635,7 +1635,7 @@ class MyDisplayItem:
                 grabber.setScale(self.style.get("scale", 1))
             else:
                 grabber.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, False)
-                grabber.setScale(self.style.get("scale", 10)*0.1)
+                grabber.setScale(self.style.get("scale", 1)*0.1)
             i += 1
 
     # update text with priorities: marker, track, label
@@ -2203,7 +2203,10 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.path2.setPen(pen)
 
         self.g1.setShape(self.style.get("shape", "cross"))
-        self.g1.setScale(self.style.get("scale", 1))
+        if self.style.get("transform", "screen") == "screen":
+            self.g1.setScale(self.style.get("scale", 1))
+        else:
+            self.g1.setScale(self.style.get("scale", 1)*0.1)
 
     def addPoint(self, pos):
         if self.marker is None:
