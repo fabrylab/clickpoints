@@ -30,12 +30,11 @@ if on_rtd:
     install_requires = []
 else:
     install_requires = [
-                           'numpy',
                            'scipy',
                            'matplotlib',
                            'imageio',
                            'scikit-image',
-                           'PyQt5',
+                           'pyqt5',
                            'qtpy',
                            'qtawesome',
                            'qimage2ndarray',
@@ -60,5 +59,6 @@ setup(name='clickpoints',
               'console_scripts': ['clickpoints=clickpoints.launch:main'],
               'gui_scripts': ['clickpoints_gui=clickpoints.launch:main'],
           },
+      setup_requires=['numpy'],
       install_requires=install_requires,
       include_package_data=True)
