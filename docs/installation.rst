@@ -18,16 +18,12 @@ Installer
 
 We provide an installer for ClickPoints on Windows 64bit platforms.
 
-`Download: ClickPoints Installer <https://bitbucket.org/fabry_biophysics/clickpoints/downloads/ClickPoints_latest.exe>`_
+`Download: ClickPoints Installer <https://bitbucket.org/fabry_biophysics/clickpoints/downloads/ClickPoints.exe>`_
 
-Additionally, you need an installation of Python with the packaged needed by ClickPoints. For convenience we provide a
-WinPython installation with all the packages already installed. We recommend to used ClickPoints with this Python installation.
-
-`Download: WinPython for ClickPoints Installer <https://bitbucket.org/fabry_biophysics/clickpoints/downloads/WinPython_ClickPoints.exe>`_
+This will install the miniconda environment, if it is not already installed and download the clickpoints conda package.
 
 .. note::
-    We recommend that you install ClickPoints to ``C:\Software\ClickPoints``, as the ``Program files`` folder requires
-    to always provide admin privileges when modifying any files.
+    ClickPoints will be by default installed in a new conda environment called `_app_own_environment_clickpoints`.
 
 
 Cutting Edge Version (Mercurial)
