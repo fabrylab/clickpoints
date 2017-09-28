@@ -1,6 +1,7 @@
 # conda execute
 # env:
 #  - nsis 3.*
+#  - inetc
 #  - conda_macros
 # channels:
 #  - nsis
