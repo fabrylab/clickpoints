@@ -62,6 +62,9 @@ def LoadConfig(srcpath="", just_load=False):
                         sys.tracebacklimit = 0
                         raise ExceptionPathDoesntExist("ERROR: path "+value+" does not exist.")
 
+        if srcpath == "" and len(sys.argv) >= 1 and sys.argv[1][0] != "-":
+            srcpath = sys.argv[1]
+
         """ Get config data """
         # Search config recursive in the folder tree or from the command line
         if isstring(srcpath):
@@ -91,8 +94,6 @@ def LoadConfig(srcpath="", just_load=False):
             path = parent
             parent = os.path.normpath(os.path.join(path, ".."))
             path_list.append(os.path.normpath(os.path.join(path, "ConfigClickPoints.txt")))
-        if len(sys.argv) >= 2:
-            path_list.insert(0, sys.argv[1])
         path_list.append(os.path.join(os.path.dirname(__file__), "..", "ConfigClickPoints.txt"))
         config_path = "."
         for path in path_list:
