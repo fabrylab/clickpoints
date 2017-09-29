@@ -39,7 +39,7 @@ Section "Conda package manager"
 SectionEnd
 
 Section "ClickPoints Application files"
-  !insertmacro InstallOrUpdateApp "clickpoints" "-c rgerum"
+  !insertmacro InstallOrUpdateApp "clickpoints" "-c rgerum -c conda-forge"
   !insertmacro WriteUninstaller "clickpoints"
 SectionEnd
 
