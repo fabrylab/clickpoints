@@ -29,6 +29,7 @@ requirements:
     - sortedcontainers
     - psutil
     - imageio
+    - tifffile
     - scikit-image
     - opencv
 
