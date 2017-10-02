@@ -62,7 +62,7 @@ def LoadConfig(srcpath="", just_load=False):
                         sys.tracebacklimit = 0
                         raise ExceptionPathDoesntExist("ERROR: path "+value+" does not exist.")
 
-        if srcpath == "" and len(sys.argv) >= 1 and sys.argv[1][0] != "-":
+        if srcpath == "" and len(sys.argv) > 1 and sys.argv[1][0] != "-":
             srcpath = sys.argv[1]
 
         """ Get config data """

@@ -28,6 +28,14 @@ If you are already familiar with python and have a python installation, you can 
 
 We recommend the conda installation, as this should always be the newest version of ClickPoints.
 
+If you want to register clickpoints for the typical file extensions, e.g. add it to the right click menu, execute
+
+    ``clickpoints register``
+
+If you want to remove it again, call
+
+    ``clickpoints unregister``
+
 Developer Version
 ~~~~~~~~~~~~~~~~~
 
@@ -41,8 +49,8 @@ To install the package with all dendencies, execute:
 
     ``python install_requirements_with_conda.py``
 
-in the downloaded repository directory. Then execute the file (Windows only)
+in the downloaded repository directory. Then execute
 
-    ``install.bat``
+    ``clickpoints register``
 
 which will add clickpoints to the right click menu in the file explorer.

@@ -16,6 +16,8 @@ build/*
 dist/*
 */.ipynb_checkpoints/*
 clickpoints.sh
+.eggs/*
+development/nsis_conda/ClickPoints.exe
 syntax: regexp
 database/sql.cfg
 ^.idea/.*

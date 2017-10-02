@@ -1,6 +1,15 @@
 
 def main():
     import sys
+
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "register" or sys.argv[1] == "install":
+            from .includes.RegisterRegistry import install
+            return install()
+        elif sys.argv[1] == "unregister" or sys.argv[1] == "uninstall":
+            from .includes.RegisterRegistry import install
+            return install("uninstall")
+
     from clickpoints import print_status
     # print
     print_status()

@@ -44,11 +44,12 @@ Section "ClickPoints Application files"
 SectionEnd
 
 Section "Start Menu shortcut"
+  Call SetRootEnv
   ; Here we don't use the CreateShortcut macro of conda_macros because we want a console that does not close when an exception occurs
   ; therefore we create a bat file and link to that
   Push $R1
   Push $R2
-  StrCpy $R1 "$0"
+  StrCpy $R1 "$ENVS\_app_own_environment_clickpoints"
   
   FileOpen $0 "$R1\ClickPoints.bat" w
   IfErrors done
@@ -71,7 +72,19 @@ Section "Start Menu shortcut"
   ;  ;Lib\site-packages\clickpoints
 SectionEnd
 
+Section "File Assiciations";
+  Call SetRootEnv
+
+  DetailPrint "Linking file extensions ..."
+
+  ExecDos::exec /DETAILED '$ENVS\_app_own_environment_clickpoints\Scripts\clickpoints.exe register' "" ""
+  !insertmacro _FinishMessage "File extensions linked"
+SectionEnd
+
 Section "un.ClickPoints";
+  Call un.SetRootEnv
+  ExecDos::exec /DETAILED '$R1\clickpoints unregister' "" ""
+  
   !insertmacro DeleteApp "clickpoints"
   !insertmacro DeleteShortcut "ClickPoints"
 SectionEnd

@@ -1,9 +1,0 @@
-qimage2ndarray
-peewee
-natsort
-sortedcontainers
-imageio
-qtawesome
-tifffile
-psutil
-qtpy
