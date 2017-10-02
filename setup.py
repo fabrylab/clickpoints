@@ -47,7 +47,7 @@ else:
                        ],
 
 setup(name='clickpoints',
-      version="1.2.2",
+      version="1.2.3",
       description='Scientific toolbox for manual and automatic image evaluation.',
       long_description=open('README.rst').read(),
       url='https://bitbucket.org/fabry_biophysics/clickpoints',
