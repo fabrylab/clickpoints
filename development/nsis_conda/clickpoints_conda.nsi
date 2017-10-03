@@ -40,6 +40,7 @@ SectionEnd
 
 Section "ClickPoints Application files"
   !insertmacro InstallOrUpdateApp "clickpoints" "-c rgerum -c conda-forge"
+  ExecDos::exec /DETAILED '$ENVS\_app_own_environment_clickpoints\Scripts\pip.exe install pyqt5' "" ""
   ExecDos::exec /DETAILED '$ENVS\_app_own_environment_clickpoints\Scripts\clickpoints.exe ffmpeg' "" ""
   !insertmacro WriteUninstaller "clickpoints"
 SectionEnd
