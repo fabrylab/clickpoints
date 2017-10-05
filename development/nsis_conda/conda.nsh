@@ -54,7 +54,7 @@ var CONDA     # Conda executable
 !macro InstallApp package args
   Call SetRootEnv
 
-  DetailPrint "Downloading and installing application files ..."
+  DetailPrint "Downloading and installing application files ... (please be patient, this will take a while)"
   Push ${package}
   Call Prefix
   Pop $0
@@ -68,7 +68,7 @@ var CONDA     # Conda executable
 !macro UpdateApp package args
   Call SetRootEnv
 
-  DetailPrint "Downloading and installing application update ..."
+  DetailPrint "Downloading and installing application update ... (please be patient, this will take a while)"
   Push ${package}
   Call Prefix
   Pop $0
