@@ -21,30 +21,6 @@
 
 from setuptools import setup
 
-import os
-if os.path.dirname(__file__) != "":
-    os.chdir(os.path.dirname(__file__))  # for call from the installer
-
-on_rtd = os.environ.get('READTHEDOCS') == 'True'
-if on_rtd:
-    install_requires = []
-else:
-    install_requires = [
-                           'scipy',
-                           'matplotlib',
-                           'imageio',
-                           'scikit-image',
-                           'pyqt5',
-                           'qtpy',
-                           'qtawesome',
-                           'qimage2ndarray',
-                           'pillow',
-                           'peewee',
-                           'imageio',
-                           'natsort',
-                           'sortedcontainers',
-                           'psutil'
-                       ],
 
 setup(name='clickpoints',
       version="1.2.3",
@@ -59,6 +35,20 @@ setup(name='clickpoints',
               'console_scripts': ['clickpoints=clickpoints.launch:main'],
               'gui_scripts': ['clickpoints_gui=clickpoints.launch:main'],
           },
-      setup_requires=['numpy'],
-      install_requires=install_requires,
+      #setup_requires=['numpy'],
+      install_requires=['scipy',
+                        'matplotlib',
+                        'imageio',
+                        'scikit-image',
+                        'pyqt5',
+                        'qtpy',
+                        'qtawesome',
+                        'qimage2ndarray',
+                        'pillow',
+                        'peewee',
+                        'imageio',
+                        'natsort',
+                        'sortedcontainers',
+                        'psutil'
+                       ],
       include_package_data=True)
