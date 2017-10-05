@@ -206,6 +206,13 @@ def install(mode="install", extension=None):
             for ext in extension:
                 reg_path = r"SOFTWARE\Classes\\" + ext + r"\OpenWithList\ClickPoints.bat\\"
                 del_reg(winreg.HKEY_CURRENT_USER, reg_path)
+        else:
+            application_path = "/home/" + os.popen('whoami').read()[:-1] + "/.local/share/applications/"
+            if not os.path.exists(application_path):
+                os.mkdir(application_path)
+
+            desktop_file = "/home/" + os.popen('whoami').read()[:-1] + "/.local/share/applications/clickpoints.desktop"
+            os.remove(desktop_file)
     else:
         raise Exception('Unknown mode: %s' % mode)
 
