@@ -32,47 +32,48 @@ Args:
 
 import sys, ntpath, os
 
-try:
-    import _winreg as winreg  # python 2
-except ImportError:
-    import winreg  # python 3
-
-
-def set_reg(basekey, reg_path, name, value, type=winreg.REG_SZ):
+if sys.platform.startswith('win'):
     try:
-        winreg.CreateKey(basekey, reg_path)
-        registry_key = winreg.OpenKey(basekey, reg_path, 0,
-                                      winreg.KEY_WRITE)
-        winreg.SetValueEx(registry_key, name, 0, type, value)
-        winreg.CloseKey(registry_key)
-        return True
-    except WindowsError:
-        return False
+        import _winreg as winreg  # python 2
+    except ImportError:
+        import winreg  # python 3
 
 
-def del_reg(basekey, reg_path):
-    try:
-        winreg.DeleteKey(basekey, reg_path)
-        return True
-    except WindowsError:
-        return False
+    def set_reg(basekey, reg_path, name, value, type=winreg.REG_SZ):
+        try:
+	        winreg.CreateKey(basekey, reg_path)
+	        registry_key = winreg.OpenKey(basekey, reg_path, 0,
+	                                      winreg.KEY_WRITE)
+	        winreg.SetValueEx(registry_key, name, 0, type, value)
+	        winreg.CloseKey(registry_key)
+	        return True
+        except WindowsError:
+	        return False
 
 
-def get_reg(basekey, reg_path, name):
-    try:
-        registry_key = winreg.OpenKey(basekey, reg_path, 0,
-                                      winreg.KEY_READ)
-        value, regtype = winreg.QueryValueEx(registry_key, name)
-        winreg.CloseKey(registry_key)
-        return value
-    except WindowsError:
-        return None
+    def del_reg(basekey, reg_path):
+        try:
+	        winreg.DeleteKey(basekey, reg_path)
+	        return True
+        except WindowsError:
+	        return False
+
+
+    def get_reg(basekey, reg_path, name):
+        try:
+	        registry_key = winreg.OpenKey(basekey, reg_path, 0,
+	                                      winreg.KEY_READ)
+	        value, regtype = winreg.QueryValueEx(registry_key, name)
+	        winreg.CloseKey(registry_key)
+	        return value
+        except WindowsError:
+	        return None
 
 
 def createBatFile():
     directory = os.path.dirname(sys.executable)
-    script_path = os.path.normpath(os.path.join(directory, "clickpoints", "launch.py"))
-    icon_path = os.path.normpath(os.path.join(directory, "clickpoints", "icons", "ClickPoints.ico"))
+    script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "launch.py"))
+    icon_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "icons", "ClickPoints.ico"))
     if sys.platform.startswith('win'):
         with open(os.path.join(os.path.dirname(sys.executable), "ClickPoints.bat"), 'w') as fp:
             print("Writing ClickPoints.bat")
@@ -87,7 +88,7 @@ def createBatFile():
             print("Writing ClickPoints bash file")
             fp.write("#!/bin/bash\n")
             fp.write("echo \"$1\" >> ~/.clickpoints/ClickPoints.txt\n")
-            fp.write("python")
+            fp.write(sys.executable)
             fp.write(" ")
             fp.write(script_path)
             fp.write(" $1\n")
