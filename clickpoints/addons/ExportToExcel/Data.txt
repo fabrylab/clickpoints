@@ -2,4 +2,5 @@
 name=Export to Excel
 file=ExportToExcel.py
 icon=fa.file-excel-o
+image=Image.png
 requirements=xlwt

@@ -25,6 +25,7 @@ A typical meta file looks like this:
     file=Addon.py
     icon=fa.flask
     description=This add-on makes cool new things.
+    image=Image.png
     requirements=xlwt
 
 
@@ -37,6 +38,10 @@ A typical meta file looks like this:
 -  **icon** - ``icon=fa.flask``
       Defines the icon of the add-on. It can be either a filename or ``fa.`` followed by the name of a font awesome icon
       see the `font awesome iconlist <http://fontawesome.io/icons/>`_.
+
+-  **image** - ``image=Image.png``
+      Defines the image of the add-on. The image will be displayed in ClickPoints in the add-on list directly above the
+      description.
 
 -  **description** - ``description=This add-on makes cool new things.``
       Defines a short description for the add-on. If a longer description is desired, a file called ``Desc.html`` next to the

@@ -104,6 +104,9 @@ class Script(QtCore.QObject):
         self.script = os.path.join(os.path.dirname(filename), self.script)
         self.requirements = parser.get("addon", "requirements", fallback="")
         self.requirements = [s.strip() for s in self.requirements.split(",") if s.strip() is not ""]
+        self.image = parser.get("addon", "image", fallback="")
+        if self.image:
+            self.image = os.path.join(os.path.dirname(filename), self.image)
 
         if self.icon.startswith("fa.") or self.icon.startswith("ei."):
             self.icon = qta.icon(self.icon)
@@ -223,15 +226,24 @@ class ScriptChooser(QtWidgets.QWidget):
         layout.addWidget(self.button_import)
         layout.addStretch()
 
-        self.nameDisplay = QtWidgets.QLabel(self)
-        self.layout2.addWidget(self.nameDisplay)
+        layout2b = QtWidgets.QVBoxLayout()
+        self.layout2.addLayout(layout2b)
+        #self.nameDisplay = QtWidgets.QLabel(self)
+        self.nameDisplay = QtWidgets.QTextEdit(self)
+        self.nameDisplay.setReadOnly(True)
+        self.nameDisplay.setMaximumHeight(37)
+        self.nameDisplay.setStyleSheet("border-width: 1px; border-bottom-width: 0px; border-color: darkgray; border-style: solid; /* just a single line */; border-top-right-radius: 0px; /* same radius as the QComboBox */;")
+        layout2b.setSpacing(0)
+        layout2b.addWidget(self.nameDisplay)
 
         self.imageDisplay = QtWidgets.QLabel(self)
         #self.layout2.addWidget(self.imageDisplay)
 
         self.textDisplay = QtWidgets.QTextEdit(self)
         self.textDisplay.setReadOnly(True)
-        self.layout2.addWidget(self.textDisplay)
+        self.textDisplay.setStyleSheet(
+            "border-width: 1px; border-top-width: 0px; border-color: darkgray; border-style: solid; /* just a single line */; border-top-right-radius: 0px; /* same radius as the QComboBox */;")
+        layout2b.addWidget(self.textDisplay)
 
         self.layout_buttons = QtWidgets.QHBoxLayout()
         self.layout2.addLayout(self.layout_buttons)
@@ -270,7 +282,15 @@ class ScriptChooser(QtWidgets.QWidget):
         script = selections[0].entry
         self.selected_script = script
         self.nameDisplay.setText("<h1>"+script.name+"</h1>")
-        self.textDisplay.setHtml(script.description)
+
+        if script.image:
+            with open(script.image, "rb") as fp:
+                import base64
+                image = bytes(base64.b64encode(fp.read())).decode()
+            html = '<img src="data:image/png;base64,{}" style="border: 10px solid black;">'.format(image)
+            self.textDisplay.setHtml(html+script.description)
+        else:
+            self.textDisplay.setHtml(script.description)
         if script.active:
             self.button_removeAdd.setText("Deactivate")
             self.button_removeAdd.setDisabled(False)
