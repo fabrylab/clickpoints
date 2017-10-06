@@ -203,7 +203,7 @@ class ScriptChooser(QtWidgets.QWidget):
         # Widget
         self.setMinimumWidth(700)
         self.setMinimumHeight(400)
-        self.setWindowTitle("Script Chooser - ClickPoints")
+        self.setWindowTitle("Add-on Browser - ClickPoints")
         self.layout_main = QtWidgets.QHBoxLayout(self)
         self.layout = QtWidgets.QVBoxLayout()
         self.layout_main.addLayout(self.layout)
@@ -246,7 +246,7 @@ class ScriptChooser(QtWidgets.QWidget):
         self.update_folder_list2()
 
     def importScript(self):
-        srcpath = QtWidgets.QFileDialog.getOpenFileName(None, "Import script - ClickPoints", os.getcwd(), "ClickPoints Scripts *.txt")
+        srcpath = QtWidgets.QFileDialog.getOpenFileName(None, "Import Add-on - ClickPoints", os.getcwd(), "ClickPoints Scripts *.txt")
         if isinstance(srcpath, tuple):
             srcpath = srcpath[0]
         else:
@@ -321,7 +321,7 @@ class ScriptLauncher(QtCore.QObject):
         self.button = QtWidgets.QPushButton()
         self.button.setIcon(qta.icon("fa.external-link"))
         self.button.clicked.connect(self.showScriptSelector)
-        self.button.setToolTip("load/remove add-on scripts")
+        self.button.setToolTip("load/remove add-ons")
         self.window.layoutButtons.addWidget(self.button)
 
         self.button_group_layout = QtWidgets.QHBoxLayout()
