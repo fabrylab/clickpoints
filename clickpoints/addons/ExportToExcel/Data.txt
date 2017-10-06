@@ -1,5 +1,5 @@
 [addon]
 name=Export to Excel
-file=ExportMarkerCountToXLS.py
+file=ExportToExcel.py
 icon=fa.file-excel-o
 requirements=xlwt

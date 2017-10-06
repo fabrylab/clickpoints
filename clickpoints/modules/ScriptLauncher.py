@@ -380,7 +380,7 @@ class ScriptLauncher(QtCore.QObject):
             script = Script(filename)
             self.scripts.append(script)
             return script
-        except FileNotFoundError:
+        except (FileNotFoundError, ConfigParser.NoSectionError):
             return None
 
     def updateScripts(self):
