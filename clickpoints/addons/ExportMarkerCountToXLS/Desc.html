@@ -1,0 +1,22 @@
+<p>This tool allows to export data from the ClickPoints database to an Excel file for further evaluations. While we still
+recommend the use of the Python API, which is far more powerful for data extraction, this tool can help users that are
+    not familiar with the Python programming language.</p>
+<p>The following modes can be used to export the data:</p>
+
+<h2>Marker Count</h2>
+<p>This will create one line per image and one column per marker type. For each marker type the count of markers in this
+    image are written to the cell.</p>
+
+<p>This mode is useful, if only counts of the different marker types are of interest, e.g. how many animals were counted
+in each image.</p>
+
+<h2>Marker Positions</h2>
+<p>This will create one line per image and one sheet per marker type. In each line, the marker x and y coordinates are
+    written for the current image and marker type.</p>
+
+<p>This mode is useful, if the position data of the markers is needed.</p>
+
+<h2>Track Positions</h2>
+<p>This will create one line per image and two columns per track. For each image and each track, the x and y positions
+    of the track marker are exported, the cell is left blank, if there is no marker for this track in the current image.</p>
+<p>This mode is useful, if the positional data of tracks is needed.</p>
