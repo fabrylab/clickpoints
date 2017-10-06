@@ -674,13 +674,6 @@ class DataFile:
             class Meta:
                 indexes = ((('image', 'track'), True),)
 
-            def __getattribute__(self, item):
-                if item == "correctedXY":
-                    return self.correctedXY()
-                if item == "pos":
-                    return self.pos()
-                return BaseModel.__getattribute__(self, item)
-
             def __str__(self):
                 return "Marker Object: id=%s\timage=#%s\tx=%s\tx=%s\ttype=%s\tprocessed=%s\ttrack=#%s\tstyle=%s\ttext=%s" \
                        % (self.id, self.image_id, self.x, self.y, self.type, self.processed, self.track_id, self.style, self.text)

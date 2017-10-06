@@ -113,7 +113,7 @@ class Script(QtCore.QObject):
         self.hourglassAnimationTimer = QtCore.QTimer()
         self.hourglassAnimationTimer.timeout.connect(self.displayHourglassAnimation)
 
-    def activate(self, script_launcher):
+    def activate(self, script_launcher, silent=False):
         self.script_launcher = script_launcher
         path = os.path.abspath(self.script)
         name = os.path.splitext(os.path.basename(path))[0]
@@ -152,8 +152,10 @@ class Script(QtCore.QObject):
         self.addon_class_instance = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name, icon=self.icon)
 
         self.active = True
-        QtWidgets.QMessageBox.information(self.script_launcher.scriptSelector, 'Add-on - ClickPoints',
+        if not silent:
+            QtWidgets.QMessageBox.information(self.script_launcher.scriptSelector, 'Add-on - ClickPoints',
                                        'The add-on %s has been activated.' % name, QtWidgets.QMessageBox.Ok)
+        return True
 
     def deactivate(self):
         self.addon_class_instance.delete()
@@ -222,11 +224,10 @@ class ScriptChooser(QtWidgets.QWidget):
         layout.addStretch()
 
         self.nameDisplay = QtWidgets.QLabel(self)
-        self.nameDisplay.setStyleSheet("font-weight: bold;")
         self.layout2.addWidget(self.nameDisplay)
 
         self.imageDisplay = QtWidgets.QLabel(self)
-        self.layout2.addWidget(self.imageDisplay)
+        #self.layout2.addWidget(self.imageDisplay)
 
         self.textDisplay = QtWidgets.QTextEdit(self)
         self.textDisplay.setReadOnly(True)
@@ -268,13 +269,13 @@ class ScriptChooser(QtWidgets.QWidget):
             return
         script = selections[0].entry
         self.selected_script = script
-        self.nameDisplay.setText(script.name)
+        self.nameDisplay.setText("<h1>"+script.name+"</h1>")
         self.textDisplay.setHtml(script.description)
         if script.active:
-            self.button_removeAdd.setText("Remove")
+            self.button_removeAdd.setText("Deactivate")
             self.button_removeAdd.setDisabled(False)
         else:
-            self.button_removeAdd.setText("Add")
+            self.button_removeAdd.setText("Activate")
             self.button_removeAdd.setDisabled(False)
         return
 
@@ -351,15 +352,15 @@ class ScriptLauncher(QtCore.QObject):
         self.scripts = self.loadScripts()
 
         for script in self.data_file.getOption("scripts"):
-            self.activateScript(script)
+            self.activateScript(script, silent=True)
 
         self.updateScripts()
 
-    def activateScript(self, script):
+    def activateScript(self, script, silent=False):
         script = self.getScriptByFilename(script)
         if script is not None:
-            script.activate(self)
-            self.active_scripts.append(script)
+            if script.activate(self, silent=silent):
+                self.active_scripts.append(script)
 
     def deactivateScript(self, script):
         script = self.getScriptByFilename(script)
