@@ -2,3 +2,4 @@
 name=Measure Tool
 file=Measure.py
 icon=fa.wrench
+requirements=tifffile,PIL

@@ -25,6 +25,7 @@ A typical meta file looks like this:
     file=Addon.py
     icon=fa.flask
     description=This add-on makes cool new things.
+    requirements=xlwt
 
 
 -  **name** - ``name=My new Add-on``
@@ -40,6 +41,9 @@ A typical meta file looks like this:
 -  **description** - ``description=This add-on makes cool new things.``
       Defines a short description for the add-on. If a longer description is desired, a file called ``Desc.html`` next to the
       ``*.txt`` file can be used. This file supports rich text with an html subset defined by `Qt Html Subset <http://doc.qt.io/qt-4.8/richtext-html-subset.html>`_.
+
+-  **requirements** - ``requirements=xlwt,skimage``
+      Define the packages that this add-on needs. Multiple packages have to be separated by a komma.
 
 Script File
 -----------

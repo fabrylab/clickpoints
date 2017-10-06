@@ -42,12 +42,22 @@ try:
 except ImportError:
     import configparser as ConfigParser
 from importlib import import_module
+import pip
 try:
     # python 3
     from importlib import reload
 except ImportError:
     # python 2
     reload
+
+
+def check_packages_installed(package_name):
+    import importlib.util
+
+    spec = importlib.util.find_spec(package_name)
+    if spec is None:
+        return False
+    return True
 
 
 # implement the fallback keyword for the ConfigParser in Python 2.7
@@ -92,6 +102,8 @@ class Script(QtCore.QObject):
         self.icon_name = self.icon
         self.script = parser.get("addon", "file", fallback="Script.py")
         self.script = os.path.join(os.path.dirname(filename), self.script)
+        self.requirements = parser.get("addon", "requirements", fallback="")
+        self.requirements = [s.strip() for s in self.requirements.split(",") if s.strip() is not ""]
 
         if self.icon.startswith("fa.") or self.icon.startswith("ei."):
             self.icon = qta.icon(self.icon)
@@ -105,10 +117,31 @@ class Script(QtCore.QObject):
         self.script_launcher = script_launcher
         path = os.path.abspath(self.script)
         name = os.path.splitext(os.path.basename(path))[0]
+        # check requirements
+        needed_packages = []
+        for package_name in self.requirements:
+            if not check_packages_installed(package_name):
+                needed_packages.append(package_name)
+        print("needed_packages", needed_packages, len(needed_packages))
+        if len(needed_packages):
+            reply = QtWidgets.QMessageBox.question(self.script_launcher.scriptSelector, 'Warning - ClickPoints',
+                                                   'The add-on requires the following packages: %s\nDo you want to install them?' % (", ".join(needed_packages)),
+                                                   QtWidgets.QMessageBox.Yes,
+                                                   QtWidgets.QMessageBox.No)
+            if reply == QtWidgets.QMessageBox.No:
+                return
+            for package_name in needed_packages:
+                pip.main(["install", package_name])
         sys.path.insert(0, os.path.dirname(path))
         try:
             if not self.loaded:
-                self.addon_module = import_module(name)
+                try:
+                    self.addon_module = import_module(name)
+                except Exception as err:
+                    QtWidgets.QMessageBox.critical(self.script_launcher.scriptSelector, 'Error - ClickPoints',
+                                                   'An exception occurred when trying to import add-on %s:\n%s' % (name, err),
+                                                   QtWidgets.QMessageBox.Ok)
+                    raise err
                 self.loaded = True
             else:
                 self.addon_module = reload(self.addon_module)
@@ -119,6 +152,8 @@ class Script(QtCore.QObject):
         self.addon_class_instance = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name, icon=self.icon)
 
         self.active = True
+        QtWidgets.QMessageBox.information(self.script_launcher.scriptSelector, 'Add-on - ClickPoints',
+                                       'The add-on %s has been activated.' % name, QtWidgets.QMessageBox.Ok)
 
     def deactivate(self):
         self.addon_class_instance.delete()
@@ -285,7 +320,7 @@ class ScriptLauncher(QtCore.QObject):
         self.button = QtWidgets.QPushButton()
         self.button.setIcon(qta.icon("fa.external-link"))
         self.button.clicked.connect(self.showScriptSelector)
-        self.button.setToolTip("load/remove addon scripts")
+        self.button.setToolTip("load/remove add-on scripts")
         self.window.layoutButtons.addWidget(self.button)
 
         self.button_group_layout = QtWidgets.QHBoxLayout()

@@ -3,3 +3,4 @@ name=DriftCorrection
 file=DriftCorrection.py
 icon=fa.object-ungroup
 description=This tool helps to stabilize an image sequence.
+requirements=cv2

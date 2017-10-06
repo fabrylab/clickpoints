@@ -2,3 +2,4 @@
 name=Track
 file=Track.py
 icon=fa.road
+requirements=cv2
