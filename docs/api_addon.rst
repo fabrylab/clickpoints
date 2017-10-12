@@ -148,6 +148,61 @@ add, get and set options:
         - **max_value** *(number)* - the maximum value for a *int* or *float* option.
         - **value_count** *(int)* - it the option should accept a list of values. Only for *int* values.
 
+Events
+------
+
+Events are actions that occur in the main ClickPoints program. The add-ons are notified for this events and can react to
+them.
+
+.. py:function:: markerAddEvent(entry)
+
+    A marker (line or rectangle) was added to the current image.
+
+    Parameters:
+        - **entry** *(* :py:class:`Marker` *,* :py:class:`Line` *,* :py:class:`Rectangle` *)* - the new marker.
+
+.. py:function:: markerRemoveEvent(entry)
+
+    A marker (line or rectangle) was removed to the current image.
+
+    Parameters:
+        - **entry** *(* :py:class:`Marker` *,* :py:class:`Line` *,* :py:class:`Rectangle` *)* - the removed marker.
+
+.. py:function:: markerMoveEvent(entry)
+
+    A marker (line or rectangle) was moved.
+
+    Parameters:
+        - **entry** *(* :py:class:`Marker` *,* :py:class:`Line` *,* :py:class:`Rectangle` *)* - the moved marker.
+
+.. py:function:: buttonPressedEvent()
+
+    The button for this add-on was pressed. If not overloaded it will just call `self.run_threaded()` to executed the
+    add-on's `self.run` method in a new thread.
+
+    A typical overloading for gui based add-ons would be to call the `self.show` method:
+
+    .. code-block:: python
+
+        def buttonPressedEvent(self):
+            self.show()
+
+.. py:function:: zoomEvent(scale, pos)
+
+    The zoom of the ClickPoints window has changed.
+
+    Parameters:
+        - **scale** *(number)* - the new scale factor of the displayed image.
+        - **pos** *(QPoint)* - the origin point of the zoom. Typically the mouse cursor position.
+
+.. py:function:: keyPressEvent(event)
+
+    A key has been pressed in the ClickPoints window.
+
+    Parameters:
+        - **event** *(QKeyEvent)* - the key press event. With `event.key()` they key can be queried and compared to the key constants (`see Qt::Key <http://doc.qt.io/qt-4.8/qt.html#Key-enum>`_).
+
+
 Commands
 --------
 

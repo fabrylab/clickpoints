@@ -157,12 +157,12 @@ class Addon(clickpoints.Addon):
     def optionsChanged(self):
         self.scaleBar.setPixToMu(self.getOption("pixelSize"))
 
-    def MarkerMoved(self, marker):
+    def markerMoveEvent(self, marker):
         if not self.initialized:
             self.initializeOptions()
-        if self.initialized and marker.data.type == self.type:
-            marker.data.text = "%.2f %s" % (marker.data.length()*self.getOption("pixelSize"), self.getOption("unit"))
-            marker.data.save()
+        if self.initialized and marker.type == self.type:
+            marker.text = "%.2f %s" % (marker.length()*self.getOption("pixelSize"), self.getOption("unit"))
+            marker.save()
 
     def run(self, *args, **kwargs):
         self.cp.selectMarkerType(self.type)
