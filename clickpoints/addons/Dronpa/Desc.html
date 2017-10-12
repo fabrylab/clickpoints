@@ -1,7 +1,12 @@
-This add-on measures florescence intensity in images and tries to simulate diffusive flow through cell connections.
-<br/>
-<ul>
-<li>Create a mask type for every cell and paint the cell area in every frame.<li>
-<li>Draw a line with type "connect" between all the cells you want to connect.<li>
-<li>Start the simulation.<li>
-</ul>
+<p>This add-on is an implementation of the evaluation of the flow of flourescence intensity from one cell to other cells.
+Therefore the user can define regions in every image of a sequence by drawing masks. These masks define the region of the
+cell that is visible in the image. From this region the green image channel will be summed as the total flourescence
+    intensity of the cell at this time.</p>
+
+<p>To calculate the flow, adjacent cells where a diffusion should be calculated can be connected with the line marker of
+    the type "connect". Then the evaluation can be started.</p>
+
+<p>The output will show two plots of the intensities over time and the calculated diffusion compared to the measured concentration
+change. The images along with the data will be stored in a folder called "output" in the location where the "*.cdb" file
+    of the project has been saved.</p>
+
