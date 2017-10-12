@@ -422,9 +422,13 @@ class ScriptLauncher(QtCore.QObject):
             script.button = button
 
     def receiveBroadCastEvent(self, function, *args, **kwargs):
+        import traceback
         for script in self.scripts:
             if function in dir(script.addon_class_instance):
-                eval("script.addon_class_instance." + function + "(*args, **kwargs)")
+                try:
+                    eval("script.addon_class_instance." + function + "(*args, **kwargs)")
+                except:
+                    traceback.print_exc()
 
     def showScriptSelector(self):
         self.scriptSelector = ScriptChooser(self)
