@@ -135,11 +135,15 @@ class Script(QtCore.QObject):
                 return
             for package_name in needed_packages:
                 pip.main(["install", package_name])
-        sys.path.insert(0, os.path.join(os.path.dirname(path), ".."))
+        folder, filename = os.path.split(path)
+        path, folder = os.path.split(folder)
+        basefilename, ext = os.path.splitext(filename)
+        sys.path.insert(0, path)
         try:
             if not self.loaded:
                 try:
-                    self.addon_module = import_module(name+"."+os.path.splitext(os.path.basename(path))[0])
+                    print("import ", folder+"."+basefilename)
+                    self.addon_module = import_module(folder+"."+basefilename)
                 except Exception as err:
                     QtWidgets.QMessageBox.critical(self.script_launcher.scriptSelector, 'Error - ClickPoints',
                                                    'An exception occurred when trying to import add-on %s:\n%s' % (name, err),
