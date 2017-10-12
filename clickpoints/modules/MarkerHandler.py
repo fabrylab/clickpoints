@@ -1555,7 +1555,7 @@ class MyDisplayItem:
         else:
             self.data = self.newData(event, type)
             self.data.save()
-            self.marker_handler.markerAddedEvent(self.data)
+            BroadCastEvent(self.marker_handler.modules, "markerAddEvent", self.data)
             self.is_new = True
         # extract the style information
         self.GetStyle()
@@ -1773,7 +1773,7 @@ class MyDisplayItem:
     def changeTypeEvent(self):
         if self.marker_handler.active_type.mode == self.data.type.mode:
             self.changeType(self.marker_handler.active_type)
-            self.marker_handler.markerAddedEvent(self.data)
+            BroadCastEvent(self.marker_handler.modules, "markerAddEvent", self.data)
 
     def changeType(self, type):
         self.data.changeType(type)
@@ -1811,7 +1811,7 @@ class MyDisplayItem:
         # delete the database entry
         if not just_display:
             self.data.delete_instance()
-            self.marker_handler.markerRemovedEvent(self.data)
+            BroadCastEvent(self.marker_handler.modules, "markerRemoveEvent", self.data)
 
         # delete from marker handler list
         self.marker_handler.RemoveFromList(self)
@@ -1851,7 +1851,7 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.data.x = pos.x()
         self.data.y = pos.y()
         self.updateDisplay()
-        BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
+        BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyMarkerItem, self).drawMarker(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
@@ -1910,7 +1910,7 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
             self.setLine(*self.data.getPos())
             self.g2.setPos(*self.data.getPos2())
             self.setText(self.GetText())
-        BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
+        BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
 
     def drag(self, event):
         self.graberMoved(self.g2, event.pos(), event)
@@ -2016,7 +2016,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
             self.data.x = pos.x()
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
-        BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
+        BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
 
     def drag(self, event):
         self.graberMoved(self.start_grabber, event.pos(), event)
@@ -2216,7 +2216,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
                                                                      type=self.data.type,
                                                                      track=self.data, text=None)
             marker.save()
-            self.marker_handler.markerAddedEvent(marker)
+            BroadCastEvent(self.marker_handler.modules, "markerAddEvent", marker)
             self.marker = TrackMarkerObject([0, 0], dict(id=marker.id, type=marker.type, track=marker.track, image=image, text=None, style={}))
             self.markers[self.current_frame] = self.marker
             self.setTrackActive(True)
@@ -2228,7 +2228,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def graberMoved(self, grabber, pos, event):
         self.addPoint(pos)
         self.updateDisplay()
-        BroadCastEvent(self.marker_handler.modules, "MarkerMoved", self)
+        BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
 
     def graberReleased(self, grabber, event):
         if self.marker_handler.data_file.getOption("tracking_connect_nearest") and event.modifiers() & Qt.ShiftModifier:
@@ -2256,7 +2256,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             # delete entry from database
             self.marker_handler.marker_file.table_marker.delete().where(self.marker_handler.marker_file.table_marker.id == data.data["id"]).execute()
             # notify marker_handler
-            self.marker_handler.markerRemovedEvent(entry)
+            BroadCastEvent(self.marker_handler.modules, "markerRemoveEvent", entry)
             # if it is the current frame, delete reference to marker
             if frame == self.current_frame:
                 self.marker = None
@@ -2265,7 +2265,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         # if it was the last one delete the track, too
         if len(self.markers) == 0:
             self.delete()
-            self.marker_handler.markerRemovedEvent(self.data)
+            BroadCastEvent(self.marker_handler.modules, "markerRemoveEvent", self.data)
             return True  # True indicates that we remove the track too
         # set the track to inactive if the current marker was removed
         if frame == self.current_frame:
@@ -3166,11 +3166,11 @@ class MarkerHandler:
             return True
         return False
 
-    def markerAddedEvent(self, entry):
+    def markerAddEvent(self, entry):
         if self.marker_edit_window:
             self.marker_edit_window.tree.updateEntry(entry)
 
-    def markerRemovedEvent(self, entry):
+    def markerRemoveEvent(self, entry):
         if self.marker_edit_window:
             self.marker_edit_window.tree.deleteEntry(entry)
 
