@@ -358,7 +358,8 @@ class Addon(QtWidgets.QWidget):
     def terminate(self):
         # when the add-on wants to tell it's run thread to terminate
         self.cp.stop = True
-        self._run_thread.join(1)
+        if self._run_thread is not None:
+            self._run_thread.join(1)
         self._run_thread = None
 
     def is_running(self):
