@@ -21,8 +21,8 @@
 
 from __future__ import print_function, division
 import clickpoints
-from GetIntensities import getIntensities
-from FitDiffusionConstants import fitDiffusionConstants
+from .GetIntensities import getIntensities
+from .FitDiffusionConstants import fitDiffusionConstants
 from matplotlib import pyplot as plt
 
 

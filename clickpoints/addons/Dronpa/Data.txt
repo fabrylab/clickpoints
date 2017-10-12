@@ -2,4 +2,5 @@
 name=DronpaDiffusion
 file=Dronpa.py
 icon=fa.flask
-requirements=theano,skimage
+requirements=theano,skimage,xlwt
+image=Image.png
