@@ -23,6 +23,7 @@ from __future__ import division, print_function
 import os, sys
 import psutil
 import signal
+import traceback
 
 from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
@@ -359,7 +360,13 @@ class ScriptLauncher(QtCore.QObject):
 
     def loadScripts(self):
         scripts = glob.glob(os.path.join(os.environ["CLICKPOINTS_ADDON"], "*", '*.txt'))
-        return [Script(filename) for filename in scripts]
+        loaded_scripts = []
+        for filename in scripts:
+            try:
+                loaded_scripts.append(Script(filename))
+            except:
+                traceback.print_exc()
+        return loaded_scripts
 
     def closeDataFile(self):
         self.data_file = None
@@ -380,11 +387,15 @@ class ScriptLauncher(QtCore.QObject):
 
         self.updateScripts()
 
-    def activateScript(self, script, silent=False):
-        script = self.getScriptByFilename(script)
+    def activateScript(self, script_name, silent=False):
+        script = self.getScriptByFilename(script_name)
         if script is not None:
             if script.activate(self, silent=silent):
                 self.active_scripts.append(script)
+            else:
+                print("Add-on %s could not be activated" % script.name, file=sys.stderr)
+        else:
+            print("Add-on %s could not be loaded" % script_name, file=sys.stderr)
 
     def deactivateScript(self, script):
         script = self.getScriptByFilename(script)
@@ -426,7 +437,6 @@ class ScriptLauncher(QtCore.QObject):
             script.button = button
 
     def receiveBroadCastEvent(self, function, *args, **kwargs):
-        import traceback
         for script in self.scripts:
             if function in dir(script.addon_class_instance):
                 try:
