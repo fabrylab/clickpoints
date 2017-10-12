@@ -2,3 +2,4 @@
 name=Layer Sorter
 file=Sorter.py
 icon=fa.sort-amount-asc
+image=Image.png

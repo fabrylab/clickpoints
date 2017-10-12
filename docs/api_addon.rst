@@ -41,7 +41,7 @@ A typical meta file looks like this:
 
 -  **image** - ``image=Image.png``
       Defines the image of the add-on. The image will be displayed in ClickPoints in the add-on list directly above the
-      description.
+      description. The image should have a dimension of 300x160 pixel.
 
 -  **description** - ``description=This add-on makes cool new things.``
       Defines a short description for the add-on. If a longer description is desired, a file called ``Desc.html`` next to the
