@@ -3,3 +3,4 @@ name=CellDetector
 file=CellDetector.py
 icon=fa.bullseye
 requirements=skimage,cv2
+image=Image.png
