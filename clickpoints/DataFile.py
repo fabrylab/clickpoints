@@ -1669,13 +1669,20 @@ class DataFile:
         if self.table_track.select().where(self.table_track.id << tracks).count() != len(tracks):
             raise TrackDoesNotExist("One or more tracks from the list {0} does not exist.".format(tracks))
 
-    def _processesTypeNameField(self, types):
+    def _processesTypeNameField(self, types, modes):
+        mode_list = []
+        for mode in modes:
+            mode_list.append(getattr(self, mode))
+
         def CheckType(type):
             if isinstance(type, basestring):
                 type_name = type
                 type = self.getMarkerType(type)
                 if type is None:
                     raise MarkerTypeDoesNotExist("No marker type with the name \"%s\" exists." % type_name)
+
+            if type is not None and type.mode not in mode_list:
+                raise ValueError("Marker type \"%s\" is not a marker type with mode (allowed modes here: %s)" % (type.name, ", ".join(modes)))
             return type
 
         if isinstance(types, (tuple, list)):
@@ -2149,7 +2156,7 @@ class DataFile:
         entries : array_like
             a query object which contains the requested :py:class:`Track`.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Track"])
 
         query = self.table_track.select()
         query = addFilter(query, type, self.table_track.type)
@@ -2206,7 +2213,7 @@ class DataFile:
         track : track object
             a new :py:class:`Track` object
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Track"])
 
         # gather all the parameters that are not none
         parameters = locals()
@@ -2240,7 +2247,7 @@ class DataFile:
             the number of affected rows.
         """
 
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Track"])
 
         query = self.table_track.delete()
         query = addFilter(query, id, self.table_track.id)
@@ -2824,7 +2831,7 @@ class DataFile:
         entries : array_like
             a query object which contains all :py:class:`Marker` entries.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Normal", "TYPE_Track"])
 
         query = self.table_marker.select(self.table_marker, self.table_image).join(self.table_image)
 
@@ -2887,7 +2894,7 @@ class DataFile:
         except peewee.DoesNotExist:
             item = self.table_marker()
 
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Normal", "TYPE_Track"])
         if track is not None:
             self._checkTrackField(track)
         image = self._processImagesField(image, frame, filename, layer)
@@ -2934,7 +2941,7 @@ class DataFile:
         success : bool
             it the inserting was successful.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Normal", "TYPE_Track"])
         if track is not None:
             self._checkTrackField(track)
         image = self._processImagesField(image, frame, filename, layer)
@@ -2979,7 +2986,7 @@ class DataFile:
         rows : int
             the number of affected rows.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Normal", "TYPE_Track"])
 
         query = self.table_marker.delete()
 
@@ -3061,7 +3068,7 @@ class DataFile:
         entries : array_like
             a query object which contains all :py:class:`Line` entries.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Line"])
 
         query = self.table_line.select(self.table_line, self.table_image).join(self.table_image)
 
@@ -3126,7 +3133,7 @@ class DataFile:
         except peewee.DoesNotExist:
             item = self.table_line()
 
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Line"])
         image = self._processImagesField(image, frame, filename, layer)
 
         setFields(item, dict(image=image, x1=x1, y1=y1, x2=x2, y2=y2, type=type, processed=processed, style=style, text=text))
@@ -3175,7 +3182,7 @@ class DataFile:
         success : bool
             it the inserting was successful.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Line"])
         image = self._processImagesField(image, frame, filename, layer)
 
         data = packToDictList(self.table_line, id=id, image=image, x1=x1, y1=y1, x2=x2, y2=y2, processed=processed, type=type,
@@ -3220,7 +3227,7 @@ class DataFile:
         rows : int
             the number of affected rows.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Line"])
 
         query = self.table_line.delete()
 
@@ -3304,7 +3311,7 @@ class DataFile:
         entries : array_like
             a query object which contains all :py:class:`Rectangle` entries.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Rect"])
 
         query = self.table_rectangle.select(self.table_rectangle, self.table_image).join(self.table_image)
 
@@ -3370,7 +3377,7 @@ class DataFile:
         except peewee.DoesNotExist:
             item = self.table_rectangle()
 
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Rect"])
         image = self._processImagesField(image, frame, filename, layer)
 
         setFields(item, dict(image=image, x=x, y=y, width=width, height=height, type=type, processed=processed, style=style, text=text))
@@ -3419,7 +3426,7 @@ class DataFile:
         success : bool
             it the inserting was successful.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Rect"])
         image = self._processImagesField(image, frame, filename, layer)
 
         data = packToDictList(self.table_rectangle, id=id, image=image, x=x, y=y, width=width, height=height, processed=processed, type=type,
@@ -3464,7 +3471,7 @@ class DataFile:
         rows : int
             the number of affected rows.
         """
-        type = self._processesTypeNameField(type)
+        type = self._processesTypeNameField(type, ["TYPE_Rect"])
 
         query = self.table_rectangle.delete()
 

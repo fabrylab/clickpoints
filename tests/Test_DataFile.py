@@ -555,9 +555,9 @@ class Test_DataFile(unittest.TestCase):
         """ Test the getMarker function """
 
         # basic db structure
-        marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        marker_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
-        marker_type3 = self.db.setMarkerType(name="Track", color="#00FF00")
+        marker_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Track)
+        marker_type2 = self.db.setMarkerType(name="Test2", color="#00FF00", mode=self.db.TYPE_Track)
+        marker_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Track)
 
         image1 = self.db.setImage("test1.jpg")
         image2 = self.db.setImage("test2.jpg")
@@ -841,7 +841,7 @@ class Test_DataFile(unittest.TestCase):
         """ Test the getLine function """
 
         # basic db structure
-        Line_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
+        Line_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Line)
         image1 = self.db.setImage("test1.jpg")
         self.db.setLine(image=image1, x1=456, y1=0, x2=10, y2=10, type=Line_type1)
 
@@ -857,9 +857,9 @@ class Test_DataFile(unittest.TestCase):
         """ Test the getLine function """
 
         # basic db structure
-        Line_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        Line_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
-        Line_type3 = self.db.setMarkerType(name="Track", color="#00FF00")
+        Line_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Line)
+        Line_type2 = self.db.setMarkerType(name="Test2", color="#00FF00", mode=self.db.TYPE_Line)
+        Line_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Line)
 
         image1 = self.db.setImage("test1.jpg")
         image2 = self.db.setImage("test2.jpg")
@@ -909,8 +909,8 @@ class Test_DataFile(unittest.TestCase):
         """ Test the setLines function """
 
         # set up db
-        Line_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        Line_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
+        Line_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Line)
+        Line_type2 = self.db.setMarkerType(name="Test2", color="#00FF00", mode=self.db.TYPE_Line)
         Line_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Track)
 
         image1 = self.db.setImage("test1.jpg")
@@ -964,8 +964,8 @@ class Test_DataFile(unittest.TestCase):
         """ Test the deleteLines function """
 
         # set up db
-        Line_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        Line_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
+        Line_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Line)
+        Line_type2 = self.db.setMarkerType(name="Test2", color="#00FF00", mode=self.db.TYPE_Line)
         Line_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Track)
 
         image1 = self.db.setImage("test1.jpg")
@@ -1088,7 +1088,7 @@ class Test_DataFile(unittest.TestCase):
         """ Test the getRectangle function """
 
         # basic db structure
-        Rectangle_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
+        Rectangle_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Rect)
         image1 = self.db.setImage("test1.jpg")
         self.db.setRectangle(image=image1, x=456, y=0, width=10, height=10, type=Rectangle_type1)
 
@@ -1104,9 +1104,9 @@ class Test_DataFile(unittest.TestCase):
         """ Test the getRectangle function """
 
         # basic db structure
-        Rectangle_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        Rectangle_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
-        Rectangle_type3 = self.db.setMarkerType(name="Track", color="#00FF00")
+        Rectangle_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Rect)
+        Rectangle_type2 = self.db.setMarkerType(name="Test2", color="#00FF00", mode=self.db.TYPE_Rect)
+        Rectangle_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Rect)
 
         image1 = self.db.setImage("test1.jpg")
         image2 = self.db.setImage("test2.jpg")
@@ -1159,8 +1159,8 @@ class Test_DataFile(unittest.TestCase):
         """ Test the setRectangles function """
 
         # set up db
-        Rectangle_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        Rectangle_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
+        Rectangle_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Rect)
+        Rectangle_type2 = self.db.setMarkerType(name="Test2", color="#00FF00", mode=self.db.TYPE_Rect)
         Rectangle_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Track)
 
         image1 = self.db.setImage("test1.jpg")
@@ -1218,8 +1218,8 @@ class Test_DataFile(unittest.TestCase):
         """ Test the deleteRectangles function """
 
         # set up db
-        Rectangle_type1 = self.db.setMarkerType(name="Test1", color="#FF0000")
-        Rectangle_type2 = self.db.setMarkerType(name="Test2", color="#00FF00")
+        Rectangle_type1 = self.db.setMarkerType(name="Test1", color="#FF0000", mode=self.db.TYPE_Rect)
+        Rectangle_type2 = self.db.setMarkerType(name="Test2", color="#00FF00", mode=self.db.TYPE_Rect)
         Rectangle_type3 = self.db.setMarkerType(name="Track", color="#00FF00", mode=self.db.TYPE_Track)
 
         image1 = self.db.setImage("test1.jpg")
