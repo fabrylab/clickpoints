@@ -351,6 +351,21 @@ class Addon(QtWidgets.QWidget):
         # set the value of an option
         return self.db.setOption(key=self._warpOptionKey(key), value=value)
 
+    def linkOption(self, key, widget):
+        signal = None
+        if isinstance(widget, QtWidgets.QSpinBox) or isinstance(widget, QtWidgets.QDoubleSpinBox):
+            signal = widget.valueChanged
+        elif isinstance(widget, QtWidgets.QLineEdit):
+            signal = widget.textChanged
+        elif isinstance(widget, QtWidgets.QComboBox):
+            signal = widget.editTextChanged
+        elif isinstance(widget, QtWidgets.QCheckBox):
+            signal = widget.stateChanged
+        signal.connect(lambda value, key=key: self.optionInputChanged(value, key))
+
+    def optionInputChanged(self, value, key):
+        self.setOption(key, value)
+
     def buttonPressedEvent(self):
         # callback that gets called when the user clicks the button of the add-on in ClickPoints
         self.run_threaded()
