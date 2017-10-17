@@ -1,2 +1,2 @@
 recursive-include clickpoints/icons *.ico *.png *.ttf
-recursive-include clickpoints/addons *.py *.txt *.html
+recursive-include clickpoints/addons *.py *.txt *.html *.png *.jpg

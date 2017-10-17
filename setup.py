@@ -31,7 +31,7 @@ setup(name='clickpoints',
       author='Richard Gerum, Sebastian Richter',
       author_email='richard.gerum@fau.de',
       packages=['clickpoints', 'clickpoints.addons', 'clickpoints.includes', 'clickpoints.modules', 'clickpoints.includes.qextendedgraphicsview'],
-      entry_points = {
+      entry_points={
               'console_scripts': ['clickpoints=clickpoints.launch:main'],
               'gui_scripts': ['clickpoints_gui=clickpoints.launch:main'],
           },
