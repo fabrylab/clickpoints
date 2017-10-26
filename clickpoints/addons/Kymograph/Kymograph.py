@@ -27,10 +27,12 @@ from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
 from clickpoints.includes.matplotlibwidget import MatplotlibWidget, NavigationToolbar
 from matplotlib import pyplot as plt
+import time
 
 class Addon(clickpoints.Addon):
     signal_update_plot = QtCore.Signal()
     image_plot = None
+    last_update = 0
 
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
@@ -175,9 +177,15 @@ class Addon(clickpoints.Addon):
         self.plot.figure.tight_layout()
         self.plot.draw()
 
+        self.last_update = time.time()
+
         self.run_threaded(image_start.sort_index+1)
 
     def updatePlotImage(self):
+        t = time.time()
+        if t-self.last_update < 0.1 and self.index < self.n-1:
+            return
+        self.last_update = t
         if self.image_plot:
             self.image_plot.set_data(self.current_data)
         self.plot.draw()
