@@ -281,6 +281,7 @@ class DataFile:
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
     _config = None
+    _buffer = None
 
     """ Enumerations """
     TYPE_Normal = 0
@@ -393,6 +394,8 @@ class DataFile:
                 indexes = ((('filename', 'path', 'frame'), True),)
 
             def get_data(self):
+                if self.database_class._buffer is not None:
+                    return self.database_class.get_image_data(self.sort_index, self.layer)
                 # only if we don't have the file already open (which in case for videos is important)
                 if self.database_class._reader is None or self.database_class._reader.filename != self.filename:
                     # compose the path
