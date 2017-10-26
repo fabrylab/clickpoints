@@ -229,6 +229,7 @@ class DataFileExtended(DataFile):
 
         # image data loading buffer and thread
         self.buffer = FrameBuffer(self.getOption("buffer_size"), self.getOption("buffer_memory"), self.getOption("buffer_mode"))
+        self._buffer = self.buffer
         self.thread = None
 
         self.last_added_timestamp = -1
