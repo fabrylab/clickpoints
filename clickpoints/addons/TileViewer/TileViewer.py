@@ -31,7 +31,9 @@ import json
 
 class Addon(clickpoints.Addon):
     page = 0
-    page_item_count = 5
+    row_count = 5
+    item_fields = 2
+    column_count = 3
     tile_size = 84
 
     def __init__(self, *args, **kwargs):
@@ -60,11 +62,12 @@ class Addon(clickpoints.Addon):
         self.layout_navigate.addWidget(self.label_index)
 
         # create the table
-        self.tableWidget = QtWidgets.QTableWidget(0, 2, self)
+        self.tableWidget = QtWidgets.QTableWidget(0, self.item_fields * self.column_count, self)
         self.layout.addWidget(self.tableWidget)
-        self.row_headers = ["Image", "Data"]
+        self.row_headers = ["Data", "Image"]*self.column_count
         self.tableWidget.setHorizontalHeaderLabels(self.row_headers)
         self.tableWidget.setMinimumHeight(500)
+        self.tableWidget.setMinimumWidth(500)
         self.setMinimumWidth(300)
         self.tableWidget.setCurrentCell(0, 0)
 
@@ -94,7 +97,7 @@ class Addon(clickpoints.Addon):
         else:
             new_page = index
         # limit it by 0 and max_pages
-        max_pages = int(np.ceil(len(self.data)/self.page_item_count))
+        max_pages = int(np.ceil(len(self.data) / (self.row_count * self.column_count)))
         self.page = min([max([0, new_page]), max_pages-1])
         # update the label
         self.label_index.setText("%d/%d" % (self.page+1, max_pages))
@@ -109,6 +112,8 @@ class Addon(clickpoints.Addon):
         self.setPage(0)
 
     def cellSelected(self, row, column):
+        # apply the page
+        row = row+self.page * self.column_count * self.row_count + int(column // self.item_fields) * self.row_count
         # get the data
         data = self.data[row]
         # jump to the frame
@@ -119,18 +124,16 @@ class Addon(clickpoints.Addon):
         self.db.setMarker(id=self.my_marker.id, x=data[1], y=data[2], image=self.db.getImage(data[0]))
         self.cp.reloadMarker()
 
-    def setTableText(self, row, column, text):
+    def setTableText(self, row_index, column_index, text):
+        # break the row_index for each column
+        row = row_index % self.row_count
+        column = column_index + (row_index // self.row_count) * self.item_fields
+
         # create or get a QTableWidgetItem item
-        if column == -1:
-            item = self.tableWidget.verticalHeaderItem(row)
-            if item is None:
-                item = QtWidgets.QTableWidgetItem("")
-                self.tableWidget.setVerticalHeaderItem(row, item)
-        else:
-            item = self.tableWidget.item(row, column)
-            if item is None:
-                item = QtWidgets.QTableWidgetItem("")
-                self.tableWidget.setItem(row, column, item)
+        item = self.tableWidget.item(row, column)
+        if item is None:
+            item = QtWidgets.QTableWidgetItem("")
+            self.tableWidget.setItem(row, column, item)
 
         # if we have an array set the image
         if isinstance(text, np.ndarray):
@@ -150,29 +153,33 @@ class Addon(clickpoints.Addon):
         else:
             item.setBackground(QtGui.QBrush(0))
             item.setText(str(text))
+            if text:
+                self.tableWidget.resizeColumnToContents(column)
 
     def updateTable(self):
         # set the row count
-        self.tableWidget.setRowCount(self.page_item_count)
+        self.tableWidget.setRowCount(self.row_count)
         # fill the rows with the data
         idx = -1
-        for idx, d in enumerate(self.data[self.page*self.page_item_count:(self.page+1)*self.page_item_count]):
-            self.updateRow(idx, idx+self.page*self.page_item_count)
+        for idx, d in enumerate(self.data[self.page*self.row_count*self.column_count:(self.page+1)*self.row_count*self.column_count]):
+            self.updateRow(idx, idx + self.page * self.row_count * self.column_count)
         # set the row count again, to cut out unused rows
-        self.tableWidget.setRowCount(idx+1)
+        self.tableWidget.setRowCount(min([idx + 1, self.row_count]))
+        # set the remaining fields to empty
+        for row in range(idx+1, self.row_count * self.column_count):
+            self.setTableText(row, 0, "")
+            self.setTableText(row, 1, "")
 
     def updateRow(self, row, idx):
         # get the data from the list
         data = self.data[idx]
-        # set the id
-        self.setTableText(row, -1, "#%d" % idx)
+        # set the additional data
+        self.setTableText(row, 0, "#%d\nImage: %d\nx: %d\ny: %d" % (idx, data[0], data[1], data[2]))
         # set the image
         image = self.db.getImage(data[0])
         im = image.data
         im = im[int(data[2]-self.tile_size/2):int(data[2]+self.tile_size/2), int(data[1]-self.tile_size/2):int(data[1]+self.tile_size/2)]
-        self.setTableText(row, 0, im)
-        # set the additional data
-        self.setTableText(row, 1, "Image: %d\nx: %d\ny: %d" % (data[0], data[1], data[2]))
+        self.setTableText(row, 1, im)
 
     def buttonPressedEvent(self):
         # show the addon window when the button in ClickPoints is pressed
