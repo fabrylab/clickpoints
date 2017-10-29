@@ -1375,6 +1375,7 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
     scale_hover = 1
     use_crosshair = False
     grabbed = True
+    outline = False
 
     def __init__(self, parent, color, x, y, shape="rect", use_crosshair=False):
         # init and store parent
@@ -1383,11 +1384,8 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         self.parent = parent
 
         # set path
+        self.color = color
         self.setPath(paths[shape])
-
-        # set brush and pen
-        self.setBrush(QtGui.QBrush(color))
-        self.setPen(QtGui.QPen(0))
 
         # accept hover events and set position
         self.setAcceptHoverEvents(True)
@@ -1398,9 +1396,30 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
             AnimationChangeScale(self)
 
     def setShape(self, shape):
-        self.setPath(paths[shape])
+        if shape.endswith("-o"):
+            self.outline = True
+            self.setBrush(QtGui.QBrush(0))
+            self.setPath(paths[shape[:-2]])
+        else:
+            self.outline = False
+            self.setPen(QtGui.QPen(0))
+            self.setPath(paths[shape])
+        self.setColor(self.color)
+
+    def setColor(self, color):
+        self.color = color
+        if not self.outline:
+            self.setBrush(QtGui.QBrush(color))
+        else:
+            self.setBrush(QtGui.QBrush(0))
+            pen = self.pen()
+            pen.setColor(color)
+            pen.setCosmetic(True)
+            self.setPen(pen)
 
     def shape(self):
+        if self.outline:
+            return QtWidgets.QGraphicsPathItem.shape(self)
         path = QtGui.QPainterPath()
         path.addEllipse(self.boundingRect())
         return path
@@ -1464,7 +1483,13 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         if hover_scale is not None:
             self.scale_hover = hover_scale
         # adjust scale
-        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value*self.scale_animation*self.scale_hover)
+        if self.outline:
+            super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value)
+            pen = self.pen()
+            pen.setWidthF(5*self.scale_animation*self.scale_hover)
+            self.setPen(pen)
+        else:
+            super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value*self.scale_animation*self.scale_hover)
 
     def delete(self):
         self.setAcceptedMouseButtons(Qt.MouseButtons(0))
@@ -1629,7 +1654,7 @@ class MyDisplayItem:
             if grabber is None:
                 break
             grabber.setShape(self.style.get("shape", self.default_shape))
-            grabber.setBrush(QtGui.QBrush(self.color))
+            grabber.setColor(self.color)
             if self.style.get("transform", "screen") == "screen":
                 grabber.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
                 grabber.setScale(self.style.get("scale", 1))
