@@ -93,6 +93,35 @@ def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", fil
         horizontal_layout.addStretch()
     return lineEdit
 
+def AddQOpenFileChoose(layout, text, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, strech=False):
+    horizontal_layout = QtWidgets.QHBoxLayout()
+    layout.addLayout(horizontal_layout)
+    text = QtWidgets.QLabel(text)
+    lineEdit = QtWidgets.QLineEdit()
+    if value:
+        lineEdit.setText(value)
+    lineEdit.label = text
+    lineEdit.setEnabled(False)
+    def OpenDialog():
+        srcpath = QtWidgets.QFileDialog.getOpenFileName(None, dialog_title, os.getcwd(), file_type)
+        if isinstance(srcpath, tuple):
+            srcpath = srcpath[0]
+        else:
+            srcpath = str(srcpath)
+        if filename_checker and srcpath:
+            srcpath = filename_checker(srcpath)
+        if srcpath:
+            lineEdit.setText(srcpath)
+    button = QtWidgets.QPushButton("Choose File")
+    button.pressed.connect(OpenDialog)
+    horizontal_layout.addWidget(text)
+    horizontal_layout.addWidget(lineEdit)
+    horizontal_layout.addWidget(button)
+    lineEdit.managingLayout = horizontal_layout
+    if strech:
+        horizontal_layout.addStretch()
+    return lineEdit
+
 def AddQColorChoose(layout, text, value=None, strech=False):
     # add a layout
     horizontal_layout = QtWidgets.QHBoxLayout()
