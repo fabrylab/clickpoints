@@ -271,6 +271,21 @@ class Command:
 
         self.script_launcher.setStatus(self.script.addon_name, status)
 
+    def centerOn(self, x, y):
+        """
+        Center the image view on the given coordinates.
+
+        Parameters
+        ----------
+        x : number
+            the x coordinate
+        y : number
+            the y coordinate
+        """
+        if self.script_launcher is None:
+            return
+
+        self.window.CenterOn(x, y)
 
 class Addon(QtWidgets.QWidget):
     _run_thread = None
