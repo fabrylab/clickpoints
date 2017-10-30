@@ -247,7 +247,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
             try:
                 self.time_drawing.font = ImageFont.truetype("arial.ttf", options.export_time_font_size)
             except IOError:
-                self.time_drawing.font = ImageFont.truetype(os.path.join(self.window.icon_path, "FantasqueSansMono-Regular.ttf"), self.cbTimeFontSize.value())
+                self.time_drawing.font = ImageFont.truetype(os.path.join(os.environ["CLICKPOINTS_ICON"], "FantasqueSansMono-Regular.ttf"), self.cbTimeFontSize.value())
             self.time_drawing.start = None
             self.time_drawing.x = 15
             self.time_drawing.y = 10
