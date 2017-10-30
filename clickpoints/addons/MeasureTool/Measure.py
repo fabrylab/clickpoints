@@ -91,8 +91,11 @@ class ModuleScaleBar(QtWidgets.QWidget):
 
         image.rectangle([image.pil_image.size[0] -pixel_offset - pixel_width, image.pil_image.size[1] -pixel_offset - pixel_height, image.pil_image.size[0] -pixel_offset, image.pil_image.size[1] -pixel_offset], (255, 255, 255))
         if True:
-            font = ImageFont.truetype("tahoma.ttf", font_size)
-            text = u"%d µm" % size_in_um
+            try:
+                font = ImageFont.truetype("tahoma.ttf", font_size)
+            except IOError:
+                font = ImageFont.truetype(os.path.join(os.environ["CLICKPOINTS_ICON"], "FantasqueSansMono-Regular.ttf"), font_size)
+            text = u"%d µm" % size_in_um
             alignment = image.textsize(text, font=font)
             x = image.pil_image.size[0] - pixel_offset - pixel_width * 0.5 - alignment[0] * 0.5
             y = image.pil_image.size[1] - pixel_offset - pixel_offset2 - pixel_height - alignment[1]
@@ -151,7 +154,7 @@ class Addon(clickpoints.Addon):
             self.initializeOptions()
         self.scaleBar.zoomEvent(scale, pos)
 
-    def drawToImage2(self, image, start_x, start_y, scale, image_scale):
+    def drawToImage2(self, image, start_x, start_y, scale, image_scale, rotation):
         self.scaleBar.drawToImage(image, start_x, start_y, scale, image_scale)
 
     def optionsChanged(self):
