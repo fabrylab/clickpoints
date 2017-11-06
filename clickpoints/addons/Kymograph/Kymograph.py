@@ -20,7 +20,6 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 from __future__ import division, print_function
-import xlwt
 import clickpoints
 from clickpoints.includes.QtShortCuts import AddQComboBox, AddQSaveFileChoose, AddQSpinBox, AddQLineEdit
 from qtpy import QtCore, QtGui, QtWidgets
@@ -172,7 +171,7 @@ class Addon(clickpoints.Addon):
             self.image_plot = self.plot.axes.imshow(self.current_data, cmap=self.input_colormap.currentText (), extent=extent)
         else:
             self.image_plot = self.plot.axes.imshow(self.current_data, cmap="gray", extent=extent)
-        self.plot.axes.set_xlabel("Distance (µm)")
+        self.plot.axes.set_xlabel(u"Distance (µm)")
         self.plot.axes.set_ylabel("Time (s)")
         self.plot.figure.tight_layout()
         self.plot.draw()
