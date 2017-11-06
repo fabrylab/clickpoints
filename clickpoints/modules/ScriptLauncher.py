@@ -47,9 +47,11 @@ import pip
 try:
     # python 3
     from importlib import reload
+    py2 = False
 except ImportError:
     # python 2
     reload
+    py2 = True
 
 
 def check_packages_installed(package_name):
@@ -158,12 +160,19 @@ class Script(QtCore.QObject):
         folder, filename = os.path.split(path)
         path, folder = os.path.split(folder)
         basefilename, ext = os.path.splitext(filename)
-        sys.path.insert(0, path)
+        print("import add-on path", path)
+        if py2:
+            sys.path.insert(0, os.path.join(path, folder))
+        else:
+            sys.path.insert(0, path)
         try:
             if not self.loaded:
                 try:
                     print("import ", folder+"."+basefilename)
-                    self.addon_module = import_module(folder+"."+basefilename)
+                    if py2:
+                        self.addon_module = import_module(basefilename)
+                    else:
+                        self.addon_module = import_module(folder+"."+basefilename)
                 except Exception as err:
                     QtWidgets.QMessageBox.critical(self.script_launcher.scriptSelector, 'Error - ClickPoints',
                                                    'An exception occurred when trying to import add-on %s:\n%s' % (name, err),
