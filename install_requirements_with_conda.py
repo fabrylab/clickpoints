@@ -1,19 +1,63 @@
 import os
 
-os.system("conda config --add channels conda-forge")
+def check_packages_installed(package_name):
+    """ check if a package is installed"""
+
+    # some packages have other names when they are imported compared to the install name
+    translation_names = {"pillow": "PIL", "scikit-image": "skimage", "opencv": "cv2"}
+
+    # translate the package name if it is in the list
+    if package_name in translation_names:
+        package_name = translation_names[package_name]
+
+    # use importlib for python3
+    try:
+        # python 3
+        import importlib.util
+    except ImportError:
+        # python 2
+        import pip
+        # or pip for python 2
+        installed_packages = pip.get_installed_distributions()
+        return package_name in [p.project_name for p in installed_packages]
+
+    # try to find the package and return True if it was found
+    spec = importlib.util.find_spec(package_name)
+    if spec is None:
+        return False
+    return True
+
+
+# gather the packages from the meta.yaml file which is also used to create the conda package
+packages = []
 with open("meta.yaml", 'r') as fp:
     active = False
+    # iterate over the lines in the file
     for line in fp:
         line = line.strip()
+        # find the section "run"
         if line == "run:":
             active = True
+        # if we are in the "run" section
         elif active is True:
+            # find lines with "-"
             if line.startswith("-"):
+                # strip the "-" and we have the package name
                 package = line[2:]
                 if package != "python":
-                    print("Install package:", package)
-                    os.system("conda install -y "+package)
+                    # if the package is not installed, add it to the list
+                    if not check_packages_installed(package):
+                        packages.append(package)
             else:
                 active = False
-os.system("pip install pyqt5")
+
+# if there are packages which are not installed
+if len(packages):
+    # start a conda installation with the list of packages
+    print("Install packages:", packages)
+    os.system("conda install -c conda-forge -y "+" ".join(packages))
+# as there was a problem with PyQt5, try to install it with pip
+if not check_packages_installed("PyQt5"):
+    os.system("pip install pyqt5")
+# and finally install clickpoints usind no-dependencies
 os.system("pip install -e . --no-dependencies")
