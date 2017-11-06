@@ -53,8 +53,27 @@ except ImportError:
 
 
 def check_packages_installed(package_name):
-    import importlib.util
+    """ check if a package is installed"""
 
+    # some packages have other names when they are imported compared to the install name
+    translation_names = {"pillow": "PIL", "scikit-image": "skimage", "opencv": "cv2"}
+
+    # translate the package name if it is in the list
+    if package_name in translation_names:
+        package_name = translation_names[package_name]
+
+    # use importlib for python3
+    try:
+        # python 3
+        import importlib.util
+    except ImportError:
+        # python 2
+        import pip
+        # or pip for python 2
+        installed_packages = pip.get_installed_distributions()
+        return package_name in [p.project_name for p in installed_packages]
+
+    # try to find the package and return True if it was found
     spec = importlib.util.find_spec(package_name)
     if spec is None:
         return False
