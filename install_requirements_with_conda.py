@@ -1,4 +1,7 @@
 import os
+import time
+
+start_time = time.time()
 
 def check_packages_installed(package_name):
     """ check if a package is installed"""
@@ -56,8 +59,16 @@ if len(packages):
     # start a conda installation with the list of packages
     print("Install packages:", packages)
     os.system("conda install -c conda-forge -y "+" ".join(packages))
+
 # as there was a problem with PyQt5, try to install it with pip
-if not check_packages_installed("PyQt5"):
+try:
+    # try to import qtpy
+    import qtpy
+except (ImportError, ModuleNotFoundError):
+    # if it did not manage to import itself with a backend, install pyqt5
     os.system("pip install pyqt5")
+
 # and finally install clickpoints usind no-dependencies
 os.system("pip install -e . --no-dependencies")
+
+print("Clickpoints installed (took %.2fs)" % (time.time()-start_time))
