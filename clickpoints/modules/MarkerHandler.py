@@ -2881,7 +2881,7 @@ class MarkerHandler:
             self.LoadLines()
             self.LoadRectangles()
 
-    def LoadImageEvent(self, filename, framenumber):
+    def imageLoadedEvent(self, filename, framenumber):
         self.frame_number = framenumber
         self.LoadPoints()
         self.LoadTracks()

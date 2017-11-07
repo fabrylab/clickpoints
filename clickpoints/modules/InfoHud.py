@@ -137,7 +137,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             self.hidden = False
             self.ToggleInterfaceEvent(self.hidden)
 
-    def LoadImageEvent(self, filename="", frame_number=0):
+    def imageLoadedEvent(self, filename="", frame_number=0):
         if not self.data_file.getOption("info_hud_string") == "@script" and self.data_file.getOption("info_hud_string").strip():
             image = self.window.data_file.image
             file = os.path.join(image.path.path, image.filename)

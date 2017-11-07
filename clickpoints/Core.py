@@ -446,9 +446,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.new_frame_number = self.target_frame
 
         # Notify that the frame will be loaded TODO are all these events necessary?
-        BroadCastEvent(self.modules, "FrameChangeEvent")
-        BroadCastEvent(self.modules, "FrameChangeEvent")  # TODO ask Alex why this is now here two times
-        BroadCastEvent(self.modules, "PreLoadImageEvent", self.new_filename, self.new_frame_number)
+        BroadCastEvent(self.modules, "frameChangedEvent")
         self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (self.new_filename, self.data_file.getFilename(), self.layer))
 
         # get image
@@ -465,7 +463,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.view.setExtend(*self.im.shape[:2][::-1])
 
         # notify all modules that a new frame is loaded
-        BroadCastEvent(self.modules, "LoadImageEvent", self.new_filename, self.new_frame_number)
+        BroadCastEvent(self.modules, "imageLoadedEvent", self.new_filename, self.new_frame_number)
 
         self.loading_image -= 1
 

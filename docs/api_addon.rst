@@ -195,6 +195,18 @@ them.
         - **scale** *(number)* - the new scale factor of the displayed image.
         - **pos** *(QPoint)* - the origin point of the zoom. Typically the mouse cursor position.
 
+.. py:function:: frameChangedEvent()
+
+    The current frame in ClickPoints changed. Called when the image data is loaded, before it is displayed.
+
+.. py:function:: imageLoadedEvent(filename, framenumber)
+
+    The displayed image in ClickPoints changed. Called when the new image is loaded and displayed.
+
+    Parameters:
+        - **filename** *(string)* - the filename of the new image.
+        - **framenumber** *(int)* - the frame number of the new image.
+
 .. py:function:: keyPressEvent(event)
 
     A key has been pressed in the ClickPoints window.
