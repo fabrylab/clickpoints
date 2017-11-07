@@ -1132,7 +1132,7 @@ class Timeline(QtCore.QObject):
         if value > 0:
             self.window.JumpToFrame(value-1)
 
-    def FrameChangeEvent(self):
+    def frameChangedEvent(self):
         dt = max(time.time()-self.last_time, 1e-6)
         self.last_time = time.time()
         if self.current_fps is None or self.current_fps == 0:

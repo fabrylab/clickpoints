@@ -216,7 +216,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
                 self.updateHist(self.image.hist)
         QtWidgets.QApplication.restoreOverrideCursor()
 
-    def LoadImageEvent(self, filename="", frame_number=0):
+    def imageLoadedEvent(self, filename="", frame_number=0):
         if self.image.preview_rect is not None:
             self.updateHist(self.image.hist)
         if self.schedule_update:

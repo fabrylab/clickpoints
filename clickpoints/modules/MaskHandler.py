@@ -710,7 +710,7 @@ class MaskHandler:
         for key in self.buttons:
             self.buttons[key].setVisible(not self.hidden)
 
-    def LoadImageEvent(self, filename, framenumber):
+    def imageLoadedEvent(self, filename, framenumber):
         # Broadcast from ClickPoints Main
 
         # load mask from mask database entry

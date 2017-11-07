@@ -393,7 +393,8 @@ class ScriptLauncher(QtCore.QObject):
             try:
                 loaded_scripts.append(Script(filename))
             except:
-                traceback.print_exc()
+                print("ERROR: Loading add-on %s failed" % filename)
+                pass
         return loaded_scripts
 
     def closeDataFile(self):

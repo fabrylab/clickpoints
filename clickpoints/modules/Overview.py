@@ -143,9 +143,6 @@ class Overview(QtWidgets.QGraphicsRectItem):
             self.resizeEvent("")
         event.setAccepted(True)
 
-    def LoadImageEvent(self, filename="", frame_number=0):
-        pass
-
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_F3:
             # @key F3: toggle Overview
