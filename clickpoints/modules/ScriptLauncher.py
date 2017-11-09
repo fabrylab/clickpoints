@@ -194,7 +194,10 @@ class Script(QtCore.QObject):
         return True
 
     def deactivate(self):
-        self.addon_class_instance.delete()
+        try:
+            self.addon_class_instance.delete()
+        except Exception as err:
+            print(err)
         self.active = False
         self.button = None
 
