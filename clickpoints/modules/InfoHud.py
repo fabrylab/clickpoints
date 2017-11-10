@@ -23,7 +23,7 @@ from __future__ import division, print_function
 
 from qtpy import QtCore, QtGui, QtWidgets
 
-from Tools import BoxGrabber
+from includes.Tools import BoxGrabber
 
 from PIL import Image
 from PIL.ExifTags import TAGS

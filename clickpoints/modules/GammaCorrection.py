@@ -27,7 +27,7 @@ from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
 import qtawesome as qta
 
-from Tools import MySlider, BoxGrabber, TextButton
+from includes.Tools import MySlider, BoxGrabber, TextButton
 
 class GammaCorrection(QtWidgets.QGraphicsRectItem):
     data_file = None
