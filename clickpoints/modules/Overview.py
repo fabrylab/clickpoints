@@ -24,9 +24,9 @@ from __future__ import division, print_function
 from qtpy import QtCore, QtGui, QtWidgets
 
 from qimage2ndarray import array2qimage, rgb_view
-from Tools import BoxGrabber
+from includes.Tools import BoxGrabber
 
-from Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
+from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent
 
 try:
     import thread  # python 3
