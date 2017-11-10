@@ -29,7 +29,7 @@ from qtpy import QtCore
 #sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "mediahandler"))
 #from mediahandler import MediaHandler
 
-from Tools import BroadCastEvent
+from includes.Tools import BroadCastEvent
 
 class FolderBrowser:
     def __init__(self, window, media_handler, modules, config=None):
