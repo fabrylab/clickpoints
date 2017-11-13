@@ -140,7 +140,7 @@ class Addon(clickpoints.Addon):
             xp = x - np.floor(x)
             yp = y - np.floor(y)
             v = np.dot(np.array([[1 - yp, yp]]).T, np.array([[1 - xp, xp]]))
-            data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2, 0:1] * v[:, :, None], axis=(0, 1), dtype=im.dtype))
+            data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2, :] * v[:, :, None], axis=(0, 1), dtype=image.dtype))
 
         return np.array(data)
 
@@ -168,7 +168,12 @@ class Addon(clickpoints.Addon):
 
         extent = (0, self.current_data.shape[1]*self.input_scale1.value(), 0, self.current_data.shape[0]*self.input_scale2.value())
         if self.input_colormap.currentText () != "None":
-            self.image_plot = self.plot.axes.imshow(self.current_data, cmap=self.input_colormap.currentText (), extent=extent)
+            if len(self.current_data.shape) == 3:
+                data_gray = np.dot(self.current_data[..., :3], [0.299, 0.587, 0.114])
+                self.image_plot = self.plot.axes.imshow(data_gray, cmap=self.input_colormap.currentText(),
+                                                        extent=extent)
+            else:
+                self.image_plot = self.plot.axes.imshow(self.current_data, cmap=self.input_colormap.currentText (), extent=extent)
         else:
             self.image_plot = self.plot.axes.imshow(self.current_data, cmap="gray", extent=extent)
         self.plot.axes.set_xlabel(u"Distance (µm)")
@@ -186,7 +191,11 @@ class Addon(clickpoints.Addon):
             return
         self.last_update = t
         if self.image_plot:
-            self.image_plot.set_data(self.current_data)
+            if len(self.current_data.shape) == 3 and self.input_colormap.currentText() != "None":
+                data_gray = np.dot(self.current_data[..., :3], [0.299, 0.587, 0.114])
+                self.image_plot.set_data(data_gray)
+            else:
+                self.image_plot.set_data(self.current_data)
         self.plot.draw()
         self.progressbar.setValue(self.index)
 
