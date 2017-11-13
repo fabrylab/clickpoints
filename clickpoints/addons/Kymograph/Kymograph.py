@@ -140,7 +140,7 @@ class Addon(clickpoints.Addon):
             xp = x - np.floor(x)
             yp = y - np.floor(y)
             v = np.dot(np.array([[1 - yp, yp]]).T, np.array([[1 - xp, xp]]))
-            data.append(np.sum(image[int(y):int(y) + 1, int(x):int(x) + 1] * v))
+            data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2, 0:1] * v[:, :, None], axis=(0, 1), dtype=im.dtype))
 
         return np.array(data)
 
