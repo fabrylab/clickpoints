@@ -49,6 +49,11 @@ class Addon(clickpoints.Addon):
         self.input_count = AddQSpinBox(self.layout, "Frames:", value=self.getOption("frames"), float=False)
         self.linkOption("frames", self.input_count)
 
+        self.addOption(key="width", display_name="Width", default=1, value_type="int",
+                       tooltip="The width of the slice to cut from the image.")
+        self.input_width = AddQSpinBox(self.layout, "Width:", value=self.getOption("width"), float=False)
+        self.linkOption("width", self.input_width)
+
         self.addOption(key="scaleLength", display_name="Scale Length", default=1, value_type="float",
                        tooltip="What is distance a pixel represents.")
         self.input_scale1 = AddQSpinBox(self.layout, "Scale Length:", value=self.getOption("scaleLength"), float=True)
@@ -139,60 +144,81 @@ class Addon(clickpoints.Addon):
         self.setTableText(idx, -1, "#%d" % bar.id)
         self.setTableText(idx, 0, bar.length())
 
-    def getLine(self, image, line, height):
+    def getLine(self, image, line, height, image_entry=None):
         x1 = np.min([line.x1, line.x2])
         x2 = np.max([line.x1, line.x2])
         y1 = np.min([line.y1, line.y2])
         y2 = np.max([line.y1, line.y2])
+        if self.mirror:
+            y1, y2 = y2, y1
         w = x2 - x1
         h = y2 - y1
         length = np.sqrt(w ** 2 + h ** 2)
-        data = []
+        w2 = h/length
+        h2 = -w/length
 
-        for i in np.linspace(0, 1, np.ceil(length)):
-            x = x1 + w * i
-            y = y1 + h * i
-            xp = x - np.floor(x)
-            yp = y - np.floor(y)
-            v = np.dot(np.array([[1 - yp, yp]]).T, np.array([[1 - xp, xp]]))
-            if len(image.shape) == 3:
-                data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2, :] * v[:, :, None], axis=(0, 1), dtype=image.dtype))
-            else:
-                data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2] * v, dtype=image.dtype))
+        if image_entry and image_entry.offset:
+            offx, offy = image_entry.offset.x, image_entry.offset.y
+        else:
+            offx, offy = 0, 0
+        x1 -= offx - self.start_offx
+        y1 -= offy - self.start_offy
 
-        return np.array(data)
+        datas = []
+        for j in np.arange(0, self.h)-self.h/2.+0.5:
+            data = []
+            for i in np.linspace(0, 1, np.ceil(length)):
+                x = x1 + w * i + w2 * j
+                y = y1 + h * i + h2 * j
+                xp = x - np.floor(x)
+                yp = y - np.floor(y)
+                v = np.dot(np.array([[1 - yp, yp]]).T, np.array([[1 - xp, xp]]))
+                if len(image.shape) == 3:
+                    data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2, :] * v[:, :, None], axis=(0, 1), dtype=image.dtype))
+                else:
+                    data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2] * v, dtype=image.dtype))
+            datas.append(data)
+
+        if self.mirror:
+            return np.array(datas)[:, ::-1]
+        return np.array(datas)
 
     def updatePlot(self):
         if self.selected is None:
             return
         self.n = -1
         self.terminate()
+        self.mirror = False
+        if self.db.getOption("rotation") == 180:
+            self.mirror = True
 
         self.bar = self.bars[self.selected]
         self.plot.axes.clear()
         image_start = self.bar.image
-        self.h = 1
+        if image_start.offset:
+            self.start_offx, self.start_offy = image_start.offset.x, image_start.offset.y
+        else:
+            self.start_offx, self.start_offy = 0, 0
+        self.h = self.input_width.value()
         if int(self.input_count.value()) == 0:
-            print("here")
             image = self.bar.image.sort_index
             end_marker = self.db.table_marker.select().where(self.db.table_marker.type==self.my_type2).join(self.db.table_image).where(self.db.table_image.sort_index > image).limit(1)
             self.n = end_marker[0].image.sort_index - image
         else:
-            print(int(self.input_count.value()), int(self.input_count.value()) == 0)
             self.n = int(self.input_count.value())
         self.progressbar.setRange(0, self.n-1)
         data = image_start.data
-        line_cut = self.getLine(data, self.bar, self.h)
-        self.w = line_cut.shape[0]
+        line_cut = self.getLine(data, self.bar, self.h, image_start)
+        self.w = line_cut.shape[1]
 
         if len(data.shape) == 3:
             self.current_data = np.zeros((self.h * self.n, self.w, data.shape[2]), dtype=line_cut.dtype)
         else:
             self.current_data = np.zeros((self.h * self.n, self.w), dtype=line_cut.dtype)
-        self.current_data[0, :] = line_cut
+        self.current_data[0:self.h, :] = line_cut
 
-        extent = (0, self.current_data.shape[1]*self.input_scale1.value(), 0, self.current_data.shape[0]*self.input_scale2.value())
-        if self.input_colormap.currentText () != "None":
+        extent = (0, self.current_data.shape[1]*self.input_scale1.value(), self.current_data.shape[0]*self.input_scale2.value(), 0)
+        if self.input_colormap.currentText() != "None":
             if len(self.current_data.shape) == 3:
                 data_gray = np.dot(self.current_data[..., :3], [0.299, 0.587, 0.114])
                 self.image_plot = self.plot.axes.imshow(data_gray, cmap=self.input_colormap.currentText(),
@@ -226,9 +252,10 @@ class Addon(clickpoints.Addon):
 
     def run(self, start_frame=0):
         for index, image in enumerate(self.db.getImageIterator(start_frame)):
+            index += 1
             self.index = index
-            line_cut = self.getLine(image.data, self.bar, self.h)
-            self.current_data[index, :] = line_cut
+            line_cut = self.getLine(image.data, self.bar, self.h, image)
+            self.current_data[index*self.h:(index+1)*self.h, :] = line_cut
             self.signal_update_plot.emit()
             if index >= self.n - 1 or self.cp.stop:
                 self.signal_plot_finished.emit()
