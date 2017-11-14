@@ -250,6 +250,7 @@ class Addon(clickpoints.Addon):
         return np.sum(data)-np.min(data)
 
     def export(self):
+        filename = "kymograph%d.%s"
         # convert to grayscale if it is a color image that should be saved with a colormap
         if len(self.current_data.shape) == 3 and self.input_colormap.currentText() != "None":
             data_gray = np.dot(self.current_data[..., :3], [0.299, 0.587, 0.114])
@@ -257,15 +258,15 @@ class Addon(clickpoints.Addon):
         else:
             data_gray = self.current_data
         # save the data as a numpy file
-        np.savez("kymopgraph%d.npz" % self.bar.id, data_gray)
+        np.savez(filename % (self.bar.id, ".npz"), data_gray)
         # get the colormap
         cmap = self.input_colormap.currentText()
         if cmap == "None":
             cmap = "gray"
         # save the kymograph as an image
-        plt.imsave("kymopgraph%d.png" % self.bar.id, data_gray, cmap=cmap)
+        plt.imsave(filename % (self.bar.id, ".png"), data_gray, cmap=cmap)
         # print a log in the console
-        print("Exported", "kymopgraph%d.npz" % self.bar.id)
+        print("Exported", filename % (self.bar.id, ".npz"))
 
     def export2(self):
         self.exporting_index = 0
