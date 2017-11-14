@@ -108,6 +108,19 @@ class Addon(clickpoints.Addon):
         self.signal_update_plot.connect(self.updatePlotImage)
         self.signal_plot_finished.connect(self.plotFinishedEvent)
 
+        self.plot.figure.canvas.mpl_connect('button_press_event', self.button_press_callback)
+
+    def button_press_callback(self, event):
+        # only drag with left mouse button
+        if event.button != 1:
+            return
+        # if the user doesn't have clicked on an axis do nothing
+        if event.inaxes is None:
+            return
+        x, y = event.xdata/self.input_scale1.value(), event.ydata/self.h/self.input_scale2.value()
+        self.cp.jumpToFrame(self.bar.image.sort_index+int(y))
+        self.cp.centerOn(*self.getLinePoint(self.bar, x))
+
     def cellSelected(self, row, column):
         self.selected = row
         self.updatePlot()
@@ -143,6 +156,20 @@ class Addon(clickpoints.Addon):
         bar = self.bars[idx]
         self.setTableText(idx, -1, "#%d" % bar.id)
         self.setTableText(idx, 0, bar.length())
+
+    def getLinePoint(self, line, percentage):
+        x1 = np.min([line.x1, line.x2])
+        x2 = np.max([line.x1, line.x2])
+        y1 = np.min([line.y1, line.y2])
+        y2 = np.max([line.y1, line.y2])
+        if self.mirror:
+            y1, y2 = y2, y1
+        w = x2 - x1
+        h = y2 - y1
+        length = np.sqrt(w ** 2 + h ** 2)
+        if self.mirror:
+            percentage = length - percentage
+        return x1 + w * percentage/length, y1 + h * percentage/length
 
     def getLine(self, image, line, height, image_entry=None):
         x1 = np.min([line.x1, line.x2])
