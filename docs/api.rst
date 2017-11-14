@@ -85,6 +85,8 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
 
     Offsets associated with an image.
 
+    See also: :py:meth:`~.DataFile.setOffset`, :py:meth:`~.DataFile.deleteOffsets`.
+
     Attributes:
         - **image** *(* :py:class:`Image` *)* - the associated image entry.
         - **x** *(int)* - the x offset

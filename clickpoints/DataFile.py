@@ -3497,6 +3497,61 @@ class DataFile:
 
         return query.execute()
 
+    def setOffset(self, image, x, y):
+        """
+        Set an :py:class:`Offset` entry for a given image.
+
+        See also: :py:meth:`~.DataFile.deleteOffsets`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`
+            the image for which the offset should be given.
+        x : int
+            the x coordinate of the offset.
+        y : int
+            the y coordinate of the offset.
+
+        Returns
+        -------
+        entries : :py:class:`Offset`
+            object of class :py:class:`Offset`
+        """
+
+        try:
+            offset = self.table_offset.get(image=image)
+        except peewee.DoesNotExist:
+            offset = self.table_offset()
+
+        setFields(offset, dict(image=image, x=x, y=y))
+        offset.save()
+
+        return offset
+
+    def deleteOffsets(self, image=None):
+        """
+        Delete all :py:class:`Offset` entries from the database, which match the given criteria. If no criteria a given,
+        delete all.
+
+        See also: :py:meth:`~.DataFile.setOffset`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, array_like, optional
+            the image/s for which the offset should be deleted.
+
+        Returns
+        -------
+        rows : int
+            number of rows deleted
+        """
+
+        query = self.table_offset.delete()
+
+        query = addFilter(query, image, self.table_offset.image)
+
+        return query.execute()
+
     def setTag(self, name=None, id=None):
         """
         Set a specific :py:class:`Tag` entry by its name or database ID
