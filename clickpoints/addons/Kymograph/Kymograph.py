@@ -28,10 +28,14 @@ from clickpoints.includes.matplotlibwidget import MatplotlibWidget, NavigationTo
 from matplotlib import pyplot as plt
 import time
 
+
 class Addon(clickpoints.Addon):
     signal_update_plot = QtCore.Signal()
+    signal_plot_finished = QtCore.Signal()
     image_plot = None
     last_update = 0
+    exporting = False
+    exporting_index = 0
 
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
@@ -72,6 +76,7 @@ class Addon(clickpoints.Addon):
         self.tableWidget.setCurrentCell(0, 0)
 
         self.my_type = self.db.setMarkerType("kymograph", "#ef7fff", self.db.TYPE_Line)
+        self.my_type2 = self.db.setMarkerType("kymograph_end", "#df00ff", self.db.TYPE_Normal)
         self.cp.reloadTypes()
 
         self.plot = MatplotlibWidget(self)
@@ -80,6 +85,15 @@ class Addon(clickpoints.Addon):
 
         self.tableWidget.cellClicked.connect(self.cellSelected)
 
+        layout = QtWidgets.QHBoxLayout()
+        self.button_export = QtWidgets.QPushButton("Export")
+        self.button_export.clicked.connect(self.export)
+        layout.addWidget(self.button_export)
+        self.button_export2 = QtWidgets.QPushButton("Export All")
+        self.button_export2.clicked.connect(self.export2)
+        layout.addWidget(self.button_export2)
+        self.layout.addLayout(layout)
+
         self.progressbar = QtWidgets.QProgressBar()
         self.layout.addWidget(self.progressbar)
 
@@ -87,6 +101,7 @@ class Addon(clickpoints.Addon):
         self.selected = None
 
         self.signal_update_plot.connect(self.updatePlotImage)
+        self.signal_plot_finished.connect(self.plotFinishedEvent)
 
     def cellSelected(self, row, column):
         self.selected = row
@@ -140,7 +155,10 @@ class Addon(clickpoints.Addon):
             xp = x - np.floor(x)
             yp = y - np.floor(y)
             v = np.dot(np.array([[1 - yp, yp]]).T, np.array([[1 - xp, xp]]))
-            data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2, :] * v[:, :, None], axis=(0, 1), dtype=image.dtype))
+            if len(image.shape) == 3:
+                data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2, :] * v[:, :, None], axis=(0, 1), dtype=image.dtype))
+            else:
+                data.append(np.sum(image[int(y):int(y) + 2, int(x):int(x) + 2] * v, dtype=image.dtype))
 
         return np.array(data)
 
@@ -154,7 +172,14 @@ class Addon(clickpoints.Addon):
         self.plot.axes.clear()
         image_start = self.bar.image
         self.h = 1
-        self.n = int(self.input_count.value())
+        if int(self.input_count.value()) == 0:
+            print("here")
+            image = self.bar.image.sort_index
+            end_marker = self.db.table_marker.select().where(self.db.table_marker.type==self.my_type2).join(self.db.table_image).where(self.db.table_image.sort_index > image).limit(1)
+            self.n = end_marker[0].image.sort_index - image
+        else:
+            print(int(self.input_count.value()), int(self.input_count.value()) == 0)
+            self.n = int(self.input_count.value())
         self.progressbar.setRange(0, self.n-1)
         data = image_start.data
         line_cut = self.getLine(data, self.bar, self.h)
@@ -176,8 +201,8 @@ class Addon(clickpoints.Addon):
                 self.image_plot = self.plot.axes.imshow(self.current_data, cmap=self.input_colormap.currentText (), extent=extent)
         else:
             self.image_plot = self.plot.axes.imshow(self.current_data, cmap="gray", extent=extent)
-        self.plot.axes.set_xlabel(u"Distance (µm)")
-        self.plot.axes.set_ylabel("Time (s)")
+        self.plot.axes.set_xlabel(u"distance (µm)")
+        self.plot.axes.set_ylabel("time (s)")
         self.plot.figure.tight_layout()
         self.plot.draw()
 
@@ -206,12 +231,46 @@ class Addon(clickpoints.Addon):
             self.current_data[index, :] = line_cut
             self.signal_update_plot.emit()
             if index >= self.n - 1 or self.cp.stop:
+                self.signal_plot_finished.emit()
                 break
+
+    def plotFinishedEvent(self):
+        if self.exporting:
+            self.export()
+            self.exporting_index += 1
+            if self.exporting_index < len(self.bars):
+                self.cellSelected(self.exporting_index, 0)
+            else:
+                self.exporting_index = 0
+                self.exporting = False
 
     def calculateBar(self, data):
         if data.shape[0] == 0 or data.shape[1] == 0:
             return
         return np.sum(data)-np.min(data)
+
+    def export(self):
+        # convert to grayscale if it is a color image that should be saved with a colormap
+        if len(self.current_data.shape) == 3 and self.input_colormap.currentText() != "None":
+            data_gray = np.dot(self.current_data[..., :3], [0.299, 0.587, 0.114])
+        # if not just keep it
+        else:
+            data_gray = self.current_data
+        # save the data as a numpy file
+        np.savez("kymopgraph%d.npz" % self.bar.id, data_gray)
+        # get the colormap
+        cmap = self.input_colormap.currentText()
+        if cmap == "None":
+            cmap = "gray"
+        # save the kymograph as an image
+        plt.imsave("kymopgraph%d.png" % self.bar.id, data_gray, cmap=cmap)
+        # print a log in the console
+        print("Exported", "kymopgraph%d.npz" % self.bar.id)
+
+    def export2(self):
+        self.exporting_index = 0
+        self.exporting = True
+        self.cellSelected(self.exporting_index, 0)
 
     def markerMoveEvent(self, marker):
         if marker.type == self.my_type:
