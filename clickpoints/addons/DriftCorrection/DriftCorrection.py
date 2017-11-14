@@ -103,13 +103,7 @@ class Addon(clickpoints.Addon):
                 last_shift = shift
 
             # save the offset to the database
-            try:
-                offset = self.db.table_offset.get(image=image.id)
-                offset.x = shift[1]
-                offset.y = shift[0]
-                offset.save()
-            except peewee.DoesNotExist:
-                self.db.table_offset(image=image.id, x=shift[1], y=shift[0]).save()
+            self.db.setOffset(image=id, x=shift[1], y=shift[0])
             print("Drift Correction Frame", image.sort_index, shift)
 
             # Check if ClickPoints wants to terminate us
