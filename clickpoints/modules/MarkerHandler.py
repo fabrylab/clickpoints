@@ -2676,7 +2676,7 @@ class MarkerHandler:
         self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.trash"), (10 + (26+5)*1, 10))
         self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.tint"), (10 + (26+5)*2, 10))
         self.button1.setToolTip("add or move marker <b>M</b>")
-        self.button2.setToolTip("delete mask<br/>(<b>D</b> or hold <b>ctrl</b>)")
+        self.button2.setToolTip("delete marker<br/>(<b>D</b> or hold <b>ctrl</b>)")
         self.button3.setToolTip("change marker type <b>C</b>")
         self.tool_buttons = [self.button1, self.button2, self.button3]
         self.tool_index = -1
@@ -3218,22 +3218,23 @@ class MarkerHandler:
             # @key ctrl + MB1: delete marker
             # @key MB2: open marker editor
 
-        if event.key() == QtCore.Qt.Key_M:
-            # @key M: add/move marker
-            self.selectTool(0)
+        if not self.hidden:
+            if event.key() == QtCore.Qt.Key_M:
+                # @key M: add/move marker
+                self.selectTool(0)
 
-        if event.key() == QtCore.Qt.Key_D:
-            # @key D: delete marker
-            self.selectTool(1)
+            if event.key() == QtCore.Qt.Key_D:
+                # @key D: delete marker
+                self.selectTool(1)
 
-        if event.key() == QtCore.Qt.Key_C:
-            # @key C: change marker type
-            self.selectTool(2)
+            if event.key() == QtCore.Qt.Key_C:
+                # @key C: change marker type
+                self.selectTool(2)
 
-        if self.tool_index != -1:
-            # show the erase tool highlighted when Control is pressed
-            if event.key() == Qt.Key_Control and self.tool_index != 1:
-                self.selectTool(1, temporary=True)
+            if self.tool_index != -1:
+                # show the erase tool highlighted when Control is pressed
+                if event.key() == Qt.Key_Control and self.tool_index != 1:
+                    self.selectTool(1, temporary=True)
 
     def keyReleaseEvent(self, event):
         if self.tool_index != -1:
@@ -3246,6 +3247,9 @@ class MarkerHandler:
             self.hidden = not self.hidden
         else:
             self.hidden = hidden
+        # reset the tool
+        if self.hidden:
+            self.selectTool(-1)
         # store in options
         if self.config is not None:
             self.config.marker_interface_hidden = self.hidden

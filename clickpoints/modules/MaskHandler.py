@@ -937,21 +937,22 @@ class MaskHandler:
             # @key 0-9: change brush type
             self.selectType(numberkey)
 
-        if event.key() == QtCore.Qt.Key_K:
-            # @key K: pick color of brush
-            self.selectTool(2)
+        if not self.hidden:
+            if event.key() == QtCore.Qt.Key_K:
+                # @key K: pick color of brush
+                self.selectTool(2)
 
-        if event.key() == QtCore.Qt.Key_P:
-            # @key P: paint brush
-            self.selectTool(0)
+            if event.key() == QtCore.Qt.Key_P:
+                # @key P: paint brush
+                self.selectTool(0)
 
-        if event.key() == QtCore.Qt.Key_E:
-            # @key E: eraser
-            self.selectTool(1)
+            if event.key() == QtCore.Qt.Key_E:
+                # @key E: eraser
+                self.selectTool(1)
 
-        if event.key() == QtCore.Qt.Key_B:
-            # @key E: fill bucket
-            self.selectTool(3)
+            if event.key() == QtCore.Qt.Key_B:
+                # @key E: fill bucket
+                self.selectTool(3)
 
         if event.key() == QtCore.Qt.Key_Plus:
             # @key +: increase brush radius
@@ -996,6 +997,9 @@ class MaskHandler:
             self.hidden = not self.hidden
         else:
             self.hidden = hidden
+        # reset the tool
+        if self.hidden:
+            self.selectTool(-1)
         # store in options
         if self.config is not None:
             self.config.mask_interface_hidden = self.hidden
