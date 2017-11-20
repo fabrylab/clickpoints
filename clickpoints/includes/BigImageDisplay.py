@@ -143,6 +143,9 @@ class BigImageDisplay:
             self.thread.join()
 
     def PrepareImageDisplay(self, image, offset):
+        # set all the tiles to hide, so that in the end only the ones that will be used are shown
+        for i in range(len(self.pixMapItems)):
+            self.pixMapItems[i].to_hide = True
         # iterate over tiles
         for y in range(self.number_of_imagesY):
             for x in range(self.number_of_imagesX):
@@ -158,6 +161,17 @@ class BigImageDisplay:
                 self.QImageViews[i] = rgb_view(self.QImages[i])
                 # set the offset for the tile
                 self.pixMapItems[i].setOffset(start_x, start_y)
+                # store that we want to show that tile
+                self.pixMapItems[i].to_hide = False
+        # hide or show the tiles
+        for i in range(len(self.pixMapItems)):
+            # hide a tile
+            if self.pixMapItems[i].to_hide and self.pixMapItems[i].isVisible():
+                self.pixMapItems[i].hide()
+            # show a tile
+            elif self.pixMapItems[i].to_hide is False and not self.pixMapItems[i].isVisible():
+                self.pixMapItems[i].show()
+
         self.new_offset = offset
 
         # emmit signal which calls UpdatePixmaps
