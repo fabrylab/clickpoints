@@ -73,6 +73,7 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **path** *(* :py:class:`Path` *)* - the linked path entry containing the path to the image.
         - **layer** *(int)* - the id separating different kinds of images for the same sort_index.
         - **offset** *(* :py:class:`Offset` *)* - the linked offset entry containing the offsets stored for this image.
+        - **annotation** *(* :py:class:`Annotation` *)* - the linked annotation entry for this image.
         - **markers** *(list of* :py:class:`Marker` *)* - a list of marker entries for this image.
         - **lines** *(list of* :py:class:`Line` *)* - a list of line entries for this image.
         - **rectangles** *(list of* :py:class:`Rectangle` *)* - a list of rectangle entries for this image.
