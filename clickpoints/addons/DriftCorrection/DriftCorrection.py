@@ -42,6 +42,16 @@ class Addon(clickpoints.Addon):
             self.db.setMarkerType("drift_rect", [0, 255, 255], self.db.TYPE_Rect)
             self.cp.reloadTypes()
 
+    def buttonPressedEvent(self):
+        tracks = self.db.getTracks(type="drift_track")
+        for track in tracks:
+            f = track.image_ids
+            points = track.points
+            points = points-points[0, :]
+            for id, p in zip(f, points):
+                self.db.setOffset(image=id, x=-p[0], y=-p[1])
+        self.show()
+
     def run(self, start_frame=0):
         # Define parameters
         compare_to_first = self.getOption("compareToFirst")
