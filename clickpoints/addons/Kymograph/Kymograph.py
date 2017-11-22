@@ -34,6 +34,7 @@ class Addon(clickpoints.Addon):
     signal_plot_finished = QtCore.Signal()
     image_plot = None
     last_update = 0
+    updating = False
     exporting = False
     exporting_index = 0
 
@@ -43,27 +44,32 @@ class Addon(clickpoints.Addon):
         self.setWindowTitle("Kymograph - ClickPoints")
         self.layout = QtWidgets.QVBoxLayout(self)
 
-        # add a mode selector, which formatting should be used for the output
+        # add some options
+        # the frame number for the kymograph
         self.addOption(key="frames", display_name="Frames", default=50, value_type="int",
                        tooltip="How many images to use for the kymograph.")
         self.input_count = AddQSpinBox(self.layout, "Frames:", value=self.getOption("frames"), float=False)
         self.linkOption("frames", self.input_count)
 
+        # the with in pixel of each line
         self.addOption(key="width", display_name="Width", default=1, value_type="int",
                        tooltip="The width of the slice to cut from the image.")
         self.input_width = AddQSpinBox(self.layout, "Width:", value=self.getOption("width"), float=False)
         self.linkOption("width", self.input_width)
 
+        # the length scaling
         self.addOption(key="scaleLength", display_name="Scale Length", default=1, value_type="float",
                        tooltip="What is distance a pixel represents.")
         self.input_scale1 = AddQSpinBox(self.layout, "Scale Length:", value=self.getOption("scaleLength"), float=True)
         self.linkOption("scaleLength", self.input_scale1)
 
+        # the time scaling
         self.addOption(key="scaleTime", display_name="Scale Time", default=1, value_type="float",
                        tooltip="What is the time difference between two images.")
         self.input_scale2 = AddQSpinBox(self.layout, "Scale Time:", value=self.getOption("scaleTime"), float=True)
         self.linkOption("scaleTime", self.input_scale2)
 
+        # the colormap
         self.addOption(key="colormap", display_name="Colormap", default="None", value_type="string",
                        tooltip="The colormap to use for the kymograph.")
         maps = ["None"]
@@ -72,6 +78,7 @@ class Addon(clickpoints.Addon):
         self.input_colormap.setEditable(True)
         self.linkOption("colormap", self.input_colormap)
 
+        # the table listing the line objects
         self.tableWidget = QtWidgets.QTableWidget(0, 1, self)
         self.layout.addWidget(self.tableWidget)
         self.row_headers = ["Line Length"]
@@ -79,17 +86,20 @@ class Addon(clickpoints.Addon):
         self.tableWidget.setMinimumHeight(180)
         self.setMinimumWidth(500)
         self.tableWidget.setCurrentCell(0, 0)
+        self.tableWidget.cellClicked.connect(self.cellSelected)
 
-        self.my_type = self.db.setMarkerType("kymograph", "#ef7fff", self.db.TYPE_Line)
+        # add kymograph types
+        self.my_type = self.db.setMarkerType("kymograph", "#ef7fff", self.db.TYPE_Line, text="#$marker_id")
         self.my_type2 = self.db.setMarkerType("kymograph_end", "#df00ff", self.db.TYPE_Normal)
         self.cp.reloadTypes()
 
+        # add a plot widget
         self.plot = MatplotlibWidget(self)
         self.layout.addWidget(self.plot)
         self.layout.addWidget(NavigationToolbar(self.plot, self))
+        self.plot.figure.canvas.mpl_connect('button_press_event', self.button_press_callback)
 
-        self.tableWidget.cellClicked.connect(self.cellSelected)
-
+        # add export buttons
         layout = QtWidgets.QHBoxLayout()
         self.button_export = QtWidgets.QPushButton("Export")
         self.button_export.clicked.connect(self.export)
@@ -99,16 +109,17 @@ class Addon(clickpoints.Addon):
         layout.addWidget(self.button_export2)
         self.layout.addLayout(layout)
 
+        # add a progress bar
         self.progressbar = QtWidgets.QProgressBar()
         self.layout.addWidget(self.progressbar)
 
-        self.updateTable()
-        self.selected = None
-
-        self.signal_update_plot.connect(self.updatePlotImage)
+        # connect slots
+        self.signal_update_plot.connect(self.updatePlotImageEvent)
         self.signal_plot_finished.connect(self.plotFinishedEvent)
 
-        self.plot.figure.canvas.mpl_connect('button_press_event', self.button_press_callback)
+        # initialize the table
+        self.updateTable()
+        self.selected = None
 
     def button_press_callback(self, event):
         # only drag with left mouse button
@@ -117,12 +128,17 @@ class Addon(clickpoints.Addon):
         # if the user doesn't have clicked on an axis do nothing
         if event.inaxes is None:
             return
+        # get the pixel of the kymograph
         x, y = event.xdata/self.input_scale1.value(), event.ydata/self.h/self.input_scale2.value()
+        # jump to the frame in time
         self.cp.jumpToFrame(self.bar.image.sort_index+int(y))
+        # and to the xy position
         self.cp.centerOn(*self.getLinePoint(self.bar, x))
 
     def cellSelected(self, row, column):
+        # store the row
         self.selected = row
+        # and update the plot
         self.updatePlot()
 
     def setTableText(self, row, column, text):
@@ -141,7 +157,7 @@ class Addon(clickpoints.Addon):
         item.setText(str(text))
 
     def updateTable(self):
-        self.updateing = True
+        self.updating = True
         bars = self.db.getLines(type=self.my_type)
         self.bars = [bar for bar in bars]
         self.bar_dict = {}
@@ -150,7 +166,7 @@ class Addon(clickpoints.Addon):
         for idx, bar in enumerate(bars):
             self.updateRow(idx)
             self.bar_dict[bar.id] = idx
-        self.updateing = False
+        self.updating = False
 
     def updateRow(self, idx):
         bar = self.bars[idx]
@@ -248,10 +264,9 @@ class Addon(clickpoints.Addon):
         if self.input_colormap.currentText() != "None":
             if len(self.current_data.shape) == 3:
                 data_gray = np.dot(self.current_data[..., :3], [0.299, 0.587, 0.114])
-                self.image_plot = self.plot.axes.imshow(data_gray, cmap=self.input_colormap.currentText(),
-                                                        extent=extent)
+                self.image_plot = self.plot.axes.imshow(data_gray, cmap=self.input_colormap.currentText(), extent=extent)
             else:
-                self.image_plot = self.plot.axes.imshow(self.current_data, cmap=self.input_colormap.currentText (), extent=extent)
+                self.image_plot = self.plot.axes.imshow(self.current_data, cmap=self.input_colormap.currentText(), extent=extent)
         else:
             self.image_plot = self.plot.axes.imshow(self.current_data, cmap="gray", extent=extent)
         self.plot.axes.set_xlabel(u"distance (µm)")
@@ -263,7 +278,7 @@ class Addon(clickpoints.Addon):
 
         self.run_threaded(image_start.sort_index+1)
 
-    def updatePlotImage(self):
+    def updatePlotImageEvent(self):
         t = time.time()
         if t-self.last_update < 0.1 and self.index < self.n-1:
             return
@@ -298,11 +313,6 @@ class Addon(clickpoints.Addon):
                 self.exporting_index = 0
                 self.exporting = False
 
-    def calculateBar(self, data):
-        if data.shape[0] == 0 or data.shape[1] == 0:
-            return
-        return np.sum(data)-np.min(data)
-
     def export(self):
         filename = "kymograph%d.%s"
         # convert to grayscale if it is a color image that should be saved with a colormap
@@ -312,15 +322,15 @@ class Addon(clickpoints.Addon):
         else:
             data_gray = self.current_data
         # save the data as a numpy file
-        np.savez(filename % (self.bar.id, ".npz"), data_gray)
+        np.savez(filename % (self.bar.id, "npz"), data_gray)
         # get the colormap
         cmap = self.input_colormap.currentText()
         if cmap == "None":
             cmap = "gray"
         # save the kymograph as an image
-        plt.imsave(filename % (self.bar.id, ".png"), data_gray, cmap=cmap)
+        plt.imsave(filename % (self.bar.id, "png"), data_gray, cmap=cmap)
         # print a log in the console
-        print("Exported", filename % (self.bar.id, ".npz"))
+        print("Exported", filename % (self.bar.id, "npz"))
 
     def export2(self):
         self.exporting_index = 0
