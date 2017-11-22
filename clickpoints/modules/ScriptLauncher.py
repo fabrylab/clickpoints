@@ -168,7 +168,7 @@ class Script(QtCore.QObject):
         try:
             if not self.loaded:
                 try:
-                    print("import ", folder+"."+basefilename)
+                    print("import", folder+"."+basefilename)
                     if py2:
                         self.addon_module = import_module(basefilename)
                     else:
