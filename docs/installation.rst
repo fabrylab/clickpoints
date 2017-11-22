@@ -22,7 +22,7 @@ Python Packages
 
 If you are already familiar with python and have a python installation, you can choose one of the following ways:
 
-- If you are in a conda env: ``conda install -c rgerum clickpoints`` (recomended)
+- If you are in a conda env: ``conda install -c conda-forge -c rgerum clickpoints`` (recomended)
 - If you have pip: ``pip install clickpoints``
 - Or with ``python setup.py install``
 
