@@ -2,7 +2,7 @@ Tutorial
 ========
 
 The recipes section contains some basic usage examples on how to get started using ClickPoints
-and explains different wa for different tasks.
+and explains different ways for different tasks.
 
 .. toctree::
     :caption: List of Tutorials
