@@ -1,0 +1,5 @@
+[addon]
+name=Persistent Markers
+file=persistent.py
+icon=fa.crosshairs 
+image=Image.png
