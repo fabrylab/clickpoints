@@ -341,7 +341,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
                     if frame == start and options.export_time_from_zero:
                         self.time_drawing.start = time
                     if self.time_drawing.start is not None:
-                        text = str(time-self.time_drawing.start)
+                        text = str(time-self.time_drawing.start).split('.', 2)[0]
                     else:
                         text = time.strftime("%Y-%m-%d %H:%M:%S")
                     draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
