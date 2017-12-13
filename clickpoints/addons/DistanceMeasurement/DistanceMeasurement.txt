@@ -1,0 +1,5 @@
+[addon]
+name=DistanceMeasurement (alpha)
+file=DistanceMeasurement.py
+icon=fa.map-signs
+image=Image.png
