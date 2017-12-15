@@ -3858,3 +3858,38 @@ class DataFile:
         query = addFilter(query, rating, self.table_annotation.rating)
 
         return query.execute()
+
+    def mergeWith(self, other_db):
+        my_marker_types = {t.name: t.id for t in self.getMarkerTypes()}
+        other_marker_types = {t.name: t.id for t in other_db.getMarkerTypes()}
+        marker_translation = {}
+        marker_type_attributes = ["name", "color", "mode", "style", "text", "hidden"]
+        for other_marker_type in other_db.getMarkerTypes():
+            if other_marker_type.name in my_marker_types:
+                marker_translation[other_marker_type.id] = my_marker_types[other_marker_type.name]
+            else:
+                kwargs = {name: getattr(other_marker_type, name) for name in marker_type_attributes}
+                marker_type = self.setMarkerType(**kwargs)
+                marker_translation[other_marker_type.id] = marker_type.id
+
+        image_attributes = ["filename", "frame", "external_id", "timestamp", "width", "height", "layer"]
+        marker_attributes = ["image", "x", "y", "type", "processed", "track", "style", "text"]
+        line_attributes = ["image", "x1", "x2", "y1", "y2", "type", "processed", "style", "text"]
+        annotation_attributes = ["image", "timestamp", "comment", "rating"]
+        for image_other in other_db.getImages():
+            kwargs = {name: getattr(image_other, name) for name in image_attributes}
+            image = self.setImage(**kwargs)
+            for marker in image_other.markers:
+                kwargs = {name: getattr(marker, name) for name in marker_attributes}
+                kwargs["type"] = kwargs["type"].name
+                kwargs["image"] = image
+                self.setMarker(**kwargs)
+            for line in image_other.lines:
+                kwargs = {name: getattr(line, name) for name in line_attributes}
+                kwargs["type"] = kwargs["type"].name
+                kwargs["image"] = image
+                self.setLine(**kwargs)
+            for annotation in image_other.annotations:
+                kwargs = {name: getattr(annotation, name) for name in annotation_attributes}
+                kwargs["image"] = image
+                self.setAnnotation(**kwargs)
