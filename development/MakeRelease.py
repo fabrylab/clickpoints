@@ -112,7 +112,7 @@ if options.release:
 
     os.system("conda config --set anaconda_upload yes")
 
-    os.system("conda-build .")
+    os.system("conda-build . -c conda-forge")
 
     # Commit changes to ClickPoints
     os.system("hg commit -m \"set version to %s\"" % new_version)
