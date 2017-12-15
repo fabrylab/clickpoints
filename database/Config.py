@@ -49,4 +49,4 @@ class Config(ConfigParser.ConfigParser):
     def __getattr__(self, key):
         if key in self.sections():
             return ConfigAccessHelper(self, key)
-        return ConfigParser.ConfigParser.__getattr__(self, key)
+        return ConfigParser.ConfigParser.__getattribute__(self, key)

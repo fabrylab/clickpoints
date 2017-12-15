@@ -48,18 +48,19 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from databaseFiles import DatabaseFiles
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from includes import QExtendedGraphicsView
+from clickpoints.includes import QExtendedGraphicsView
 
 # from databaseAnnotation import DatabaseAnnotation, config
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "modules"))
-from AnnotationHandler import pyQtTagSelector
+from clickpoints.modules.AnnotationHandler import pyQtTagSelector
 
 icon_path = os.path.join(os.path.dirname(__file__), "..", "icons")
 
+sys.path.insert(0, os.path.dirname(__file__))
 from Config import Config
 
+config_filename = 'sql.cfg'
+if not os.path.exists(config_filename):
+    raise IOError("Filename '%s' does not exist" % config_filename)
 config = Config('sql.cfg').sql
 
 
