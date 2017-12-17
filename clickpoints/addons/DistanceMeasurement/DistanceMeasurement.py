@@ -24,9 +24,14 @@ import numpy as np
 import sys
 import clickpoints
 import CameraTransform as ct
+import os
+import json
+from qtpy import QtCore, QtGui, QtWidgets
+import qtawesome as qta
 
 class Addon(clickpoints.Addon):
     camera = None
+    cam_dict = None
 
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
@@ -43,6 +48,130 @@ class Addon(clickpoints.Addon):
         if not self.db.getMarkerType("distance_between"):
             self.db.setMarkerType("distance_between", [255, 0, 255], self.db.TYPE_Line)
             self.cp.reloadTypes()
+
+        # get json files if available else create defaults
+        # define default dicts
+        # enables .access on dicts
+        class dotdict(dict):
+            def __getattr__(self, attr):
+                if attr.startswith('__'):
+                    raise AttributeError
+                return self.get(attr, None)
+
+            __setattr__ = dict.__setitem__
+            __delattr__ = dict.__delitem__
+
+        """ Default entries for Cameras """
+        #region
+        ## atkaSPOT
+        # Mobotic D12 Day as used in atkaSPOT
+        MobotixM12_Day = dotdict()
+        MobotixM12_Day.fov_h_deg = 45
+        MobotixM12_Day.fov_v_deg = 34
+        MobotixM12_Day.sensor_w_mm = None
+        MobotixM12_Day.sensor_h_mm = None
+        MobotixM12_Day.focallength_mm = 22
+        MobotixM12_Day.img_w_px = 2048
+        MobotixM12_Day.img_h_px = 1536
+
+        MobotixM12_Night = dotdict()
+        MobotixM12_Night.fov_h_deg = 45
+        MobotixM12_Night.fov_v_deg = 34
+        MobotixM12_Night.sensor_w_mm = None
+        MobotixM12_Night.sensor_h_mm = None
+        MobotixM12_Night.focallength_mm = 22
+        MobotixM12_Night.img_w_px = 2048
+        MobotixM12_Night.img_h_px = 1536
+
+        CampbellMpx5 = dotdict()
+        CampbellMpx5.fov_h_deg = 80
+        CampbellMpx5.fov_v_deg = 65
+        CampbellMpx5.sensor_w_mm = None
+        CampbellMpx5.sensor_h_mm = None
+        CampbellMpx5.focallength_mm = 12
+        CampbellMpx5.img_w_px = 2470
+        CampbellMpx5.img_h_px = 1800
+
+        GE4000C_400mm = dotdict()
+        GE4000C_400mm.fov_h_deg = None
+        GE4000C_400mm.fov_v_deg = None
+        GE4000C_400mm.sensor_w_mm = 36
+        GE4000C_400mm.sensor_h_mm = 24
+        GE4000C_400mm.focallength_mm = 400
+        GE4000C_400mm.img_w_px = 4008
+        GE4000C_400mm.img_h_px = 2672
+
+        GE4000C_400mm_crop05 = dotdict()
+        GE4000C_400mm_crop05.fov_h_deg = None
+        GE4000C_400mm_crop05.fov_v_deg = None
+        GE4000C_400mm_crop05.sensor_w_mm = 36
+        GE4000C_400mm_crop05.sensor_h_mm = 24
+        GE4000C_400mm_crop05.focallength_mm = 400
+        GE4000C_400mm_crop05.img_w_px = 2004
+        GE4000C_400mm_crop05.img_h_px = 1336
+
+        Panasonic_DMC_G5 = dotdict()
+        Panasonic_DMC_G5.fov_h_deg = None
+        Panasonic_DMC_G5.fov_v_deg = None
+        Panasonic_DMC_G5.sensor_w_mm = 17.3
+        Panasonic_DMC_G5.sensor_h_mm = 13.0
+        Panasonic_DMC_G5.focallength_mm = 14
+        Panasonic_DMC_G5.img_w_px = 4608
+        Panasonic_DMC_G5.img_h_px = 3456
+
+        Canon_D10 = dotdict()
+        Canon_D10.fov_h_deg = None
+        Canon_D10.fov_v_deg = None
+        Canon_D10.sensor_w_mm = 6.17
+        Canon_D10.sensor_h_mm = 4.55
+        Canon_D10.focallength_mm = 6.2
+        # TODO: add values here!
+        Canon_D10.img_w_px = 0
+        Canon_D10.img_h_px = 0
+
+        # add all cameras to one dictionary
+        cam_dict = dotdict()
+        cam_dict['MobotixM12_Day'] = MobotixM12_Day
+        cam_dict['MobotixM12_Night'] = MobotixM12_Night
+        cam_dict['CampbellMpx5'] = CampbellMpx5
+        cam_dict['GE4000C_4000mm'] = GE4000C_400mm
+        cam_dict['GE4000C_4000mm_crop05'] = GE4000C_400mm_crop05
+        cam_dict['Panasonic_DMC_G5'] = Panasonic_DMC_G5
+        cam_dict['Canon_D10'] = Canon_D10
+        # endregion
+
+        if not os.path.exists(r"camera.json"):
+            print("DistanceMeasure Addon: no default camera.json found - creating ...")
+            with open(r"camera.json", 'w') as fd:
+                json.dump(cam_dict, fd, indent=4, sort_keys=True)
+        else:
+            # read from json file
+            print("DistanceMeasure Addon: loading camera.json")
+            with open(r"camera.json", 'r') as fd:
+                self.cam_dict = json.load(fd)
+
+        # Widget
+        # set the title and layout
+        self.setWindowTitle("DistnaceMeasure - Config")
+        self.setWindowIcon(qta.icon("fa.map-signs"))
+        self.setMinimumWidth(400)
+        self.setMinimumHeight(200)
+        self.layout = QtWidgets.QVBoxLayout(self)
+
+        # camera region
+        self.camera_layout = QtWidgets.QGridLayout()
+        self.layout.addLayout(self.camera_layout)
+
+
+        self.cameraComboBox = QtWidgets.QComboBox()
+        self.cameraComboBox.addItems(cam_dict.keys())
+
+        self.camera_layout.addWidget(QtWidgets.QLabel('Camera:'),0,0)
+        self.camera_layout.addWidget(self.cameraComboBox,0,1)
+
+
+        self.pushbutton_ok = QtWidgets.QPushButton("Ok")
+        self.layout.addWidget(self.pushbutton_ok)
 
 
     def run(self, start_frame=0):
@@ -130,5 +259,12 @@ class Addon(clickpoints.Addon):
             self.updateDistLine(marker)
 
 
+    def buttonPressedEvent(self):
+        # show the addon window when the button in ClickPoints is pressed
+        self.show()
 
+        try:
+            self.run()
+        except:
+            pass
 
