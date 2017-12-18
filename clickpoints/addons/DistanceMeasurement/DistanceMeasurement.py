@@ -27,7 +27,28 @@ import CameraTransform as ct
 import os
 import json
 from qtpy import QtCore, QtGui, QtWidgets
+from clickpoints.includes.QtShortCuts import AddQLineEdit, AddQComboBox
 import qtawesome as qta
+
+
+# define default dicts, enables .access on dicts
+class dotdict(dict):
+    def __getattr__(self, attr):
+        if attr.startswith('__'):
+            raise AttributeError
+        return self.get(attr, None)
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+# convert between focal length + sensor dimension & fov
+
+def utilFOVToSensor(fov, f):
+    return 2 * f * np.tan(np.deg2rad(fov)/2)
+
+def utilSensorToFOV(d,f ):
+    return np.rad2deg(2 * np.arctan(d / (2*f)))
+
 
 class Addon(clickpoints.Addon):
     camera = None
@@ -50,20 +71,10 @@ class Addon(clickpoints.Addon):
             self.cp.reloadTypes()
 
         # get json files if available else create defaults
-        # define default dicts
-        # enables .access on dicts
-        class dotdict(dict):
-            def __getattr__(self, attr):
-                if attr.startswith('__'):
-                    raise AttributeError
-                return self.get(attr, None)
-
-            __setattr__ = dict.__setitem__
-            __delattr__ = dict.__delitem__
 
         """ Default entries for Cameras """
         #region
-        ## atkaSPOT
+        # atkaSPOT
         # Mobotic D12 Day as used in atkaSPOT
         MobotixM12_Day = dotdict()
         MobotixM12_Day.fov_h_deg = 45
@@ -125,93 +136,207 @@ class Addon(clickpoints.Addon):
         Canon_D10.sensor_w_mm = 6.17
         Canon_D10.sensor_h_mm = 4.55
         Canon_D10.focallength_mm = 6.2
-        # TODO: add values here!
-        Canon_D10.img_w_px = 0
-        Canon_D10.img_h_px = 0
+        Canon_D10.img_w_px = 4000
+        Canon_D10.img_h_px = 3000
 
         # add all cameras to one dictionary
         cam_dict = dotdict()
         cam_dict['MobotixM12_Day'] = MobotixM12_Day
         cam_dict['MobotixM12_Night'] = MobotixM12_Night
         cam_dict['CampbellMpx5'] = CampbellMpx5
-        cam_dict['GE4000C_4000mm'] = GE4000C_400mm
-        cam_dict['GE4000C_4000mm_crop05'] = GE4000C_400mm_crop05
+        cam_dict['GE4000C_400mm'] = GE4000C_400mm
+        cam_dict['GE4000C_400mm_crop05'] = GE4000C_400mm_crop05
         cam_dict['Panasonic_DMC_G5'] = Panasonic_DMC_G5
         cam_dict['Canon_D10'] = Canon_D10
         # endregion
 
-        if not os.path.exists(r"camera.json"):
+        camera_json = os.path.join(os.path.dirname(__file__),'camera.json')
+        if not os.path.exists(camera_json):
             print("DistanceMeasure Addon: no default camera.json found - creating ...")
-            with open(r"camera.json", 'w') as fd:
+            with open(camera_json, 'w') as fd:
                 json.dump(cam_dict, fd, indent=4, sort_keys=True)
         else:
             # read from json file
             print("DistanceMeasure Addon: loading camera.json")
-            with open(r"camera.json", 'r') as fd:
+            with open(camera_json, 'r') as fd:
                 self.cam_dict = json.load(fd)
 
-        # Widget
+        ## Widget
         # set the title and layout
         self.setWindowTitle("DistnaceMeasure - Config")
         self.setWindowIcon(qta.icon("fa.map-signs"))
-        self.setMinimumWidth(400)
-        self.setMinimumHeight(200)
+        # self.setMinimumWidth(400)
+        # self.setMinimumHeight(200)
         self.layout = QtWidgets.QVBoxLayout(self)
 
-        # camera region
-        self.camera_layout = QtWidgets.QGridLayout()
-        self.layout.addLayout(self.camera_layout)
+        ## camera region
+        # use a groupbox for camera parameters
+        self.camera_groupbox = QtWidgets.QGroupBox("Camera")
+        self.layout.addWidget(self.camera_groupbox)
+
+        # add a grid layout for elements
+        self.camera_layout = QtWidgets.QVBoxLayout()
+        self.camera_groupbox.setLayout(self.camera_layout)
+
+        # combo box to select camera models stored in camera.json
+        self.cameraComboBox = AddQComboBox(self.camera_layout,'Model:', values=cam_dict.keys())
+        self.cameraComboBox.currentIndexChanged.connect(self.insertCameraParameters)
+        # self.cameraComboBox.addItems(cam_dict.keys())
+
+        # self.camera_layout.addWidget(QtWidgets.QLabel('Model:'))
+        # self.camera_layout.addWidget(self.cameraComboBox,0,1)
+
+        self.leFocallength = AddQLineEdit(self.camera_layout,"f (mm):", editwidth=120)
+        self.leImage_width = AddQLineEdit(self.camera_layout,"image width (px):", editwidth=120)
+        self.leImage_height = AddQLineEdit(self.camera_layout,"image height (px):", editwidth=120)
+        self.leSensor_width = AddQLineEdit(self.camera_layout,"sensor width (mm):", editwidth=120)
+        self.leSensor_height = AddQLineEdit(self.camera_layout,"sensor width (mm):", editwidth=120)
+        self.leFOV_horizontal = AddQLineEdit(self.camera_layout,"FOV horizontal (deg):", editwidth=120)
+        self.leFOV_vertical = AddQLineEdit(self.camera_layout,"FOV vertical (deg):", editwidth=120)
 
 
-        self.cameraComboBox = QtWidgets.QComboBox()
-        self.cameraComboBox.addItems(cam_dict.keys())
 
-        self.camera_layout.addWidget(QtWidgets.QLabel('Camera:'),0,0)
-        self.camera_layout.addWidget(self.cameraComboBox,0,1)
+        ## position region
+        self.position_groupbox = QtWidgets.QGroupBox("Position")
+        self.layout.addWidget(self.position_groupbox)
+        # add a grid layout for elements
+        self.position_layout = QtWidgets.QVBoxLayout()
+        self.position_groupbox.setLayout(self.position_layout)
+
+        self.leCamElevation = AddQLineEdit(self.position_layout,"camera elevation (m):", editwidth=120,value='25')
+        self.lePlaneElevation = AddQLineEdit(self.position_layout,"plane elevation (m):", editwidth=120, value='0')
+        self.leCamLat = AddQLineEdit(self.position_layout,"camera latitude:", editwidth=120)
+        self.leCamLon = AddQLineEdit(self.position_layout,"camera longitude:", editwidth=120)
+
+
+        self.insertCameraParameters()
 
 
         self.pushbutton_ok = QtWidgets.QPushButton("Ok")
         self.layout.addWidget(self.pushbutton_ok)
+        self.pushbutton_ok.clicked.connect(self.run)
+
+
+
+    def insertCameraParameters(self):
+        """
+        insert camera parameters from camera.json into gui
+        """
+
+        self.selected_cam_name = self.cameraComboBox.itemText(self.cameraComboBox.currentIndex())
+        print("Selected Cam:", self.selected_cam_name)
+
+        cam_by_dict = dotdict(self.cam_dict[self.selected_cam_name])
+
+        def getNumber(input,format):
+            try:
+                return (format % input)
+            except TypeError:
+                return "None"
+
+        # set cam parameters
+        self.leFocallength.setText("%.2f" % cam_by_dict['focallength_mm'])
+        self.leImage_width.setText("%d" % cam_by_dict['img_w_px'])
+        self.leImage_height.setText("%d" % cam_by_dict['img_h_px'])
+        self.leSensor_width.setText(getNumber(cam_by_dict['sensor_w_mm'],"%.2f"))
+        self.leSensor_height.setText(getNumber(cam_by_dict['sensor_h_mm'],"%.2f"))
+        self.leFOV_horizontal.setText(getNumber(cam_by_dict['fov_h_deg'],"%.2f"))
+        self.leFOV_vertical.setText(getNumber(cam_by_dict['fov_v_deg'],"%.2f"))
+
+
+
+        self.updateCameraParameters()
+
+
+    def calcSensorDimensionsFromFOV(self):
+        self.cam.sensor_w_mm = utilFOVToSensor(self.cam.fov_h_deg,self.cam.focallength_mm)
+        self.cam.sensor_h_mm = utilFOVToSensor(self.cam.fov_v_deg,self.cam.focallength_mm)
+
+
+    def updateCameraParameters(self):
+        """
+        update camera dictionary for calculation - uses potentially user modified data from gui
+        """
+
+        def getFloat(input):
+            try:
+                return float(input)
+            except:
+                return None
+
+        # update current cam parameters
+        self.cam = dotdict()
+        self.cam.fov_h_deg = getFloat(self.leFOV_horizontal.text())
+        self.cam.fov_v_deg = getFloat(self.leFOV_vertical.text())
+        self.cam.sensor_w_mm = getFloat(self.leSensor_width.text())
+        self.cam.sensor_h_mm = getFloat(self.leSensor_height.text())
+        self.cam.focallength_mm = getFloat(self.leFocallength.text())
+        self.cam.img_w_px = getFloat(self.leImage_width.text())
+        self.cam.img_h_px = getFloat(self.leImage_height.text())
+
+        if self.cam.sensor_h_mm is None or self.cam.sensor_w_mm is None:
+            self.calcSensorDimensionsFromFOV()
+
+        print("Camera:")
+        print(json.dumps(self.cam,indent=4,sort_keys=True))
+
+        self.position = dotdict()
+        self.position.cam_elevation = getFloat(self.leCamElevation.text())
+        self.position.plane_elevation = getFloat(self.lePlaneElevation.text())
+
+        print("Position:")
+        print(json.dumps(self.position,indent=4,sort_keys=True))
 
 
     def run(self, start_frame=0):
 
+        self.frame = start_frame
+
+        self.updateCameraParameters()
+
         # try to load marker
         horizon = self.db.getMarkers(type="horizon", frame=start_frame)
-        print("Horizon marker count:", horizon.count())
 
         if horizon.count() < 2:
             print("ERROR: To few horizon markers placed - please add at least to horizon markers")
-            sys.exit(-1)
+            return
 
-        # get image parameters
-        image = self.db.getImage(frame=start_frame)
-        data = image.data
-        im_height, im_width, channels = data.shape
-        print("current image dims:", im_height, im_width, channels)
+        # # get image parameters
+        # image = self.db.getImage(frame=start_frame)
+        # data = image.data
+        # im_height, im_width, channels = data.shape
 
-        # set camera parameter
-        image_size = data.shape[0:2][::-1]
-        F = 14
-        sensor_size = [17.3, 9.731]
-        cam_height = 27.5
+        self.camera = ct.CameraTransform(self.cam.focallength_mm, [self.cam.sensor_w_mm, self.cam.sensor_h_mm],[self.cam.img_w_px, self.cam.sensor_h_mm])
 
-        self.camera = ct.CameraTransform(F, sensor_size, image_size)
         self.camera.fixHorizon(horizon)
-        self.camera.fixHeight(cam_height)
+
+        if self.position.cam_elevation:
+            self.camera.fixHeight(self.position.cam_elevation)
+
+        self.fit_params = dotdict()
+        self.fit_params.horizon_points = horizon.count()
+        self.fit_params.cam_elevation = self.camera.height
+        self.fit_params.cam_tilt = np.round(self.camera.tilt,2)
+        self.fit_params.dist_to_horizon = np.round(self.camera.distanceToHorizon(),2)
+
+        print("Fit Parameter:")
+        print(json.dumps(self.fit_params, indent=4, sort_keys=True))
+
+        self.updateAllMarker()
+
+    def updateAllMarker(self):
 
         # get distance to cam markers and calculate distance
-        dist2cam = self.db.getMarkers(type="distance_to_cam", frame=start_frame)
-        print("nr points:", dist2cam.count())
-
+        dist2cam = self.db.getMarkers(type="distance_to_cam", frame=self.frame)
         for marker in dist2cam:
             self.updateDistMarker(marker)
 
         # get line markers and calculate distance in between
-        dist2pt = self.db.getLines(type="distance_between", frame=start_frame)
-        print("nr points:", dist2pt.count())
+        dist2pt = self.db.getLines(type="distance_between", frame=self.frame)
         for line in dist2pt:
             self.updateDistLine(line)
+
+        self.cp.reloadMarker(frame=self.frame)
 
     def updateDistMarker(self,marker):
         """
@@ -229,8 +354,8 @@ class Addon(clickpoints.Addon):
         pts = np.round(np.array([line.getPos1(), line.getPos2()]),0)
 
         #TODO: Why doesnt this work when i supply the same point twice in an array?
-        pos1 = self.camera.transCamToWorld(pts[0], Z=0).T
-        pos2 = self.camera.transCamToWorld(pts[1], Z=0).T
+        pos1 = self.camera.transCamToWorld(pts[0], Z=self.position.plane_elevation).T
+        pos2 = self.camera.transCamToWorld(pts[1], Z=self.position.plane_elevation).T
         dist = np.sqrt(np.sum(((pos1 - pos2)**2)))
 
         line.text = "%.2fm" % dist
