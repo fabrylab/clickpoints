@@ -54,6 +54,8 @@ def AddQLineEdit(layout, text, value=None, strech=False):
     layout.addLayout(horizontal_layout)
     text = QtWidgets.QLabel(text)
     lineEdit = QtWidgets.QLineEdit()
+    if editwidth:
+        lineEdit.setFixedWidth(editwidth)
     if value:
         lineEdit.setText(value)
     lineEdit.label = text
@@ -63,6 +65,7 @@ def AddQLineEdit(layout, text, value=None, strech=False):
     if strech:
         horizontal_layout.addStretch()
     return lineEdit
+
 
 def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, strech=False):
     horizontal_layout = QtWidgets.QHBoxLayout()
