@@ -49,7 +49,7 @@ def AddQSpinBox(layout, text, value=0, float=True, strech=False):
     return spinBox
 
 
-def AddQLineEdit(layout, text, value=None, strech=False):
+def AddQLineEdit(layout, text, value=None, strech=False, editwidth=None):
     horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
     text = QtWidgets.QLabel(text)
