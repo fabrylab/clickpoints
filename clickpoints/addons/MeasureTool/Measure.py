@@ -44,6 +44,7 @@ class ModuleScaleBar(QtWidgets.QWidget):
 
         self.pixtomu = 0
         self.scale = 1
+        self.unit = u"µm"
 
         self.scalebar = QtWidgets.QGraphicsRectItem(0, 0, 1, 1, parentItem)
         self.scalebar.setBrush(QtGui.QBrush(QtGui.QColor("white")))
@@ -56,6 +57,9 @@ class ModuleScaleBar(QtWidgets.QWidget):
     def setPixToMu(self, value):
         self.pixtomu = value
         self.updateBar()
+
+    def setUnit(self, text):
+        self.unit = text
 
     def zoomEvent(self, scale, pos):
         if self.pixtomu:
@@ -79,7 +83,7 @@ class ModuleScaleBar(QtWidgets.QWidget):
         self.scalebar.setRect(0, 0, -pixel, 5)
         self.scalebar_text.setPos(-pixel-20-25, -20-30)
         self.scalebar_text.setTextWidth(pixel+50)
-        self.scalebar_text.setHtml(u"<center>%d&thinsp;µm</center>" % mu)
+        self.scalebar_text.setHtml(u"<center>%d&thinsp;%s</center>" % (mu, self.unit))
 
     def drawToImage(self, image, start_x, start_y, scale, image_scale):
         pixel_height = 8
@@ -91,15 +95,26 @@ class ModuleScaleBar(QtWidgets.QWidget):
 
         image.rectangle([image.pil_image.size[0] -pixel_offset - pixel_width, image.pil_image.size[1] -pixel_offset - pixel_height, image.pil_image.size[0] -pixel_offset, image.pil_image.size[1] -pixel_offset], (255, 255, 255))
         if True:
+            # get the font
             try:
                 font = ImageFont.truetype("tahoma.ttf", font_size)
             except IOError:
                 font = ImageFont.truetype(os.path.join(os.environ["CLICKPOINTS_ICON"], "FantasqueSansMono-Regular.ttf"), font_size)
-            text = u"%d µm" % size_in_um
-            alignment = image.textsize(text, font=font)
-            x = image.pil_image.size[0] - pixel_offset - pixel_width * 0.5 - alignment[0] * 0.5
-            y = image.pil_image.size[1] - pixel_offset - pixel_offset2 - pixel_height - alignment[1]
+            # width and height of text elements
+            text = "%d" % size_in_um
+            length_number = image.textsize(text, font=font)[0]
+            length_space = 0.5*image.textsize(" ", font=font)[0] # here we emulate a half-sized whitespace
+            length_unit = image.textsize(self.unit, font=font)[0]
+            height_number = image.textsize(text+self.unit, font=font)[1]
+
+            total_length = length_number + length_space + length_unit
+
+            # find the position for the text to have it centered and bottom aligned
+            x = image.pil_image.size[0] - pixel_offset - pixel_width * 0.5 - total_length * 0.5
+            y = image.pil_image.size[1] - pixel_offset - pixel_offset2 - pixel_height - height_number
+            # draw the text for the number and the unit
             image.text((x, y), text, (255, 255, 255), font=font)
+            image.text((x+length_number+length_space, y), self.unit, (255, 255, 255), font=font)
 
     def delete(self):
         self.scalebar.scene().removeItem(self.scalebar)
@@ -158,6 +173,7 @@ class Addon(clickpoints.Addon):
         self.scaleBar.drawToImage(image, start_x, start_y, scale, image_scale)
 
     def optionsChanged(self):
+        self.scaleBar.setUnit(self.getOption("unit"))
         self.scaleBar.setPixToMu(self.getOption("pixelSize"))
 
     def markerMoveEvent(self, marker):
