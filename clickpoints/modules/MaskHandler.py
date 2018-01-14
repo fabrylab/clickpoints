@@ -930,6 +930,21 @@ class MaskHandler:
             self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
         self.UpdateButtons()
 
+    def drawToImage0(self, image, slicey, slicex):
+        # get the slice of the mask corresponding to the image to export
+        mask = np.asarray(self.MaskDisplay.full_image)[slicey, slicex]
+        # get the list of mask types and iterate
+        type_list = self.mask_file.get_mask_type_list()
+        for type in type_list:
+            # get the mask for one color
+            type_region = (mask == type.index)
+            # cut out the mask region from the original image
+            image1 = (1-self.mask_opacity*type_region[:, :, None]) * image
+            # fill the mask with the mask color
+            image2 = self.mask_opacity * type_region[:, :, None] * np.array(HTMLColorToRGB(type.color))[None, None, :]
+            # and compose the images
+            image[:] = image1 + image2
+
     def keyPressEvent(self, event):
         numberkey = event.key() - 49
         # @key ---- Painting ----
