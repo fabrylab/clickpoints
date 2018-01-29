@@ -931,6 +931,9 @@ class MaskHandler:
         self.UpdateButtons()
 
     def drawToImage0(self, image, slicey, slicex):
+        # only when the image has a mask
+        if self.MaskDisplay.full_image is None:
+            return
         # get the slice of the mask corresponding to the image to export
         mask = np.asarray(self.MaskDisplay.full_image)[slicey, slicex]
         # get the list of mask types and iterate
