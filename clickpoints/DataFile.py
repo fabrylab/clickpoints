@@ -2030,7 +2030,7 @@ class DataFile:
                 break
             frame += 1
 
-    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=0):
+    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=0, sort_index=None):
 
         """
         Update or create new :py:class:`Image` entry with the given parameters.
@@ -2056,7 +2056,9 @@ class DataFile:
         id : int, optional
             the id of the image
         layer : int, optional
-            the layer_id of the image, always use with frame
+            the layer_id of the image, always use with sort_index
+        sort_index: int, only use with layer
+            the sort index (position in the time line) if not in layer 0
 
         Returns
         -------
@@ -2077,16 +2079,16 @@ class DataFile:
                 item.path = self.getPath(path_string=os.path.split(filename)[0], create=True)
         if isinstance(path, basestring):
             path = self.getPath(path)
-        setFields(item, noNoneDict(frame=frame, path=path, external_id=external_id, timestamp=timestamp, width=width, height=height, layer=layer))
+        setFields(item, noNoneDict(frame=frame, path=path, external_id=external_id, timestamp=timestamp, width=width, height=height, layer=layer, sort_index=sort_index))
         if new_image:
-            if self._next_sort_index is None:
-                try:
-                    self._next_sort_index = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
-                except IndexError:
-                    self._next_sort_index = 0
-            item.sort_index = self._next_sort_index
-            self._next_sort_index += 1
-
+            if sort_index is None:
+                if self._next_sort_index is None:
+                    try:
+                        self._next_sort_index = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
+                    except IndexError:
+                        self._next_sort_index = 0
+                item.sort_index = self._next_sort_index
+                self._next_sort_index += 1
         item.save()
         return item
 
