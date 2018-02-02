@@ -1,0 +1,4 @@
+[addon]
+name=TrackManager
+file=trackmanager.py
+icon=fa.inbox
