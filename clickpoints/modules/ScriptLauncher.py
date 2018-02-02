@@ -208,6 +208,9 @@ class Script(QtCore.QObject):
         self.button.setChecked(True)
 
     def setStatus(self, status):
+        if self.button is None:
+            return
+
         # STATUS_Running
         if status == 2:
             self.hourglassAnimationTimer.start_time = time.time()
