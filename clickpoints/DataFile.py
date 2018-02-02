@@ -1669,7 +1669,7 @@ class DataFile:
         tracks = [t for t in tracks if t is not None]
         if len(tracks) == 0:
             return
-        if self.table_track.select().where(self.table_track.id << tracks).count() != len(tracks):
+        if self.table_track.select().where(self.table_track.id << tracks).count() != len(set(tracks)):
             raise TrackDoesNotExist("One or more tracks from the list {0} does not exist.".format(tracks))
 
     def _processesTypeNameField(self, types, modes):
