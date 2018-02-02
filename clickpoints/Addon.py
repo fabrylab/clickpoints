@@ -161,6 +161,21 @@ class Command:
             return
         self.window.signal_broadcast.emit("UpdateCounter", tuple())
 
+    def reloadTracks(self):
+        """
+        Reloads all tracks.
+        """
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
+        # get the marker handler
+        marker_handler = self.window.GetModule("MarkerHandler")
+        # get all track types
+        track_types = self.window.data_file.getMarkerTypes(mode=self.window.data_file.TYPE_Track)
+        # and reload them
+        for type in track_types:
+            marker_handler.ReloadTrackType(type)
+
     def getImage(self, value):
         # only if we are not a dummy connection
         if self.script_launcher is None:
@@ -427,7 +442,7 @@ class Addon(QtWidgets.QWidget):
 
     def delete(self):
         # callback that gets called if ClickPoints wants to remove the add-on (also used before reloading the add-on)
-        pass
+        self.close()
 
     def showEvent(self, event):
         # when the add-on displays it's GUI, we change the status of the add-on
