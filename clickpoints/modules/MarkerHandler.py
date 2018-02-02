@@ -174,6 +174,43 @@ def drawMarker(image, point, color, width, shape):
         image.rectangle([x + b, y - w, x + r2, y + w], color)
 
 
+def getMarker(image, color, width, shape):
+    name = "%s_%s_%s" % (color.name(), str(width), shape)
+    if getattr(image, "marker_dict", None) is None:
+        image.marker_dict = {}
+    if name in image.marker_dict:
+        return image.marker_dict[name]
+    if shape == "cross":
+        width *= 2
+    # create a new marker object
+    marker = image.marker(insert=(width, width), size=(width*2, width*2))
+    if shape == "ring":
+        # red point as marker
+        marker.add(image.circle((width, width), r=width / 2, stroke=color.name(), fill="none"))
+    elif shape == "circle":
+        # red point as marker
+        marker.add(image.circle((width, width), r=width / 2, fill=color.name()))
+    elif shape == "rect":
+        # red point as marker
+        marker.add(image.rect((0, 0), (width, width), fill=color.name()))
+    elif shape == "cross":
+        w = 2. * width / 20.
+        b = (10 - 7) * width / 20.
+        r2 = 7 * width / 20.
+        c = b + r2+width/2
+
+        # red point as marker
+        marker.add(image.rect((c + b, c - w / 2), size=(r2, w), fill=color.name()))
+        marker.add(image.rect((c - b - r2, c - w / 2), size=(r2, w), fill=color.name()))
+        marker.add(image.rect((c - w / 2, c + b), size=(w, r2), fill=color.name()))
+        marker.add(image.rect((c - w / 2, c - b - r2), size=(w, r2), fill=color.name()))
+
+    # add marker to defs section of the drawing
+    image.defs.add(marker)
+    image.marker_dict[name] = marker
+    return marker
+
+
 class TrackMarkerObject:
     save_pos = None
 
@@ -1767,6 +1804,17 @@ class MyDisplayItem:
         y *= image_scale
         drawMarker(image, np.array([x, y]), self.color, marker_scale*10, marker_shape)
 
+    def drawMarkerSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        marker_scale = scale * self.style.get("scale", 1)
+        marker_shape = self.style.get("shape", "cross")
+        x, y = self.g1.pos().x() - start_x, self.g1.pos().y() - start_y
+        x *= image_scale
+        y *= image_scale
+        marker = getMarker(image, self.color, marker_scale*10, marker_shape)
+        print(marker_shape, marker)
+        line = image.add(image.polyline([(x, y)]))
+        line['marker-end'] = marker.get_funciri()
+
     def drawText(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         # only if there is a text
         if self.text is None:
@@ -1791,6 +1839,26 @@ class MyDisplayItem:
         #alignment = image.textsize(text, font=font)
         offsetx, offsety = (6*scale, 6*scale)
         image.text((x+offsetx, y+offsety), text, colorToTuple(self.color), font=font)
+
+    def drawTextSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        # only if there is a text
+        if self.text is None:
+            return
+        x, y = self.text_parent.parentItem().pos().x() - start_x, self.text_parent.parentItem().pos().y() - start_y
+        x *= image_scale
+        y *= image_scale
+        # transform coordinates, because we are printing on the rotated image
+        if rotation == 90:
+            x, y = (image.pil_image.size[0]-y, x)
+        if rotation == 180:
+            x, y = (image.pil_image.size[0] - x, image.pil_image.size[1]-y)
+        if rotation == 270:
+            x, y = (y, image.pil_image.size[1]-x)
+        # draw the text
+        text = self.text.text()
+        #alignment = image.textsize(text, font=font)
+        offsetx, offsety = (6*scale, 3*6*scale)
+        image.add(image.text(text, insert=(x+offsetx, y+offsety), fill=self.color.name()))
 
     def graberDelete(self, grabber):
         self.delete()
@@ -1884,6 +1952,12 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyMarkerItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
+    def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyMarkerItem, self).drawMarkerSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyMarkerItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)
 
@@ -1949,6 +2023,16 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyLineItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
+        x2, y2 = self.data.getPos2()[0] - start_x, self.data.getPos2()[1] - start_y
+        x1, y1, x2, y2 = np.array([x1, y1, x2, y2])*image_scale
+        color = (self.color.red(), self.color.green(), self.color.blue())
+        image.add(image.polyline([(x1, y1), (x2, y2)], stroke=self.color.name(), stroke_width=3 * scale * self.style.get("scale", 1)))
+
+    def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyLineItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)
@@ -2058,6 +2142,15 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyRectangleItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
+        x2, y2 = self.data.getPos3()[0] - start_x, self.data.getPos3()[1] - start_y
+        x1, y1, x2, y2 = np.array([x1, y1, x2, y2]) * image_scale
+        image.add(image.polyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], stroke=self.color.name(), stroke_width=3 * scale * self.style.get("scale", 1), fill="none"))
+
+    def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyRectangleItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)
@@ -2359,9 +2452,58 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             last_point = point
             last_frame = frame
 
+    def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        if self.data.hidden or self.data.type.hidden:
+            return
+        if self.active:
+            super(MyTrackItem, self).drawMarkerSvg(image, start_x, start_y, scale, image_scale, rotation)
+        scale *= self.style.get("scale", 1)
+
+        color = (self.color.red(), self.color.green(), self.color.blue())
+        circle_width = scale * self.style.get("track-point-scale", 1)
+        shape = self.style.get("track-point-shape", "ring")
+        line_style = self.style.get("track-line-style", "solid")
+        line_width = scale * self.style.get("track-line-width", 2)
+        gap_line_style = self.style.get("track-gap-line-style", "dash")
+        gap_line_width = scale * self.style.get("track-gap-line-width", self.style.get("track-line-width", 2))
+        last_frame = None
+        last_point = np.array([0, 0])
+        offset = np.array([start_x, start_y])
+        line = []
+        line_skip = []
+        for frame in self.markers:
+            marker = self.markers[frame]
+            x, y = marker.pos
+            point = np.array([x - start_x - self.cur_off[0], y - start_y - self.cur_off[1]])# + offset
+            point *= image_scale
+
+            if last_frame == frame - 1:
+                line.append(point)
+                #drawLine(image, last_point, point, color, line_width, line_style)
+            elif last_frame:
+                line.append(point)
+                pass
+                #drawLine(image, last_point, point, color, gap_line_width, gap_line_style)
+            marker_shape = marker.getStyle("shape", shape)
+            marker_width = marker.getStyle("scale", circle_width)*10
+            #drawMarker(image, point, marker.getStyle("color", self.color), marker_width, marker_shape)
+            last_point = point
+            last_frame = frame
+        print(line)
+        if len(line):
+            marker = getMarker(image, marker.getStyle("color", self.color), marker.getStyle("scale", circle_width)*5, marker.getStyle("shape", shape))
+            line = image.add(image.polyline(line, stroke=self.color.name(), fill='none', stroke_width=line_width))
+            line['marker-mid'] = marker.get_funciri()
+            line['marker-start'] = marker.get_funciri()
+            line['marker-end'] = marker.get_funciri()
+
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         if self.active:
             super(MyTrackItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        if self.active:
+            super(MyTrackItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)
@@ -2814,6 +2956,16 @@ class MarkerHandler:
         for list in self.display_lists:
             for point in list:
                 point.draw2(image, start_x, start_y, scale, image_scale, rotation)
+
+    def drawToImageSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        for list in self.display_lists:
+            for point in list:
+                point.drawSvg(image, start_x, start_y, scale, image_scale, rotation)
+
+    def drawToImage2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        for list in self.display_lists:
+            for point in list:
+                point.draw2Svg(image, start_x, start_y, scale, image_scale, rotation)
 
     def UpdateCounter(self):
         for counter in self.counter:

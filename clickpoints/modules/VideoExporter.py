@@ -100,7 +100,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
-        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_image_filename), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", self.CheckImageFilename)
+        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_image_filename), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif, *.svg)", self.CheckImageFilename)
         AddQLabel(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
 
         Vlayout.addStretch()
@@ -120,7 +120,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
         self.leANameIS = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_single_image_filename),
-                                           "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif)", lambda name: self.checkExtension(name, ".jpg"))
+                                           "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif *.svg)", lambda name: self.checkExtension(name, ".jpg"))
         AddQLabel(Vlayout, 'Single Image will only export the current frame. Optionally, a %d placeholder will be filled with the frame number')
 
         Vlayout.addStretch()
@@ -221,16 +221,21 @@ class VideoExporterDialog(QtWidgets.QWidget):
 
         # initialize writer object according to export mode
         writer = None
+        svg = False
         if self.cbType.currentIndex() == 0:  # video
             path = str(self.leAName.text())
             writer_params = dict(format="avi", mode="I", fps=timeline.fps, codec=options.video_codec, quality=options.video_quality)
         elif self.cbType.currentIndex() == 1:  # image
             path = str(self.leANameI.text())
+            if path.endswith(".svg"):
+                svg = True
         elif self.cbType.currentIndex() == 2:  # gif
             path = str(self.leANameG.text())
             writer_params = dict(format="gif", mode="I", fps=timeline.fps)
         elif self.cbType.currentIndex() == 3:  # single image
             path = str(self.leANameIS.text())
+            if path.endswith(".svg"):
+                svg = True
 
         # create the output path if it doesn't exist
         if not os.path.exists(os.path.dirname(path)):
@@ -320,8 +325,16 @@ class VideoExporterDialog(QtWidgets.QWidget):
                 pil_image = pil_image.resize(shape.astype(int), Image.ANTIALIAS)
             draw = ImageDraw.Draw(pil_image)
             draw.pil_image = pil_image
+            # init svg
+            if svg:
+                import svgwrite
+                dwg = svgwrite.Drawing(path % (frame-start), profile='full', size=(self.preview_slice.shape[1], self.preview_slice.shape[0]))
+
             # draw marker on the image
             BroadCastEvent(self.window.modules, "drawToImage", draw, start_x-offset[0], start_y-offset[1], options.export_marker_scale, options.export_image_scale, options.rotation)
+            if svg:
+                BroadCastEvent(self.window.modules, "drawToImageSvg", dwg, start_x - offset[0], start_y - offset[1],
+                               options.export_marker_scale, options.export_image_scale, options.rotation)
             # rotate the image
             if self.data_file.getOption("rotation") != 0:
                 angle = self.data_file.getOption("rotation")
@@ -338,6 +351,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
             # draw marker on the image
             BroadCastEvent(self.window.modules, "drawToImage2", draw, start_x - offset[0], start_y - offset[1],
                                options.export_marker_scale, options.export_image_scale, options.rotation)
+            if svg:
+                BroadCastEvent(self.window.modules, "drawToImage2Svg", dwg, start_x - offset[0], start_y - offset[1],
+                               options.export_marker_scale, options.export_image_scale, options.rotation)
             # draw timestamp
             if self.time_drawing is not None:
                 time = self.window.data_file.image.timestamp
@@ -350,23 +366,26 @@ class VideoExporterDialog(QtWidgets.QWidget):
                         text = time.strftime("%Y-%m-%d %H:%M:%S")
                     draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
             # add to video ...
-            if self.cbType.currentIndex() == 0:
-                if writer is None:
-                    writer = imageio.get_writer(path, **writer_params)
-                writer.append_data(np.array(pil_image))
-            # ... or save image ...
-            elif self.cbType.currentIndex() == 1:
-                pil_image.save(path % (frame-start))
-            elif self.cbType.currentIndex() == 3:
-                try:
-                    pil_image.save(path % frame)
-                except TypeError:
-                    pil_image.save(path)
-            # ... or add to gif
-            elif self.cbType.currentIndex() == 0 or self.cbType.currentIndex() == 2:
-                if writer is None:
-                    writer = imageio.get_writer(path, **writer_params)
-                writer.append_data(np.array(pil_image))
+            if svg:
+                dwg.save()
+            else:
+                if self.cbType.currentIndex() == 0:
+                    if writer is None:
+                        writer = imageio.get_writer(path, **writer_params)
+                    writer.append_data(np.array(pil_image))
+                # ... or save image ...
+                elif self.cbType.currentIndex() == 1:
+                    pil_image.save(path % (frame-start))
+                elif self.cbType.currentIndex() == 3:
+                    try:
+                        pil_image.save(path % frame)
+                    except TypeError:
+                        pil_image.save(path)
+                # ... or add to gif
+                elif self.cbType.currentIndex() == 0 or self.cbType.currentIndex() == 2:
+                    if writer is None:
+                        writer = imageio.get_writer(path, **writer_params)
+                    writer.append_data(np.array(pil_image))
             # process events so that the program doesn't stall
             self.window.app.processEvents()
             # abort if the user clicked the abort button
