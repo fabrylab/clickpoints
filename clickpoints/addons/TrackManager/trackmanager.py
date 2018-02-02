@@ -33,11 +33,30 @@ class Addon(clickpoints.Addon):
         self.layout = QtWidgets.QVBoxLayout(self)
 
         # add some options
-        # the frame number for the kymograph
+        # the minimum track length
         self.addOption(key="minLength", display_name="Min Track Length", default=-1, value_type="int",
-                       tooltip="How many points a track has to have to be displayed", min=-1)
+                       tooltip="How many points a track has to have to be displayed.", min=-1)
         self.spinBox_minLength = AddQSpinBox(self.layout, "Min Track Length:", value=self.getOption("minLength"), float=False)
         self.linkOption("minLength", self.spinBox_minLength)
+        # the maximum track length
+        self.addOption(key="maxLength", display_name="Max Track Length", default=-1, value_type="int",
+                       tooltip="How many points a track has to have to be displayed.", min=-1)
+        self.spinBox_maxLength = AddQSpinBox(self.layout, "Max Track Length:", value=self.getOption("maxLength"),
+                                             float=False)
+        self.linkOption("maxLength", self.spinBox_maxLength)
+        # the minimum track displacement
+        self.addOption(key="minDisplacement", display_name="Min Track Displacement", default=-1, value_type="float",
+                       tooltip="How much displacement a track has to have to be displayed.", min=-1)
+        self.spinBox_minDisplacement = AddQSpinBox(self.layout, "Min Track Displacement:", value=self.getOption("minDisplacement"),
+                                             float=True)
+        self.linkOption("minDisplacement", self.spinBox_minDisplacement)
+        # the maximum track displacement
+        self.addOption(key="maxDisplacement", display_name="Max Track Displacement", default=-1, value_type="float",
+                       tooltip="How much displacement a track has to have to be displayed.", min=-1)
+        self.spinBox_maxDisplacement = AddQSpinBox(self.layout, "Max Track Displacement:",
+                                                   value=self.getOption("maxDisplacement"),
+                                                   float=True)
+        self.linkOption("maxDisplacement", self.spinBox_maxDisplacement)
 
         # add export buttons
         self.button_update = QtWidgets.QPushButton("Update")
@@ -48,8 +67,30 @@ class Addon(clickpoints.Addon):
         self.show()
 
     def update(self):
+        query_filters = []
+        query_parameters = []
         minCount = self.spinBox_minLength.value()
-        self.db.db.execute_sql("UPDATE track SET hidden = (SELECT count(marker.track_id) < ? FROM marker WHERE track.id = marker.track_id GROUP BY track_id)", (minCount,))
+        if minCount > 0:
+            query_filters.append("count(marker.track_id) > ?")
+            query_parameters.append(minCount)
+        maxCount = self.spinBox_maxLength.value()
+        if maxCount > -1:
+            query_filters.append("count(marker.track_id) < ?")
+            query_parameters.append(maxCount)
+        minDisplacement = self.spinBox_minDisplacement.value()
+        if minDisplacement > 0:
+            query_filters.append("((min(marker.x)-max(marker.x))*(min(marker.x)-max(marker.x)))+((min(marker.y)-max(marker.y))*(min(marker.y)-max(marker.y))) > ?")
+            query_parameters.append(minDisplacement**2)
+        maxDisplacement = self.spinBox_maxDisplacement.value()
+        if maxDisplacement > -1:
+            query_filters.append(
+                "((min(marker.x)-max(marker.x))*(min(marker.x)-max(marker.x)))+((min(marker.y)-max(marker.y))*(min(marker.y)-max(marker.y))) < ?")
+            query_parameters.append(maxDisplacement ** 2)
+        print(query_filters, query_parameters)
+        if len(query_filters) > 0:
+            self.db.db.execute_sql("UPDATE track SET hidden = (SELECT 1-("+" AND ".join(query_filters)+") FROM marker WHERE track.id = marker.track_id GROUP BY track_id)", query_parameters)
+        else:
+            self.db.db.execute_sql("UPDATE track SET hidden = 0")
         # get the marker handler
         marker_handler = self.cp.window.GetModule("MarkerHandler")
         # get all track types
