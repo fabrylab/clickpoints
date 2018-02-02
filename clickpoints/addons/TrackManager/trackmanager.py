@@ -67,35 +67,38 @@ class Addon(clickpoints.Addon):
         self.show()
 
     def update(self):
+        # empty lists
         query_filters = []
         query_parameters = []
+        # add filter for min count
         minCount = self.spinBox_minLength.value()
         if minCount > 0:
             query_filters.append("count(marker.track_id) > ?")
             query_parameters.append(minCount)
+        # add filter for max count
         maxCount = self.spinBox_maxLength.value()
         if maxCount > -1:
             query_filters.append("count(marker.track_id) < ?")
             query_parameters.append(maxCount)
+        # add filter for min displacement
         minDisplacement = self.spinBox_minDisplacement.value()
         if minDisplacement > 0:
             query_filters.append("((min(marker.x)-max(marker.x))*(min(marker.x)-max(marker.x)))+((min(marker.y)-max(marker.y))*(min(marker.y)-max(marker.y))) > ?")
             query_parameters.append(minDisplacement**2)
+        # add filter for max displacement
         maxDisplacement = self.spinBox_maxDisplacement.value()
         if maxDisplacement > -1:
             query_filters.append(
                 "((min(marker.x)-max(marker.x))*(min(marker.x)-max(marker.x)))+((min(marker.y)-max(marker.y))*(min(marker.y)-max(marker.y))) < ?")
             query_parameters.append(maxDisplacement ** 2)
-        print(query_filters, query_parameters)
+
+        # apply filters
         if len(query_filters) > 0:
             self.db.db.execute_sql("UPDATE track SET hidden = (SELECT 1-("+" AND ".join(query_filters)+") FROM marker WHERE track.id = marker.track_id GROUP BY track_id)", query_parameters)
+        # or show all if no filters are active
         else:
             self.db.db.execute_sql("UPDATE track SET hidden = 0")
-        # get the marker handler
-        marker_handler = self.cp.window.GetModule("MarkerHandler")
-        # get all track types
-        track_types = self.db.getMarkerTypes(mode=self.db.TYPE_Track)
-        # and reload them
-        for type in track_types:
-            marker_handler.ReloadTrackType(type)
+
+        # reload the tracks
+        self.cp.reloadTracks()
 
