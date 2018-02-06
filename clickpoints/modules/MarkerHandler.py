@@ -246,12 +246,12 @@ class MarkerFile:
         track.save()
         return track
 
-    def set_type(self, id, name, rgb_tuple, mode):
+    def set_type(self, id, name, rgb_tuple, mode, style="", text=""):
         try:
             type = self.table_markertype.get(self.table_markertype.name == name)
         except peewee.DoesNotExist:
             rgb_tuple = [int(i) for i in rgb_tuple]
-            type = self.table_markertype(name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), mode=mode)
+            type = self.table_markertype(name=name, color='#%02x%02x%02x' % tuple(rgb_tuple), mode=mode, style=style, text=text)
             type.save(force_insert=True)
         return type
 
@@ -2912,7 +2912,7 @@ class MarkerHandler:
         # if a new database is created fill it with markers from the config
         if new_database:
             for type_id, type_def in self.config.types.items():
-                self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2])
+                self.marker_file.set_type(type_id, *type_def)
 
         self.UpdateCounter()
 

@@ -245,7 +245,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
         modes = {0: "TYPE_Normal", 1: "TYPE_Rect", 2: "TYPE_Line", 4: "TYPE_Track"}
         for index, type in enumerate(self.data_file.getMarkerTypes()):
             color = type.getColorRGB()
-            types.append("%d: [\"%s\", [%d, %d, %d], %s]" % (index, type.name, color[0], color[1], color[2], modes[type.mode]))
+            types.append("%d: [\"%s\", [%d, %d, %d], %s, '%s', '%s']" % (index, type.name, color[0], color[1], color[2], modes[type.mode], type.style if type.style is not None else "", type.text if type.text is not None else ""))
         fp.write("types = {%s}\n" % ",\n         ".join(types))
 
     def ExportMaskTypes(self, fp):
