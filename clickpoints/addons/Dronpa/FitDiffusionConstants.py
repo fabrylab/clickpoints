@@ -12,32 +12,6 @@ import TheanoExpm
 
 theano.config.compute_test_value = 'warn'
 
-def squeeze(x):
-    return 1 / (1 + exp(-x))
-
-
-def unsqueeze(x):
-    return -log(1 / abs(x) - 1)
-
-
-def Tsqueeze(x):
-    return 1 / (1 + T.exp(-x))
-
-
-def sigmoid_inv(x):
-    return -log(1 / abs(x) - 1)
-
-
-def GetAfromD(D, decay):
-    N = len(cell_mask)
-    A = zeros([N, N])
-    link1 = cell_mask_inv[links[links_mask, 0]]
-    link2 = cell_mask_inv[links[links_mask, 1]]
-    A[link1, link2] = D * linkLengths[links_mask]
-    A[link2, link1] = D * linkLengths[links_mask]
-    A[arange(N), arange(N)] = -A.sum(1).T - decay
-    return A
-
 
 def TGetAfromD(D, decay, link_pairs, N, areas):
     """
@@ -120,17 +94,25 @@ def saveToExcel(name, link_pairs, cell_names, cell_indices, p):
         wb_sheet.write(index+1, 2, p[index])
     wb.save(name)
 
-def plotIntensityFit(N, times, I, data, areas, cell_names, cell_indices):
-    colors = []
+def plotIntensity(N, times, I, data, areas, cell_names, cell_indices, cell_errors, colors):
     plt.plot([], [], 'ko', label="data")
     plt.plot([], [], 'k-', label="fit")
     for m in range(N):
-        line, = plt.plot(times, I[:, m] / areas[m])  # , linestyle=styles[m % len(styles)])
-        colors.append(line.get_color())
-        plt.plot(times, data[:, m] / areas[m], 'o', label=cell_names[cell_indices[m]],
-                 color=colors[m % len(colors)])
+        plt.errorbar(times, data[:, m] / areas[m], yerr=cell_errors[m], color=colors[m])
     plt.xlabel("time (min)")
-    plt.ylabel("intensity")
+    plt.ylabel("mean intensity")
+    plt.legend()
+    return colors
+
+
+def plotIntensityFit(N, times, I, data, areas, cell_names, cell_indices, colors):
+    plt.plot([], [], 'ko', label="data")
+    plt.plot([], [], 'k-', label="fit")
+    for m in range(N):
+        line, = plt.plot(times, I[:, m] / areas[m], color=colors[m])  # , linestyle=styles[m % len(styles)])
+        plt.plot(times, data[:, m] / areas[m], 'o', color=colors[m])
+    plt.xlabel("time (min)")
+    plt.ylabel("mean intensity")
     plt.legend()
     return colors
 
@@ -167,16 +149,18 @@ def plotImageWithDiffusionConstans(output_folder, db, p, N, link_pairs, colors):
     plt.xlim(np.min(centers[:, 0]) - 50, np.max(centers[:, 0]) + 50)
     plt.ylim(np.max(centers[:, 1]) + 50, np.min(centers[:, 1]) - 50)
 
-def resultsPlot(output_folder, db, N, times, I, data, areas, p, link_pairs, cell_names, cell_indices):
+def resultsPlot(output_folder, db, N, times, I, data, areas, p, link_pairs, cell_names, cell_indices, colors, cell_errors):
     # create figure
     plt.figure(1, (15, 6))
     plt.clf()
     # plot intensities with fit
     plt.subplot(121)
-    colors = plotIntensityFit(N, times, I, data, areas, cell_names, cell_indices)
+
+    plotIntensity(N, times, I, data, areas, cell_names, cell_indices, cell_errors, colors)
     # plot image
     plt.subplot(122)
-    plotImageWithDiffusionConstans(output_folder, db, p, N, link_pairs, colors)
+    plotIntensityFit(N, times, I, data, areas, cell_names, cell_indices, colors)
+    #plotImageWithDiffusionConstans(output_folder, db, p, N, link_pairs, colors)
     # save and show
     plt.savefig(os.path.join(output_folder, "Fit.png"))
 
@@ -201,6 +185,7 @@ def fitDiffusionConstants(db, output_folder):
         print(link_pairs)
 
     data = np.loadtxt(os.path.join(output_folder, "cell.txt"))
+    errors = np.loadtxt(os.path.join(output_folder, "cell_error.txt"))
     times = data[:, 0]
     N = data.shape[1]-1
     areas = np.loadtxt(os.path.join(output_folder, "cell_sizes.txt"))[:N]
@@ -212,7 +197,7 @@ def fitDiffusionConstants(db, output_folder):
     ModelCost, Model = GetModel(times, data, link_pairs, N, areas)
     print("Building Model -- finished")
 
-    if 1:
+    if 0:
         # random starting values
         p = np.random.rand(len(link_pairs) + 1) * 5 + 20
         # find best diffusion constants
@@ -228,5 +213,8 @@ def fitDiffusionConstants(db, output_folder):
         saveToExcel(os.path.join(output_folder, "diffusion_constants.xls"), link_pairs, cell_names, cell_indices, p)
     I = np.array(Model(p))
 
-    resultsPlot(output_folder, db, N, times, I, data, areas, p, link_pairs, cell_names, cell_indices)
+    colors = [mask_type.color for mask_type in db.getMaskTypes()]
+    print("colors", colors)
+
+    resultsPlot(output_folder, db, N, times, I, data, areas, p, link_pairs, cell_names, cell_indices, colors, errors)
     plt.show()

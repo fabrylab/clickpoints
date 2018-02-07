@@ -302,6 +302,16 @@ class Command:
 
         self.window.CenterOn(x, y)
 
+    def save(self):
+        """
+        Save currently usaved data in the current frame.
+        """
+        if self.script_launcher is None:
+            return
+
+        self.window.Save()
+
+
 class Addon(QtWidgets.QWidget):
     _run_thread = None
     _change_status = QtCore.Signal(int)
