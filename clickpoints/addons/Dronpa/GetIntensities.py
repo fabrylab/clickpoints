@@ -65,7 +65,7 @@ def getIntensities(db, delta_t, color_channel, output_folder):
                      color=colors[m])  # , linestyle=styles[m])
 
     plt.xlabel("time (min)")
-    plt.ylabel("intensity")
+    plt.ylabel("mean intensity")
     plt.legend()
 
     plt.subplot(122)
@@ -101,4 +101,5 @@ def getIntensities(db, delta_t, color_channel, output_folder):
     np.savetxt(os.path.join(output_folder, "cell_sizes.txt"), sizes)
     np.savetxt(os.path.join(output_folder, "cell_centers.txt"), centers)
     np.savetxt(os.path.join(output_folder, "cell_indices.txt"), [cell.index for cell in valid_cells])
+    np.savetxt(os.path.join(output_folder, "cell_error.txt"), error_list2)
     plt.show()

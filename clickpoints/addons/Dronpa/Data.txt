@@ -1,5 +1,5 @@
 [addon]
-name=DronpaDiffusion
+name=Fluorescence Diffusion
 file=Dronpa.py
 icon=fa.flask
 requirements=theano,skimage,xlwt

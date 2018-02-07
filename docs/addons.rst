@@ -20,6 +20,7 @@ For writing your own add-ons please refer to the `add-on api <api_addon.html>`_.
     :maxdepth: 2
    
     addon_track
+    addon_fluorescence_diffusion
     addon_driftcorrection
     addon_celldetector
     addon_grabplotdata
