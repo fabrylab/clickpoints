@@ -1,0 +1,4 @@
+[addon]
+name=Export For Flow
+file=Export.py
+icon=fa.clock-o
