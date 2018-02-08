@@ -1946,6 +1946,9 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.updateDisplay()
         BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
 
+    def graberReleased(self, grabber, event):
+        BroadCastEvent(self.marker_handler.modules, "markerMoveFinishedEvent", self.data)
+
     def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyMarkerItem, self).drawMarker(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
@@ -2010,6 +2013,9 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
             self.g2.setPos(*self.data.getPos2())
             self.setText(self.GetText())
         BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
+
+    def graberReleased(self, grabber, event):
+        BroadCastEvent(self.marker_handler.modules, "markerMoveFinishedEvent", self.data)
 
     def drag(self, event):
         self.graberMoved(self.g2, event.pos(), event)
@@ -2126,6 +2132,9 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
         BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
+
+    def graberReleased(self, grabber, event):
+        BroadCastEvent(self.marker_handler.modules, "markerMoveFinishedEvent", self.data)
 
     def drag(self, event):
         self.graberMoved(self.start_grabber, event.pos(), event)
