@@ -205,14 +205,14 @@ class Command:
         Returns
         -------
         range : list
-            the start and end marker position.
+            the start and end marker position, as well, as the skip
 
         """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
         timeline = self.window.GetModule("Timeline")
-        return [timeline.frameSlider.startValue(), timeline.frameSlider.endValue()]
+        return [timeline.frameSlider.startValue(), timeline.frameSlider.endValue(), timeline.skip]
 
     def selectMarkerType(self, type):
         """
