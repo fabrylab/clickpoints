@@ -1984,7 +1984,7 @@ class DataFile:
 
         return query
 
-    def getImageIterator(self, start_frame=0, end_frame=None, layer=0):
+    def getImageIterator(self, start_frame=0, end_frame=None, skip=1, layer=0):
         """
         Get an iterator to iterate over all :py:class:`Image` entries starting from start_frame.
 
@@ -1996,6 +1996,8 @@ class DataFile:
             start at the image with the number start_frame. Default is 0
         end_frame : int, optional
             the last frame of the iteration (excluded). Default is None, the iteration stops when no more images are present.
+        skip : int, optional
+            how many frames to jump. Default is 1
         layer : int, optional
             layer of frames, over which should be iterated.
 
@@ -2028,7 +2030,7 @@ class DataFile:
                 yield image
             except peewee.DoesNotExist:
                 break
-            frame += 1
+            frame += skip
 
     def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=0, sort_index=None):
 
