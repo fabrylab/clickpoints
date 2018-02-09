@@ -435,7 +435,15 @@ class Addon(QtWidgets.QWidget):
         else:
             self._change_status.emit(self.cp.STATUS_Idle)
 
-    def run_threaded(self, start_frame=None):
+    def run_threaded(self, start_frame=None, function=None):
+        if function is not None:
+            def run_wrapper(*args, **kwargs):
+                self.run_started()
+                try:
+                    function(*args, **kwargs)
+                finally:
+                    self.run_stopped()
+            self.run = run_wrapper
         # start the run function in another thread, or stop it, if it is already running
         if self.is_running():
             self.terminate()
