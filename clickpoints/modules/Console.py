@@ -25,8 +25,24 @@ from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
 
 import sys
-from includes import GetHooks
 
+
+# An object that replaces the stdout or stderr stream and emits signals with the text
+class WriteStream(QtCore.QObject):
+    written = QtCore.Signal(str)
+
+    def __init__(self, out):
+        QtCore.QObject.__init__(self)
+        self.out = out
+
+    def write(self, text):
+        self.written.emit(text)
+        self.out.write(text)
+
+writerStdOut = WriteStream(sys.stdout)
+sys.stdout = writerStdOut
+writerStdErr = WriteStream(sys.stderr)
+sys.stderr = writerStdErr
 
 class Console(QtWidgets.QTextEdit):
     update_normal = QtCore.Signal(str)
@@ -63,6 +79,9 @@ class Console(QtWidgets.QTextEdit):
 
         self.update_normal.connect(self.add_text)
         self.update_error.connect(self.add_textE)
+
+        writerStdOut.written.connect(self.add_text)
+        writerStdErr.written.connect(self.add_textE)
 
     def keyPressEvent(self, event):
         # @key ---- Modules ----
