@@ -196,6 +196,7 @@ class Script(QtCore.QObject):
     def deactivate(self):
         try:
             self.addon_class_instance.delete()
+            self.addon_class_instance.close()
         except Exception as err:
             print(err)
         self.active = False
