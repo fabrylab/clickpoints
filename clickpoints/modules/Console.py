@@ -25,6 +25,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
 
 import sys
+from collections import deque
 
 
 # An object that replaces the stdout or stderr stream and emits signals with the text
@@ -72,6 +73,8 @@ class Console(QtWidgets.QTextEdit):
         self.setStyleSheet("QTextEdit { background-color: rgb(0, 0, 0); }")
         self.text_string = ""
 
+        self.text_deque = deque(maxlen=400)
+
         self.setWindowIcon(qta.icon("fa.terminal"))
         self.setWindowTitle("Log - ClickPoints")
 
@@ -88,7 +91,8 @@ class Console(QtWidgets.QTextEdit):
         # @key Q: open the console
         if event.key() == QtCore.Qt.Key_Q and not event.modifiers() & QtCore.Qt.ControlModifier:
             self.setVisible(not self.isVisible())
-        # @key Cntrl+Q: detach the console
+            self.update_display()
+        # @key Ctrl+Q: detach the console
         if event.key() == QtCore.Qt.Key_Q and event.modifiers() & QtCore.Qt.ControlModifier:
             if self.parent() is None:
                 self.splitter.addWidget(self)
@@ -103,16 +107,20 @@ class Console(QtWidgets.QTextEdit):
         self.update_normal.emit(text)
 
     def add_textE(self, text, clear=False):
-        self.insertHtml("<p style='color: #ff6b68'>"+text.replace("\n", "<br/>").replace(" ", "&nbsp;")+"</p>")#<p style='color: #c0c0c0'></p>")
-        c = self.textCursor()
-        c.movePosition(QtGui.QTextCursor.End)
-        self.setTextCursor(c)
+        self.text_deque.append("<span style='color: #ff6b68'>"+text.replace("\n", "<br/>").strip().replace(" ", "&nbsp;")+"</span>")
+        self.update_display()
 
     def add_text(self, text, clear=False):
-        self.insertHtml("<p style='color: #c0c0c0'>" + text.replace("\n", "<br/>").replace(" ", "&nbsp;") + "</p>")  # <p style='color: #c0c0c0'></p>")
-        c = self.textCursor()
-        c.movePosition(QtGui.QTextCursor.End)
-        self.setTextCursor(c)
+        self.text_deque.append(
+            "<span style='color: #c0c0c0'>" + text.replace("\n", "<br/>").strip().replace(" ", "&nbsp;") + "</span>")
+        self.update_display()
+
+    def update_display(self):
+        if not self.isHidden():
+            self.setText("".join(self.text_deque))
+            c = self.textCursor()
+            c.movePosition(QtGui.QTextCursor.End)
+            self.setTextCursor(c)
 
     def closeEvent(self, QCloseEvent):
         self.close()
