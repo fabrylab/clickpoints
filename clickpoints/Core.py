@@ -473,14 +473,18 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if self.data_file is not None and not self.data_file.exists and self.data_file.made_changes:
             reply = QtWidgets.QMessageBox.question(self, 'Warning', 'This ClickPoints project has not been saved. '
                                                                     'All data will be lost.\nDo you want to save it?',
-                                                   QtWidgets.QMessageBox.Yes,
-                                                   QtWidgets.QMessageBox.No)
+                                                   QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes,
+                                                   QtWidgets.QMessageBox.Yes)
 
+            if reply == QtWidgets.QMessageBox.Cancel:
+                return -1
             if reply == QtWidgets.QMessageBox.Yes:
                 self.SaveDatabase()
+        return True
 
-    def closeEvent(self, QCloseEvent):
-        self.testForUnsaved()
+    def closeEvent(self, event):
+        if self.testForUnsaved() == -1:
+            return event.ignore()
         # close the folder editor
         if self.folderEditor is not None:
             self.folderEditor.close()
@@ -488,9 +492,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.Save()
         # broadcast event
         if self.data_file is not None:
-            self.data_file.closeEvent(QCloseEvent)
+            self.data_file.closeEvent(event)
         # broadcast event to the modules
-        BroadCastEvent(self.modules, "closeEvent", QCloseEvent)
+        BroadCastEvent(self.modules, "closeEvent", event)
 
     def resizeEvent(self, event):
         # broadcast event to the modules
