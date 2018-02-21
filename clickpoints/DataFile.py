@@ -914,15 +914,23 @@ class DataFile:
             def pos(self):
                 return np.array([self.x, self.y])
 
-            def slice_x(self):
+            def slice_x(self, border=0):
                 if self.width < 0:
-                    return slice(int(self.x+self.width), int(self.x))
-                return slice(int(self.x), int(self.x+self.width))
+                    return slice(int(self.x+self.width-border), int(self.x+border))
+                return slice(int(self.x-border), int(self.x+self.width+border))
 
-            def slice_y(self):
+            def slice_y(self, border=0):
                 if self.height < 0:
-                    return slice(int(self.y+self.height), int(self.y))
-                return slice(int(self.y), int(self.y + self.height))
+                    return slice(int(self.y+self.height-border), int(self.y + border))
+                return slice(int(self.y-border), int(self.y + self.height + border))
+
+            def slice(self, border=0):
+                try:
+                    border_y, border_x = border
+                except TypeError:
+                    border_y = border
+                    border_x = border
+                return (self.slice_y(border_y), self.slice_x(border_x))
 
             def area(self):
                 return self.width * self.height

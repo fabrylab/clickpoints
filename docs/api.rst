@@ -248,8 +248,9 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **text** *(str)* - an additional text associated with the rectangle. It is displayed next to the rectangle in ClickPoints.
         - **correctedXY()** *(array)* - the rectangle positions corrected by the offset of the image.
         - **pos()** *(array)* - an array containing the coordinates of the rectangle: [x, y].
-        - **slice_x()** *(slice*) - a slice object to use the rectangle to cut out a region of an image
-        - **slice_y()** *(slice)* - a slice object to use the rectangle to cut out a region of an image
+        - **slice_x(border=0)** *(slice*) - a slice object to use the rectangle to cut out a region of an image
+        - **slice_y(border=0)** *(slice)* - a slice object to use the rectangle to cut out a region of an image
+        - **slice(border=0)** *(tuple)* - a tuple of a y-slice and an x-slice, border specifies an additional border to slice around the rectangle
         - **area()** *(float)* - the area of the rectangle
 
     Methods:
