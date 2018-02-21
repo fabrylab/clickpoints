@@ -48,13 +48,16 @@ class Addon(clickpoints.Addon):
             self.cp.reloadTypes()
 
     def run(self, start_frame=0):
+        # get the frame range
+        self.start, self.end, self.skip = self.cp.getFrameRange()
+
         # parameters
         lk_params = dict(winSize=tuple(self.getOption("winSize")), maxLevel=self.getOption("maxLevel"),
                           criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
                                     self.getOption("maxIterations"), self.getOption("epsilon")))
 
         # get the images
-        images = self.db.getImageIterator(start_frame=start_frame)
+        images = self.db.getImageIterator(start_frame=start_frame, end_frame=self.end, skip=self.skip)
 
         # retrieve first image
         image_last = next(images)
@@ -63,6 +66,7 @@ class Addon(clickpoints.Addon):
         points = self.db.getMarkers(image=image_last.id, processed=0)
         p0 = np.array([[point.x, point.y] for point in points if point.track_id]).astype(np.float32)
         tracks = [point.track for point in points if point.track_id]
+        types = [point.type for point in points if point.track_id]
 
         # if no tracks are supplied, stop
         if len(tracks) == 0:
@@ -70,25 +74,27 @@ class Addon(clickpoints.Addon):
             return
 
         # start iterating over all images
+        image_last_data8 = image_last.data8
         for image in images:
             print("Tracking frame number %d, %d tracks" % (image.sort_index, len(tracks)), image.id, image_last.id)
+            image_data8 = image.data8
 
             # calculate next positions
-            p1, st, err = cv2.calcOpticalFlowPyrLK(image_last.data8, image.data8, p0, None, **lk_params)
+            p1, st, err = cv2.calcOpticalFlowPyrLK(image_last_data8, image_data8, p0, None, **lk_params)
 
             # set the new positions
-            self.db.setMarkers(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, track=tracks)
+            self.db.setMarkers(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, track=tracks, type=types)
 
             # mark the marker in the last frame as processed
-            self.db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=tracks)
+            self.db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=tracks, type=types)
 
             # update ClickPoints
-            self.cp.reloadMarker(image.sort_index)
             self.cp.jumpToFrameWait(image.sort_index)
 
             # store positions and image
             p0 = p1
             image_last = image
+            image_last_data8 = image_data8
 
             # check if we should terminate
             if self.cp.hasTerminateSignal():
