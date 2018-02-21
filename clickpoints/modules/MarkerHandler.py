@@ -2283,7 +2283,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         frames = [k for k in self.marker_draw_items.keys()]
         for frame in frames:
             if self.marker_draw_items[frame].to_remove:
-                self.marker_draw_items[frame].delete()
+                self.marker_draw_items[frame].delete(just_remove=True)
                 del self.marker_draw_items[frame]
 
         # set the line and gap path
