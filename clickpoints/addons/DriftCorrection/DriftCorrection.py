@@ -72,17 +72,13 @@ class Addon(clickpoints.Addon):
 
         # Get images and template
         images = self.db.getImageIterator(start_frame=start_frame, end_frame=end_frame)
-        print('slices:', rect.slice_y(), rect.slice_x)
-        print(rect.slice_y().start - border_y, rect.slice_y().stop + border_y, rect.slice_x().start - border_x,
-              rect.slice_x().stop + border_x)
-        template = next(images).data[rect.slice_y().start - border_y: rect.slice_y().stop + border_y,
-                   rect.slice_x().start - border_x: rect.slice_x().stop + border_x]
+        template = next(images).data[rect.slice((border_y, border_x))]
 
         # start iteration
         last_shift = np.array([0, 0])
         for image in images:
             # template matching for drift correction
-            res = cv2.matchTemplate(image.data[rect.slice_y(), rect.slice_x()], template, cv2.TM_CCOEFF_NORMED)
+            res = cv2.matchTemplate(image.data[rect.slice()], template, cv2.TM_CCOEFF_NORMED)
             res += np.amin(res)
             res = res ** 4.
 
@@ -93,16 +89,18 @@ class Addon(clickpoints.Addon):
             try:
                 # fail if there it is too close to border
                 if not (shift[0] > 2 and shift[1] > 2):
-                    raise Exception
+                    raise ValueError
 
-                subres = res[shift[0] - 2:shift[0] + 3, shift[1] - 2:shift[1] + 3]
+                subres = res[int(shift[0] - 2):int(shift[0] + 3), int(shift[1] - 2):int(shift[1] + 3)]
                 subshift = center_of_mass(subres)
 
                 # calculate coordinates of sub shift
-                shift = shift + (subshift - np.array([2, 2]))
+                shift = shift + (subshift - np.array([2., 2.]))
+
                 # calculate full image coordinates of shift
                 shift = shift - np.array([border_y, border_x])
-            except:
+
+            except ValueError:
                 # calculate full image coordinates of shift
                 shift = shift - np.array([border_y, border_x])
 
