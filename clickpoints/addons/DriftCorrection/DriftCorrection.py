@@ -26,6 +26,7 @@ from scipy.ndimage.measurements import center_of_mass
 import peewee
 import sys
 import clickpoints
+from qtpy import QtWidgets, QtCore, QtGui
 
 
 class Addon(clickpoints.Addon):
@@ -42,17 +43,62 @@ class Addon(clickpoints.Addon):
             self.db.setMarkerType("drift_rect", [0, 255, 255], self.db.TYPE_Rect)
             self.cp.reloadTypes()
 
-    """
-    def buttonPressedEvent(self):
-        tracks = self.db.getTracks(type="drift_track")
-        for track in tracks:
-            f = track.image_ids
-            points = track.points
-            points = points-points[0, :]
-            for id, p in zip(f, points):
-                self.db.setOffset(image=id, x=-p[0], y=-p[1])
-        self.show()
-    """
+        # the flow overlay over the image
+        self.image = QtWidgets.QGraphicsPixmapItem(self.cp.window.view.origin)
+        self.image.setZValue(5)
+        self.overlays = {}
+
+    def updateMarker(self, marker):
+        if marker.type.name != "drift_rect":
+            return
+        if marker.id not in self.overlays:
+            overlay = QtWidgets.QGraphicsPolygonItem(self.image)
+            overlay.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 255, 128)))
+            overlay.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
+            self.overlays[marker.id] = overlay
+        else:
+            overlay = self.overlays[marker.id]
+        border_x, border_y = self.getOption("borderSize")
+        poly = []
+        poly.append(QtCore.QPoint(marker.x-border_x, marker.y-border_y))
+        poly.append(QtCore.QPoint(marker.x+marker.width+border_x, marker.y-border_y))
+        poly.append(QtCore.QPoint(marker.x+marker.width+border_x, marker.y+marker.height+border_y))
+        poly.append(QtCore.QPoint(marker.x-border_x, marker.y+marker.height+border_y))
+        poly.append(QtCore.QPoint(marker.x-border_x, marker.y-border_y))
+
+        poly.append(QtCore.QPoint(marker.x, marker.y))
+        poly.append(QtCore.QPoint(marker.x + marker.width, marker.y))
+        poly.append(QtCore.QPoint(marker.x + marker.width, marker.y + marker.height))
+        poly.append(QtCore.QPoint(marker.x, marker.y + marker.height))
+        poly.append(QtCore.QPoint(marker.x, marker.y))
+
+        overlay.setPolygon(QtGui.QPolygonF(poly))
+
+    def deleteOverlay(self, marker):
+        if marker.type.name != "drift_rect":
+            return
+        if marker.id in self.overlays:
+            overlay = self.overlays[marker.id]
+            overlay.scene().removeItem(overlay)
+            del self.overlays[marker.id]
+
+    def markerMoveEvent(self, marker):
+        self.updateMarker(marker)
+
+    def markerAddEvent(self, entry):
+        self.updateMarker(entry)
+
+    def markerRemoveEvent(self, entry):
+        self.deleteOverlay(entry)
+
+    def delete(self):
+        ids = [id for id in self.overlays.keys()]
+        for id in ids:
+            overlay = self.overlays[id]
+            overlay.scene().removeItem(overlay)
+            del self.overlays[id]
+        self.image.scene.removeItem(self.image)
+
     def run(self, start_frame=0):
         # Define parameters
         compare_to_first = self.getOption("compareToFirst")
