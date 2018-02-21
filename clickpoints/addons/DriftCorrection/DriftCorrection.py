@@ -42,6 +42,7 @@ class Addon(clickpoints.Addon):
             self.db.setMarkerType("drift_rect", [0, 255, 255], self.db.TYPE_Rect)
             self.cp.reloadTypes()
 
+    """
     def buttonPressedEvent(self):
         tracks = self.db.getTracks(type="drift_track")
         for track in tracks:
@@ -51,14 +52,14 @@ class Addon(clickpoints.Addon):
             for id, p in zip(f, points):
                 self.db.setOffset(image=id, x=-p[0], y=-p[1])
         self.show()
-
+    """
     def run(self, start_frame=0):
         # Define parameters
         compare_to_first = self.getOption("compareToFirst")
         border_x, border_y = self.getOption("borderSize")
 
         # get range
-        start_frame, end_frame = self.cp.getFrameRange()
+        start_frame, end_frame, skip = self.cp.getFrameRange()
 
         # try to load marker
         rect = self.db.getRectangles(type="drift_rect", frame=start_frame)
@@ -81,12 +82,12 @@ class Addon(clickpoints.Addon):
         last_shift = np.array([0, 0])
         for image in images:
             # template matching for drift correction
-            res = cv2.matchTemplate(image.data[rect.slice_y(), rect.slice_x()], template, cv2.TM_CCOEFF)
+            res = cv2.matchTemplate(image.data[rect.slice_y(), rect.slice_x()], template, cv2.TM_CCOEFF_NORMED)
             res += np.amin(res)
             res = res ** 4.
 
             # get 2D max
-            shift = np.unravel_index(res.argmax(), res.shape)
+            shift = np.array(np.unravel_index(res.argmax(), res.shape)).astype("float")
 
             # get sub pixel accurate center of mass
             try:
@@ -109,11 +110,11 @@ class Addon(clickpoints.Addon):
             if not compare_to_first:
                 template = image.data[rect.slice_y().start - border_y: rect.slice_y().stop + border_y,
                            rect.slice_x().start - border_x: rect.slice_x().stop + border_x]
-                shift += last_shift
+                shift += last_shift.astype("float")
                 last_shift = shift
 
             # save the offset to the database
-            self.db.setOffset(image=id, x=shift[1], y=shift[0])
+            self.db.setOffset(image=image, x=float(shift[1]), y=float(shift[0]))
             print("Drift Correction Frame", image.sort_index, shift)
 
             # Check if ClickPoints wants to terminate us
