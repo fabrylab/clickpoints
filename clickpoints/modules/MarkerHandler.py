@@ -3083,24 +3083,16 @@ class MarkerHandler:
                 loaded_images.append(frame)
                 # only load if it is not marked as cached
                 if frame not in self.cached_images:
-                    # query image
-                    im = conn.execute('SELECT id FROM image WHERE sort_index IS ? AND layer IS 0 LIMIT 1', (frame,)).fetchone()
-                    # query offset
-                    offset = conn.execute('SELECT x, y FROM offset WHERE image_id IS ? LIMIT 1', (im["id"],)).fetchone()
-                    if offset:
-                        offx, offy = (offset["x"], offset["y"])
-                    else:
-                        offx, offy = (0, 0)
-
-                    # query markers
-                    query = conn.execute('SELECT * FROM marker WHERE image_id IS ? AND track_id', (im["id"],))
+                    # query markers for the given sort_index
+                    # the x, y coordinates are corrected by the offset
+                    query = conn.execute('SELECT m.id, m.image_id, m.x+IFNULL(o.x, 0) AS x, m.y+IFNULL(o.y, 0) AS y, type_id, processed, track_id, style, text FROM marker m JOIN image i ON m.image_id = i.id LEFT JOIN offset o ON i.id = o.image_id where sort_index IS ? AND track_id', (frame,))
                     for marker in query:
                         # get track id
                         track_id = marker["track_id"]
                         # add to marker_list
                         if track_id not in self.marker_lists:
                             self.marker_lists[track_id] = SortedDict()
-                        self.marker_lists[track_id][frame] = TrackMarkerObject((marker["x"] + offx, marker["y"] + offy), marker)
+                        self.marker_lists[track_id][frame] = TrackMarkerObject((marker["x"], marker["y"]), marker)
                         # if the track doesn't have a display item we will query it later
                         if track_id not in self.tracks and track_id not in new_tracks:
                             new_tracks.append(track_id)
