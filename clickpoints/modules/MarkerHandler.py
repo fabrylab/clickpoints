@@ -160,7 +160,7 @@ def drawMarker(image, point, color, width, shape):
     if shape == "ring":
         image.arc(np.concatenate((point - .5 * width, point + .5 * width)).tolist(), 0, 360, color)
     elif shape == "circle":
-        image.arc(np.concatenate((point - .5 * width, point + .5 * width)).tolist(), color)
+        image.arc(np.concatenate((point - .5 * width, point + .5 * width)).tolist(), 0, 360, color)
     elif shape == "rect":
         image.rectangle(np.concatenate((point - .5 * width, point + .5 * width)).tolist(), color)
     elif shape == "cross":
@@ -3102,7 +3102,7 @@ class MarkerHandler:
                             self.marker_lists[track_id] = SortedDict()
                         self.marker_lists[track_id][frame] = TrackMarkerObject((marker["x"] + offx, marker["y"] + offy), marker)
                         # if the track doesn't have a display item we will query it later
-                        if track_id not in self.tracks:
+                        if track_id not in self.tracks and track_id not in new_tracks:
                             new_tracks.append(track_id)
         finally:
             # set query result type back to default
@@ -3110,18 +3110,19 @@ class MarkerHandler:
 
         # query track entries for new tracks found in the images which were loaded
         if len(new_tracks):
-            # split large track lists into chunks
-            if self.data_file._SQLITE_MAX_VARIABLE_NUMBER is None:
-                self.data_file._SQLITE_MAX_VARIABLE_NUMBER = self.data_file.max_sql_variables()
-            chunk_size = (self.data_file._SQLITE_MAX_VARIABLE_NUMBER - 1) // 2
-            for idx in range(0, len(new_tracks), chunk_size):
-                # query tracks
-                new_track_query = self.marker_file.table_track.select().where(
-                    self.marker_file.table_track.id << new_tracks[idx:idx + chunk_size])
-                # and crate track display items from it
-                for track in new_track_query:
-                    self.tracks[track.id] = MyTrackItem(self, self.TrackParent, data=track,
-                                                         markers=self.marker_lists[track.id])
+            # query tracks
+            new_track_query = self.marker_file.table_track.select().where(
+                self.marker_file.table_track.id << new_tracks)
+            # and crate track display items from it
+            for track in new_track_query:
+                try:
+                    self.tracks[track.id]
+                except KeyError:
+                    pass
+                else:
+                    print("Error", track.id)
+                self.tracks[track.id] = MyTrackItem(self, self.TrackParent, data=track,
+                                                     markers=self.marker_lists[track.id])
 
         # find out which images should be removed from the cache
         loaded_images = set(loaded_images)
