@@ -397,13 +397,14 @@ class MaskEditor(QtWidgets.QWidget):
 
 
 class MaskTypeButton(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent, mask_handler, point_type, index):
+    def __init__(self, parent, mask_handler, point_type, index, scale=1):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         # store mask handler, type and index
         self.mask_handler = mask_handler
         self.type = point_type
         self.index = index
+        self.scale_factor = scale
 
         # get hover events and set to inactive
         self.setAcceptHoverEvents(True)
@@ -435,10 +436,10 @@ class MaskTypeButton(QtWidgets.QGraphicsRectItem):
         self.text.setBrush(QtGui.QBrush(color))
         # update rect to fit text
         rect = self.text.boundingRect()
-        rect.setX(-5)
-        rect.setWidth(rect.width() + 5)
+        rect.setX(-5*self.scale_factor)
+        rect.setWidth(rect.width() + 5*self.scale_factor)
         self.setRect(rect)
-        self.setPos(-rect.width() - 5, 10 + 25 * self.index + 25)
+        self.setPos(-rect.width() - 5*self.scale_factor, (10 + 25 * self.index + 25)*self.scale_factor)
 
     def SetToActiveColor(self):
         # change background color
@@ -546,10 +547,10 @@ class MaskHandler:
 
         self.closeDataFile()
 
-        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.paint-brush"), (-30 - (26 + 5) * 0, 10))
-        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.eraser"), (-30 - (26 + 5) * 1, 10))
-        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.eyedropper"), (-30 - (26 + 5) * 2, 10))
-        self.button4 = MyCommandButton(self.parent_hud, self, IconFromFile("Bucket.png"), (-30 - (26 + 5) * 3, 10))
+        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.paint-brush"), (-30 - (26 + 5) * 0, 10), scale=self.window.scale_factor)
+        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.eraser"), (-30 - (26 + 5) * 1, 10), scale=self.window.scale_factor)
+        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.eyedropper"), (-30 - (26 + 5) * 2, 10), scale=self.window.scale_factor)
+        self.button4 = MyCommandButton(self.parent_hud, self, IconFromFile("Bucket.png"), (-30 - (26 + 5) * 3, 10), scale=self.window.scale_factor)
         self.button1.setToolTip("paint mask color <b>P</b>")
         self.button2.setToolTip("erase mask<br/>(<b>E</b> or hold <b>ctrl</b>)")
         self.button3.setToolTip("pick mask color<br/>(<b>K</b> or hold <b>alt</b>)")
@@ -693,9 +694,9 @@ class MaskHandler:
         # create new ones
         type_list = self.mask_file.get_mask_type_list()
         # create buttons for types
-        self.buttons = {index: MaskTypeButton(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
+        self.buttons = {index: MaskTypeButton(self.parent_hud, self, type, index, scale=self.window.scale_factor) for index, type in enumerate(type_list)}
         # create button for "add_type"
-        self.buttons[-1] = MaskTypeButton(self.parent_hud, self, None, len(self.buttons))
+        self.buttons[-1] = MaskTypeButton(self.parent_hud, self, None, len(self.buttons), scale=self.window.scale_factor)
         ## create button for background "delete"
         #self.buttons[0] = MaskTypeButton(self.parent_hud, self, self.mask_file.table_mask(name="delete", color="#B0B0B0", index=0), 0)
 
