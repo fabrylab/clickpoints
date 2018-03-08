@@ -92,7 +92,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.setMinimumHeight(400)
         self.setWindowTitle("ClickPoints")
 
-        self.scale_factor = app.desktop().logicalDpiX()/96/2
+        self.scale_factor = app.desktop().logicalDpiX()/96
 
         self.setAcceptDrops(True)
 
