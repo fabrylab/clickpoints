@@ -2652,13 +2652,14 @@ class Crosshair(QtWidgets.QGraphicsPathItem):
 
 
 class MyCounter(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent, marker_handler, type, index):
+    def __init__(self, parent, marker_handler, type, index, scale=1):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
         self.marker_handler = marker_handler
         self.type = type
         self.count = 0
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.scale_factor = scale
 
         self.setAcceptHoverEvents(True)
         self.active = False
@@ -2679,7 +2680,7 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
 
     def setIndex(self, index):
         self.index = index
-        self.setPos(10, 10 + 25 * self.index + 25)
+        self.setPos(10*self.scale_factor, (10 + 25 * self.index + 25)*self.scale_factor)
         self.AddCount(0)
 
     def Update(self, type):
@@ -2699,8 +2700,8 @@ class MyCounter(QtWidgets.QGraphicsRectItem):
         else:
             self.text.setText("+ add type")
         rect = self.text.boundingRect()
-        rect.setX(-5)
-        rect.setWidth(rect.width() + 5)
+        rect.setX(-5*self.scale_factor)
+        rect.setWidth(rect.width() + 5*self.scale_factor)
         self.setRect(rect)
 
     def SetToActiveColor(self):
@@ -2823,9 +2824,9 @@ class MarkerHandler:
 
         self.closeDataFile()
 
-        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.plus"), (10 + (26+5)*0, 10))
-        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.trash"), (10 + (26+5)*1, 10))
-        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.tint"), (10 + (26+5)*2, 10))
+        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.plus"), (10 + (26+5)*0, 10), scale=self.window.scale_factor)
+        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.trash"), (10 + (26+5)*1, 10), scale=self.window.scale_factor)
+        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.tint"), (10 + (26+5)*2, 10), scale=self.window.scale_factor)
         self.button1.setToolTip("add or move marker <b>M</b>")
         self.button2.setToolTip("delete marker<br/>(<b>D</b> or hold <b>ctrl</b>)")
         self.button3.setToolTip("change marker type <b>C</b>")
@@ -2981,8 +2982,8 @@ class MarkerHandler:
             self.view.scene.removeItem(self.counter[counter])
 
         type_list = self.marker_file.get_type_list()
-        self.counter = {index: MyCounter(self.parent_hud, self, type, index) for index, type in enumerate(type_list)}
-        self.counter[-1] = MyCounter(self.parent_hud, self, None, len(self.counter))
+        self.counter = {index: MyCounter(self.parent_hud, self, type, index, scale=self.window.scale_factor) for index, type in enumerate(type_list)}
+        self.counter[-1] = MyCounter(self.parent_hud, self, None, len(self.counter), scale=self.window.scale_factor)
         if len(list(self.counter.keys())):
             self.active_type = self.counter[list(self.counter.keys())[0]].type
         else:

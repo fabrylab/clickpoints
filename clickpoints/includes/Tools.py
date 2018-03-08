@@ -323,7 +323,7 @@ class TextButton(QtWidgets.QGraphicsRectItem):
 
 class MyCommandButton(QtWidgets.QGraphicsRectItem):
 
-    def __init__(self, parent, marker_handler, icon, pos):
+    def __init__(self, parent, marker_handler, icon, pos, scale):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
         self.parent = parent
         self.marker_handler = marker_handler
@@ -336,10 +336,10 @@ class MyCommandButton(QtWidgets.QGraphicsRectItem):
         self.setZValue(9)
 
         self.pixmap = QtWidgets.QGraphicsPixmapItem(self)
-        self.pixmap.setPixmap(icon.pixmap(16))
+        self.pixmap.setPixmap(icon.pixmap(16*scale))
 
-        self.setRect(-5, -3, 26, 22)
-        self.setPos(*pos)
+        self.setRect(-5*scale, -3*scale, 26*scale, 22*scale)
+        self.setPos(pos[0]*scale, pos[1]*scale)
 
         self.clicked = lambda: 0
 
