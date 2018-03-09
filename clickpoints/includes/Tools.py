@@ -175,7 +175,7 @@ class MySpinBox(QtWidgets.QSpinBox):
 
 
 class MySlider(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent, name="", start_value=None, max_value=100, min_value=0, font=None):
+    def __init__(self, parent, name="", start_value=None, max_value=100, min_value=0, font=None, scale=1):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
@@ -189,9 +189,9 @@ class MySlider(QtWidgets.QGraphicsRectItem):
 
         self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         if font is None:
-            font = QtGui.QFont("", 11)
+            font = QtGui.QFont("", 11/scale)
         else:
-            font.setPointSize(11)
+            font.setPointSize(11/scale)
         self.text.setFont(font)
         self.text.setPos(0, -23)
         self.text.setBrush(QtGui.QBrush(QtGui.QColor("white")))
@@ -284,7 +284,7 @@ class TextButtonSignals(QtCore.QObject):
     clicked = QtCore.Signal()
 
 class TextButton(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent, width, text="", font=None):
+    def __init__(self, parent, width, text="", font=None, scale=1):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
@@ -293,9 +293,9 @@ class TextButton(QtWidgets.QGraphicsRectItem):
 
         self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         if font is None:
-            font = QtGui.QFont("", 11)
+            font = QtGui.QFont("", 11/scale)
         else:
-            font.setPointSize(11)
+            font.setPointSize(11/scale)
         self.text.setFont(font)
         self.text.setText(text)
         self.text.setPos((width-self.text.boundingRect().width())/2+1, 0)
