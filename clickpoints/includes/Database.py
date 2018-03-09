@@ -696,16 +696,14 @@ class DataFileExtended(DataFile):
     def get_meta(self, file):
         import tifffile
         import json
-        try:
+        from distutils.version import LooseVersion
+
+        if LooseVersion(tifffile.__version__) > LooseVersion("0.13"):
             with tifffile.TiffFile(file) as tif:
-                try:
-                    metadata = tif[0].image_description
-                except AttributeError:
+                metadata = tif.shaped_metadata
+                if metadata is None:
                     return None
-                try:
-                    t = json.loads(metadata.decode('utf-8'))["Time"]
-                except (AttributeError, ValueError, KeyError):
-                    return None
+                t = tif.shaped_metadata[0]["Time"]
                 try:
                     return datetime.strptime(t, '%Y%m%d-%H%M%S')
                 except ValueError:
@@ -713,9 +711,29 @@ class DataFileExtended(DataFile):
                         return datetime.strptime(t, '%Y%m%d-%H%M%S-%f')
                     except ValueError:
                         return None
-        except ValueError:  # invalid tiff file
-            return None
-        return None
+        else:
+            try:
+                with tifffile.TiffFile(file) as tif:
+                    try:
+                        tif.shaped_metadata[0]
+                    except AttributeError:
+                        try:
+                            metadata = tif[0].image_description
+                        except (TypeError, AttributeError):
+                            return None
+                    try:
+                        t = json.loads(metadata.decode('utf-8'))["Time"]
+                    except (AttributeError, ValueError, KeyError):
+                        return None
+                    try:
+                        return datetime.strptime(t, '%Y%m%d-%H%M%S')
+                    except ValueError:
+                        try:
+                            return datetime.strptime(t, '%Y%m%d-%H%M%S-%f')
+                        except ValueError:
+                            return None
+            except ValueError:  # invalid tiff file
+                return None
 
 
 class FrameBuffer:
