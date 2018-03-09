@@ -865,7 +865,7 @@ class Timeline(QtCore.QObject):
     _endframe = None
 
     fps = 25
-    skip = 1 # where skip should be called step width i.e step=10 -> frame0 to frame10
+    skip = 1  # where skip should be called step width i.e step=10 -> frame0 to frame10
 
     subsecond_decimals = 0
 
@@ -1084,11 +1084,11 @@ class Timeline(QtCore.QObject):
     def Play(self, state):
         if state:
             self.timer.start(1000 / self.fps)
-            self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "media-playback-pause.png")))
+            self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "pause.ico")))
             self.playing = True
         else:
             self.timer.stop()
-            self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "media-playback-start.png")))
+            self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "play.ico")))
             self.playing = False
 
     def updateFrame(self, nr=-1):
