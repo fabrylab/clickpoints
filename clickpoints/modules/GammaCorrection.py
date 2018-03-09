@@ -41,8 +41,10 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.image = image_display
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
+        self.setScale(self.window.scale_factor)
+
         self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-        self.setPos(-140, -140-20)
+        self.setPos(-140*self.window.scale_factor, (-140-20)*self.window.scale_factor)
         self.setZValue(19)
 
         self.hist = QtWidgets.QGraphicsPathItem(self)
@@ -61,17 +63,17 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         start = [1, 255, 0]
         formats = [" %.2f", "    %3d", "    %3d"]
         for i, name in enumerate(["Gamma", "Max", "Min"]):
-            slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0], font=window.mono_font)
+            slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0], font=window.mono_font, scale=self.window.scale_factor)
             slider.format = formats[i]
             slider.setPos(5, 40 + i * 30)
             slider.setValue(start[i])
             slider.valueChanged = functions[i]
             self.sliders.update({name: slider})
 
-        self.button_update = TextButton(self, 50, "update", font=window.mono_font)
+        self.button_update = TextButton(self, 50, "update", font=window.mono_font, scale=self.window.scale_factor)
         self.button_update.setPos(3, 40 + 3 * 30 - 20)
         self.button_update.clicked.connect(self.updateROI)
-        self.button_reset = TextButton(self, 50, "reset", font=window.mono_font)
+        self.button_reset = TextButton(self, 50, "reset", font=window.mono_font, scale=self.window.scale_factor)
         self.button_reset.setPos(56, 40 + 3 * 30 - 20)
         self.button_reset.clicked.connect(self.reset)
 
