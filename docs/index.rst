@@ -27,6 +27,12 @@ semi-automatic evaluation or display the results of automatic image evaluation.
    api
    api_addon
 
+Note
+----
+
+If you encounter any bugs or unexpected behaviour, you are encouraged to report a bug in our
+Bitbucket `bugtracker <https://bitbucket.org/fabry_biophysics/clickpoints/issues?status=new&status=open>`_.
+
 Citing ClickPoints
 ------------------
 
@@ -42,8 +48,23 @@ us. Citing ClickPoints also increases it's exposure and potential user
 (and developer) base, which is to the benefit of all users of ClickPoints. Thanks
 in advance!
 
-Note
-----
+Who uses ClickPoints
+--------------------
 
-If you encounter any bugs or unexpected behaviour, you are encouraged to report a bug in our
-Bitbucket `bugtracker <https://bitbucket.org/fabry_biophysics/clickpoints/issues?status=new&status=open>`_.
+Here is a list of publications that used ClickPoints for their evaluation.
+
+- Bonakdar, N., Gerum, R. C., Kuhn, M., Spörrer, M., Lippert, A., Schneider, W., … Fabry, B. (2016). *Mechanical plasticity of cells*. Nature Materials, 15(10), 1090–1094. https://doi.org/10.1038/nmat4689
+
+- Braniš, J., Pataki, C., Spörrer, M., Gerum, R. C., Mainka, A., Cermak, V., … Rosel, D. (2017). *The role of focal adhesion anchoring domains of CAS in mechanotransduction*. Scientific Reports, 7. https://doi.org/10.1038/srep46233
+
+- Gerum, R. C., Richter, S., Winterl, A., Fabry, B., & Zitterbart, D. P. (2017). *CameraTransform: a Scientific Python Package for Perspective Camera Corrections*. ArXiv http://arxiv.org/abs/1712.07438
+
+- Richter, S., Gerum, R., Schneider, W., Fabry, B., Le Bohec, C., & Zitterbart, D. P. (2018). *A remote-controlled observatory for behavioural and ecological research: A case study on emperor penguins*. Methods in Ecology and Evolution. https://doi.org/10.1111/2041-210X.12971
+
+- Gerum, R., Richter, S., Fabry, B., Le Bohec, C., Bonadonna, F., Nesterova, A., Zitterbart, D. *Structural organisation and dynamics in kin penguin colonies*, Journal of Physics D, accepted
+
+- Richter, S., Gerum, R., Winterl, A., Houstin, A., Seifert, M., Peschel1, J., Fabry, B., Le Bohec, C., Zitterbart, D.P., *Phase transitions in huddling emperor penguin colonies*, Journal of Physics D, under review.
+
+- Gerlitz, N., Gerum, R., Sauer, N., Stadler, R. *Photoinducible DRONPA-s: a new tool to investigate cell-cell connectivity*, The Plant Journal, under review.
+
+- Cóndor, M., Gerum, R., Mark, C., García-Aznar, J.M., Fabry, B. *Breast cancer cells adapt contractile forces to overcome steric hindrance*, unpublished manuscript
