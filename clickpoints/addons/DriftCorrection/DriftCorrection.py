@@ -33,10 +33,13 @@ class Addon(clickpoints.Addon):
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
+        self.matchFunctions = ["TM_CCOR", "TM_CCOR_NORMED", "TM_CCOEFF", "TM_CCOEFF_NORMED"]
+
         self.addOption(key="borderSize", display_name="Border", default=[20, 20], value_count=2, value_type="int",
                        tooltip="How much border in pixel the search window is allowed to move during the search in the new image.")
         self.addOption(key="compareToFirst", display_name="Compare to first image", default=False, value_type="bool",
                        tooltip="Weather each image should be compared to the first image or the previous image.")
+        self.addOption(key="matchFunction", display_name="Match Function", default=3, value_type="choice", values=self.matchFunctions)
 
         # Check if the marker type is present
         if not self.db.getMarkerType("drift_rect"):
@@ -120,11 +123,14 @@ class Addon(clickpoints.Addon):
         images = self.db.getImageIterator(start_frame=start_frame, end_frame=end_frame)
         template = next(images).data[rect.slice((border_y, border_x))]
 
+        # get the match function
+        match_func = getattr(cv2, self.matchFunctions[self.getOption("matchFunction")])
+
         # start iteration
         last_shift = np.array([0, 0])
         for image in images:
             # template matching for drift correction
-            res = cv2.matchTemplate(image.data[rect.slice()], template, cv2.TM_CCOEFF_NORMED)
+            res = cv2.matchTemplate(image.data[rect.slice()], template, match_func)
             res += np.amin(res)
             res = res ** 4.
 
