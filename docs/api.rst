@@ -261,6 +261,17 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
             Parameters:
                  - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this rectangle. It has to be of mode TYPE_Rect.
 
+        .. py:function:: cropImage(image=None, with_offset=True, with_subpixel=True, border=0)
+
+            Crop a region of the given image provided by the rectangle.
+
+            Parameters:
+                - **image** *(ndarray, * :py:class:`Image` *)* - the image as a database entry or a numpy array.
+                - **with_offset** *(bool)* - whether to apply the offset of the image. Default True.
+                - **with_subpixel** *(bool)* - whether to apply a subpixel shift for the region. Default True.
+                - **border** *(number)* - a number of border pixels to add to the region. Default 0.
+
+
 .. py:class:: Mask()
 
     A mask entry.
