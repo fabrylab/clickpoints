@@ -126,6 +126,10 @@ class Addon(clickpoints.Addon):
         self.button_track.clicked.connect(self.trackButton)
         layout.addWidget(self.button_track)
 
+        self.button_track_once = QtWidgets.QPushButton("Track One Frame")
+        self.button_track_once.clicked.connect(self.trackOnceButton)
+        layout.addWidget(self.button_track_once)
+
         # add a progress bar
         self.progressbar = QtWidgets.QProgressBar()
         self.layout.addWidget(self.progressbar)
@@ -159,8 +163,8 @@ class Addon(clickpoints.Addon):
         ox = np.mean(dx[-100:, :100])
         oy = np.mean(dy[-100:, :100])
 
-        dx = dx-ox
-        dy = dy-oy
+        #dx = dx-ox
+        #dy = dy-oy
 
         a = np.arctan2(dx, dy)
         flow_dir = (np.arctan2(dx, dy)/np.pi + 1)/2
@@ -205,19 +209,34 @@ class Addon(clickpoints.Addon):
         self.end -= (self.end - self.start) % self.skip
         # init the progessbar
         self.progressbar.setRange(0, self.end - self.start)
+        self.cp.save()
+        # run the tracking
+        self.run_threaded(function=self.track)
+
+    def trackOnceButton(self):
+        # get the frame range
+        self.start, self.end, self.skip = self.cp.getCurrentFrame(), self.cp.getCurrentFrame()+2, 1
+        # init the progessbar
+        self.progressbar.setRange(0, self.end - self.start)
+        self.cp.save()
         # run the tracking
         self.run_threaded(function=self.track)
 
     def track(self, _):
+        print("Trackking from ", self.start, self.end, self.skip)
         images = self.db.getImageIterator(self.start, self.end, skip=self.skip)
 
         # retrieve first image
         image_last = next(images)
 
         # get points and corresponding tracks
-        points = self.db.getMarkers(image=image_last.id, processed=0, type=self.my_track)
-        p0 = np.array([[point.x, point.y] for point in points if point.track_id]).astype(np.float32)
-        tracks = [point.track for point in points if point.track_id]
+        points = self.db.getMarkers(image=image_last, processed=0, type=self.my_track)
+        p0 = np.array([[point.x, point.y] for point in points]).astype(np.float32)
+        tracks = [point.track for point in points]
+        if len(p0) == 0:
+            print("Nothing to track")
+            return
+        print("init", p0.shape, image_last.sort_index, image_last.id, image_last)
 
         # start iterating over all images
         for index, image in enumerate(images):
@@ -228,22 +247,26 @@ class Addon(clickpoints.Addon):
 
             dx = flow[:, :, 0]
             dy = flow[:, :, 1]
+            flow_mag = np.sqrt((dx ** 2 + dy ** 2))
 
             for i in range(p0.shape[0]):
                 print(i)
                 x, y = p0[i, :].astype("int")
-                p0[i, 0] += dx[y, x]
-                p0[i, 1] += dy[y, x]
-            print("save")
+                u = np.unravel_index(np.argmax(flow_mag[y-3:y+4, x-3:x+4]), flow_mag[y-3:y+4, x-3:x+4].shape)
+                print("u", u)
+                iy, ix = np.array(u)-3
+                p0[i, 0] += dx[y+iy, x+ix] + ix
+                p0[i, 1] += dy[y+iy, x+ix] + iy
+            print("save", p0.shape)
             # set the new positions
-            self.db.setMarkers(image=image, x=p0[:, 0], y=p0[:, 1], processed=0, track=tracks)
+            self.db.setMarkers(image=image, x=p0[:, 0], y=p0[:, 1], processed=0, track=tracks, type=self.my_track)
 
             # mark the marker in the last frame as processed
-            #self.db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=tracks)
+            self.db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=tracks, type=self.my_track)
 
             # update ClickPoints
             self.cp.reloadMarker(image.sort_index)
-            #self.cp.jumpToFrameWait(image.sort_index)
+            self.cp.jumpToFrameWait(image.sort_index)
 
             # store positions and image
             image_last = image
@@ -280,7 +303,7 @@ class Addon(clickpoints.Addon):
             if not os.path.exists(os.path.dirname(filename)):
                 os.mkdir(os.path.dirname(filename))
             imageio.imwrite(filename, image_sliced)
-            
+
             # check if we should terminate
             if self.cp.hasTerminateSignal():
                 print("Cancelled Export")
@@ -292,7 +315,7 @@ class Addon(clickpoints.Addon):
         # round start position
         marker.x = round(marker.x)
         marker.y = round(marker.y)
-        # make width and height divisable by 64
+        # make width and height divisible by 64
         marker.width = round(marker.width / 64) * 64
         marker.height = round(marker.height / 64) * 64
         # count blocks
@@ -303,7 +326,7 @@ class Addon(clickpoints.Addon):
     def markerMoveFinishedEvent(self, marker):
         # if the marker is of the current type
         if marker.type == self.my_type:
-            # ensure its divisable by 64
+            # ensure its divisible by 64
             self.ensureMarkerBlockSize(marker)
             # repaint the markers
             self.cp.reloadMarker()
@@ -316,3 +339,7 @@ class Addon(clickpoints.Addon):
 
     def buttonPressedEvent(self):
         self.show()
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_0:
+            self.trackOnceButton()
