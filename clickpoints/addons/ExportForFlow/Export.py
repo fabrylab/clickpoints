@@ -273,7 +273,7 @@ class Addon(clickpoints.Addon):
             # update the progressbar
             self.progressbar.setValue(index*self.skip)
             # slice the image
-            image_sliced = image.data[rectangle.slice_y(), rectangle.slice_x()]
+            image_sliced = rectangle.cropImage(image)
             # write the image
             filename = self.input_filename.text() % index
             print(filename)

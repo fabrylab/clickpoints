@@ -953,6 +953,67 @@ class DataFile:
                     border_x = border
                 return (self.slice_y(border_y), self.slice_x(border_x))
 
+            def cropImage(self, image=None, with_offset=True, with_subpixel=True, border=0):
+                # if no image is given take the image of the rectangle
+                if image is None:
+                    image = self.image
+                # get the date from the image if it is a database entry
+                try:
+                    image_data = image.data
+                # if not, assume it is a numpy array
+                except AttributeError as err:
+                    print("eeer", err)
+                    image_data = image
+
+                # the start of the rectangle
+                start = np.array([self.x-border, self.y-border])
+                # the dimensions of the rectangle (needs to be integers)
+                extent = np.array([self.width+border*2, self.height+border*2]).astype("int")
+
+                # check if some dimensions are negative
+                if self.width < 0:
+                    extent[0] = -extent[0]
+                    start[0] = start[0] - extent[0]
+                if self.height < 0:
+                    extent[1] = -extent[1]
+                    start[1] = start[1] - extent[1]
+
+                # subtract the offset from the image
+                if with_offset:
+                    # try to get the offset from the image (fails if image is already a numpy array)
+                    try:
+                        # get the offset from the rectangle's image
+                        offset0 = self.image.offset
+                        # get the offset from the target image
+                        offset = image.offset
+                        # try to calculate the difference
+                        if offset0 is not None:
+                            if offset is not None:
+                                offset = offset - offset0
+                            else:
+                                offset = -np.array([offset0.x, offset0.y])
+                    # image is a numpy array, it has no offset information
+                    except AttributeError:
+                        offset = None
+                    # apply the offset, if we found one
+                    if offset is not None:
+                        start -= offset
+
+                # split offsets in integer and decimal part
+                start_int = start.astype("int")
+                start_float = start - start_int
+
+                # get the cropped image
+                crop = image_data[start_int[1]:start_int[1]+extent[1], start_int[0]:start_int[0]+extent[0]]
+
+                # apply the subpixel decimal shift
+                if with_subpixel and (start_float[0] or start_float[1]):
+                    from scipy.ndimage import shift
+                    crop = shift(crop, [start_float[1], start_float[0], 0])
+
+                # return the cropped image
+                return crop
+
             def area(self):
                 return self.width * self.height
 
