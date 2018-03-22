@@ -1756,10 +1756,17 @@ class DataFile:
     def _checkTrackField(self, tracks):
         if not isinstance(tracks, (tuple, list)):
             tracks = [tracks]
-        tracks = [t for t in tracks if t is not None]
+        tracks = list(set([t for t in tracks if t is not None]))
         if len(tracks) == 0:
             return
-        if self.table_track.select().where(self.table_track.id << tracks).count() != len(set(tracks)):
+        if self._SQLITE_MAX_VARIABLE_NUMBER is None:
+            self._SQLITE_MAX_VARIABLE_NUMBER = self.max_sql_variables()
+        chunk_size = (self._SQLITE_MAX_VARIABLE_NUMBER - 1) // 2
+        c=0
+        with self.db.atomic():
+            for idx in range(0, len(tracks), chunk_size):
+                c += self.table_track.select().where(self.table_track.id << tracks[idx:idx + chunk_size]).count()
+        if c != len(set(tracks)):
             raise TrackDoesNotExist("One or more tracks from the list {0} does not exist.".format(tracks))
 
     def _processesTypeNameField(self, types, modes):
