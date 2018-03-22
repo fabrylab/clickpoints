@@ -3995,7 +3995,7 @@ class DataFile:
                 kwargs["image"] = image
                 self.setAnnotation(**kwargs)
 
-    def getTracksNanPadded(self, type=None, id=None, start_frame=None, end_frame=None, apply_offset=False):
+    def getTracksNanPadded(self, type=None, id=None, start_frame=None, end_frame=None, skip=None, layer=0, apply_offset=False):
         """
         Return an array of all track points with the given filters. The array has the shape of [n_tracks, n_images, pos],
         where pos is the 2D position of the markers.
@@ -4012,6 +4012,10 @@ class DataFile:
             the frame where to begin the array. Default: first frame.
         end_frame : int, optional
             the frame where to end the array. Default: last frame.
+        skip : int, optional
+            skip every nth frame. Default: don't skip frames.
+        layer : int, optional
+            which layer to use for the images.
         apply_offset : bool, optional
             whether to apply the image offsets to the marker positions. Default: False.
 
@@ -4022,16 +4026,19 @@ class DataFile:
         """
 
         # get the query, it joins each image with the markers from the track
-        query = "SELECT x, y FROM image AS i LEFT JOIN (SELECT x, y, image_id FROM marker WHERE track_id = ?) AS m ON image_id = id WHERE layer = 0;"
+        query = "SELECT x, y FROM image AS i LEFT JOIN (SELECT x, y, image_id FROM marker WHERE track_id = ?) AS m ON image_id = id WHERE layer = %d;" % layer
         # if the offset is required, join this query with the offset table and add the offsets, if they are found
         if apply_offset:
-            query = "SELECT m.x+IFNULL(o.x, 0) AS x, m.y+IFNULL(o.y, 0) AS y FROM image AS i LEFT JOIN (SELECT x, y, image_id FROM marker WHERE track_id = ?) AS m ON m.image_id = i.id LEFT JOIN offset o ON i.id = o.image_id WHERE layer = 0;"
+            query = "SELECT m.x+IFNULL(o.x, 0) AS x, m.y+IFNULL(o.y, 0) AS y FROM image AS i LEFT JOIN (SELECT x, y, image_id FROM marker WHERE track_id = ?) AS m ON m.image_id = i.id LEFT JOIN offset o ON i.id = o.image_id WHERE layer = %d;" % layer
         # if a start frame is given, only export marker from images >= the given frame
         if start_frame is not None:
             query = query[:-1] + " AND i.sort_index >= %d;" % start_frame
         # if a end frame is given, only export marker from images < the given frame
         if end_frame is not None:
             query = query[:-1] + " AND i.sort_index < %d;" % end_frame
+        # skip every nth frame
+        if skip is not None:
+            query = query[:-1] + " AND i.sort_index %% %d = 0;" % skip
 
         # iterate over all the tracks given by the filter
         all_tracks = []
