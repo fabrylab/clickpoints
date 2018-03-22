@@ -3104,8 +3104,15 @@ class MarkerHandler:
         # query track entries for new tracks found in the images which were loaded
         if len(new_tracks):
             # query tracks
-            new_track_query = self.marker_file.table_track.select().where(
-                self.marker_file.table_track.id << new_tracks)
+            new_track_query = []
+            if self.data_file._SQLITE_MAX_VARIABLE_NUMBER is None:
+                self.data_file._SQLITE_MAX_VARIABLE_NUMBER = self.data_file.max_sql_variables()
+            chunk_size = (self.data_file._SQLITE_MAX_VARIABLE_NUMBER - 1) // 2
+            with self.data_file.db.atomic():
+                for idx in range(0, len(new_tracks), chunk_size):
+                    new_track_query.extend(self.marker_file.table_track.select().where(
+                        self.marker_file.table_track.id << new_tracks[idx:idx + chunk_size]))
+
             # and crate track display items from it
             for track in new_track_query:
                 try:
