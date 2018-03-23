@@ -1,0 +1,5 @@
+[addon]
+name=Detector Tester
+file=DetectorTester.py
+icon=fa.flag
+requirements=skimage
