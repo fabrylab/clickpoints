@@ -4026,27 +4026,34 @@ class DataFile:
         """
 
         # get the query, it joins each image with the markers from the track
-        query = "SELECT x, y FROM image AS i LEFT JOIN (SELECT x, y, image_id FROM marker WHERE track_id = ?) AS m ON image_id = id WHERE layer = %d;" % layer
-        # if the offset is required, join this query with the offset table and add the offsets, if they are found
-        if apply_offset:
-            query = "SELECT m.x+IFNULL(o.x, 0) AS x, m.y+IFNULL(o.y, 0) AS y FROM image AS i LEFT JOIN (SELECT x, y, image_id FROM marker WHERE track_id = ?) AS m ON m.image_id = i.id LEFT JOIN offset o ON i.id = o.image_id WHERE layer = %d;" % layer
+        query_marker = "SELECT x, y FROM image AS i LEFT JOIN (SELECT x, y, image_id FROM marker WHERE track_id = ?) AS m ON image_id = id"
+        query_offset = "SELECT IFNULL(o.x, 0) AS x, IFNULL(o.y, 0) AS y FROM image AS i LEFT JOIN offset o ON i.id = o.image_id"
+
+        # get the filter condition
+        where_condition = " WHERE layer = %d;" % layer
+
         # if a start frame is given, only export marker from images >= the given frame
         if start_frame is not None:
-            query = query[:-1] + " AND i.sort_index >= %d;" % start_frame
+            where_condition = where_condition[:-1] + " AND i.sort_index >= %d;" % start_frame
         # if a end frame is given, only export marker from images < the given frame
         if end_frame is not None:
-            query = query[:-1] + " AND i.sort_index < %d;" % end_frame
+            where_condition = where_condition[:-1] + " AND i.sort_index < %d;" % end_frame
         # skip every nth frame
         if skip is not None:
-            query = query[:-1] + " AND i.sort_index %% %d = 0;" % skip
+            where_condition = where_condition[:-1] + " AND i.sort_index %% %d = 0;" % skip
 
         # iterate over all the tracks given by the filter
         all_tracks = []
         for track in self.getTracks(type=type, id=id):
             # get the markers from the track using the prepared query, convert data to a numpy array with float type
-            pos = np.array(self.db.execute_sql(query, (track.id, )).fetchall()).astype(float)
+            pos = np.array(self.db.execute_sql(query_marker+where_condition, (track.id, )).fetchall()).astype(float)
             # add the track to the list
             all_tracks.append(pos)
+
+        # if the offset is required, get the offsets for all images and add them to the marker positions
+        if apply_offset:
+            offsets = np.array(self.db.execute_sql(query_offset+where_condition).fetchall()).astype(float)
+            all_tracks += offsets
 
         # convert the list to an array and return it
         return np.array(all_tracks)
