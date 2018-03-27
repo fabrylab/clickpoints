@@ -1928,7 +1928,7 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         self.text_parent = self.g1
 
     def newData(self, event, type):
-        return self.marker_handler.data_file.table_marker(image=self.marker_handler.data_file.image,
+        return self.marker_handler.data_file.table_marker(image=self.marker_handler.reference_image,
                                                           x=event.pos().x(), y=event.pos().y(), type=type)
 
     def ReloadData(self):
@@ -1991,7 +1991,7 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
 
     def newData(self, event, type):
         x, y = event.pos().x(), event.pos().y()
-        return self.marker_handler.data_file.table_line(image=self.marker_handler.data_file.image,
+        return self.marker_handler.data_file.table_line(image=self.marker_handler.reference_image,
                                                         x1=x, y1=y, x2=x, y2=y, type=type)
 
     def ReloadData(self):
@@ -2076,7 +2076,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
 
     def newData(self, event, type):
         x, y = event.pos().x(), event.pos().y()
-        return self.marker_handler.data_file.table_rectangle(image=self.marker_handler.data_file.image,
+        return self.marker_handler.data_file.table_rectangle(image=self.marker_handler.reference_image,
                                                         x=x, y=y, width=0, height=0, type=type)
 
     def ReloadData(self):
@@ -2337,7 +2337,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
     def addPoint(self, pos):
         if self.marker is None:
-            image = self.marker_handler.marker_file.data_file.image
+            image = self.marker_handler.reference_image
             marker = self.marker_handler.marker_file.table_marker(image=image,
                                                                        x=pos.x(), y=pos.y(),
                                                                      type=self.data.type,
@@ -3045,6 +3045,9 @@ class MarkerHandler:
 
     def imageLoadedEvent(self, filename, framenumber):
         self.frame_number = framenumber
+        # get the image of the given frame, but in layer 0.
+        # this will be the image that all new markers will be attached to
+        self.reference_image = self.data_file.get_image(framenumber, 0)
         self.LoadPoints()
         self.LoadTracks()
         self.LoadLines()
