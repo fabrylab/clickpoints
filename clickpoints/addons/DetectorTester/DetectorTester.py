@@ -271,6 +271,9 @@ class Addon(clickpoints.Addon):
             self.timer.setSingleShot(0)
             self.timer.timeout.connect(self.start_detect_and_show)
             self.timer.start()
+        else:
+            if self.detector is not None:
+                self.detector.ParameterList.updateWidgets()
 
     def start_detect_and_show(self):
         print("start_detect_and_show")
