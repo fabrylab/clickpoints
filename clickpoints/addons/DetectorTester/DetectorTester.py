@@ -288,7 +288,7 @@ class Addon(clickpoints.Addon):
                      (rect.y <= positions[:, 1]) * (rect.y+rect.height >= positions[:, 1])
         return valid
 
-    def prepareDetectionParameters(self, current_frame, detect):
+    def prepareDetectionParameters(self, current_frame, current_layer, detect):
         arguments = {}
         for parameter in detect.detection_parameters:
             name = parameter
@@ -296,7 +296,7 @@ class Addon(clickpoints.Addon):
             if "layer" in parameter:
                 layer = dict(MaximumIndices=0, MaximumProjection=1, MinimumIndices=2, MinimumProjection=3)[parameter["layer"]]
             else:
-                layer = 0
+                layer = current_layer
             if "frame" in parameter:
                 frame = parameter["frame"]
             else:
@@ -321,6 +321,7 @@ class Addon(clickpoints.Addon):
 
         # get the current frame
         frame = self.cp.getCurrentFrame()
+        layer = self.cp.window.layer
 
         # remove all previous markers
         self.db.deleteMarkers(frame=frame, type=self.marker_type_true_positive)
@@ -328,7 +329,7 @@ class Addon(clickpoints.Addon):
         self.db.deleteMarkers(frame=frame, type=self.marker_type_false_negative)
 
         # detect the current image with the detector
-        arguments = self.prepareDetectionParameters(frame, self.detector.detect)
+        arguments = self.prepareDetectionParameters(frame, layer, self.detector.detect)
         try:
             positions, mask = self.detector.detect(**arguments)
             positions = np.array(positions[["PositionX", "PositionY"]])
@@ -365,7 +366,8 @@ class Addon(clickpoints.Addon):
         import skopt
         # get the current frame
         frame = self.cp.getCurrentFrame()
-        arguments = self.prepareDetectionParameters(frame, self.detector.detect)
+        layer = self.cp.window.layer
+        arguments = self.prepareDetectionParameters(frame, layer, self.detector.detect)
 
         # get the ground-truth data
         groundtruth_pos = self.getGroundTruthPositions(frame)
