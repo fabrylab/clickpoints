@@ -20,241 +20,112 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 import numpy as np
+import qtawesome as qta
 from qtpy import QtCore, QtWidgets
-from skimage.measure import label, regionprops
 
 import clickpoints
+from clickpoints.includes.QtShortCuts import AddQSpinBox, AddQOpenFileChoose
+
+from inspect import getdoc
+from PenguTrack import Detectors
+import traceback
+import os
+import sys
+from importlib import import_module, reload
 
 
-class QParameterEdit(QtWidgets.QWidget):
-    no_edit = False
+def loadModule(path, module=None):
+    folder, filename = os.path.split(path)
+    path, folder = os.path.split(folder)
+    basefilename, ext = os.path.splitext(filename)
 
-    def __init__(self, parameter, layout):
-        super().__init__()
-        self.parameter = parameter
-        if layout is not None:
-            layout.addWidget(self)
+    sys.path.insert(0, path)
 
-        self.type = parameter.type
-
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-
-        self.label = QtWidgets.QLabel(parameter.name)
-        self.layout.addWidget(self.label)
-
-        if self.parameter.desc is not None:
-            self.setToolTip(self.parameter.desc)
-
-    def setValue(self, x):
-        if self.no_edit:
-            return
-        self.no_edit = True
-        self.doSetValue(x)
-        self.parameter.value = self.type(x)
-        self.parameter.valueChanged()
-        self.no_edit = False
-
-    def doSetValue(self, x):
-        self.parameter.value = x
-
-
-class QNumberChooser(QParameterEdit):
-    def __init__(self, parameter, layout, type_int):
-        super().__init__(parameter, layout)
-        self.slider = QtWidgets.QSlider()
-        self.layout.addWidget(self.slider)
-        self.slider.setOrientation(QtCore.Qt.Horizontal)
-
-        if type_int:
-            self.spinBox = QtWidgets.QSpinBox()
+    try:
+        if module is None:
+            try:
+                print("import", folder + "." + basefilename)
+                addon_module = import_module(folder + "." + basefilename)
+            except Exception as err:
+                raise err
+            loaded = True
         else:
-            self.spinBox = QtWidgets.QDoubleSpinBox()
-        self.layout.addWidget(self.spinBox)
-
-        if parameter.min is not None:
-            self.spinBox.setMinimum(parameter.min)
-            self.slider.setMinimum(parameter.min)
-        if parameter.max is not None:
-            self.spinBox.setMaximum(parameter.max)
-            self.slider.setMaximum(parameter.max)
-
-        self.setValue(parameter.value)
-
-        self.spinBox.valueChanged.connect(self.setValue)
-        self.slider.valueChanged.connect(self.setValue)
-
-    def doSetValue(self, x):
-        self.spinBox.setValue(x)
-        self.slider.setValue(x)
+            addon_module = reload(module)
+    finally:
+        sys.path.pop(0)
+    return addon_module
 
 
-class QStringChooser(QParameterEdit):
-
-    def __init__(self, parameter, layout):
-        super().__init__(parameter, layout)
-        self.edit = QtWidgets.QLineEdit()
-        self.layout.addWidget(self.edit)
-
-        self.setValue(parameter.value)
-
-        self.edit.textChanged.connect(self.setValue)
-
-    def doSetValue(self, x):
-        self.edit.setText(x)
+def getClassDefinitions(module, baseclass):
+    class_definitions = []
+    for name in dir(module):
+        current_class_definition = getattr(module, name)
+        try:
+            if issubclass(current_class_definition, baseclass) and current_class_definition != baseclass:
+                class_definitions.append(current_class_definition)
+        except TypeError:
+            pass
+    return class_definitions
 
 
-class QBoolChooser(QParameterEdit):
-    def __init__(self, parameter, layout):
-        super().__init__(parameter, layout)
-        self.check = QtWidgets.QCheckBox()
-        self.layout.addWidget(self.check)
+def getEvalValuesGT(groundtruth_pos, pos_program, distance_cost_parameter):
+    from scipy.optimize import linear_sum_assignment
+    from scipy.spatial import distance
 
-        self.setValue(parameter.value)
+    # if no detections are found
+    if len(pos_program) == 0:
+        tp_ind = np.array([], dtype="uint64")
+        fp_ind = np.array([], dtype="uint64")
+        fn_ind = np.arange(len(groundtruth_pos), dtype="uint64")
+    elif len(groundtruth_pos) == 0:
+        tp_ind = np.array([], dtype="uint64")
+        fp_ind = np.arange(len(pos_program), dtype="uint64")
+        fn_ind = np.array([], dtype="uint64")
+    else:
+        # calculate all distances
+        cost = distance.cdist(pos_program, groundtruth_pos, 'sqeuclidean')
 
-        self.check.stateChanged.connect(self.setValue)
+        # solve the assignment to optimize the pairing
+        row_ind, col_ind = linear_sum_assignment(cost)
 
-    def doSetValue(self, x):
-        self.check.setChecked(x)
+        # get the distances for the matches
+        distance_cost = cost[row_ind, col_ind]
 
+        # filter by distance
+        row_ind = row_ind[np.array(distance_cost) < distance_cost_parameter**2]
+        col_ind = col_ind[np.array(distance_cost) < distance_cost_parameter**2]
 
-class QChoiceChooser(QParameterEdit):
-    def __init__(self, parameter, layout):
-        super().__init__(parameter, layout)
-        self.comboBox = QtWidgets.QComboBox()
-        self.layout.addWidget(self.comboBox)
-        for value in parameter.values:
-            self.comboBox.addItem(str(value))
+        # true positives = objects that have both been clicked by the user and were found by the detector
+        tp_ind = row_ind.astype("uint64")
+        # false positive = objects, which were found by the detector, but were not clicked by the user
+        fp_ind = np.array(list(set(np.arange(0, len(pos_program))) - set(tp_ind)), dtype="uint64")
+        # false negatives = objects, which were clicked by the user, but were not found by the detector
+        fn_ind = np.array(list(set(np.arange(0, len(groundtruth_pos))) - set(col_ind)), dtype="uint64")
 
-        self.setValue(parameter.value)
+    # count
+    fp = len(fp_ind)
+    fn = len(fn_ind)
+    tp = len(tp_ind)
 
-        self.comboBox.currentTextChanged.connect(self.setValue)
+    # calculate the values
+    try:
+        FAR = fp / (tp + fp)  # False Alarm Rate - Anzahl, wie oft ein Objekt falsch vom Detektor erkannt wird
+    except ZeroDivisionError:
+        FAR = 0
+    try:
+        DR = tp / (tp + fn)  # Detection Rate - Anzahl, wie viele Objektive richtig detektiert wurden (Prozent)
+    except ZeroDivisionError:
+        DR = 0
+    try:
+        PR = tp / (tp + fp)  # precision - Anzahl, wie viele Objekte von Detektor gefunden wurde, aber nicht geklickt
+    except ZeroDivisionError:
+        PR = 0
+    eval_values = {}
+    eval_values.update(False_Alarm_Rate=np.round(FAR, decimals=2), Detection_Rate=np.round(DR, decimals=2),
+                       Precision=np.round(PR, decimals=2), fp=fp, fn=fn, tp=tp)
 
-    def doSetValue(self, x):
-        self.comboBox.setCurrentText(str(x))
+    return eval_values, tp_ind, fp_ind, fn_ind
 
-
-class Parameter(object):
-    def __init__(self, key, default=0, name=None, min=None, max=None, range=None, values=None, value_type=None,
-                 desc=None):
-        self.key = key
-        self.default = default
-        self.name = name
-        self.min = min
-        self.max = max
-        if range is not None:
-            self.min = range[0]
-            self.max = range[1]
-        self.values = values
-        self.type = value_type
-        self.desc = desc
-
-        if value_type is None:
-            self.type = type(default)
-
-        self.value = self.default
-        if self.name is None:
-            self.name = self.key
-
-    def addWidget(self, layout):
-        if self.values is not None:
-            return QChoiceChooser(self, layout)
-        if self.type == int:
-            return QNumberChooser(self, layout, type_int=True)
-        if self.type == float:
-            return QNumberChooser(self, layout, type_int=False)
-        if self.type == str:
-            return QStringChooser(self, layout)
-        if self.type == bool:
-            return QBoolChooser(self, layout)
-        print("type", self.type, "not recognized")
-
-    def valueChanged(self):
-        pass
-
-
-class ParameterList(object):
-    def __init__(self, *parameters):
-        self.parameters = parameters
-        for parameter in self.parameters:
-            parameter.valueChanged = self.valueChanged
-
-    def addWidgets(self, layout):
-        group = QtWidgets.QGroupBox("Parameters")
-        layout.addWidget(group)
-        layout = QtWidgets.QVBoxLayout(group)
-        widgets = []
-        for parameter in self.parameters:
-            widgets.append(parameter.addWidget(layout))
-        return group
-
-    def __getitem__(self, item):
-        for parameter in self.parameters:
-            if parameter.key == item:
-                return parameter.value
-
-    def valueChanged(self):
-        self.valueChangedEvent()
-
-    def valueChangedEvent(self):
-        pass
-
-
-class Detector(object):
-    """
-    This Class describes the abstract function of a detector in the pengu-track package.
-    It is only meant for subclassing.
-    """
-
-    def __init__(self):
-        super(Detector, self).__init__()
-        self.parameters = ParameterList()
-
-    def detect(self, image):
-        return np.random.rand((1, 2)), None
-
-
-class DetectorThreshold(Detector):
-    """
-    This Class describes the abstract function of a detector in the pengu-track package.
-    It is only meant for subclassing.
-    """
-
-    def __init__(self):
-        super(Detector, self).__init__()
-
-        # define the parameters of the detector
-        self.parameters = ParameterList(Parameter("threshold", 128, range=[0, 255]),
-                                        Parameter("invert", False),
-                                        Parameter("mode", "test", values=["bla", "blub", "test", "heho"]))
-
-    def detect(self, image):
-        # threshold the image
-        mask = (image > self.parameters["threshold"]).astype("uint8")
-        # invert it
-        if self.parameters["invert"]:
-            mask = 1 - mask
-        # find all regions
-        props = regionprops(label(mask))
-        # get the positions of the regions
-        positions = np.array([(prop.centroid[1] + 0.5, prop.centroid[0] + 0.5) for prop in props])
-        # return positions and mask
-        return positions, mask
-
-
-class DetectorRandom(Detector):
-    """
-    This Class describes the abstract function of a detector in the pengu-track package.
-    It is only meant for subclassing.
-    """
-
-    def __init__(self):
-        super(Detector, self).__init__()
-
-        self.parameters = ParameterList(Parameter("count", 128, min=0, max=255))
-
-    def detect(self, image):
-        return np.random.rand(self.parameters["count"], 2) * np.array(image.shape)[::-1], None
 
 
 class Addon(clickpoints.Addon):
@@ -270,20 +141,34 @@ class Addon(clickpoints.Addon):
         self.layout = QtWidgets.QVBoxLayout(self)
 
         # Check if the marker type is present
-        #self.marker_type_truth = self.db.setMarkerType("ground_truth", "#0a2eff", self.db.TYPE_Normal)
-        self.marker_type_detection = self.db.setMarkerType("detected_point", "#ff1150", self.db.TYPE_Normal)
-        #self.marker_type_hit = self.db.setMarkerType("detected_point (hit)", "#19ff66", self.db.TYPE_Normal)
+        self.marker_type_truth = self.db.setMarkerType("ground truth", "#0a2eff", self.db.TYPE_Normal)
+        self.marker_type_truth_region = self.db.setMarkerType("ground truth region", "#035bff", self.db.TYPE_Rect)
+        self.marker_type_true_positive = self.db.setMarkerType("true positive", "#19ff66", self.db.TYPE_Normal)
+        self.marker_type_false_positive = self.db.setMarkerType("false positive", "#ff1150", self.db.TYPE_Normal)
+        self.marker_type_false_negative = self.db.setMarkerType("false negative", "#ff730f", self.db.TYPE_Normal, style='{"shape":"ring", "scale":2}')
         self.cp.reloadTypes()
 
-        self.detector_classes = [DetectorThreshold, DetectorRandom]
+        self.distance_cost_parameter = AddQSpinBox(self.layout, "Max Distance to Groundtruth", 10, False)
+        self.optimization_count = AddQSpinBox(self.layout, "Optimizer iterations", 100, False)
+
+        self.detector_file = AddQOpenFileChoose(self.layout, "Detector File:", "", file_type="Python File (*.py)")
+        self.detector_file.textChanged.connect(self.detectorFileSelected)
+        self.detector_file_button_reload = QtWidgets.QPushButton()
+        self.detector_file_button_reload.setIcon(qta.icon("fa.repeat"))
+        self.detector_file_button_reload.clicked.connect(self.detectorFileSelected)
+        self.detector_file.managingLayout.addWidget(self.detector_file_button_reload)
+
+        self.detector_classes = getClassDefinitions(Detectors, Detectors.Detector)#[DetectorThreshold, DetectorRandom]
 
         self.comboBox = QtWidgets.QComboBox()
         self.layout.addWidget(self.comboBox)
-        self.comboBox.addItem("-- select detector --")
-        for value in self.detector_classes:
-            self.comboBox.addItem(value.__name__)
+
+        self.detectorModuleChanged(Detectors)
 
         self.comboBox.currentTextChanged.connect(self.selectDetector)
+
+        self.label_description = QtWidgets.QLabel()
+        self.layout.addWidget(self.label_description)
 
         self.layout_parameters = QtWidgets.QVBoxLayout()
         self.layout.addLayout(self.layout_parameters)
@@ -294,23 +179,57 @@ class Addon(clickpoints.Addon):
 
         self.button = QtWidgets.QPushButton("apply")
         self.layout_buttons.addWidget(self.button)
-        self.button.clicked.connect(self.run_threaded)
+        self.button.clicked.connect(self.start_detect_and_show)
 
         self.button2 = QtWidgets.QPushButton("auto apply")
         self.button2.setCheckable(True)
         self.layout_buttons.addWidget(self.button2)
         self.button2.clicked.connect(self.autoApply)
 
+        self.button3 = QtWidgets.QPushButton("optimize")
+        self.layout_buttons.addWidget(self.button3)
+        self.button3.clicked.connect(self.start_optimize)
+
+        self.progressbar = QtWidgets.QProgressBar()
+        self.layout.addWidget(self.progressbar)
+
+    def detectorModuleChanged(self, module):
+        for i in range(len(self.detector_classes)+1):
+            self.comboBox.removeItem(0)
+        self.detector_classes = getClassDefinitions(module, Detectors.Detector)
+        self.comboBox.addItem("-- select detector --")
+        for value in self.detector_classes:
+            self.comboBox.addItem(value.__name__)
+
+    def detectorFileSelected(self):
+        filename = self.detector_file.text()
+        module = loadModule(filename)
+        module = loadModule(filename, module)
+        self.detectorModuleChanged(module)
+
+
     def selectDetector(self):
-        self.detector = self.detector_classes[self.comboBox.currentIndex()-1]()
-        self.detector.parameters.valueChangedEvent = self.valueChanged
+        print("-->", self.detector_classes[self.comboBox.currentIndex() - 1])
+        if self.comboBox.currentIndex() == 0:
+            self.detector = None
+            self.label_description.setText("No detector selected.")
+        else:
+            try:
+                self.detector = self.detector_classes[self.comboBox.currentIndex() - 1]()
+                self.detector.ParameterList.valueChangedEvent = self.valueChanged
+            except Exception:
+                traceback.print_exc()
+                self.detector = None
+                self.label_description.setText("Detector cannot be loaded.")
 
         if self.parameter_widget:
             self.parameter_widget.setParent(None)
             self.layout_parameters.removeWidget(self.parameter_widget)
             self.parameter_widget = None
 
-        self.parameter_widget = self.detector.parameters.addWidgets(self.layout_parameters)
+        if self.detector is not None:
+            self.label_description.setText(getdoc(self.detector))
+            self.parameter_widget = self.detector.ParameterList.addWidgets(self.layout_parameters)
 
     def autoApply(self):
         # toggle the auto-apply status
@@ -323,24 +242,77 @@ class Addon(clickpoints.Addon):
         if self.auto_apply:
             # if the thread is not running, start to detect
             if not self.is_running():
-                self.run_threaded()
+                self.start_detect_and_show()
             # if not, schedule it
             else:
                 self.scheduled_run = True
+
+    def getGroundTruthPositions(self, frame):
+        return np.array([x for x in self.db.getMarkers(frame=frame, type=self.marker_type_truth).select(self.db.table_marker.x, self.db.table_marker.y).tuples().execute()])
+
+    def checkGroundTruth(self, detections, frame):
+        # get the ground-truth data
+        groundtruth_pos = self.getGroundTruthPositions(frame)
+        # compare it to the detections
+        eval_values, tp_ind, fp_ind, fn_ind = getEvalValuesGT(groundtruth_pos, detections, self.distance_cost_parameter.value())
+        # print the evaluation
+        print(eval_values)
+        return eval_values, detections[tp_ind], detections[fp_ind], groundtruth_pos[fn_ind]
 
     def buttonPressedEvent(self):
         self.show()
 
     def run_stopped(self):
         super(Addon, self).run_stopped()
+        print("run_stopped", self.scheduled_run)
         if self.scheduled_run:
             # if we have scheduled to run a detection, start it with a single shot timer
             self.timer = QtCore.QTimer()
             self.timer.setSingleShot(0)
-            self.timer.timeout.connect(self.run_threaded)
+            self.timer.timeout.connect(self.start_detect_and_show)
             self.timer.start()
 
-    def run(self, start_frame=0):
+    def start_detect_and_show(self):
+        print("start_detect_and_show")
+        self.run_threaded(function=self.detect_and_show)
+
+    def filter_inside(self, positions, rectangles):
+        if rectangles.count() == 0:
+            return np.ones(len(positions), dtype="bool")
+        valid = np.zeros(len(positions), dtype="bool")
+        for rect in rectangles:
+            valid += (rect.x <= positions[:, 0]) * (rect.x+rect.width >= positions[:, 0]) * \
+                     (rect.y <= positions[:, 1]) * (rect.y+rect.height >= positions[:, 1])
+        return valid
+
+    def prepareDetectionParameters(self, current_frame, detect):
+        arguments = {}
+        for parameter in detect.detection_parameters:
+            name = parameter
+            parameter = detect.detection_parameters[name]
+            if "layer" in parameter:
+                layer = dict(MaximumIndices=0, MaximumProjection=1, MinimumIndices=2, MinimumProjection=3)[parameter["layer"]]
+            else:
+                layer = 0
+            if "frame" in parameter:
+                frame = parameter["frame"]
+            else:
+                frame = 0
+            image = self.db.getImage(frame=(current_frame+frame), layer=layer)
+            if image is None:
+                arguments[name] = None
+                continue
+            if "mask" in parameter and parameter["mask"]:
+                if image.mask is not None:
+                    arguments[name] = image.mask.data
+                else:
+                    arguments[name] = None
+            else:
+                arguments[name] = image.data
+        return arguments
+
+    def detect_and_show(self, start_frame=0):
+        self.progressbar.setRange(0, 0)
         # clear the scheduled run
         self.scheduled_run = False
 
@@ -348,17 +320,84 @@ class Addon(clickpoints.Addon):
         frame = self.cp.getCurrentFrame()
 
         # remove all previous markers
-        self.db.deleteMarkers(frame=frame, type=self.marker_type_detection)
+        self.db.deleteMarkers(frame=frame, type=self.marker_type_true_positive)
+        self.db.deleteMarkers(frame=frame, type=self.marker_type_false_positive)
+        self.db.deleteMarkers(frame=frame, type=self.marker_type_false_negative)
 
         # detect the current image with the detector
-        positions, mask = self.detector.detect(self.db.getImage(frame).data)
+        arguments = self.prepareDetectionParameters(frame, self.detector.detect)
+        try:
+            positions, mask = self.detector.detect(**arguments)
+            positions = np.array(positions[["PositionX", "PositionY"]])
+        except Exception:
+            traceback.print_exc()
+            positions = []
+            mask = None
 
         # if the detector has returned positions, display them
         if len(positions):
-            self.db.setMarkers(frame=frame, x=positions[:, 0], y=positions[:, 1], type=self.marker_type_detection)
+            rectangles = self.db.getRectangles(frame=frame, type=self.marker_type_truth_region)
+            inside = self.filter_inside(positions, rectangles)
+            positions = positions[inside]
+            eval_values, tp, fp, fn = self.checkGroundTruth(positions, frame)
+            if len(tp):
+                self.db.setMarkers(frame=frame, x=tp[:, 0], y=tp[:, 1], type=self.marker_type_true_positive)
+            if len(fp):
+                self.db.setMarkers(frame=frame, x=fp[:, 0], y=fp[:, 1], type=self.marker_type_false_positive)
+            if len(fn):
+                self.db.setMarkers(frame=frame, x=fn[:, 0], y=fn[:, 1], type=self.marker_type_false_negative)
             self.cp.reloadMarker()
 
         # if the detector has returned a mask, draw the mask
         if mask is not None:
-            self.db.setMask(frame=frame, data=mask)
+            self.db.setMask(frame=frame, data=mask.astype("uint8"))
             self.cp.reloadMask()
+
+        self.progressbar.setRange(0, 1)
+
+    def start_optimize(self):
+        self.run_threaded(function=self.do_optimize)
+
+    def do_optimize(self, start=0):
+        import skopt
+        # get the current frame
+        frame = self.cp.getCurrentFrame()
+        arguments = self.prepareDetectionParameters(frame, self.detector.detect)
+
+        # get the ground-truth data
+        groundtruth_pos = self.getGroundTruthPositions(frame)
+
+        rectangles = self.db.getRectangles(frame=frame, type=self.marker_type_truth_region)
+
+        self.iteration = 0
+        self.max_iterations = self.optimization_count.value()
+        #self.progressbar.setRange(0, self.max_iterations)
+
+        def error(p):
+            self.detector.ParameterList.setValues(p)
+            detections, mask = self.detector.detect(**arguments)
+            detections = np.array(detections[["PositionX", "PositionY"]])
+
+            if len(detections):
+                inside = self.filter_inside(detections, rectangles)
+                detections = detections[inside]
+
+            # compare it to the detections
+            eval_values, tp_ind, fp_ind, fn_ind = getEvalValuesGT(groundtruth_pos, detections,
+                                                                  self.distance_cost_parameter.value())
+
+            print("Iteration:", self.iteration, "Parameters:", p, "Precision", eval_values["Precision"])
+            self.iteration += 1
+            #self.progressbar.setValue(self.iteration)
+            print("progress set")
+            return 1-eval_values["Precision"]
+
+        print("ranges", self.detector.ParameterList.getRanges())
+        res = skopt.gp_minimize(error, self.detector.ParameterList.getRanges(), verbose=False, n_calls=self.max_iterations)
+        print("update values")
+        if self.auto_apply:
+            self.auto_apply = False
+        self.detector.ParameterList.setValues(res.x, update_widgets=True)
+        print("Result:", "Parameters:", res.x, "Precision", 1-res.fun)
+        self.detect_and_show()
+        #print(res)
