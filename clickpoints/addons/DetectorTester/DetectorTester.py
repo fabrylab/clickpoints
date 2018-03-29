@@ -135,6 +135,8 @@ class Addon(clickpoints.Addon):
     detector = None
     parameter_widget = None
 
+    display_ranges = False
+
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
@@ -149,7 +151,6 @@ class Addon(clickpoints.Addon):
         self.cp.reloadTypes()
 
         self.distance_cost_parameter = AddQSpinBox(self.layout, "Max Distance to Groundtruth", 10, False)
-        self.optimization_count = AddQSpinBox(self.layout, "Optimizer iterations", 100, False)
 
         self.detector_file = AddQOpenFileChoose(self.layout, "Detector File:", "", file_type="Python File (*.py)")
         self.detector_file.textChanged.connect(self.detectorFileSelected)
@@ -177,6 +178,9 @@ class Addon(clickpoints.Addon):
         self.layout_buttons = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.layout_buttons)
 
+        self.optimization_count = AddQSpinBox(self.layout, "Optimizer iterations", 100, False)
+        self.optimization_count.setHidden(True)
+
         self.button = QtWidgets.QPushButton("apply")
         self.layout_buttons.addWidget(self.button)
         self.button.clicked.connect(self.start_detect_and_show)
@@ -186,9 +190,15 @@ class Addon(clickpoints.Addon):
         self.layout_buttons.addWidget(self.button2)
         self.button2.clicked.connect(self.autoApply)
 
+        self.button4 = QtWidgets.QPushButton("run optimisation")
+        self.button4.setHidden(True)
+        self.layout_buttons.addWidget(self.button4)
+        self.button4.clicked.connect(self.start_optimize)
+
         self.button3 = QtWidgets.QPushButton("optimize")
+        self.button3.setCheckable(True)
         self.layout_buttons.addWidget(self.button3)
-        self.button3.clicked.connect(self.start_optimize)
+        self.button3.clicked.connect(self.display_optimize)
 
         self.progressbar = QtWidgets.QProgressBar()
         self.layout.addWidget(self.progressbar)
@@ -230,6 +240,7 @@ class Addon(clickpoints.Addon):
         if self.detector is not None:
             self.label_description.setText(getdoc(self.detector))
             self.parameter_widget = self.detector.ParameterList.addWidgets(self.layout_parameters)
+            self.detector.ParameterList.displayRanges(self.display_ranges)
 
     def autoApply(self):
         # toggle the auto-apply status
@@ -362,6 +373,16 @@ class Addon(clickpoints.Addon):
     def start_optimize(self):
         self.run_threaded(function=self.do_optimize)
 
+    def display_optimize(self):
+        # toggle the auto-apply status
+        self.display_ranges = not self.display_ranges
+        # and (de)activate the apply button
+        self.button.setHidden(self.display_ranges)
+        self.button2.setHidden(self.display_ranges)
+        self.button4.setHidden(not self.display_ranges)
+        self.optimization_count.setHidden(not self.display_ranges)
+        self.detector.ParameterList.displayRanges(self.display_ranges)
+
     def do_optimize(self, start=0):
         import skopt
         # get the current frame
@@ -379,7 +400,7 @@ class Addon(clickpoints.Addon):
         #self.progressbar.setRange(0, self.max_iterations)
 
         def error(p):
-            self.detector.ParameterList.setValues(p)
+            self.detector.ParameterList.setOptimisationValues(p)
             detections, mask = self.detector.detect(**arguments)
             detections = np.array(detections[["PositionX", "PositionY"]])
 
@@ -402,7 +423,7 @@ class Addon(clickpoints.Addon):
         print("update values")
         if self.auto_apply:
             self.auto_apply = False
-        self.detector.ParameterList.setValues(res.x, update_widgets=True)
+        self.detector.ParameterList.setOptimisationValues(res.x, update_widgets=True)
         print("Result:", "Parameters:", res.x, "Precision", 1-res.fun)
         self.detect_and_show()
         #print(res)
