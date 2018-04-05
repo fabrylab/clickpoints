@@ -2732,7 +2732,7 @@ class DataFile:
         assert sum(e is not None for e in [image, frame, filename]) <= 1, \
             "Exactly one of images, frames or filenames should be specified"
 
-        if layer != 0:
+        if layer is not None:
             assert frame is not None, \
                 "Frame should be specified, if layer is given."
 
@@ -2788,7 +2788,7 @@ class DataFile:
         # check input
         assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
             "Exactly one of image, frame or filename should be specified or an id"
-        if layer != 0:
+        if layer is not None:
             assert frame is not None, \
                 "Frame should be specified, if layer is given."
 
