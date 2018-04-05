@@ -1993,7 +1993,7 @@ class DataFile:
         """
         return self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
 
-    def getImage(self, frame=None, filename=None, id=None, layer=0):
+    def getImage(self, frame=None, filename=None, id=None, layer=None):
         """
         Returns the :py:class:`Image` entry with the given frame number and layer.
 
@@ -2023,7 +2023,7 @@ class DataFile:
         except peewee.DoesNotExist:
             KeyError("No image with %s found." % VerboseDict(kwargs))
 
-    def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, layer=0, order_by="sort_index"):
+    def getImages(self, frame=None, filename=None, ext=None, external_id=None, timestamp=None, width=None, height=None, path=None, layer=None, order_by="sort_index"):
         """
         Get all :py:class:`Image` entries sorted by sort index. For large databases
         :py:meth:`~.DataFile.getImageIterator`, should be used as it doesn't load all frames at once.
@@ -2081,7 +2081,7 @@ class DataFile:
 
         return query
 
-    def getImageIterator(self, start_frame=0, end_frame=None, skip=1, layer=0):
+    def getImageIterator(self, start_frame=0, end_frame=None, skip=1, layer=None):
         """
         Get an iterator to iterate over all :py:class:`Image` entries starting from start_frame.
 
@@ -2191,7 +2191,7 @@ class DataFile:
         item.save()
         return item
 
-    def deleteImages(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=0):
+    def deleteImages(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=None):
         """
         Delete all :py:class:`Image` entries with the given criteria.
 
@@ -2644,7 +2644,7 @@ class DataFile:
         query = addFilter(query, index, self.table_masktype.index)
         query.execute()
 
-    def getMask(self, image=None, frame=None, filename=None, id=None, layer=0, create=False):
+    def getMask(self, image=None, frame=None, filename=None, id=None, layer=None, create=False):
         """
         Get the :py:class:`Mask` entry for the given image frame number or filename.
 
@@ -2702,7 +2702,7 @@ class DataFile:
                 return mask
             return None
 
-    def getMasks(self, image=None, frame=None, filename=None, id=None, layer=0, order_by="sort_index"):
+    def getMasks(self, image=None, frame=None, filename=None, id=None, layer=None, order_by="sort_index"):
         """
         Get all :py:class:`Mask` entries from the database, which match the given criteria. If no criteria a given, return all masks.
 
@@ -2758,7 +2758,7 @@ class DataFile:
 
         return query
 
-    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=0):
+    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=None):
         """
         Update or create new :py:class:`Mask` entry with the given parameters.
 
@@ -2953,7 +2953,7 @@ class DataFile:
 
         return query
 
-    def setMarker(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, style=None, text=None, id=None, layer=0):
+    def setMarker(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, style=None, text=None, id=None, layer=None):
         """
         Insert or update an :py:class:`Marker` object in the database.
 
@@ -3008,7 +3008,7 @@ class DataFile:
         return item
 
     def setMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None,
-                   track=None, style=None, text=None, id=None, layer=0):
+                   track=None, style=None, text=None, id=None, layer=None):
         """
         Insert or update multiple :py:class:`Marker` objects in the database.
 
@@ -3190,7 +3190,7 @@ class DataFile:
 
         return query
 
-    def setLine(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None, processed=None, style=None, text=None, id=None, layer=0):
+    def setLine(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None, processed=None, style=None, text=None, id=None, layer=None):
         """
         Insert or update an :py:class:`Line` object in the database.
 
@@ -3245,7 +3245,7 @@ class DataFile:
         return item
 
     def setLines(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None,
-                 processed=None, style=None, text=None, id=None, layer=0):
+                 processed=None, style=None, text=None, id=None, layer=None):
         """
         Insert or update multiple :py:class:`Line` objects in the database.
 
@@ -3434,7 +3434,7 @@ class DataFile:
         return query
 
     def setRectangle(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
-                     processed=None, style=None, text=None, id=None, layer=0):
+                     processed=None, style=None, text=None, id=None, layer=None):
         """
         Insert or update an :py:class:`Rectangle` object in the database.
 
@@ -3489,7 +3489,7 @@ class DataFile:
         return item
 
     def setRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
-                 processed=None, style=None, text=None, id=None, layer=0):
+                 processed=None, style=None, text=None, id=None, layer=None):
         """
         Insert or update multiple :py:class:`Rectangle` objects in the database.
 
@@ -3872,7 +3872,7 @@ class DataFile:
 
         return query
 
-    def setAnnotation(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None, layer=0):
+    def setAnnotation(self, image=None, frame=None, filename=None, timestamp=None, comment=None, rating=None, id=None, layer=None):
         """
         Insert or update an :py:class:`Annotation` object in the database.
 
