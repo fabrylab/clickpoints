@@ -1425,7 +1425,7 @@ class DataFile:
         # migrate database from an older version
         print("Migrating DB from version %s" % version)
         nr_version = int(version)
-        self.db.get_conn().row_factory = dict_factory
+        self.db.connection().row_factory = dict_factory
 
         if nr_version < 3:
             print("\tto 3")
@@ -1710,7 +1710,7 @@ class DataFile:
                 pass
             self._SetVersion(18)
 
-        self.db.get_conn().row_factory = None
+        self.db.connection().row_factory = None
 
     def _SetVersion(self, nr_new_version):
         self.db.execute_sql("INSERT OR REPLACE INTO meta (id,key,value) VALUES ( \
