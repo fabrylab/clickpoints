@@ -559,7 +559,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
 
         # get timestamps
         self.data_file = data_file
-        timestamps = [t.timestamp for t in self.data_file.table_image.select(self.data_file.table_image.timestamp) if t.timestamp]
+        timestamps = np.array(self.data_file.table_image.select(self.data_file.table_image.timestamp).where(self.data_file.table_image.timestamp != None).tuples().execute())[:, 0]
 
         # handle empty timeline
         if len(timestamps) == 0:
@@ -588,23 +588,20 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         self.slider_position.setValueRange(self.min_value, self.max_value)
 
         # add tick blocks
-        last_time = None
-        last_delta = None
-        start_time = None
-        for time in timestamps:
-            if last_time is None:
-                start_time = time
-                last_time = time
-                continue
-            if last_delta is None:
-                last_delta = time-last_time
-                last_time = time
-                continue
-            if time-last_time > last_delta*2:
-                self.addTickBlock(start_time, last_time)
-                start_time = time
-            last_time = time
-        self.addTickBlock(start_time, last_time)
+
+        # calculate the time between frames
+        deltas = timestamps[1:] - timestamps[:-1]
+
+        # find big gaps
+        steps, = np.where(deltas > min(deltas) * 4)
+
+        # start and end are the groups between these gaps
+        starts = timestamps[np.concatenate(([0], steps + 1))]
+        ends = timestamps[np.concatenate((steps, [len(timestamps) - 1]))]
+
+        # add the groups to the timeline
+        for start_time, end_time in zip(starts, ends):
+            self.addTickBlock(start_time, end_time)
 
         # update display
         self.updateTicks()
