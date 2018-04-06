@@ -991,7 +991,6 @@ class Timeline(QtCore.QObject):
         self.skip = self.config.skip
 
         self.spinBox_Skip.setValue(self.skip)
-        self.timeSlider.setTimes(self.data_file)
 
         # prepare timestamp output
         # detect %*f marker get number form 1 to 6 as *
