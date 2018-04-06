@@ -559,7 +559,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
 
         # get timestamps
         self.data_file = data_file
-        timestamps = np.array(self.data_file.table_image.select(self.data_file.table_image.timestamp).where(self.data_file.table_image.timestamp != None).tuples().execute())[:, 0]
+        timestamps = np.array(self.data_file.table_image.select(self.data_file.table_image.timestamp).where(self.data_file.table_image.timestamp != None).tuples().execute())
 
         # handle empty timeline
         if len(timestamps) == 0:
@@ -569,6 +569,9 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
             self.is_hidden = True
             self.setHidden(True)
             return
+
+        # remove obsolete dimension (Nx1 -> N)
+        timestamps = timestamps[:, 0]
 
         self.is_hidden = False
         self.setHidden(False)
