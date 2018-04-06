@@ -466,16 +466,17 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         self.slider_position.signal.sliderReleased.emit()
 
     def addTickBlock(self, pos1, pos2):
-        color = QtGui.QColor(128, 128, 128)
-        height = 10
+        color = QtGui.QColor(128, 128, 128, 0)
+        color2 = QtGui.QColor(128, 128, 128)
+        height = 11
 
         x1 = Remap(pos1, [self.min_value, self.max_value], [0, self.pixel_len])
         x2 = Remap(pos2, [self.min_value, self.max_value], [0, self.pixel_len])
 
-        tick_block = QtWidgets.QGraphicsRectItem(0, -2, x2-x1, -height, self.markerGroupParents[0])
+        tick_block = QtWidgets.QGraphicsRectItem(0, -1, x2-x1, -height, self.markerGroupParents[0])
         tick_block.setPos(x1, 0)
 
-        tick_block.setBrush(QtGui.QBrush(color))
+        tick_block.setBrush(QtGui.QBrush(color2))
         tick_block.setPen(QtGui.QPen(color))
         tick_block.setZValue(-10)
 
