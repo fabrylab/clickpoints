@@ -53,23 +53,23 @@ def BroadCastEvent(modules, function, *args, **kwargs):
     global broadcast_modules
     for module in modules:
         if function in dir(module):
-            eval("module."+function+"(*args, **kwargs)")
+            getattr(module, function)(*args, **kwargs)
     args = list(args)
     args.insert(0, function)
     for module in modules:
         if "receiveBroadCastEvent" in dir(module):
-            eval("module.receiveBroadCastEvent(*args, **kwargs)")
+            getattr(module, "receiveBroadCastEvent")(*args, **kwargs)
 
 def BroadCastEvent2(function, *args, **kwargs):
     global broadcast_modules
     for module in broadcast_modules:
         if function in dir(module):
-            eval("module."+function+"(*args, **kwargs)")
+            getattr(module, function)(*args, **kwargs)
     args = list(args)
     args.insert(0, function)
     for module in broadcast_modules:
         if "receiveBroadCastEvent" in dir(module):
-            eval("module.receiveBroadCastEvent(*args, **kwargs)")
+            getattr(module, "receiveBroadCastEvent")(*args, **kwargs)
 
 def HiddeableLayout(parent_layout, layout_class):
     widget = QtWidgets.QWidget()
