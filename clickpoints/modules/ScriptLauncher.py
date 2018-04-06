@@ -476,7 +476,7 @@ class ScriptLauncher(QtCore.QObject):
         for script in self.scripts:
             if function in dir(script.addon_class_instance):
                 try:
-                    eval("script.addon_class_instance." + function + "(*args, **kwargs)")
+                    getattr(script.addon_class_instance, function)(*args, **kwargs)
                 except:
                     traceback.print_exc()
 
