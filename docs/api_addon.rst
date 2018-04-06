@@ -87,17 +87,13 @@ The add-on class has two main member variables: ``self.db`` and ``self.cp``.
 
 - ``self.cp`` is a `Commands <#id1>`_ instance which allows for communication with the ClickPoints interface.
 
-.. attention::
-    To be able to use the API, the clickpoints package has to be installed!
-    If a ``ImportError: No module named clickpoints`` error is raised, you have to install the package first. Go to clickpoints\package in your clickpoints directory and execute ``python setup.py develop`` there.
-
 Defining Options
 ----------------
 
 Add-ons can define their own options that are saved in the database along the ClickPoints options. They are also included
 in the ClickPoints options menu and the export of options.
 
-New options should be defined in the ``__init__`` function of the add-on. Therefore the add-on class has some methods to
+New options should be defined in the ``__init__`` function of the add-on. Therefore, the add-on class has some methods to
 add, get and set options:
 
 .. py:function:: addOption(key, default, value_type="string", values=None, display_name="", hidden=False, tooltip="", min_value=None, max_value=None, value_count=1)
