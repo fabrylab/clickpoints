@@ -206,6 +206,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
                     pass
         # notify everyone that the options have changed
         self.data_file.optionsChanged()
+        BroadCastEvent(self.window.modules, "optionsImported")
         BroadCastEvent(self.window.modules, "optionsChanged")
         self.window.JumpFrames(0)
 

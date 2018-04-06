@@ -922,7 +922,7 @@ class MaskHandler:
         # don't accept the event, so that others can accept it
         return False
 
-    def optionsChanged(self):
+    def optionsImported(self):
         for type_id, type_def in enumerate(self.config.draw_types):
             if len(type_def) >= 3:
                 name = type_def[2]
