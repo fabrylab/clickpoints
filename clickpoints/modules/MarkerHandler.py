@@ -960,8 +960,8 @@ class MarkerEditor(QtWidgets.QWidget):
             self.marker_handler.window.CenterOn(self.data.x, self.data.y)
         if (type(data)in [self.data_file.table_track]) and self.data == data:
             # center view on first track marker
-            self.marker_handler.window.JumpToFrame(self.data.markers[-1].image.sort_index)
-            self.marker_handler.window.CenterOn(self.data.markers[-1].x, self.data.markers[-1].y)
+            self.marker_handler.window.JumpToFrame(self.data.markers[0].image.sort_index)
+            self.marker_handler.window.CenterOn(self.data.markers[0].x, self.data.markers[0].y)
 
     def setMarkerData(self, data):
         # None should select the "new type" button
@@ -3078,7 +3078,7 @@ class MarkerHandler:
             new_tracks = []
         loaded_images = []
         # get the database connection and set query results to sqlite3.Row
-        conn = self.data_file.db.get_conn()
+        conn = self.data_file.db.connection()
         conn.row_factory = sqlite3.Row
         try:
             # iterate over the frame range

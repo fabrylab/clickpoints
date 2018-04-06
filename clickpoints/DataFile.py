@@ -321,13 +321,13 @@ class DataFile:
         db.close()
         return low
 
-    def saveUpsertMany(self, table, data):
+    def saveReplaceMany(self, table, data):
         if self._SQLITE_MAX_VARIABLE_NUMBER is None:
             self._SQLITE_MAX_VARIABLE_NUMBER = self.max_sql_variables()
         chunk_size = ((self._SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) - 1) // 2
         with self.db.atomic():
             for idx in range(0, len(data), chunk_size):
-                table.insert_many(data[idx:idx + chunk_size]).upsert().execute()
+                table.replace_many(data[idx:idx + chunk_size]).execute()
 
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
@@ -342,13 +342,13 @@ class DataFile:
         if mode == "w":
             if os.path.exists(self._database_filename):
                 os.remove(self._database_filename)
-            self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
+            self.db = peewee.SqliteDatabase(database_filename)
             self.db.connect()
         else:  # or read an existing one
             if not os.path.exists(self._database_filename) and mode != "r+":
                 raise Exception("DB %s does not exist!" % os.path.abspath(self._database_filename))
             exists = os.path.exists(self._database_filename)
-            self.db = peewee.SqliteDatabase(database_filename, threadlocals=True)
+            self.db = peewee.SqliteDatabase(database_filename)
             self.db.connect()
             if exists:
                 version = self._CheckVersion()
@@ -386,7 +386,7 @@ class DataFile:
             sort_index = peewee.IntegerField(default=0)
             width = peewee.IntegerField(null=True)
             height = peewee.IntegerField(null=True)
-            path = peewee.ForeignKeyField(Path, related_name="images", on_delete='CASCADE')
+            path = peewee.ForeignKeyField(Path, backref="images", on_delete='CASCADE')
             layer = peewee.IntegerField(default=0)
 
             class Meta:
@@ -483,7 +483,7 @@ class DataFile:
         """ Offset Table """
 
         class Offset(BaseModel):
-            image = peewee.ForeignKeyField(Image, unique=True, related_name="offsets", on_delete='CASCADE')
+            image = peewee.ForeignKeyField(Image, unique=True, backref="offsets", on_delete='CASCADE')
             x = peewee.FloatField()
             y = peewee.FloatField()
 
@@ -549,7 +549,7 @@ class DataFile:
         class Track(BaseModel):
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
-            type = peewee.ForeignKeyField(MarkerType, related_name="tracks", on_delete='CASCADE')
+            type = peewee.ForeignKeyField(MarkerType, backref="tracks", on_delete='CASCADE')
             hidden = peewee.BooleanField(default=False)
 
             def __getattribute__(self, item):
@@ -686,12 +686,12 @@ class DataFile:
                 return count
 
         class Marker(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="markers", on_delete='CASCADE')
+            image = peewee.ForeignKeyField(Image, backref="markers", on_delete='CASCADE')
             x = peewee.FloatField()
             y = peewee.FloatField()
-            type = peewee.ForeignKeyField(MarkerType, related_name="markers", null=True, on_delete='CASCADE')
+            type = peewee.ForeignKeyField(MarkerType, backref="markers", null=True, on_delete='CASCADE')
             processed = peewee.IntegerField(default=0)
-            track = peewee.ForeignKeyField(Track, null=True, related_name='track_markers', on_delete='CASCADE')
+            track = peewee.ForeignKeyField(Track, null=True, backref='track_markers', on_delete='CASCADE')
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
 
@@ -777,12 +777,12 @@ class DataFile:
 
 
         class Line(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="lines", on_delete='CASCADE')
+            image = peewee.ForeignKeyField(Image, backref="lines", on_delete='CASCADE')
             x1 = peewee.FloatField()
             y1 = peewee.FloatField()
             x2 = peewee.FloatField()
             y2 = peewee.FloatField()
-            type = peewee.ForeignKeyField(MarkerType, related_name="lines", null=True, on_delete='CASCADE')
+            type = peewee.ForeignKeyField(MarkerType, backref="lines", null=True, on_delete='CASCADE')
             processed = peewee.IntegerField(default=0)
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
@@ -881,12 +881,12 @@ class DataFile:
                 return self.save()
 
         class Rectangle(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="rectangles", on_delete='CASCADE')
+            image = peewee.ForeignKeyField(Image, backref="rectangles", on_delete='CASCADE')
             x = peewee.FloatField()
             y = peewee.FloatField()
             width = peewee.FloatField()
             height = peewee.FloatField()
-            type = peewee.ForeignKeyField(MarkerType, related_name="rectangles", null=True, on_delete='CASCADE')
+            type = peewee.ForeignKeyField(MarkerType, backref="rectangles", null=True, on_delete='CASCADE')
             processed = peewee.IntegerField(default=0)
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
@@ -1069,7 +1069,7 @@ class DataFile:
         """ Mask Tables """
 
         class Mask(BaseModel):
-            image = peewee.ForeignKeyField(Image, related_name="masks", on_delete='CASCADE')
+            image = peewee.ForeignKeyField(Image, backref="masks", on_delete='CASCADE')
             data = ImageField()
 
             def __str__(self):
@@ -1093,7 +1093,7 @@ class DataFile:
         """ Annotation Tables """
 
         class Annotation(BaseModel):
-            image = peewee.ForeignKeyField(Image, unique=True, related_name="annotations", on_delete='CASCADE')
+            image = peewee.ForeignKeyField(Image, unique=True, backref="annotations", on_delete='CASCADE')
             timestamp = peewee.DateTimeField(null=True)
             comment = peewee.TextField(default="")
             rating = peewee.IntegerField(default=0)
@@ -1135,8 +1135,8 @@ class DataFile:
                       .format(self.id, self.name))
 
         class TagAssociation(BaseModel):
-            annotation = peewee.ForeignKeyField(Annotation, related_name="tagassociations", on_delete='CASCADE')
-            tag = peewee.ForeignKeyField(Tag, related_name="tagassociations", on_delete='CASCADE')
+            annotation = peewee.ForeignKeyField(Annotation, backref="tagassociations", on_delete='CASCADE')
+            tag = peewee.ForeignKeyField(Tag, backref="tagassociations", on_delete='CASCADE')
 
             def __str__(self):
                 return "TagAssociationObject id%s:\tannotation=%s\ttag=%s" \
@@ -2323,7 +2323,7 @@ class DataFile:
         parameters = locals()
         parameters = {key: parameters[key] for key in ["id", "type", "style", "text", "hidden"] if parameters[key] is not None}
         # insert and item with the given parameters
-        item = self.table_track.insert(**parameters).upsert().execute()
+        item = self.table_track.replace(**parameters).execute()
         item = self.table_track.get(id=item)
 
         return item
@@ -3052,7 +3052,7 @@ class DataFile:
 
         data = packToDictList(self.table_marker, id=id, image=image, x=x, y=y, processed=processed, type=type, track=track,
                               style=style, text=text)
-        return self.saveUpsertMany(self.table_marker, data)
+        return self.saveReplaceMany(self.table_marker, data)
 
     def deleteMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None,
                       track=None, text=None, id=None):
@@ -3291,7 +3291,7 @@ class DataFile:
 
         data = packToDictList(self.table_line, id=id, image=image, x1=x1, y1=y1, x2=x2, y2=y2, processed=processed, type=type,
                               style=style, text=text)
-        return self.saveUpsertMany(self.table_line, data)
+        return self.saveReplaceMany(self.table_line, data)
 
     def deleteLines(self, image=None, frame=None, filename=None, x1=None, y1=None, x2=None, y2=None, type=None,
                     processed=None, text=None, id=None):
@@ -3535,7 +3535,7 @@ class DataFile:
 
         data = packToDictList(self.table_rectangle, id=id, image=image, x=x, y=y, width=width, height=height, processed=processed, type=type,
                               style=style, text=text)
-        return self.saveUpsertMany(self.table_rectangle, data)
+        return self.saveReplaceMany(self.table_rectangle, data)
 
     def deleteRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
                     processed=None, text=None, id=None):

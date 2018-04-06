@@ -24,7 +24,7 @@ requirements:
     - qtawesome
     - qimage2ndarray
     - pillow
-    - peewee  
+    - peewee>=3
     - natsort
     - sortedcontainers
     - psutil
