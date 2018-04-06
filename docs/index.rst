@@ -61,9 +61,9 @@ Here is a list of publications that used ClickPoints for their evaluation.
 
 - Richter, S., Gerum, R., Schneider, W., Fabry, B., Le Bohec, C., & Zitterbart, D. P. (2018). *A remote-controlled observatory for behavioural and ecological research: A case study on emperor penguins*. Methods in Ecology and Evolution. https://doi.org/10.1111/2041-210X.12971
 
-- Gerum, R., Richter, S., Fabry, B., Le Bohec, C., Bonadonna, F., Nesterova, A., Zitterbart, D. *Structural organisation and dynamics in kin penguin colonies*, Journal of Physics D, accepted
+- Gerum, R., Richter, S., Fabry, B., Le Bohec, C., Bonadonna, F., Nesterova, A., Zitterbart, D. *Structural organisation and dynamics in kin penguin colonies*, Journal of Physics D, 51(16), 164004. https://doi.org/10.1088/1361-6463/AAB46B
 
-- Richter, S., Gerum, R., Winterl, A., Houstin, A., Seifert, M., Peschel1, J., Fabry, B., Le Bohec, C., Zitterbart, D.P., *Phase transitions in huddling emperor penguin colonies*, Journal of Physics D, under review.
+- Richter, S., Gerum, R., Winterl, A., Houstin, A., Seifert, M., Peschel1, J., Fabry, B., Le Bohec, C., Zitterbart, D.P., *Phase transitions in huddling emperor penguin colonies*, Journal of Physics D, accepted.
 
 - Gerlitz, N., Gerum, R., Sauer, N., Stadler, R. *Photoinducible DRONPA-s: a new tool to investigate cell-cell connectivity*, The Plant Journal, under review.
 
