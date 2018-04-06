@@ -3364,7 +3364,7 @@ class MarkerHandler:
         if self.marker_edit_window:
             self.marker_edit_window.tree.deleteEntry(entry)
 
-    def optionsChanged(self):
+    def optionsImported(self):
         for type_id, type_def in self.config.types.items():
             self.marker_file.set_type(type_id, type_def[0], type_def[1], type_def[2])
         self.UpdateCounter()
