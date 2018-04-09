@@ -595,6 +595,10 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
         # calculate the time between frames
         deltas = timestamps[1:] - timestamps[:-1]
 
+        # if we have only one image
+        if len(deltas) == 0:
+            return
+
         # find big gaps
         steps, = np.where(deltas > min(deltas) * 4)
 
