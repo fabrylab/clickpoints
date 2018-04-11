@@ -185,11 +185,12 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
     start_changed = QtCore.Signal(int)
     end_changed = QtCore.Signal(int)
 
-    def __init__(self, max_value=0, min_value=0):
+    def __init__(self, max_value=0, min_value=0, scale=1):
         QtWidgets.QGraphicsView.__init__(self)
 
-        self.setMaximumHeight(30)
-        #self.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.setMaximumHeight(30*scale)
+        if scale != 1:
+            self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setSizePolicy(self.sizePolicy().horizontalPolicy(), QtWidgets.QSizePolicy.Preferred)
@@ -197,6 +198,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
         self.parent = QtWidgets.QGraphicsRectItem(None)
+        self.parent.setScale(scale)
         self.scene.addItem(self.parent)
         self.scene.setBackgroundBrush(self.palette().color(QtGui.QPalette.Background))
         self.setStyleSheet("border: 0px")
@@ -330,7 +332,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         return my_range[-1]
 
     def resizeEvent(self, event):
-        self.length = self.size().width()-20
+        self.length = (self.size().width()-20)/self.parent.scale()
         self.slider_line.setRect(0, 0, self.length, 5)
         self.slider_line_active.setRect(self.ValueToPixel(self.slider_start.value), 0, self.ValueToPixel(self.slider_end.value)-self.ValueToPixel(self.slider_start.value), 5)
         self.ensureVisible(self.slider_line)
@@ -935,7 +937,7 @@ class Timeline(QtCore.QObject):
         self.label_frame.mousePressEvent = self.labelClicked
         self.layoutCtrl.addWidget(self.label_frame)
 
-        self.frameSlider = TimeLineSlider()
+        self.frameSlider = TimeLineSlider(scale=self.window.scale_factor)
         #if self.get_frame_count():
         #    self.frameSlider.setRange(0, self.get_frame_count() - 1)
         self.frameSlider.slider_position.signal.sliderPressed.connect(self.PressedSlider)
