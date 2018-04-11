@@ -409,6 +409,8 @@ def HTMLColorToRGB(colorstring):
 
 def IconFromFile(filename, color=None):
     pixmap = QtGui.QPixmap(os.path.join(os.environ["CLICKPOINTS_ICON"], filename))
+    if color is None:
+        color = QtGui.QColor(50, 50, 50)
     if color is not None:
         mask = pixmap.createMaskFromColor(QtGui.QColor('black'), QtCore.Qt.MaskOutColor)
         pixmap.fill((color))
