@@ -2751,7 +2751,7 @@ class DataFile:
         else:
             raise Exception("Unknown order_by parameter - use sort_index or timestamp")
 
-        class QuerySelector(peewee.SelectQuery):
+        class QuerySelector(type(query)):
             def __iter__(self):
                 return self.iterator()
         query.__class__ = QuerySelector
