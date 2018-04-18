@@ -874,6 +874,27 @@ class MaskHandler:
             BroadCastEvent(self.modules, "MaskAdded")
 
     def sceneEventFilter(self, event):
+        if event.type() == QtCore.QEvent.GraphicsSceneWheel:
+            try:  # PyQt 5
+                angle = event.angleDelta().y()
+            except AttributeError:  # PyQt 4
+                angle = event.delta()
+            # wheel with CTRL means changing the cursor size
+            if event.modifiers() == Qt.ControlModifier:
+                if angle > 0:
+                    self.changeCursorSize(+1)
+                else:
+                    self.changeCursorSize(-1)
+                event.accept()
+                return True
+            # wheel with SHIFT means changing the opacity
+            elif event.modifiers() == Qt.ShiftModifier:
+                if angle > 0:
+                    self.changeOpacity(+0.1)
+                else:
+                    self.changeOpacity(-0.1)
+                event.accept()
+                return True
         # only draw if an image is currently displayed
         if self.data_file.image is None:
             return False
