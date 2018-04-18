@@ -554,7 +554,8 @@ class MaskHandler:
         self.button1.setToolTip("paint mask color <b>P</b>")
         self.button2.setToolTip("erase mask<br/>(<b>E</b> or hold <b>ctrl</b>)")
         self.button3.setToolTip("pick mask color<br/>(<b>K</b> or hold <b>alt</b>)")
-        self.button4.setToolTip("fill with mask color<br/>(<b>B</b> or hold <b>shift</b>)")
+        #self.button4.setToolTip("fill with mask color<br/>(<b>B</b> or hold <b>shift</b>)")
+        self.button4.setToolTip("fill with mask color <b>B</b>")
         self.tool_buttons = [self.button1, self.button2, self.button3, self.button4]
         self.tool_index = -1
         self.tool_index_clicked = -1
@@ -1018,8 +1019,8 @@ class MaskHandler:
                 self.selectTool(1, temporary=True)
             if event.key() == Qt.Key_Alt and self.tool_index != 2:
                 self.selectTool(2, temporary=True)
-            if event.key() == Qt.Key_Shift and self.tool_index != 3:
-                self.selectTool(3, temporary=True)
+            #if event.key() == Qt.Key_Shift and self.tool_index != 3:
+            #    self.selectTool(3, temporary=True)
 
     def keyReleaseEvent(self, event):
         if self.tool_index != -1:
@@ -1028,8 +1029,8 @@ class MaskHandler:
                 self.selectTool(self.tool_index_clicked)
             if event.key() == Qt.Key_Alt:
                 self.selectTool(self.tool_index_clicked)
-            if event.key() == Qt.Key_Shift:
-                self.selectTool(self.tool_index_clicked)
+            #if event.key() == Qt.Key_Shift:
+            #    self.selectTool(self.tool_index_clicked)
             
     def ToggleInterfaceEvent(self, event=None, hidden=None):
         if hidden is None:
