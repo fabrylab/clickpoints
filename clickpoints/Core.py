@@ -37,6 +37,7 @@ from .includes import QExtendedGraphicsView
 from .includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats
 from .includes import Database
 
+from .modules.ChangeTracker import ChangeTracker
 from .modules.MaskHandler import MaskHandler
 from .modules.MarkerHandler import MarkerHandler
 from .modules.Timeline import Timeline
@@ -59,8 +60,8 @@ class AddStrech():
     def __init__(self, window):
         window.layoutButtons.addStretch()
 
-used_modules = [AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, OptionEditor, Console]
-used_huds = ["", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", "", ""]
+used_modules = [ChangeTracker, AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, OptionEditor, Console]
+used_huds = ["", "", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", "", ""]
 
 
 def GetModuleInitArgs(mod):
@@ -165,6 +166,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 self.modules.append(mod(**arg_dict2))
 
         SetBroadCastModules(self.modules)
+
+        self.changeTracker = self.GetModule("ChangeTracker")
 
         #self.layoutButtons.addStretch()
 
