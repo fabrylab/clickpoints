@@ -114,23 +114,23 @@ def SQLMemoryDBFromFile(filename, *args, **kwargs):
     db_file = peewee.SqliteDatabase(filename, *args, **kwargs)
 
     db_file.connect()
-    con = db_file.get_conn()
+    con = db_file.connection()
     tempfile = StringIO()
     for line in con.iterdump():
         tempfile.write('%s\n' % line)
     tempfile.seek(0)
 
     db_memory = peewee.SqliteDatabase(":memory:", *args, **kwargs)
-    db_memory.get_conn().cursor().executescript(tempfile.read())
-    db_memory.get_conn().commit()
+    db_memory.connection().cursor().executescript(tempfile.read())
+    db_memory.connection().commit()
     return db_memory
 
 def SaveDB(db_memory, filename):
     if os.path.exists(filename):
         os.remove(filename)
     db_file = peewee.SqliteDatabase(filename)
-    con_file = db_file.get_conn()
-    con_memory = db_memory.get_conn()
+    con_file = db_file.connection()
+    con_memory = db_memory.connection()
 
     tempfile = StringIO()
     for line in con_memory.iterdump():
@@ -145,14 +145,15 @@ def SaveDB(db_memory, filename):
 #     from playhouse import apsw_ext
 #     db_file = apsw_ext.APSWDatabase(filename)
 #     db_memory = apsw_ext.APSWDatabase(':memory:')
-#     with db_memory.get_conn().backup("main", db_file.get_conn(), "main") as backup:
+#     with db_memory.connection().backup("main", db_file.connection(), "main") as backup:
 #         backup.step()  # copy whole database in one go
 #     return db_memory
 #
 # def SaveDBAPSW(db_memory, filename):
 #     from playhouse import apsw_ext
 #     db_file = apsw_ext.APSWDatabase(filename)
-#     with db_file.get_conn().backup("main", db_memory.get_conn(), "main") as backup:
+#     with db_file.connection().backup("main", db_memory.connection(), "main") as backup:
+#     with db_file.connection().backup("main", db_memory.connection(), "main") as backup:
 #         backup.step()  # copy whole database in one go
 
 def timedelta_div(self, other):
