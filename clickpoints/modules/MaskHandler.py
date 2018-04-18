@@ -183,11 +183,14 @@ class BigPaintableImageDisplay:
             color = 0
         else:
             color = line_type.index
+        if self.GetColor(x, y) == color:
+            return False
         pix = np.asarray(self.full_image)
         pix.setflags(write=True)
         label = measure.label(pix, background=-1)
         pix[label == label[int(y), int(x)]] = color
         self.SetImage(Image.fromarray(pix))
+        return True
 
     def GetColor(self, x1, y1):
         if 0 < x1 < self.full_image.size[0] and 0 < y1 < self.full_image.size[1]:
@@ -816,7 +819,9 @@ class MaskHandler:
         self.SetActiveDrawType(0)
 
     def FillColor(self, x, y):
-        self.MaskDisplay.Fill(x, y, self.active_draw_type)
+        if self.MaskDisplay.Fill(x, y, self.active_draw_type):
+            self.MaskChanged = True
+            self.MaskUnsaved = True
 
     def changeCursorSize(self, value):
         # increase/decrease the brush size by value
@@ -915,9 +920,18 @@ class MaskHandler:
             elif self.tool_index == 2:
                 self.PickColor()
             elif self.tool_index == 3:
-                self.FillColor(event.pos().x(), event.pos().y())
+                with self.window.changeTracker("bucket fill in mask"):
+                    self.FillColor(event.pos().x(), event.pos().y())
+                    self.save()
             # accept the event
             return True
+        if event.type() == QtCore.QEvent.GraphicsSceneMouseRelease and event.button() == QtCore.Qt.LeftButton:
+            if self.tool_index == 0:
+                with self.window.changeTracker("draw line in mask"):
+                    self.save()
+            if self.tool_index == 1:
+                with self.window.changeTracker("erase in mask"):
+                    self.save()
         # Mouse move event to draw the stroke
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove and (self.tool_index == 0 or self.tool_index == 1):
             # get the new position
