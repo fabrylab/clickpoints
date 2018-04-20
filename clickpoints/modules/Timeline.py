@@ -405,6 +405,8 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
 
 class RealTimeSlider(QtWidgets.QGraphicsView):
     is_hidden = True
+    min_value = None
+    max_value = None
 
     def __init__(self):
         QtWidgets.QGraphicsView.__init__(self)
@@ -537,7 +539,8 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
             marker.setValueRange(self.min_value, self.max_value)
 
     def setValue(self, value):
-        self.slider_position.setValue(BoundBy(value, self.min_value, self.max_value))
+        if self.min_value is not None and self.max_value is not None:
+            self.slider_position.setValue(BoundBy(value, self.min_value, self.max_value))
 
     def PixelToValue(self, pixel):
         return Remap(pixel, [0, self.length], [self.min_value, self.max_value])
