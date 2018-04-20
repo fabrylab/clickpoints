@@ -245,7 +245,10 @@ class undo:
                 self.db.execute_sql("DROP TRIGGER {trigger}".format(trigger=trigger))
 
         # drop the undo log table
-        self.db.execute_sql('DROP TABLE undolog')
+        try:
+            self.db.execute_sql('DROP TABLE undolog')
+        except peewee.OperationalError:
+            pass
 
     def _start_interval(self):
         """
