@@ -102,7 +102,6 @@ class undo:
         self.redo_stack = []
         # refresh the gui
         self.refresh()
-        print("refresh (barier")
 
     def __call__(self, text=""):
         self.next_text = text
@@ -112,7 +111,7 @@ class undo:
         """
         Enter an undo context where every changes is gathered into an undo interval
         """
-        self.unfreeze()
+        pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
@@ -120,7 +119,6 @@ class undo:
         """
         self.barrier(self.next_text)
         self.next_text = ""
-        self.freeze()
 
     def undo(self):
         """
