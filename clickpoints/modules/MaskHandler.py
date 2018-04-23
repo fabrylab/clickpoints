@@ -61,7 +61,7 @@ class MaskFile:
         return self.table_masktype.select()
 
     def add_mask(self, **kwargs):
-        kwargs.update(dict(image=self.data_file.image))
+        kwargs.update(dict(image=self.data_file.get_image(index=self.data_file.current_image_index, layer=0)))
         return self.table_mask(**kwargs)
 
     def get_mask(self):
