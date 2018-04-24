@@ -408,6 +408,7 @@ class MaskTypeButton(QtWidgets.QGraphicsRectItem):
         self.type = point_type
         self.index = index
         self.scale_factor = scale
+        self.parent = parent
 
         # get hover events and set to inactive
         self.setAcceptHoverEvents(True)
@@ -478,11 +479,351 @@ class MaskTypeButton(QtWidgets.QGraphicsRectItem):
         # a left click selects this type
         elif event.button() == QtCore.Qt.LeftButton:
             # select this mask type
-            self.mask_handler.selectType(self.index)
+            self.parent.selectType(self.index)
 
     def delete(self):
         # delete from scene
         self.scene().removeItem(self)
+
+
+class MaskTypeChooser(QtWidgets.QGraphicsPathItem):
+    buttons = None
+    tool = None
+
+    active_draw_type = None
+    active_draw_type_index = None
+
+    def __init__(self, mask_handler, parent_hud):
+        QtWidgets.QGraphicsPathItem.__init__(self, parent_hud)
+        # store the mask handler
+        self.mask_handler = mask_handler
+
+    def setActive(self):
+        # and the tool button to active
+        self.buttons[self.active_draw_type_index].SetToActiveColor()
+
+    def setInatice(self):
+        # and the tool button to active
+        for button_index in self.buttons:
+            self.buttons[button_index].SetToInactiveColor()
+
+    def toolSelected(self, tool):
+        # store the tool
+        self.tool = tool
+        # set to active if the present tool draws colors
+        if tool is not None and tool.isColorTool():
+            self.setActive()
+        else:
+            self.setInatice()
+
+    def clear(self):
+        # remove all counters
+        if self.buttons is not None:
+            for button in self.buttons:
+                self.buttons[button].delete()
+        self.buttons = []
+
+    def updateButtons(self, mask_file):
+        # remove all counter
+        for button in self.buttons:
+            self.buttons[button].delete()
+
+        # create new ones
+        type_list = mask_file.get_mask_type_list()
+        # create buttons for types
+        self.buttons = {index: MaskTypeButton(self, self.mask_handler, type, index, scale=self.mask_handler.window.scale_factor) for index, type in enumerate(type_list)}
+        # create button for "add_type"
+        self.buttons[-1] = MaskTypeButton(self, self.mask_handler, None, len(self.buttons), scale=self.mask_handler.window.scale_factor)
+        ## create button for background "delete"
+        #self.buttons[0] = MaskTypeButton(self.parent_hud, self, self.mask_file.table_mask(name="delete", color="#B0B0B0", index=0), 0)
+
+        # set "delete" the active draw type
+        self.active_draw_type = self.buttons[-1].type
+        self.active_draw_type_index = -1
+
+        # update the colormap of the displayed mask
+        self.mask_handler.MaskDisplay.UpdateColormap(type_list)
+
+        # buttons are visible according to self.hidden flag
+        for key in self.buttons:
+            self.buttons[key].setVisible(not self.mask_handler.hidden)
+
+    def selectType(self, index):
+        self.SetActiveDrawType(index)
+        if self.tool is None or not self.tool.isColorTool():
+            self.mask_handler.selectTool(0)
+
+    def SetActiveDrawType(self, new_index, silent=True):
+        # only allow valid types
+        if new_index >= len(self.buttons)-1:
+            return
+        # set the old button to inactive
+        self.setInatice()
+        # store the new type
+        self.active_draw_type = self.buttons[new_index].type
+        self.active_draw_type_index = new_index
+        self.mask_handler.config.selected_draw_type = new_index
+        # set the new button to active
+        if not silent:
+            self.buttons[self.active_draw_type_index].SetToActiveColor()
+        # update mask and draw cursor
+        self.mask_handler.RedrawMask()
+        self.mask_handler.UpdateDrawCursorDisplay()
+
+    def setVisible(self, hidden):
+        for button in self.buttons:
+            self.buttons[button].setVisible(hidden)
+
+
+class MaskTool:
+    button = None
+
+    def __init__(self, parent, scene_parent, image_display):
+        self.parent = parent
+        # event filter to grab mouse click and move events
+        self.scene_event_filter = GraphicsItemEventFilter(scene_parent, self)
+        image_display.AddEventFilter(self.scene_event_filter)
+
+    def setActive(self):
+        # activate the scene event filter (to receive mouse events)
+        self.scene_event_filter.active = True
+        # set the cursor
+        self.setCursor()
+        self.button.SetToActiveColor()
+
+    def setInactive(self):
+        # deactivate the scene event filter
+        self.scene_event_filter.active = False
+        # reset the cursor
+        self.unsetCursor()
+        # set the button to inactive
+        self.button.SetToInactiveColor()
+
+    def isColorTool(self):
+        return False
+
+    def getIconName(self):
+        return None
+
+    def getIcon(self, color=None):
+        cursor_name = self.getIconName()
+        if cursor_name.startswith("fa."):
+            icon = qta.icon(cursor_name, color=color)
+        else:
+            icon = IconFromFile(cursor_name, color=color)
+        return icon
+
+    def unsetCursor(self):
+        # if no cursor is given, hide the cursor
+        for pixmap in self.parent.ImageDisplay.pixMapItems:
+            pixmap.unsetCursor()
+
+    def setCursor(self):
+        icon = self.getIcon(color=QtGui.QColor(255, 255, 255))
+        # convert icon to numpy array
+        buffer = icon.pixmap(16, 16).toImage().constBits()
+        cursor2 = np.ndarray(shape=(16, 16, 4), buffer=buffer.asarray(size=16 * 16 * 4), dtype=np.uint8)
+        # load the cursor image
+        cursor = imageio.imread(os.path.join(os.environ["CLICKPOINTS_ICON"], "Cursor.png"))
+        # compose them
+        cursor3 = np.zeros([cursor.shape[0]+cursor2.shape[0], cursor.shape[1]+cursor2.shape[1], 4], cursor.dtype)
+        cursor3[:cursor.shape[0], :cursor.shape[1], :] = cursor
+        y, x = (cursor.shape[0]-6, cursor.shape[1]-4)
+        cursor3[y:y+cursor2.shape[0], x:x+cursor2.shape[1], :] = cursor2
+        # create a cursor
+        cursor = QtGui.QCursor(QtGui.QPixmap(array2qimage(cursor3)), 0, 0)
+
+        # and the the cursor as the active one
+        for pixmap in self.parent.ImageDisplay.pixMapItems:
+            pixmap.setCursor(cursor)
+
+    def sceneEventFilter(self, event):
+        if event.type() == QtCore.QEvent.GraphicsSceneWheel:
+            try:  # PyQt 5
+                angle = event.angleDelta().y()
+            except AttributeError:  # PyQt 4
+                angle = event.delta()
+
+            # wheel with SHIFT means changing the opacity
+            if event.modifiers() == Qt.ShiftModifier:
+                if angle > 0:
+                    self.parent.changeOpacity(+0.1)
+                else:
+                    self.parent.changeOpacity(-0.1)
+                event.accept()
+                return True
+
+
+class BrushTool(MaskTool):
+    last_x = 0
+    last_y = 0
+
+    def getIconName(self):
+        return "fa.paint-brush"
+
+    def getTooltip(self):
+        return "paint mask color <b>P</b>"
+
+    def isColorTool(self):
+        return True
+
+    def DrawLine(self, start_x, end_x, start_y, end_y):
+        # draw the line on the mask
+        if self.parent.tool_index == 0:
+            self.parent.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.parent.DrawCursorSize, self.parent.maskTypeChooser.active_draw_type)
+        else:
+            self.parent.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.parent.DrawCursorSize, 0)
+        self.parent.MaskChanged = True
+        self.parent.MaskUnsaved = True
+
+        # directly update the mask or display last stroke as drawPath
+        if self.parent.config.auto_mask_update:
+            self.parent.RedrawMask()
+        else:
+            self.parent.drawPath.moveTo(start_x, start_y)
+            self.parent.drawPath.lineTo(end_x, end_y)
+            self.parent.drawPathItem.setPath(self.parent.drawPath)
+
+        # if the mask was empty notify modules that a new mask was created
+        if self.parent.MaskEmpty:
+            self.parent.MaskEmpty = False
+            BroadCastEvent(self.parent.modules, "MaskAdded")
+
+    def sceneEventFilter(self, event):
+        # call the inherited method
+        if MaskTool.sceneEventFilter(self, event):
+            return True
+
+        # Mouse wheel to change the cursor size
+        if event.type() == QtCore.QEvent.GraphicsSceneWheel:
+            try:  # PyQt 5
+                angle = event.angleDelta().y()
+            except AttributeError:  # PyQt 4
+                angle = event.delta()
+            # wheel with CTRL means changing the cursor size
+            if event.modifiers() == Qt.ControlModifier:
+                if angle > 0:
+                    self.parent.changeCursorSize(+1)
+                else:
+                    self.parent.changeCursorSize(-1)
+                event.accept()
+                return True
+
+        # Mouse press starts drawing
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton:
+            # if no mask has been created, create one for painting
+            if self.parent.MaskEmpty is True:
+                self.parent.AddEmptyMask()
+            # store the coordinates
+            self.last_x = event.pos().x()
+            self.last_y = event.pos().y()
+            # add a first circle (so that even if the mouse isn't moved something is drawn)
+            self.DrawLine(self.last_x, self.last_x + 0.00001, self.last_y, self.last_y)
+            # set the changed flag for the database
+            self.parent.data_file.setChangesMade()
+            # accept the event
+            return True
+        if event.type() == QtCore.QEvent.GraphicsSceneMouseRelease and event.button() == QtCore.Qt.LeftButton:
+            with self.parent.window.changeTracker("draw line in mask"):
+                self.parent.save()
+        # Mouse move event to draw the stroke
+        if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
+            # get the new position
+            self.parent.DrawCursor.setPos(event.pos())
+            pos_x = event.pos().x()
+            pos_y = event.pos().y()
+            # draw a line and store the position
+            self.DrawLine(pos_x, self.last_x, pos_y, self.last_y)
+            self.last_x = pos_x
+            self.last_y = pos_y
+            # accept the event
+            return True
+        # Mouse hover updates the color_under_cursor and displays the brush cursor
+        if event.type() == QtCore.QEvent.GraphicsSceneHoverMove:
+            # move brush cursor
+            self.parent.DrawCursor.setPos(event.pos())
+        # don't accept the event, so that others can accept it
+        return False
+
+
+class EraserTool(BrushTool):
+    def getIconName(self):
+        return "fa.eraser"
+
+    def getTooltip(self):
+        return "erase mask<br/>(<b>E</b> or hold <b>ctrl</b>)"
+
+    def isColorTool(self):
+        return False
+
+
+class PickerTool(MaskTool):
+    color_under_cursor = 0
+
+    def getIconName(self):
+        return "fa.eyedropper"
+
+    def getTooltip(self):
+        return "pick mask color<br/>(<b>K</b> or hold <b>alt</b>)"
+
+    def PickColor(self):
+        # find the type which corresponds to the color_under_cursor
+        for index, draw_type in enumerate(self.parent.mask_file.get_mask_type_list()):
+            if draw_type.index == self.color_under_cursor:
+                self.parent.maskTypeChooser.SetActiveDrawType(index)
+                return
+        # if no color has been found, take background color
+        self.parent.maskTypeChooser.SetActiveDrawType(0)
+
+    def sceneEventFilter(self, event):
+        if MaskTool.sceneEventFilter(self, event):
+            return True
+        # Mouse press starts drawing
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton:
+            self.PickColor()
+            # accept the event
+            return True
+        # Mouse hover updates the color_under_cursor and displays the brush cursor
+        if event.type() == QtCore.QEvent.GraphicsSceneHoverMove:
+            # get color at this position
+            if self.parent.MaskEmpty is True:
+                self.color_under_cursor = 0
+            else:
+                color = self.parent.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
+                if color is not None:
+                    self.color_under_cursor = color
+        # don't accept the event, so that others can accept it
+        return False
+
+
+class BucketTool(MaskTool):
+    def getIconName(self):
+        return "Bucket.png"
+
+    def getTooltip(self):
+        return "fill with mask color <b>B</b>"
+
+    def isColorTool(self):
+        return True
+
+    def fillColor(self, x, y):
+        if self.parent.MaskDisplay.Fill(x, y, self.parent.maskTypeChooser.active_draw_type):
+            self.parent.MaskChanged = True
+            self.parent.MaskUnsaved = True
+
+    def sceneEventFilter(self, event):
+        if MaskTool.sceneEventFilter(self, event):
+            return True
+        # Mouse press starts drawing
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton:
+            with self.parent.window.changeTracker("bucket fill in mask"):
+                self.fillColor(event.pos().x(), event.pos().y())
+                self.parent.save()
+            # accept the event
+            return True
+
+        # don't accept the event, so that others can accept it
+        return False
 
 
 class MaskHandler:
@@ -491,19 +832,11 @@ class MaskHandler:
     DrawCursorSize = 10
 
     mask_opacity = 0
-    color_under_cursor = None
-    last_x = None
-    last_y = None
 
     MaskChanged = False  # if the mask has been changed and display has not been updated yet
     MaskUnsaved = False  # if the mask was changed and has to be saved
     MaskEmpty = False  # if no mask has been loaded/created
     hidden = False
-
-    buttons = None
-
-    active_draw_type_index = None
-    active_draw_type = None
 
     data_file = None
     config = None
@@ -521,9 +854,8 @@ class MaskHandler:
         self.drawPathItem = QtWidgets.QGraphicsPathItem(parent)
         self.drawPathItem.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
 
-        # event filter to grab mouse click and move events
-        self.scene_event_filter = GraphicsItemEventFilter(parent, self)
-        image_display.AddEventFilter(self.scene_event_filter)
+        # the mask_type chooser (the buttons for the different mask colors)
+        self.maskTypeChooser = MaskTypeChooser(self, parent_hud)
 
         # draw path to display last drawn stroke (only used in auto_update=False mode)
         self.drawPath = self.drawPathItem.path()
@@ -550,24 +882,26 @@ class MaskHandler:
 
         self.closeDataFile()
 
-        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.paint-brush"), (-30 - (26 + 5) * 0, 10), scale=self.window.scale_factor)
-        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.eraser"), (-30 - (26 + 5) * 1, 10), scale=self.window.scale_factor)
-        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.eyedropper"), (-30 - (26 + 5) * 2, 10), scale=self.window.scale_factor)
-        self.button4 = MyCommandButton(self.parent_hud, self, IconFromFile("Bucket.png"), (-30 - (26 + 5) * 3, 10), scale=self.window.scale_factor)
-        self.button1.setToolTip("paint mask color <b>P</b>")
-        self.button2.setToolTip("erase mask<br/>(<b>E</b> or hold <b>ctrl</b>)")
-        self.button3.setToolTip("pick mask color<br/>(<b>K</b> or hold <b>alt</b>)")
-        #self.button4.setToolTip("fill with mask color<br/>(<b>B</b> or hold <b>shift</b>)")
-        self.button4.setToolTip("fill with mask color <b>B</b>")
-        self.tool_buttons = [self.button1, self.button2, self.button3, self.button4]
+        self.tools = [BrushTool, EraserTool, PickerTool, BucketTool]
+        self.tools = [tool(self, parent, image_display) for tool in self.tools]
+
+        self.tool_buttons = []
+        for index, tool in enumerate(self.tools):
+            button = MyCommandButton(self.parent_hud, self, tool.getIcon(), (-30 - (26 + 5) * index, 10), scale=self.window.scale_factor)
+            button.setToolTip(tool.getTooltip())
+            button.clicked = lambda i=index: self.selectTool(i)
+            self.tool_buttons.append(button)
+            self.tools[index].button = button
+
         self.tool_index = -1
         self.tool_index_clicked = -1
-        self.button1.clicked = lambda: self.selectTool(0)
-        self.button2.clicked = lambda: self.selectTool(1)
-        self.button3.clicked = lambda: self.selectTool(2)
-        self.button4.clicked = lambda: self.selectTool(3)
 
     def selectTool(self, index, temporary=False):
+        if self.tool_index == index:
+            return
+
+        if self.tool_index >= 0:
+            self.tools[self.tool_index].setInactive()
         # set the tool
         self.tool_index = index
         # and if not temporary the "clicked" tool
@@ -575,64 +909,24 @@ class MaskHandler:
         if not temporary:
             self.tool_index_clicked = index
 
-        # set all mask type buttons to inactive
-        for button_index in self.buttons:
-            self.buttons[button_index].SetToInactiveColor()
-        # set all tool buttons to inactive
-        for button in self.tool_buttons:
-            button.SetToInactiveColor()
-
-        # if a tool is selected
-        if index >= 0:
-            # set the current mask type button to active
-            self.tool_buttons[index].SetToActiveColor()
-            # and the tool button to active
-            self.buttons[self.active_draw_type_index].SetToActiveColor()
+        if self.tool_index >= 0:
             # and notify the other modules
             BroadCastEvent(self.modules, "eventToolSelected", "Mask", self.tool_index)
-            # activate the scene event filter (to receive mouse events)
-            self.scene_event_filter.active = True
+
+            self.tools[self.tool_index].setActive()
+
+            self.maskTypeChooser.toolSelected(self.tools[self.tool_index])
         else:
-            # activate the scene event filter (to receive mouse events)
-            self.scene_event_filter.active = False
+            self.maskTypeChooser.toolSelected(None)
 
         # set the cursor according to the tool
-        cursor_name = ["fa.paint-brush", "fa.eraser", "fa.eyedropper", "Bucket.png", None][self.tool_index]
-        self.setCursor(cursor_name)
+        self.tools[self.tool_index].setCursor()
 
         # and show the brush circle if necessary
         if index == 0 or index == 1:
             self.DrawCursor.setVisible(True)
         else:
             self.DrawCursor.setVisible(False)
-
-    def setCursor(self, cursor_name):
-        # if no cursor is given, hide the cursor
-        if cursor_name is None:
-            for pixmap in self.ImageDisplay.pixMapItems:
-                pixmap.unsetCursor()
-        else:
-            # get the cursor from file or name
-            if cursor_name.startswith("fa."):
-                icon = qta.icon(cursor_name, color=QtGui.QColor(255, 255, 255))
-            else:
-                icon = IconFromFile(cursor_name, color=QtGui.QColor(255, 255, 255))
-            # convert icon to numpy array
-            buffer = icon.pixmap(16, 16).toImage().constBits()
-            cursor2 = np.ndarray(shape=(16, 16, 4), buffer=buffer.asarray(size=16 * 16 * 4), dtype=np.uint8)
-            # load the cursor image
-            cursor = imageio.imread(os.path.join(os.environ["CLICKPOINTS_ICON"], "Cursor.png"))
-            # compose them
-            cursor3 = np.zeros([cursor.shape[0]+cursor2.shape[0], cursor.shape[1]+cursor2.shape[1], 4], cursor.dtype)
-            cursor3[:cursor.shape[0], :cursor.shape[1], :] = cursor
-            y, x = (cursor.shape[0]-6, cursor.shape[1]-4)
-            cursor3[y:y+cursor2.shape[0], x:x+cursor2.shape[1], :] = cursor2
-            # create a cursor
-            cursor = QtGui.QCursor(QtGui.QPixmap(array2qimage(cursor3)), 0, 0)
-
-            # and the the cursor as the active one
-            for pixmap in self.ImageDisplay.pixMapItems:
-                pixmap.setCursor(cursor)
 
     def eventToolSelected(self, module, tool):
         if module == "Mask":
@@ -648,11 +942,7 @@ class MaskHandler:
         # remove mask
         self.LoadMask(None)
 
-        # remove all counters
-        if self.buttons is not None:
-            for button in self.buttons:
-                self.buttons[button].delete()
-        self.buttons = []
+        self.maskTypeChooser.clear()
 
         if self.mask_edit_window:
             self.mask_edit_window.close()
@@ -673,14 +963,14 @@ class MaskHandler:
                 self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
 
         # update mask interface buttons
-        self.UpdateButtons()
+        self.maskTypeChooser.updateButtons(self.mask_file)
 
         # get config options
         self.changeOpacity(self.config.mask_opacity - self.mask_opacity)
         self.changeCursorSize(self.config.mask_brush_size - self.DrawCursorSize)
         self.ToggleInterfaceEvent(hidden=self.config.mask_interface_hidden)
         if self.config.selected_draw_type >= 0:
-            self.SetActiveDrawType(self.config.selected_draw_type)
+            self.maskTypeChooser.SetActiveDrawType(self.config.selected_draw_type, silent=True)
 
         # place tick marks for already present masks
         # but lets take care that there are masks ...
@@ -689,31 +979,6 @@ class MaskHandler:
             BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
         except IndexError:
             pass
-
-    def UpdateButtons(self):
-        # remove all counter
-        for button in self.buttons:
-            self.buttons[button].delete()
-
-        # create new ones
-        type_list = self.mask_file.get_mask_type_list()
-        # create buttons for types
-        self.buttons = {index: MaskTypeButton(self.parent_hud, self, type, index, scale=self.window.scale_factor) for index, type in enumerate(type_list)}
-        # create button for "add_type"
-        self.buttons[-1] = MaskTypeButton(self.parent_hud, self, None, len(self.buttons), scale=self.window.scale_factor)
-        ## create button for background "delete"
-        #self.buttons[0] = MaskTypeButton(self.parent_hud, self, self.mask_file.table_mask(name="delete", color="#B0B0B0", index=0), 0)
-
-        # set "delete" the active draw type
-        self.active_draw_type = self.buttons[-1].type
-        self.active_draw_type_index = -1
-
-        # update the colormap of the displayed mask
-        self.MaskDisplay.UpdateColormap(type_list)
-
-        # buttons are visible according to self.hidden flag
-        for key in self.buttons:
-            self.buttons[key].setVisible(not self.hidden)
 
     def imageLoadedEvent(self, filename, framenumber):
         # Broadcast from ClickPoints Main
@@ -787,42 +1052,6 @@ class MaskHandler:
         # set the opacity
         self.MaskDisplay.setOpacity(self.mask_opacity)
 
-    def selectType(self, index):
-        self.SetActiveDrawType(index)
-        if self.tool_index != 0 and self.tool_index != 3:
-            self.selectTool(0)
-
-    def SetActiveDrawType(self, new_index):
-        # only allow valid types
-        if new_index >= len(self.buttons)-1:
-            return
-        # set the old button to inactive
-        if self.active_draw_type_index is not None:
-            self.buttons[self.active_draw_type_index].SetToInactiveColor()
-        # store the new type
-        self.active_draw_type = self.buttons[new_index].type
-        self.active_draw_type_index = new_index
-        self.config.selected_draw_type = new_index
-        # set the new button to active
-        self.buttons[self.active_draw_type_index].SetToActiveColor()
-        # update mask and draw cursor
-        self.RedrawMask()
-        self.UpdateDrawCursorDisplay()
-
-    def PickColor(self):
-        # find the type which corresponds to the color_under_cursor
-        for index, draw_type in enumerate(self.mask_file.get_mask_type_list()):
-            if draw_type.index == self.color_under_cursor:
-                self.SetActiveDrawType(index)
-                return
-        # if no color has been found, take background color
-        self.SetActiveDrawType(0)
-
-    def FillColor(self, x, y):
-        if self.MaskDisplay.Fill(x, y, self.active_draw_type):
-            self.MaskChanged = True
-            self.MaskUnsaved = True
-
     def changeCursorSize(self, value):
         # increase/decrease the brush size by value
         self.DrawCursorSize += value
@@ -839,13 +1068,13 @@ class MaskHandler:
 
     def UpdateDrawCursorDisplay(self):
         # if no type is selected do nothing
-        if self.active_draw_type is None:
+        if self.maskTypeChooser.active_draw_type is None:
             return
 
         # get the color from the current type
-        color = QtGui.QColor(*HTMLColorToRGB(self.active_draw_type.color))
+        color = QtGui.QColor(*HTMLColorToRGB(self.maskTypeChooser.active_draw_type.color))
 
-        # create a pen with this color and apply it ti the drawPathItem
+        # create a pen with this color and apply it to the drawPathItem
         pen = QtGui.QPen(color, self.DrawCursorSize)
         pen.setCapStyle(Qt.RoundCap)
         self.drawPathItem.setPen(pen)
@@ -854,30 +1083,10 @@ class MaskHandler:
         draw_cursor_path = QtGui.QPainterPath()
         draw_cursor_path.addEllipse(-self.DrawCursorSize * 0.5, -self.DrawCursorSize * 0.5, self.DrawCursorSize,
                                     self.DrawCursorSize)
-        self.DrawCursor.setPen(QtGui.QPen(color))
+        pen = QtGui.QPen(color)
+        pen.setCosmetic(True)
+        self.DrawCursor.setPen(pen)
         self.DrawCursor.setPath(draw_cursor_path)
-
-    def DrawLine(self, start_x, end_x, start_y, end_y):
-        # draw the line on the mask
-        if self.tool_index == 0:
-            self.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.DrawCursorSize, self.active_draw_type)
-        else:
-            self.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.DrawCursorSize, 0)
-        self.MaskChanged = True
-        self.MaskUnsaved = True
-
-        # directly update the mask or display last stroke as drawPath
-        if self.config.auto_mask_update:
-            self.RedrawMask()
-        else:
-            self.drawPath.moveTo(start_x, start_y)
-            self.drawPath.lineTo(end_x, end_y)
-            self.drawPathItem.setPath(self.drawPath)
-
-        # if the mask was empty notify modules that a new mask was created
-        if self.MaskEmpty:
-            self.MaskEmpty = False
-            BroadCastEvent(self.modules, "MaskAdded")
 
     def sceneEventFilter(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneWheel:
@@ -901,60 +1110,6 @@ class MaskHandler:
                     self.changeOpacity(-0.1)
                 event.accept()
                 return True
-        # only draw if an image is currently displayed
-        if self.data_file.image is None:
-            return False
-        # Mouse press starts drawing
-        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton:
-            if self.tool_index == 0 or self.tool_index == 1:
-                # if no mask has been created, create one for painting
-                if self.MaskEmpty is True:
-                    self.AddEmptyMask()
-                # store the coordinates
-                self.last_x = event.pos().x()
-                self.last_y = event.pos().y()
-                # add a first circle (so that even if the mouse isn't moved something is drawn)
-                self.DrawLine(self.last_x, self.last_x + 0.00001, self.last_y, self.last_y)
-                # set the changed flag for the database
-                self.data_file.setChangesMade()
-            elif self.tool_index == 2:
-                self.PickColor()
-            elif self.tool_index == 3:
-                with self.window.changeTracker("bucket fill in mask"):
-                    self.FillColor(event.pos().x(), event.pos().y())
-                    self.save()
-            # accept the event
-            return True
-        if event.type() == QtCore.QEvent.GraphicsSceneMouseRelease and event.button() == QtCore.Qt.LeftButton:
-            if self.tool_index == 0:
-                with self.window.changeTracker("draw line in mask"):
-                    self.save()
-            if self.tool_index == 1:
-                with self.window.changeTracker("erase in mask"):
-                    self.save()
-        # Mouse move event to draw the stroke
-        if event.type() == QtCore.QEvent.GraphicsSceneMouseMove and (self.tool_index == 0 or self.tool_index == 1):
-            # get the new position
-            self.DrawCursor.setPos(event.pos())
-            pos_x = event.pos().x()
-            pos_y = event.pos().y()
-            # draw a line and store the position
-            self.DrawLine(pos_x, self.last_x, pos_y, self.last_y)
-            self.last_x = pos_x
-            self.last_y = pos_y
-            # accept the event
-            return True
-        # Mouse hover updates the color_under_cursor and displays the brush cursor
-        if event.type() == QtCore.QEvent.GraphicsSceneHoverMove:
-            # move brush cursor
-            self.DrawCursor.setPos(event.pos())
-            # get color at this position
-            if self.MaskEmpty is True:
-                self.color_under_cursor = 0
-            else:
-                color = self.MaskDisplay.GetColor(event.pos().x(), event.pos().y())
-                if color is not None:
-                    self.color_under_cursor = color
         # don't accept the event, so that others can accept it
         return False
 
@@ -965,7 +1120,7 @@ class MaskHandler:
             else:
                 name = "Color%d" % type_id
             self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
-        self.UpdateButtons()
+        self.maskTypeChooser.updateButtons(self.mask_file)
 
     def drawToImage0(self, image, slicey, slicex):
         # only when the image has a mask
@@ -990,7 +1145,7 @@ class MaskHandler:
         # @key ---- Painting ----
         if self.tool_index >= 0 and 0 <= numberkey < self.mask_file.get_mask_type_list().count()+1 and event.modifiers() != Qt.KeypadModifier:
             # @key 0-9: change brush type
-            self.selectType(numberkey)
+            self.maskTypeChooser.selectType(numberkey)
 
         if not self.hidden:
             if event.key() == QtCore.Qt.Key_K:
@@ -1059,8 +1214,7 @@ class MaskHandler:
         if self.config is not None:
             self.config.mask_interface_hidden = self.hidden
         # update visibility status of the buttons
-        for button in self.buttons:
-            self.buttons[button].setVisible(not self.hidden)
+        self.maskTypeChooser.setVisible(not self.hidden)
         for button in self.tool_buttons:
             button.setVisible(not self.hidden)
         # set the mask button to checked/unchecked
