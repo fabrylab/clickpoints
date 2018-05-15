@@ -2081,7 +2081,7 @@ class DataFile:
 
         return query
 
-    def getImageIterator(self, start_frame=0, end_frame=None, skip=1, layer=None):
+    def getImageIterator(self, start_frame=0, end_frame=None, skip=1, layer=0):
         """
         Get an iterator to iterate over all :py:class:`Image` entries starting from start_frame.
 
@@ -2123,7 +2123,7 @@ class DataFile:
             if frame == end_frame:
                 break
             try:
-                image = self.table_image.get(self.table_image.sort_index == frame, self.table_image.layer==layer)
+                image = self.table_image.get(self.table_image.sort_index == frame, self.table_image.layer == layer)
                 yield image
             except peewee.DoesNotExist:
                 break
