@@ -4042,6 +4042,9 @@ class DataFile:
         if skip is not None:
             where_condition = where_condition[:-1] + " AND i.sort_index %% %d = 0;" % skip
 
+        # append sorting by sort index
+        where_condition = where_condition[:-1] + " ORDER BY i.sort_index;"
+
         # iterate over all the tracks given by the filter
         all_tracks = []
         for track in self.getTracks(type=type, id=id):
