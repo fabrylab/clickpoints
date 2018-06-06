@@ -2867,9 +2867,9 @@ class MarkerHandler:
         else:
             # get the cursor from file or name
             if cursor_name.startswith("fa."):
-                icon = qta.icon(cursor_name, color=QtGui.QColor(255, 255, 255))
+                icon = qta.icon(cursor_name, color=QtGui.QColor(*HTMLColorToRGB(self.active_type.color)[::-1]))
             else:
-                icon = IconFromFile(cursor_name, color=QtGui.QColor(255, 255, 255))
+                icon = IconFromFile(cursor_name, color=QtGui.QColor(*HTMLColorToRGB(self.active_type.color)))
             # convert icon to numpy array
             buffer = icon.pixmap(16, 16).toImage().constBits()
             cursor2 = np.ndarray(shape=(16, 16, 4), buffer=buffer.asarray(size=16 * 16 * 4), dtype=np.uint8)
@@ -3287,6 +3287,10 @@ class MarkerHandler:
             self.selectTool(0)
         self.config.selected_marker_type = new_index
         self.counter[self.active_type_index].SetToActiveColor()
+
+        # reset the cursor to adjust the color to the new markertype
+        cursor_name = ["fa.plus", "fa.trash", "fa.tint", None][self.tool_index]
+        self.setCursor(cursor_name)
 
     def zoomEvent(self, scale, pos):
         self.scale = scale
