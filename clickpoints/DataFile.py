@@ -4060,3 +4060,207 @@ class DataFile:
 
         # convert the list to an array and return it
         return np.array(all_tracks)
+
+    def getTracksNanPadded2(self, type=None, id=None, start_frame=None, end_frame=None, skip=None, layer=0, apply_offset=False):
+        """
+        Return an array of all track points with the given filters. The array has the shape of [n_tracks, n_images, pos],
+        where pos is the 2D position of the markers.
+
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.deleteTracks`, :py:meth:`~.DataFile.getTracks`.
+
+        Parameters
+        ----------
+        type: :py:class:`MarkerType`, str, array_like, optional
+            the marker type/types or name of the marker type for the track.
+        id : int, array_like, optional
+            the  :py:class:`Track` ID
+        start_frame : int, optional
+            the frame where to begin the array. Default: first frame.
+        end_frame : int, optional
+            the frame where to end the array. Default: last frame.
+        skip : int, optional
+            skip every nth frame. Default: don't skip frames.
+        layer : int, optional
+            which layer to use for the images.
+        apply_offset : bool, optional
+            whether to apply the image offsets to the marker positions. Default: False.
+
+        Returns
+        -------
+        nan_padded_array : ndarray
+            the array which contains all the track marker positions.
+        """
+
+        layer_count = self.db.execute_sql("SELECT MAX(layer) FROM image LIMIT 1;").fetchone()[0] + 1
+        image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
+
+        # get the query, it joins each image with the markers from the track
+        query_marker = "SELECT x, y FROM image as i, track as t LEFT JOIN marker m ON t.id = m.track_id AND i.id = m.image_id"
+        query_offset = "SELECT IFNULL(o.x, 0) AS x, IFNULL(o.y, 0) AS y FROM image AS i LEFT JOIN offset o ON i.id = o.image_id"
+
+        where_condition = []
+
+        # get the filter condition (only filter if it is necessary, e.g. if we have more than one layer)
+        if layer is not None and layer_count != 1:
+            where_condition.append("layer = %d" % layer)
+
+        # if a start frame is given, only export marker from images >= the given frame
+        if start_frame is not None:
+            where_condition.append("i.sort_index >= %d" % start_frame)
+            image_count -= start_frame
+        # if a end frame is given, only export marker from images < the given frame
+        if end_frame is not None:
+            where_condition.append("i.sort_index < %d" % end_frame)
+            if start_frame:
+                image_count = end_frame - start_frame
+            else:
+                image_count = end_frame
+        # skip every nth frame
+        if skip is not None:
+            where_condition.append("i.sort_index %% %d = 0" % skip)
+            image_count = image_count//skip
+
+        if type is not None:
+            type = self._processesTypeNameField(type, ["TYPE_Track"])
+            if not isinstance(type, list):
+                where_condition.append("t.type_id = %d" % type.id)
+            else:
+                where_condition.append("t.type_id in " % str([t.id for t in type]))
+
+        if id is not None:
+            where_condition.append("t.id = %d" % id)
+
+        # append sorting by sort index
+        if len(where_condition):
+            where_condition = " WHERE "+" AND ".join(where_condition)
+        else:
+            where_condition = ""
+        where_condition = where_condition + " ORDER BY i.sort_index, t.id;"
+
+        # get all the track markers
+        pos = np.array(self.db.execute_sql(query_marker + where_condition).fetchall()).astype(float)
+
+        # reshape the array to track_number x image_number x 2
+        pos = pos.reshape((image_count, pos.shape[0] // image_count, 2))
+        pos = pos.transpose(1, 0, 2)
+
+        # if the offset is required, get the offsets for all images and add them to the marker positions
+        if apply_offset:
+            offsets = np.array(self.db.execute_sql(query_offset + where_condition).fetchall()).astype(float)
+            pos += offsets
+
+        return pos
+
+
+    def getTracksNanPadded3(self, type=None, id=None, start_frame=None, end_frame=None, skip=None, layer=0, apply_offset=False):
+        """
+        Return an array of all track points with the given filters. The array has the shape of [n_tracks, n_images, pos],
+        where pos is the 2D position of the markers.
+
+        See also: :py:meth:`~.DataFile.getTrack`, :py:meth:`~.DataFile.setTrack`, :py:meth:`~.DataFile.deleteTracks`, :py:meth:`~.DataFile.getTracks`.
+
+        Parameters
+        ----------
+        type: :py:class:`MarkerType`, str, array_like, optional
+            the marker type/types or name of the marker type for the track.
+        id : int, array_like, optional
+            the  :py:class:`Track` ID
+        start_frame : int, optional
+            the frame where to begin the array. Default: first frame.
+        end_frame : int, optional
+            the frame where to end the array. Default: last frame.
+        skip : int, optional
+            skip every nth frame. Default: don't skip frames.
+        layer : int, optional
+            which layer to use for the images.
+        apply_offset : bool, optional
+            whether to apply the image offsets to the marker positions. Default: False.
+
+        Returns
+        -------
+        nan_padded_array : ndarray
+            the array which contains all the track marker positions.
+        """
+
+        layer_count = self.db.execute_sql("SELECT MAX(layer) FROM image LIMIT 1;").fetchone()[0] + 1
+
+        """ image conditions """
+        where_condition_image = []
+
+        # get the filter condition (only filter if it is necessary, e.g. if we have more than one layer)
+        if layer is not None and layer_count != 1:
+            where_condition_image.append("layer = %d" % layer)
+
+        # if a start frame is given, only export marker from images >= the given frame
+        if start_frame is not None:
+            where_condition_image.append("i.sort_index >= %d" % start_frame)
+        # if a end frame is given, only export marker from images < the given frame
+        if end_frame is not None:
+            where_condition_image.append("i.sort_index < %d" % end_frame)
+        # skip every nth frame
+        if skip is not None:
+            where_condition_image.append("i.sort_index %% %d = 0" % skip)
+
+        # append sorting by sort index
+        if len(where_condition_image):
+            where_condition_image = " WHERE " + " AND ".join(where_condition_image)
+        else:
+            where_condition_image = ""
+
+        # get the image ids according to the conditions
+        image_ids = self.db.execute_sql("SELECT id FROM image i "+where_condition_image+" ORDER BY sort_index;").fetchall()
+        image_count = len(image_ids)
+
+        """ track conditions """
+        where_condition_tracks = []
+
+        if type is not None:
+            type = self._processesTypeNameField(type, ["TYPE_Track"])
+            if not isinstance(type, list):
+                where_condition_tracks.append("t.type_id = %d" % type.id)
+            else:
+                where_condition_tracks.append("t.type_id in " % str([t.id for t in type]))
+
+        if id is not None:
+            where_condition_tracks.append("t.id = %d" % id)
+
+        # append sorting by sort index
+        if len(where_condition_tracks):
+            where_condition_tracks = " WHERE " + " AND ".join(where_condition_tracks)
+        else:
+            where_condition_tracks = ""
+
+        track_ids = self.db.execute_sql("SELECT id FROM track t "+where_condition_tracks+";").fetchall()
+        track_count = len(track_ids)
+
+        # create empty array to be filled by the queries
+        pos = np.zeros((track_count, image_count, 2), "float")
+
+        # iterate either over images or over tracks
+        # for some reasons it is better to iterate over the images even if the number of tracks is lower
+        if image_count < track_count * 100:
+            # iterate over all images
+            for index, (id,) in enumerate(image_ids):
+                # get the tracks for this image
+                q = self.db.execute_sql(
+                    "SELECT x, y FROM track t LEFT JOIN marker m ON m.track_id = t.id AND m.image_id = ? "+where_condition_tracks+" ORDER BY t.id",
+                    (id,))
+                # store the result in the array
+                pos[:, index] = q.fetchall()
+        else:
+            # iterate over all tracks
+            for index, (id,) in enumerate(track_ids):
+                # get the images for this track
+                q = self.db.execute_sql(
+                    "SELECT x, y FROM image i LEFT JOIN marker m ON m.track_id = ? AND m.image_id = i.id " + where_condition_image + " ORDER BY i.sort_index",
+                    (id,))
+                # store the result in the array
+                pos[index] = q.fetchall()
+
+        # if the offset is required, get the offsets for all images and add them to the marker positions
+        if apply_offset:
+            query_offset = "SELECT IFNULL(o.x, 0) AS x, IFNULL(o.y, 0) AS y FROM image AS i LEFT JOIN offset o ON i.id = o.image_id"
+            offsets = np.array(self.db.execute_sql(query_offset + where_condition_image + " ORDER BY sort_index;").fetchall()).astype(float)
+            pos += offsets
+
+        return pos
