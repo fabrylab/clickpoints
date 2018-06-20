@@ -122,16 +122,32 @@ class ModuleScaleBar(QtWidgets.QWidget):
 
 
 def get_meta(file):
-    if not file.lower().endswith((".tif", ".tiff")):
-        return {}
-    if not tifffile_loaded:
-        return {}
-    with tifffile.TiffFile(file) as tif:
+    import tifffile
+    import json
+    from distutils.version import LooseVersion
+
+    if LooseVersion(tifffile.__version__) > LooseVersion("0.13"):
+        with tifffile.TiffFile(file) as tif:
+            metadata = tif.shaped_metadata
+            if metadata is None:
+                return {}
+            return tif.shaped_metadata[0]
+    else:
         try:
-            metadata = tif[0].image_description
-        except AttributeError:
+            with tifffile.TiffFile(file) as tif:
+                try:
+                    tif.shaped_metadata[0]
+                except AttributeError:
+                    try:
+                        metadata = tif[0].image_description
+                    except (TypeError, AttributeError):
+                        return {}
+                try:
+                    return json.loads(metadata.decode('utf-8'))
+                except (AttributeError, ValueError, KeyError):
+                    return {}
+        except ValueError:  # invalid tiff file
             return {}
-        return json.loads(metadata.decode('utf-8'))
 
 
 class Addon(clickpoints.Addon):
