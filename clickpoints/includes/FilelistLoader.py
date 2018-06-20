@@ -21,6 +21,8 @@
 
 from __future__ import division, print_function, unicode_literals
 import os
+import sys
+import importlib
 import glob
 import time
 from datetime import datetime
@@ -37,6 +39,37 @@ except ImportError:
 
 import imageio
 print("Using ImageIO", imageio.__version__)
+
+# add plugins to imageIO if available
+plugin_searchpath = os.path.join(os.path.split(__file__)[0], '..', r'addons/imageio_plugin')
+sys.path.append(plugin_searchpath)
+if os.path.exists(plugin_searchpath):
+    print("Searching ImageIO Plugins ...")
+    plugin_list = os.listdir(os.path.abspath(plugin_searchpath))
+    for plugin in plugin_list:
+        if plugin.startswith('imageio_plugin_') and plugin.endswith('.py'):
+            importlib.import_module(os.path.splitext(plugin)[0])
+            print('Adding %s' % plugin)
+
+
+# check for ffmpeg
+try:
+    # check if imageio already has an exe file
+    imageio.plugins.ffmpeg.get_exe()
+    print("ffmpeg found from imageio")
+except imageio.core.fetching.NeedDownloadError:
+    # try to find an ffmpeg.exe in the ClickPoints folder
+    files = glob.glob(os.path.join(os.path.dirname(__file__), "..", "ffmpeg*.exe"))
+    files.extend(glob.glob(os.path.join(os.path.dirname(__file__), "..", "external", "ffmpeg*.exe")))
+    # if an ffmpeg exe has been found, set the environmental variable accordingly
+    if len(files):
+        print("ffmpeg found", files[0])
+        os.environ['IMAGEIO_FFMPEG_EXE'] = files[0]
+    # if not, try to download it
+    else:
+        print("try to download ffmpeg")
+        imageio.plugins.ffmpeg.download()
+
 
 imgformats = []
 for format in imageio.formats:
