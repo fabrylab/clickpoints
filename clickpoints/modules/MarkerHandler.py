@@ -2433,7 +2433,6 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             return
         if self.active:
             super(MyTrackItem, self).drawMarker(image, start_x, start_y, scale, image_scale, rotation)
-        scale *= self.style.get("scale", 1)
 
         color = (self.color.red(), self.color.green(), self.color.blue())
         circle_width = scale * self.style.get("track-point-scale", 1)
