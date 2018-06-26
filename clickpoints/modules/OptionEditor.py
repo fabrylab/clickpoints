@@ -136,6 +136,8 @@ class OptionEditorWindow(QtWidgets.QWidget):
                         edit.setMinimum(option.min_value)
                     if option.max_value is not None:
                         edit.setMaximum(option.max_value)
+                    if option.decimals is not None:
+                        edit.setDecimals(option.decimals)
                     edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
                 if option.value_type == "bool":
                     edit = AddQCheckBox(self.layout, option.display_name, value)

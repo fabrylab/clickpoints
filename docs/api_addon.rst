@@ -110,6 +110,7 @@ add, get and set options:
         - **tooltip** *(str)* - the tooltip of the option in the option menu.
         - **min_value** *(number)* - the minimal value for a *int* or *float* option.
         - **max_value** *(number)* - the maximum value for a *int* or *float* option.
+        - **decimals** *(number)* - the number of decimals to allow for a *float* option.
         - **value_count** *(int)* - it the option should accept a list of values. Only for *int* values.
 
 .. py:function:: getOption(key)
