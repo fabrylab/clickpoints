@@ -182,6 +182,7 @@ class Option:
     value_count = 1
     min_value = None
     max_value = None
+    decimals = None
     category = ""
     hidden = False
     tooltip = ""

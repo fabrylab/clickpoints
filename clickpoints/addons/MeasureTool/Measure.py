@@ -171,7 +171,7 @@ class Addon(clickpoints.Addon):
         meta = get_meta(os.path.join(self.db.image.path.path, self.db.image.filename))
 
         self.addOption(key="pixelSize", display_name="Pixel Size", default=meta.get("PixelSize", 6.45) / (
-        meta.get("Magnification", 1) * meta.get("Coupler", 1)), value_type="float",
+        meta.get("Magnification", 1) * meta.get("Coupler", 1)), value_type="float", decimals=4,
                        tooltip="The size of a pixel.")
         self.addOption(key="unit", display_name="Length Unit", default=u"µm", value_type="string",
                        tooltip="The unit for this size.")
