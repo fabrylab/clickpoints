@@ -1448,8 +1448,15 @@ class DataFile:
             print("\tto 5")
             with self.db.transaction():
                 # Add text fields for Tracks
-                self.db.execute_sql("ALTER TABLE images ADD COLUMN frame int")
+                self.db.execute_sql("ALTER TABLE images ADD COLUMN frame int DEFAULT 0")
                 self.db.execute_sql("ALTER TABLE images ADD COLUMN sort_index int")
+            with self.db.transaction():
+                self.db.execute_sql(
+                    "CREATE TEMPORARY TABLE NewIDs (sort_index INTEGER PRIMARY KEY AUTOINCREMENT, id INT UNSIGNED)")
+                self.db.execute_sql("INSERT INTO NewIDs (id) SELECT id FROM images ORDER BY filename ASC")
+                self.db.execute_sql(
+                    "UPDATE images SET sort_index = (SELECT sort_index FROM NewIDs WHERE images.id = NewIDs.id)-1")
+                self.db.execute_sql("DROP TABLE NewIDs")
             self._SetVersion(5)
 
         if nr_version < 6:
@@ -1465,11 +1472,16 @@ class DataFile:
             print("\tto 7")
             # fix migration for old branched databases
             if nr_version < 4:  # version before start of migration
-                with self.db.transaction():
+                try:
                     # Add text fields for Tracks
                     self.db.execute_sql("ALTER TABLE tracks ADD COLUMN text varchar(255)")
+                except peewee.OperationalError:
+                    pass
+                try:
                     # Add text fields for Types
                     self.db.execute_sql("ALTER TABLE types ADD COLUMN text varchar(255)")
+                except peewee.OperationalError:
+                    pass
             self._SetVersion(7)
 
         if nr_version < 8:
@@ -1479,6 +1491,8 @@ class DataFile:
                 self.db.execute_sql('CREATE TABLE IF NOT EXISTS "paths" ("id" INTEGER NOT NULL PRIMARY KEY, "path" VARCHAR (255) NOT NULL);')
                 self.db.execute_sql("ALTER TABLE paths RENAME TO path")
                 self.db.execute_sql("ALTER TABLE images RENAME TO image")
+                self.db.execute_sql('INSERT INTO path (id, path) VALUES(1, "")')
+                self.db.execute_sql("UPDATE image SET path_id = 1")
                 # fix for DB migration with missing paths table
                 self.db.execute_sql('CREATE TABLE IF NOT EXISTS "offsets" ("id" INTEGER NOT NULL PRIMARY KEY, "image_id" INTEGER NOT NULL,"x" REAL NOT NULL,"y" REAL NOT NULL, FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE);')
                 self.db.execute_sql("ALTER TABLE offsets RENAME TO offset")
@@ -1502,7 +1516,10 @@ class DataFile:
             with self.db.transaction():
                 # store mask_path and all masks
                 self.db.execute_sql("PRAGMA foreign_keys = OFF")
-                mask_path = self.db.execute_sql("SELECT * FROM meta WHERE key = 'mask_path'").fetchone()[2]
+                try:
+                    mask_path = self.db.execute_sql("SELECT * FROM meta WHERE key = 'mask_path'").fetchone()[2]
+                except TypeError:
+                    mask_path = ""
                 masks = self.db.execute_sql("SELECT id, image_id, filename FROM mask").fetchall()
                 self.migrate_to_10_mask_path = mask_path
                 self.migrate_to_10_masks = masks
@@ -1700,7 +1717,7 @@ class DataFile:
             with self.db.transaction():
                 try:
                     self.db.execute_sql(
-                        'CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, "layer" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);')
+                        'CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER DEFAULT 0, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, "layer" INTEGER NOT NULL, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE);')
                     self.db.execute_sql(
                         'INSERT INTO image_tmp SELECT id, filename, ext, frame, external_id, timestamp, sort_index, width, height, path_id, "0" FROM image')
                     self.db.execute_sql('DROP TABLE image')
