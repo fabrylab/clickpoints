@@ -674,7 +674,10 @@ class DataFileExtended(DataFile):
                 metadata = tif.shaped_metadata
                 if metadata is None:
                     return None
-                t = tif.shaped_metadata[0]["Time"]
+                try:
+                    t = tif.shaped_metadata[0]["Time"]
+                except KeyError:
+                    return None
                 try:
                     return datetime.strptime(t, '%Y%m%d-%H%M%S')
                 except ValueError:
