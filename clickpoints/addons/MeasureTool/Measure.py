@@ -127,11 +127,14 @@ def get_meta(file):
     from distutils.version import LooseVersion
 
     if LooseVersion(tifffile.__version__) > LooseVersion("0.13"):
-        with tifffile.TiffFile(file) as tif:
-            metadata = tif.shaped_metadata
-            if metadata is None:
-                return {}
-            return tif.shaped_metadata[0]
+        try:
+            with tifffile.TiffFile(file) as tif:
+                metadata = tif.shaped_metadata
+                if metadata is None:
+                    return {}
+                return tif.shaped_metadata[0]
+        except ValueError:  # invalid tiff file
+            return {}
     else:
         try:
             with tifffile.TiffFile(file) as tif:
