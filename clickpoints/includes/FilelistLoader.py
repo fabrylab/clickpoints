@@ -49,14 +49,14 @@ if os.path.exists(plugin_searchpath):
     for plugin in plugin_list:
         if plugin.startswith('imageio_plugin_') and plugin.endswith('.py'):
             # importlib.import_module(os.path.splitext(plugin)[0])
-            print(os.path.sep.join([os.path.abspath(plugin_searchpath), plugin + ".py"]))
+            print(os.path.sep.join([os.path.abspath(plugin_searchpath), plugin]))
             import importlib.util
 
-            spec = importlib.util.spec_from_file_location("imageio_plugin_VIS",
+            spec = importlib.util.spec_from_file_location(plugin.replace(".py",""),
                                                           os.path.sep.join([os.path.abspath(plugin_searchpath), plugin])
                                                           )
-            imageio_plugin_VIS = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(imageio_plugin_VIS)
+            imageio_plugin = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(imageio_plugin)
             # importlib.import_module(os.path.sep.join([os.path.abspath(plugin_searchpath), plugin]))
             # print(os.path.abspath(plugin_searchpath))
             print('Adding %s' % plugin)
