@@ -129,6 +129,8 @@ class OptionEditorWindow(QtWidgets.QWidget):
                     edit = QtShortCuts.QInputBool(self.layout, option.display_name, value=value, tooltip=option.tooltip)
                 if option.value_type == "string":
                     edit = QtShortCuts.QInputString(self.layout, option.display_name, value=value, tooltip=option.tooltip)
+                if option.value_type == "color":
+                    edit = QtShortCuts.QInputColor(self.layout, option.display_name, value=value, tooltip=option.tooltip)
                 edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
                 edit.current_value = None
                 edit.option = option
