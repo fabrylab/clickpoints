@@ -105,6 +105,8 @@ class QInputNumber(QInput):
         if float is False:
             self.decimals = 1
         else:
+            if decimals is None:
+                decimals = 2
             self.decimals = decimals
 
         if use_slider and min is not None and max is not None:
@@ -170,7 +172,7 @@ class QInputString(QInput):
         self.setValue(value)
 
     def _doSetValue(self, value):
-        self.line_edit.setText(value)
+        self.line_edit.setText(str(value))
 
     def value(self):
         return self.line_edit.text()
@@ -197,24 +199,32 @@ class QInputBool(QInput):
 
 class QInputChoice(QInput):
 
-    def __init__(self, layout=None, name=None, value=None, values=None, tooltip=None):
+    def __init__(self, layout=None, name=None, value=None, values=None, tooltip=None, reference_by_index=False):
         # initialize the super widget
         QInput.__init__(self, layout, name, tooltip=tooltip)
+
+        self.reference_by_index = reference_by_index
+        self.values = values
 
         self.combobox = QtWidgets.QComboBox()
         self.layout().addWidget(self.combobox)
         self.combobox.currentIndexChanged.connect(lambda: self._valueChangedEvent(self.value()))
 
-        self.values = values
         self.combobox.addItems(values)
 
         self.setValue(value)
 
     def _doSetValue(self, value):
-        self.combobox.setCurrentIndex(self.values.index(value))
+        if self.reference_by_index is True:
+            self.combobox.setCurrentIndex(value)
+        else:
+            self.combobox.setCurrentIndex(self.values.index(value))
 
     def value(self):
-        return self.values[self.combobox.currentIndex()]
+        if self.reference_by_index is True:
+            return self.combobox.currentIndex()
+        else:
+            return self.values[self.combobox.currentIndex()]
 
 
 class QInputColor(QInput):

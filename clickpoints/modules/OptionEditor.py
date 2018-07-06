@@ -29,7 +29,7 @@ from includes import BroadCastEvent2
 
 from qtpy import QtGui, QtCore, QtWidgets
 import qtawesome as qta
-from includes.QtShortCuts import AddQLabel, AddQSpinBox, AddQCheckBox, AddQHLine, AddQLineEdit, AddQComboBox
+from includes import QtShortCuts
 from includes import BroadCastEvent
 from includes import LoadConfig
 
@@ -115,39 +115,21 @@ class OptionEditorWindow(QtWidgets.QWidget):
                 value = option.value if option.value is not None else option.default
                 if option.value_type == "int":
                     if option.value_count > 1:
-                        edit = AddQLineEdit(self.layout, option.display_name, ", ".join(str(v) for v in value))
-                        edit.textChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
+                        edit = QtShortCuts.QInputString(self.layout, option.display_name, value=", ".join(str(v) for v in value),
+                                                        tooltip=option.tooltip)
                     else:
-                        edit = AddQSpinBox(self.layout, option.display_name, int(value), float=False)
-                        if option.min_value is not None:
-                            edit.setMinimum(option.min_value)
-                        if option.max_value is not None:
-                            edit.setMaximum(option.max_value)
-                        edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
-                        if getattr(option, "unit", None):
-                            edit.setSuffix(" "+option.unit)
-                    edit.editingFinished.connect(lambda edit=edit, option=option: self.ChangeFinished(edit, option))
+                        edit = QtShortCuts.QInputNumber(self.layout, option.display_name, value=float(value),
+                                                        min=option.min_value, max=option.max_value,
+                                                        decimals=option.decimals, float=False, unit=option.unit, tooltip=option.tooltip)
                 if option.value_type == "choice":
-                    edit = AddQComboBox(self.layout, option.display_name, option.values, selectedValue=option.values[value])
-                    edit.currentIndexChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
+                    edit = QtShortCuts.QInputChoice(self.layout, option.display_name, value=value, values=option.values, tooltip=option.tooltip, reference_by_index=True)
                 if option.value_type == "float":
-                    edit = AddQSpinBox(self.layout, option.display_name, float(value), float=True)
-                    if option.min_value is not None:
-                        edit.setMinimum(option.min_value)
-                    if option.max_value is not None:
-                        edit.setMaximum(option.max_value)
-                    if option.decimals is not None:
-                        edit.setDecimals(option.decimals)
-                    edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
+                    edit = QtShortCuts.QInputNumber(self.layout, option.display_name, value=float(value), min=option.min_value, max=option.max_value, decimals=option.decimals, float=True, unit=option.unit, tooltip=option.tooltip)
                 if option.value_type == "bool":
-                    edit = AddQCheckBox(self.layout, option.display_name, value)
-                    edit.stateChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
+                    edit = QtShortCuts.QInputBool(self.layout, option.display_name, value=value, tooltip=option.tooltip)
                 if option.value_type == "string":
-                    edit = AddQLineEdit(self.layout, option.display_name, value)
-                    edit.textChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
-                if option.tooltip:
-                    edit.label.setToolTip(option.tooltip)
-                    edit.setToolTip(option.tooltip)
+                    edit = QtShortCuts.QInputString(self.layout, option.display_name, value=value, tooltip=option.tooltip)
+                edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
                 edit.current_value = None
                 edit.option = option
                 edit.error = None
@@ -161,19 +143,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
 
     def updateEditField(self, edit, value, option):
         print(option.value_type, value, edit)
-        if option.value_type == "int":
-            if option.value_count > 1:
-                edit.setText(", ".join(str(v) for v in value))
-            else:
-                edit.setValue(value)
-        if option.value_type == "choice":
-            edit.setCurrentIndex(option.values.index(value))
-        if option.value_type == "float":
-            edit.setValue(value)
-        if option.value_type == "bool":
-            edit.setChecked(value)
-        if option.value_type == "string":
-            edit.setText(value)
+        edit.setValue(value)
         edit.current_value = value
 
     def list_selected(self):
@@ -282,7 +252,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
         field.has_error = False
         if option.value_type == "int":
             if option.value_count > 1:
-                value = value.strip()
+                value = str(value).strip()
                 if (value.startswith("(") and value.endswith(")")) or (value.startswith("[") and value.endswith("]")):
                     value = value[1:-1].strip()
                 if value.endswith(","):
