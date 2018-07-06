@@ -25,6 +25,7 @@ import json
 import os
 from qtpy import QtCore, QtGui, QtWidgets
 from PIL import Image, ImageDraw, ImageFont
+import matplotlib
 
 try:
     import tifffile
@@ -61,6 +62,12 @@ class ModuleScaleBar(QtWidgets.QWidget):
     def setUnit(self, text):
         self.unit = text
 
+    def setColor(self, color):
+        self.scalebar.setBrush(QtGui.QBrush(QtGui.QColor(color)))
+        self.scalebar.setPen(QtGui.QPen(QtGui.QColor(color)))
+        self.scalebar_text.setDefaultTextColor(QtGui.QColor(color))
+        self.color = color
+
     def zoomEvent(self, scale, pos):
         if self.pixtomu:
             self.scale = scale
@@ -92,8 +99,9 @@ class ModuleScaleBar(QtWidgets.QWidget):
         font_size = 32
 
         pixel_width, size_in_um = self.getBarParameters(1)
+        color = tuple((matplotlib.colors.to_rgba_array(self.color)[0, :3]*255).astype("uint8"))
 
-        image.rectangle([image.pil_image.size[0] -pixel_offset - pixel_width, image.pil_image.size[1] -pixel_offset - pixel_height, image.pil_image.size[0] -pixel_offset, image.pil_image.size[1] -pixel_offset], (255, 255, 255))
+        image.rectangle([image.pil_image.size[0] -pixel_offset - pixel_width, image.pil_image.size[1] -pixel_offset - pixel_height, image.pil_image.size[0] -pixel_offset, image.pil_image.size[1] -pixel_offset], color)
         if True:
             # get the font
             try:
@@ -113,8 +121,8 @@ class ModuleScaleBar(QtWidgets.QWidget):
             x = image.pil_image.size[0] - pixel_offset - pixel_width * 0.5 - total_length * 0.5
             y = image.pil_image.size[1] - pixel_offset - pixel_offset2 - pixel_height - height_number
             # draw the text for the number and the unit
-            image.text((x, y), text, (255, 255, 255), font=font)
-            image.text((x+length_number+length_space, y), self.unit, (255, 255, 255), font=font)
+            image.text((x, y), text, color, font=font)
+            image.text((x+length_number+length_space, y), self.unit, color, font=font)
 
     def delete(self):
         self.scalebar.scene().removeItem(self.scalebar)
@@ -178,8 +186,10 @@ class Addon(clickpoints.Addon):
                        tooltip="The size of a pixel.")
         self.addOption(key="unit", display_name="Length Unit", default=u"µm", value_type="string",
                        tooltip="The unit for this size.")
+        self.addOption(key="color", display_name="Color", default="#FFFFFF", value_type="color",
+                       tooltip="The color of the scale bar and the text.")
 
-        self.scaleBar.setPixToMu(self.getOption("pixelSize"))
+        self.optionsChanged()
 
         self.initialized = True
 
@@ -194,6 +204,7 @@ class Addon(clickpoints.Addon):
     def optionsChanged(self):
         self.scaleBar.setUnit(self.getOption("unit"))
         self.scaleBar.setPixToMu(self.getOption("pixelSize"))
+        self.scaleBar.setColor(self.getOption("color"))
 
     def markerMoveEvent(self, marker):
         if not self.initialized:

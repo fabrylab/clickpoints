@@ -1359,6 +1359,8 @@ class DataFile:
                 option.value = (entry.value == "True") or (entry.value == True)
             if option.value_type == "string":
                 option.value = str(entry.value)
+            if option.value_type == "color":
+                option.value = str(entry.value)
             if option.value_type == "array":
                 option.value = [value.strip()[1:-1] if value.strip()[0] != "u" else value.strip()[2:-1] for value in entry.value[1:-1].split(",")]
         except peewee.DoesNotExist:
