@@ -27,10 +27,14 @@ import CameraTransform as ct
 import os
 import json
 from qtpy import QtCore, QtGui, QtWidgets
-from clickpoints.includes.QtShortCuts import AddQLineEdit, AddQComboBox
+from clickpoints.includes.QtShortCuts import AddQLineEdit, AddQComboBox, QInputNumber
 import qtawesome as qta
 from skimage.measure import label, regionprops
+from skimage.color import rgb2grey
+from skimage.filters import gaussian
+from skimage.morphology import binary_closing
 import pandas as pd
+
 
 
 # define default dicts, enables .access on dicts
@@ -50,14 +54,25 @@ class Addon(clickpoints.Addon):
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
+        """ get or set options """
+        self.addOption(key="segmentation_th", display_name="Threshold Segmentation", default=125, value_type="int",
+                       tooltip="Threshold for binary segmentation")
+        self.addOption(key="segmentation_slm_size", display_name="Threshold SELEM size", default=2, value_type="int",
+                       tooltip="Size of the DISK shaped element for the binary open operation")
+        self.addOption(key="segmentation_gauss", display_name="Gauss Sigma", default=1.25, value_type="float",
+                       tooltip="Width of the gaussion used to smooth the image")
+
         """ Setup Marker and Masks """
         # Check if the marker type is present
         if not self.db.getMarkerType("cell (auto)"):
             self.db.setMarkerType("cell (auto)", [0, 255, 255], self.db.TYPE_Normal)
             self.cp.reloadTypes()
 
+        if self.db.getMaskType('mask'):
+            self.db.deleteMaskTypes('mask')
+
         if not self.db.getMaskType("area (auto)"):
-            self.MaskType_auto = self.db.setMaskType("area (auto)", '#00ff3f', id=1)
+            self.MaskType_auto = self.db.setMaskType("area (auto)", '#009fff', id=1)
             self.cp.reloadTypes()
 
         if not self.db.getMaskType("area (manual)"):
@@ -70,8 +85,9 @@ class Addon(clickpoints.Addon):
 
         """ default parameter """
         # start param
-        self.th = 125
-        self.slm_size = 3
+        self.th = self.getOption("segmentation_th")
+        self.slm_size = self.getOption("segmentation_slm_size")
+        self.gauss_sigma = self.getOption("segmentation_gauss")
 
         """ GUI Widgets"""
         # set the title and layout
@@ -136,16 +152,23 @@ class Addon(clickpoints.Addon):
         self.sliderSelemSize.sliderReleased.connect(self.sliderSELEMUpdate)
         self.sbSlemSize.valueChanged.connect(self.spinnSELEMUpdate)
 
+
+        self.inputGauss = QInputNumber(layout=None, name ='Gauss:', value = 0, min = 0, max = 10, use_slider = True, float = True, decimals = 2, unit = None, tooltip = None)
+        self.inputGauss.setValue(self.gauss_sigma)
+        self.layout_TH.addWidget(self.inputGauss, 2, 0, 1, 3)
+        self.inputGauss.valueChanged.connect(self.inputGausUpdate)
+
+
         ## auto apply checkbox
         self.checkboxSegmentation = QtWidgets.QCheckBox()
         self.checkboxSegmentation.setEnabled(True)
-        self.layout_TH.addWidget(QtWidgets.QLabel('auto apply segmentation'),2,1)
-        self.layout_TH.addWidget(self.checkboxSegmentation,2,0)
+        self.layout_TH.addWidget(QtWidgets.QLabel('auto apply segmentation'),3,1)
+        self.layout_TH.addWidget(self.checkboxSegmentation,3,0)
 
         ## segment on button press
         self.buttonSegmentation = QtWidgets.QPushButton("Segment")
         self.buttonSegmentation.released.connect(self.updateSegmentation)
-        self.layout_TH.addWidget(self.buttonSegmentation,2,2)
+        self.layout_TH.addWidget(self.buttonSegmentation,3,2)
 
 
 
@@ -156,6 +179,10 @@ class Addon(clickpoints.Addon):
         # add a grid layout for elements
         self.position_layout = QtWidgets.QGridLayout()
         self.position_groupbox.setLayout(self.position_layout)
+
+        self.inputMinSize = QInputNumber(layout=None, name ='Min Area:', value = 200, min = 0, max = 10000, use_slider = True, float = False, decimals = None, unit = None, tooltip = None)
+        self.position_layout.addWidget(self.inputMinSize, 0, 0, 1, 3)
+        # self.inputMinSize.valueChanged.connect(self.inputMinSize)
 
         # button Properties
         self.buttonProps = QtWidgets.QPushButton('Get Properties')
@@ -239,6 +266,15 @@ class Addon(clickpoints.Addon):
         if self.checkboxSegmentation.isChecked():
             self.updateSegmentation()
 
+
+    def inputGausUpdate(self):
+        # store th
+        self.gauss = self.inputGauss.value()
+
+        # update segmentation
+        if self.checkboxSegmentation.isChecked():
+            self.updateSegmentation()
+
     """ PROCESSING """
     def updateSegmentation(self, qimg=None):
         """
@@ -261,13 +297,27 @@ class Addon(clickpoints.Addon):
 
         img = self.qimg.data
 
+        if img.shape[-1] == 3:
+            img = rgb2grey(img)*255
+
+        print(img.max())
+        print(img.min())
+
+
+        if self.inputGauss.value() > 0:
+            img = gaussian(img, self.inputGauss.value())
+            print("apply gaus with value", self.inputGauss.value())
+
         # create binary mask
         mask = np.zeros(img.shape, dtype='uint8')
         mask[img > self.th] = 1
 
-        # use close operation to reduce noise
+        # use open operation to reduce noise
         from skimage.morphology import opening, disk
         mask_open = opening(mask, disk(self.slm_size))
+
+        # # use close operation to fill gaps
+        # mask_open = binary_closing(mask_open, disk(self.slm_size)).astype('uint8')
 
         # add user input
         cp_mask = self.db.getMask(image=self.qimg)
@@ -302,6 +352,9 @@ class Addon(clickpoints.Addon):
 
         img = self.qimg.data
 
+        if img.shape[-1] == 3:
+            img = rgb2grey(img)*255
+
         # cleanup
         self.db.deleteMarkers(image=self.qimg, type='cell (auto)')
 
@@ -325,7 +378,8 @@ class Addon(clickpoints.Addon):
 
         # iterate over properties and set marker for display
         for nr,prop in enumerate(props):
-            self.db.setMarker(image=self.qimg, x=prop.centroid[1], y=prop.centroid[0], text='Cell %d\narea= %.2f' % (nr,prop.area), type='cell (auto)')
+            if prop.area > self.inputMinSize.value():
+                self.db.setMarker(image=self.qimg, x=prop.centroid[1], y=prop.centroid[0], text='Cell %d\narea= %.2f' % (nr,prop.area), type='cell (auto)')
 
         # update CP display to show marker
         self.cp.reloadMarker()
@@ -333,15 +387,19 @@ class Addon(clickpoints.Addon):
         # store parameters in Pandas DF
         results = []
         for nr,prop in enumerate(props):
-            tmp = dotdict()
-            tmp.filename = self.qimg.filename
-            tmp.nr = nr
-            tmp.centroid_x = prop.centroid[0]
-            tmp.centroid_y = prop.centroid[1]
-            tmp.area = prop.area
-            tmp.mean_intensity = prop.mean_intensity
+            if prop.area > self.inputMinSize.value():
+                tmp = dotdict()
+                tmp.filename = self.qimg.filename
+                tmp.nr = nr
+                tmp.centroid_x = prop.centroid[0]
+                tmp.centroid_y = prop.centroid[1]
+                tmp.area = prop.area
+                tmp.mean_intensity = prop.mean_intensity
+                tmp.equivalent_diameter = prop.equivalent_diameter
+                tmp.axis_minor = prop.minor_axis_length
+                tmp.axis_major = prop.major_axis_length
 
-            results.append(tmp)
+                results.append(tmp)
 
         df = pd.DataFrame.from_records(results)
         print(df)
@@ -380,7 +438,7 @@ class Addon(clickpoints.Addon):
             self.q_img = q_img
             print("Batch processing Image Nr %d" % q_img.sort_index)
 
-            self.updateSegmentation(qimg=q_img)
+            # self.updateSegmentation(qimg=q_img)
             df = self.updateProperties(qimg=q_img)
             results.append(df)
 
