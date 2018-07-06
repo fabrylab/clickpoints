@@ -44,7 +44,7 @@ class QInput(QtWidgets.QWidget):
 
     last_emited_value = 0
 
-    def __init__(self, layout=None, name=None, tooltip=None):
+    def __init__(self, layout=None, name=None, tooltip=None, stretch=False):
         # initialize the super widget
         super(QInput, self).__init__()
 
@@ -54,7 +54,14 @@ class QInput(QtWidgets.QWidget):
 
         # add me to a parent layout
         if layout is not None:
-            layout.addWidget(self)
+            if stretch is True:
+                self.wrapper_layout = QtWidgets.QHBoxLayout()
+                self.wrapper_layout.setContentsMargins(0, 0, 0, 0)
+                self.wrapper_layout.addWidget(self)
+                self.wrapper_layout.addStretch()
+                layout.addLayout(self.wrapper_layout)
+            else:
+                layout.addWidget(self)
 
         # add a label to this layout
         self.label = QtWidgets.QLabel(name)
@@ -98,9 +105,9 @@ class QInputNumber(QInput):
     slider_dragged = False
 
     def __init__(self, layout=None, name=None, value=0, min=None, max=None, use_slider=False, float=True, decimals=2,
-                 unit=None, tooltip=None):
+                 unit=None, **kwargs):
         # initialize the super widget
-        QInput.__init__(self, layout, name, tooltip=tooltip)
+        QInput.__init__(self, layout, name, **kwargs)
 
         if float is False:
             self.decimals = 1
@@ -161,9 +168,9 @@ class QInputNumber(QInput):
 
 class QInputString(QInput):
 
-    def __init__(self, layout=None, name=None, value="", tooltip=None):
+    def __init__(self, layout=None, name=None, value="", **kwargs):
         # initialize the super widget
-        QInput.__init__(self, layout, name, tooltip=tooltip)
+        QInput.__init__(self, layout, name, **kwargs)
 
         self.line_edit = QtWidgets.QLineEdit()
         self.layout().addWidget(self.line_edit)
@@ -180,9 +187,9 @@ class QInputString(QInput):
 
 class QInputBool(QInput):
 
-    def __init__(self, layout=None, name=None, value=False, tooltip=None):
+    def __init__(self, layout=None, name=None, value=False, **kwargs):
         # initialize the super widget
-        QInput.__init__(self, layout, name, tooltip=tooltip)
+        QInput.__init__(self, layout, name, **kwargs)
 
         self.checkbox = QtWidgets.QCheckBox()
         self.layout().addWidget(self.checkbox)
@@ -199,9 +206,9 @@ class QInputBool(QInput):
 
 class QInputChoice(QInput):
 
-    def __init__(self, layout=None, name=None, value=None, values=None, tooltip=None, reference_by_index=False):
+    def __init__(self, layout=None, name=None, value=None, values=None, reference_by_index=False, **kwargs):
         # initialize the super widget
-        QInput.__init__(self, layout, name, tooltip=tooltip)
+        QInput.__init__(self, layout, name, **kwargs)
 
         self.reference_by_index = reference_by_index
         self.values = values
@@ -229,9 +236,9 @@ class QInputChoice(QInput):
 
 class QInputColor(QInput):
 
-    def __init__(self, layout=None, name=None, value=None, tooltip=None):
+    def __init__(self, layout=None, name=None, value=None, **kwargs):
         # initialize the super widget
-        QInput.__init__(self, layout, name, tooltip=tooltip)
+        QInput.__init__(self, layout, name, **kwargs)
 
         self.button = QtWidgets.QPushButton()
         self.button.setMaximumWidth(40)
@@ -268,6 +275,58 @@ class QInputColor(QInput):
     def value(self):
         # return the color
         return self.color
+
+
+class QInputFilename(QInput):
+
+    def __init__(self, layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
+        # initialize the super widget
+        QInput.__init__(self, layout, name, **kwargs)
+
+        self.dialog_title = dialog_title
+        self.file_type = file_type
+        self.filename_checker = filename_checker
+        self.existing = existing
+
+        self.line = QtWidgets.QLineEdit()
+        self.layout().addWidget(self.line)
+        self.line.setEnabled(False)
+
+        self.button = QtWidgets.QPushButton("choose file")
+        self.layout().addWidget(self.button)
+        self.button.clicked.connect(self._openDialog)
+
+        # set the color
+        self.setValue(value)
+
+    def _openDialog(self):
+        # open an new files
+        if not self.existing:
+            filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, os.getcwd(), self.file_type)
+        # or choose an existing file
+        else:
+            filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, os.getcwd(), self.file_type)
+
+        # get the string
+        if isinstance(filename, tuple):  # Qt5
+            filename = filename[0]
+        else:  # Qt4
+            filename = str(filename)
+
+        # optical check the filename
+        if self.filename_checker and filename:
+            filename = self.filename_checker(filename)
+
+        # set the filename
+        if filename:
+            self.setValue(filename)
+
+    def _doSetValue(self, value):
+        self.line.setText(value)
+
+    def value(self):
+        # return the color
+        return self.line.text()
 
 
 def AddQSpinBox(layout, text, value=0, float=True, strech=False):
