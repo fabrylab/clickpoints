@@ -29,6 +29,14 @@ from . import HTMLColorToRGB
 
 
 class QInput(QtWidgets.QWidget):
+    """
+    A base class for input widgets with a text label and a unified API.
+
+    - The valueChanged signal is emitted when the user has changed the input.
+
+    - The value of the input element get be set with setValue(value) and queried by value()
+
+    """
     # the signal when the user has changed the value
     valueChanged = QtCore.Signal('PyQt_PyObject')
 
@@ -36,7 +44,7 @@ class QInput(QtWidgets.QWidget):
 
     last_emited_value = 0
 
-    def __init__(self, layout=None, name=None):
+    def __init__(self, layout=None, name=None, tooltip=None):
         # initialize the super widget
         super(QInput, self).__init__()
 
@@ -52,29 +60,32 @@ class QInput(QtWidgets.QWidget):
         self.label = QtWidgets.QLabel(name)
         self.layout().addWidget(self.label)
 
+        if tooltip is not None:
+            self.setToolTip(tooltip)
+
     def setLabel(self, text):
         # update the label
         self.label.setText(text)
 
-    def emitSignal(self):
+    def _emitSignal(self):
         if self.value() != self.last_emited_value:
             self.valueChanged.emit(self.value())
             self.last_emited_value = self.value()
 
-    def valueChangedEvent(self, value):
+    def _valueChangedEvent(self, value):
         if self.no_signal:
             return
         self.setValue(value)
-        self.emitSignal()
+        self._emitSignal()
 
     def setValue(self, value):
         self.no_signal = True
         try:
-            self.doSetValue(value)
+            self._doSetValue(value)
         finally:
             self.no_signal = False
 
-    def doSetValue(self, value):
+    def _doSetValue(self, value):
         # dummy method to be overloaded by child classes
         pass
 
@@ -87,9 +98,9 @@ class QInputNumber(QInput):
     slider_dragged = False
 
     def __init__(self, layout=None, name=None, value=0, min=None, max=None, use_slider=False, float=True, decimals=2,
-                 unit=None):
+                 unit=None, tooltip=None):
         # initialize the super widget
-        QInput.__init__(self, layout, name)
+        QInput.__init__(self, layout, name, tooltip=tooltip)
 
         if float is False:
             self.decimals = 1
@@ -101,9 +112,9 @@ class QInputNumber(QInput):
             self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
             self.layout().addWidget(self.slider)
             self.slider.setRange(min * self.decimals, max * self.decimals)
-            self.slider.valueChanged.connect(lambda x: self.valueChangedEvent(x / self.decimals))
-            self.slider.sliderPressed.connect(lambda: self.setSliderDragged(True))
-            self.slider.sliderReleased.connect(lambda: self.setSliderDragged(False))
+            self.slider.valueChanged.connect(lambda x: self._valueChangedEvent(x / self.decimals))
+            self.slider.sliderPressed.connect(lambda: self._setSliderDragged(True))
+            self.slider.sliderReleased.connect(lambda: self._setSliderDragged(False))
         else:
             self.slider = None
 
@@ -116,7 +127,7 @@ class QInputNumber(QInput):
         if unit is not None:
             self.spin_box.setSuffix(" " + unit)
         self.layout().addWidget(self.spin_box)
-        self.spin_box.valueChanged.connect(self.valueChangedEvent)
+        self.spin_box.valueChanged.connect(self._valueChangedEvent)
 
         if min is not None:
             self.spin_box.setMinimum(min)
@@ -125,19 +136,19 @@ class QInputNumber(QInput):
 
         self.setValue(value)
 
-    def setSliderDragged(self, value):
+    def _setSliderDragged(self, value):
         self.slider_dragged = value
         if value is False:
-            self.emitSignal()
+            self._emitSignal()
 
-    def valueChangedEvent(self, value):
+    def _valueChangedEvent(self, value):
         if self.no_signal:
             return
         self.setValue(value)
         if not self.slider_dragged:
-            self.emitSignal()
+            self._emitSignal()
 
-    def doSetValue(self, value):
+    def _doSetValue(self, value):
         self.spin_box.setValue(value)
         if self.slider is not None:
             self.slider.setValue(value * self.decimals)
@@ -148,17 +159,17 @@ class QInputNumber(QInput):
 
 class QInputString(QInput):
 
-    def __init__(self, layout=None, name=None, value=""):
+    def __init__(self, layout=None, name=None, value="", tooltip=None):
         # initialize the super widget
-        QInput.__init__(self, layout, name)
+        QInput.__init__(self, layout, name, tooltip=tooltip)
 
         self.line_edit = QtWidgets.QLineEdit()
         self.layout().addWidget(self.line_edit)
-        self.line_edit.editingFinished.connect(lambda: self.valueChangedEvent(self.value()))
+        self.line_edit.editingFinished.connect(lambda: self._valueChangedEvent(self.value()))
 
         self.setValue(value)
 
-    def doSetValue(self, value):
+    def _doSetValue(self, value):
         self.line_edit.setText(value)
 
     def value(self):
@@ -167,17 +178,17 @@ class QInputString(QInput):
 
 class QInputBool(QInput):
 
-    def __init__(self, layout=None, name=None, value=False):
+    def __init__(self, layout=None, name=None, value=False, tooltip=None):
         # initialize the super widget
-        QInput.__init__(self, layout, name)
+        QInput.__init__(self, layout, name, tooltip=tooltip)
 
         self.checkbox = QtWidgets.QCheckBox()
         self.layout().addWidget(self.checkbox)
-        self.checkbox.stateChanged.connect(lambda: self.valueChangedEvent(self.value()))
+        self.checkbox.stateChanged.connect(lambda: self._valueChangedEvent(self.value()))
 
         self.setValue(value)
 
-    def doSetValue(self, value):
+    def _doSetValue(self, value):
         self.checkbox.setChecked(value)
 
     def value(self):
@@ -186,20 +197,20 @@ class QInputBool(QInput):
 
 class QInputChoice(QInput):
 
-    def __init__(self, layout=None, name=None, value=None, values=None):
+    def __init__(self, layout=None, name=None, value=None, values=None, tooltip=None):
         # initialize the super widget
-        QInput.__init__(self, layout, name)
+        QInput.__init__(self, layout, name, tooltip=tooltip)
 
         self.combobox = QtWidgets.QComboBox()
         self.layout().addWidget(self.combobox)
-        self.combobox.currentIndexChanged.connect(lambda: self.valueChangedEvent(self.value()))
+        self.combobox.currentIndexChanged.connect(lambda: self._valueChangedEvent(self.value()))
 
         self.values = values
         self.combobox.addItems(values)
 
         self.setValue(value)
 
-    def doSetValue(self, value):
+    def _doSetValue(self, value):
         self.combobox.setCurrentIndex(self.values.index(value))
 
     def value(self):
@@ -208,14 +219,14 @@ class QInputChoice(QInput):
 
 class QInputColor(QInput):
 
-    def __init__(self, layout=None, name=None, value=None):
+    def __init__(self, layout=None, name=None, value=None, tooltip=None):
         # initialize the super widget
-        QInput.__init__(self, layout, name)
+        QInput.__init__(self, layout, name, tooltip=tooltip)
 
         self.button = QtWidgets.QPushButton()
         self.button.setMaximumWidth(40)
         self.layout().addWidget(self.button)
-        self.button.clicked.connect(self.openDialog)
+        self.button.clicked.connect(self._openDialog)
 
         # set the color
         self.setValue(value)
@@ -227,7 +238,7 @@ class QInputColor(QInput):
             else:
                 self.setValue(self.color)
 
-    def openDialog(self):
+    def _openDialog(self):
         # get new color from color picker
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.value())[0] * 255)),
                                                 self.parent(), self.label.text() + " choose color")
@@ -235,9 +246,9 @@ class QInputColor(QInput):
         if color.isValid():
             color = mpl.colors.to_hex(color.getRgbF())
             self.setValue(color)
-            self.emitSignal()
+            self._emitSignal()
 
-    def setValue(self, value):
+    def _doSetValue(self, value):
         # display and save the new color
         if value is None:
             value = "#FF0000FF"
