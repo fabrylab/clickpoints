@@ -32,7 +32,7 @@ from PIL import ImageDraw, Image, ImageFont
 from scipy.ndimage import shift
 
 from includes.Tools import HTMLColorToRGB, BoundBy, BroadCastEvent
-from includes.QtShortCuts import AddQSaveFileChoose, AddQLineEdit, AddQSpinBox, AddQLabel, AddQCheckBox, AddQColorChoose
+from includes import QtShortCuts
 
 
 def MakePathRelative(abs_path):
@@ -88,10 +88,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(videoWidget)
         Vlayout = QtWidgets.QVBoxLayout(videoWidget)
 
-        self.leAName = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename), "Choose Video - ClickPoints", "Videos (*.avi)", lambda name: self.checkExtension(name, ".avi"))
-        self.leCodec = AddQLineEdit(Vlayout, "Codec:", options.video_codec, strech=True)
-        self.sbQuality = AddQSpinBox(Vlayout, 'Quality (0 lowest, 10 highest):', options.video_quality, float=False, strech=True)
-        self.sbQuality.setRange(0, 10)
+        self.leAName = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename), "Choose Video - ClickPoints", "Videos (*.avi)", lambda name: self.checkExtension(name, ".avi"))
+        self.leCodec = QtShortCuts.QInputString(Vlayout, "Codec:", options.video_codec, stretch=True)
+        self.sbQuality = QtShortCuts.QInputNumber(Vlayout, 'Quality (0 lowest, 10 highest):', options.video_quality, min=0, max=10, float=False, stretch=True)
 
         Vlayout.addStretch()
 
@@ -100,8 +99,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
-        self.leANameI = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_image_filename), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif, *.svg)", self.CheckImageFilename)
-        AddQLabel(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
+        self.leANameI = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_image_filename), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif, *.svg)", self.CheckImageFilename)
+        QtShortCuts.QInput(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
 
         Vlayout.addStretch()
 
@@ -110,7 +109,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(gifWidget)
         Vlayout = QtWidgets.QVBoxLayout(gifWidget)
 
-        self.leANameG = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_gif_filename), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)", lambda name: self.checkExtension(name, ".gif"))
+        self.leANameG = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_gif_filename), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)", lambda name: self.checkExtension(name, ".gif"))
 
         Vlayout.addStretch()
 
@@ -119,9 +118,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
-        self.leANameIS = AddQSaveFileChoose(Vlayout, 'Filename:', os.path.abspath(options.export_single_image_filename),
+        self.leANameIS = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_single_image_filename),
                                            "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif *.svg)", lambda name: self.checkExtension(name, ".jpg"))
-        AddQLabel(Vlayout, 'Single Image will only export the current frame. Optionally, a %d placeholder will be filled with the frame number')
+        QtShortCuts.QInput(Vlayout, 'Single Image will only export the current frame. Optionally, a %d placeholder will be filled with the frame number')
 
         Vlayout.addStretch()
 
@@ -130,10 +129,10 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.layout.addWidget(timeWidget)
         Vlayout = QtWidgets.QVBoxLayout(timeWidget)
 
-        self.cbTime = AddQCheckBox(Vlayout, 'Display time:', options.export_display_time, strech=True)
-        self.cbTimeZero = AddQCheckBox(Vlayout, 'Start from zero:', options.export_time_from_zero, strech=True)
-        self.cbTimeFontSize = AddQSpinBox(Vlayout, 'Font size:', options.export_time_font_size, float=False, strech=True)
-        self.cbTimeColor = AddQColorChoose(Vlayout, "Color:", options.export_time_font_color, strech=True)
+        self.cbTime = QtShortCuts.QInputBool(Vlayout, 'Display time:', options.export_display_time, stretch=True)
+        self.cbTimeZero = QtShortCuts.QInputBool(Vlayout, 'Start from zero:', options.export_time_from_zero, stretch=True)
+        self.cbTimeFontSize = QtShortCuts.QInputNumber(Vlayout, 'Font size:', options.export_time_font_size, float=False, stretch=True)
+        self.cbTimeColor = QtShortCuts.QInputColor(Vlayout, "Color:", options.export_time_font_color, stretch=True)
 
         Vlayout.addStretch()
 
@@ -142,8 +141,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.layout.addWidget(scaleWidget)
         Vlayout = QtWidgets.QVBoxLayout(scaleWidget)
 
-        self.cbImageScaleSize = AddQSpinBox(Vlayout, 'Image scale:', options.export_image_scale, float=True, strech=True)
-        self.cbMarkerScaleSize = AddQSpinBox(Vlayout, 'Marker scale:', options.export_marker_scale, float=True, strech=True)
+        self.cbImageScaleSize = QtShortCuts.QInputNumber(Vlayout, 'Image scale:', options.export_image_scale, float=True, stretch=True)
+        self.cbMarkerScaleSize = QtShortCuts.QInputNumber(Vlayout, 'Marker scale:', options.export_marker_scale, float=True, stretch=True)
 
         Vlayout.addStretch()
 
@@ -195,17 +194,17 @@ class VideoExporterDialog(QtWidgets.QWidget):
 
         # save options
         options = self.options
-        options.export_video_filename = MakePathRelative(str(self.leAName.text()))
-        options.export_image_filename = MakePathRelative(str(self.leANameI.text()))
-        options.export_gif_filename = MakePathRelative(str(self.leANameG.text()))
-        options.export_single_image_filename = MakePathRelative(str(self.leANameIS.text()))
+        options.export_video_filename = MakePathRelative(str(self.leAName.value()))
+        options.export_image_filename = MakePathRelative(str(self.leANameI.value()))
+        options.export_gif_filename = MakePathRelative(str(self.leANameG.value()))
+        options.export_single_image_filename = MakePathRelative(str(self.leANameIS.value()))
         options.export_type = self.cbType.currentIndex()
-        options.video_codec = str(self.leCodec.text())
+        options.video_codec = str(self.leCodec.value())
         options.video_quality = self.sbQuality.value()
-        options.export_display_time = self.cbTime.isChecked()
-        options.export_time_from_zero = self.cbTimeZero.isChecked()
+        options.export_display_time = self.cbTime.value()
+        options.export_time_from_zero = self.cbTimeZero.value()
         options.export_time_font_size = self.cbTimeFontSize.value()
-        options.export_time_font_color = self.cbTimeColor.getColor()
+        options.export_time_font_color = self.cbTimeColor.value()
         options.export_image_scale = self.cbImageScaleSize.value()
         options.export_marker_scale = self.cbMarkerScaleSize.value()
 
@@ -223,17 +222,17 @@ class VideoExporterDialog(QtWidgets.QWidget):
         writer = None
         svg = False
         if self.cbType.currentIndex() == 0:  # video
-            path = str(self.leAName.text())
+            path = str(self.leAName.value())
             writer_params = dict(format="avi", mode="I", fps=timeline.fps, codec=options.video_codec, quality=options.video_quality)
         elif self.cbType.currentIndex() == 1:  # image
-            path = str(self.leANameI.text())
+            path = str(self.leANameI.value())
             if path.endswith(".svg"):
                 svg = True
         elif self.cbType.currentIndex() == 2:  # gif
-            path = str(self.leANameG.text())
+            path = str(self.leANameG.value())
             writer_params = dict(format="gif", mode="I", fps=timeline.fps)
         elif self.cbType.currentIndex() == 3:  # single image
-            path = str(self.leANameIS.text())
+            path = str(self.leANameIS.value())
             if path.endswith(".svg"):
                 svg = True
 
