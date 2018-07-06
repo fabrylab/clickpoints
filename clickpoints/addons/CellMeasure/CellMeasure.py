@@ -23,7 +23,6 @@ from __future__ import division, print_function
 import numpy as np
 import sys
 import clickpoints
-import CameraTransform as ct
 import os
 import json
 from qtpy import QtCore, QtGui, QtWidgets
