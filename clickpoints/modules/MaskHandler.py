@@ -347,7 +347,17 @@ class MaskEditor(QtWidgets.QWidget):
         self.data.name = self.typeWidget.name.text()
         self.data.color = self.typeWidget.color.getColor()
         # save and update
-        self.data.save()
+        try:
+            self.data.save()
+        except peewee.IntegrityError as err:
+            if str(err) == "UNIQUE constraint failed: masktype.name":
+                QtWidgets.QMessageBox.critical(self, 'Error - ClickPoints',
+                                               'There already exists a masktype with name %s' % self.data.name,
+                                               QtWidgets.QMessageBox.Ok)
+                self.data.index = None
+                return
+            else:
+                raise err
         self.mask_handler.maskTypeChooser.updateButtons(self.mask_handler.mask_file)
 
         # get the item from tree or insert a new one
