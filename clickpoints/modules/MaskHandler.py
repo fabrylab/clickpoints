@@ -348,7 +348,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.data.color = self.typeWidget.color.getColor()
         # save and update
         self.data.save()
-        self.mask_handler.UpdateButtons()
+        self.mask_handler.maskTypeChooser.updateButtons(self.mask_handler.mask_file)
 
         # get the item from tree or insert a new one
         if new_type:
@@ -387,7 +387,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.tree.model().removeRow(item.row())
 
         # update display
-        self.mask_handler.UpdateButtons()
+        self.mask_handler.maskTypeChooser.updateButtons(self.mask_handler.mask_file)
 
     def keyPressEvent(self, event):
         # close the window with esc
