@@ -1,0 +1,5 @@
+[addon]
+name=Cell  Measurement (alpha)
+file=CellMeasure.py
+icon=fa.compress
+image=Image.png
