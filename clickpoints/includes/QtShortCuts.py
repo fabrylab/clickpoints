@@ -110,18 +110,19 @@ class QInputNumber(QInput):
         QInput.__init__(self, layout, name, **kwargs)
 
         if float is False:
-            self.decimals = 1
+            self.decimals = 0
         else:
             if decimals is None:
                 decimals = 2
             self.decimals = decimals
+        self.decimal_factor = 10**self.decimals
 
         if use_slider and min is not None and max is not None:
             # slider
             self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
             self.layout().addWidget(self.slider)
-            self.slider.setRange(min * self.decimals, max * self.decimals)
-            self.slider.valueChanged.connect(lambda x: self._valueChangedEvent(x / self.decimals))
+            self.slider.setRange(min * self.decimal_factor, max * self.decimal_factor)
+            self.slider.valueChanged.connect(lambda x: self._valueChangedEvent(x / self.decimal_factor))
             self.slider.sliderPressed.connect(lambda: self._setSliderDragged(True))
             self.slider.sliderReleased.connect(lambda: self._setSliderDragged(False))
         else:
@@ -160,7 +161,7 @@ class QInputNumber(QInput):
     def _doSetValue(self, value):
         self.spin_box.setValue(value)
         if self.slider is not None:
-            self.slider.setValue(value * self.decimals)
+            self.slider.setValue(value * self.decimal_factor)
 
     def value(self):
         return self.spin_box.value()
