@@ -206,26 +206,31 @@ class QInputBool(QInput):
 
 class QInputChoice(QInput):
 
-    def __init__(self, layout=None, name=None, value=None, values=None, reference_by_index=False, **kwargs):
+    def __init__(self, layout=None, name=None, value=None, values=None, value_names=None, reference_by_index=False, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
         self.reference_by_index = reference_by_index
         self.values = values
+        self.value_names = value_names if value_names is not None else values
 
         self.combobox = QtWidgets.QComboBox()
         self.layout().addWidget(self.combobox)
         self.combobox.currentIndexChanged.connect(lambda: self._valueChangedEvent(self.value()))
 
-        self.combobox.addItems(values)
+        self.combobox.addItems(self.value_names)
 
-        self.setValue(value)
+        if value is not None:
+            self.setValue(value)
 
     def _doSetValue(self, value):
         if self.reference_by_index is True:
             self.combobox.setCurrentIndex(value)
         else:
-            self.combobox.setCurrentIndex(self.values.index(value))
+            try:
+                self.combobox.setCurrentIndex(self.values.index(value))
+            except ValueError:
+                self.combobox.setCurrentIndex(self.value_names.index(value))
 
     def value(self):
         if self.reference_by_index is True:
