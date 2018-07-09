@@ -1854,7 +1854,7 @@ class DataFile:
     def _processLayerNameField(self, layers):
         def CheckLayer(layer):
             if isinstance(layer, basestring):
-                return self.getLayeyr(layer)
+                return self.getLayer(layer)
             return layer
 
         if isinstance(layers, (tuple, list)):
