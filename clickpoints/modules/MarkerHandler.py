@@ -3030,9 +3030,9 @@ class MarkerHandler:
         if frame is None:
             frame = self.data_file.get_current_image()
             # image_id = self.data_file.image.id
-            image_id = self.data_file.get_image(frame, 0).id
+            image_id = self.data_file.get_image(frame, 1).id
         else:
-            image_id = self.data_file.get_image(frame, 0).id
+            image_id = self.data_file.get_image(frame, 1).id
         # delete the current frame from cache to be able to reload it
         self.cached_images = self.cached_images - set([frame])
         # Points
@@ -3044,9 +3044,9 @@ class MarkerHandler:
 
     def imageLoadedEvent(self, filename, framenumber):
         self.frame_number = framenumber
-        # get the image of the given frame, but in layer 0.
+        # get the image of the given frame, but in layer 1.
         # this will be the image that all new markers will be attached to
-        self.reference_image = self.data_file.get_image(framenumber, 0)
+        self.reference_image = self.data_file.get_image(framenumber, 1)
         self.LoadPoints()
         self.LoadTracks()
         self.LoadLines()
@@ -3198,7 +3198,7 @@ class MarkerHandler:
         while len(self.points):
             self.points[0].delete(just_display=True)
         frame = self.data_file.get_current_image()
-        image_id = self.data_file.get_image(frame, 0).id
+        image_id = self.data_file.get_image(frame, 1).id
         marker_list = (
             self.marker_file.table_marker.select(self.marker_file.table_marker, self.marker_file.table_markertype)
                 .join(self.marker_file.table_markertype)
@@ -3214,7 +3214,7 @@ class MarkerHandler:
         while len(self.lines):
             self.lines[0].delete(just_display=True)
         frame = self.data_file.get_current_image()
-        image_id = self.data_file.get_image(frame, 0).id
+        image_id = self.data_file.get_image(frame, 1).id
         line_list = (
             self.marker_file.table_line.select(self.marker_file.table_line, self.marker_file.table_markertype)
                 .join(self.marker_file.table_markertype)
@@ -3228,7 +3228,7 @@ class MarkerHandler:
         while len(self.rectangles):
             self.rectangles[0].delete(just_display=True)
         frame = self.data_file.get_current_image()
-        image_id = self.data_file.get_image(frame, 0).id
+        image_id = self.data_file.get_image(frame, 1).id
         rect_list = (
             self.marker_file.table_rectangle.select(self.marker_file.table_rectangle, self.marker_file.table_markertype)
                 .join(self.marker_file.table_markertype)

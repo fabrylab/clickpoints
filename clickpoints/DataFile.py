@@ -278,7 +278,7 @@ class DataFile:
     """
     db = None
     _reader = None
-    _current_version = "18"
+    _current_version = "19"
     _database_filename = None
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
@@ -379,6 +379,21 @@ class DataFile:
             def __str__(self):
                 return "PathObject id%s: path=%s" % (self.id, self.path)
 
+        """ Layer Table """
+
+        class Layer(BaseModel):
+            name = peewee.CharField(unique=True)
+
+            def __str__(self):
+                return "LayerObject id%s:\tname=%s" \
+                       % (self.id, self.name)
+
+            def print_details(self):
+                print("LayerObject:\n"
+                      "id:\t\t{0}\n"
+                      "name:\t{1}\n"
+                      .format(self.id, self.name))
+
         class Image(BaseModel):
             filename = peewee.CharField()
             ext = peewee.CharField(max_length=10)
@@ -389,7 +404,7 @@ class DataFile:
             width = peewee.IntegerField(null=True)
             height = peewee.IntegerField(null=True)
             path = peewee.ForeignKeyField(Path, backref="images", on_delete='CASCADE')
-            layer = peewee.IntegerField(default=0)
+            layer = peewee.ForeignKeyField(Layer, backref="images", on_delete='CASCADE')
 
             class Meta:
                 # image and path in combination have to be unique
@@ -478,9 +493,10 @@ class DataFile:
         self.base_model = BaseModel
         self.table_meta = Meta
         self.table_path = Path
+        self.table_layer = Layer
         self.table_image = Image
         self.table_option = Option
-        self._tables = [Meta, Path, Image, Option]
+        self._tables = [Meta, Path, Layer, Image, Option]
 
         """ Offset Table """
 
@@ -518,7 +534,6 @@ class DataFile:
 
         self.table_offset = Offset
         self._tables.extend([Offset])
-
 
         """ Marker Tables """
 
@@ -1731,6 +1746,30 @@ class DataFile:
                 pass
             self._SetVersion(18)
 
+        if nr_version < 19:
+            print("\tto 19")
+
+            with self.db.transaction():
+                # crete a new table for the layers
+                self.db.execute_sql(
+                    'CREATE TABLE "layer" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL);')
+                self.db.execute_sql('CREATE UNIQUE INDEX "layer_name" ON "layer" ("name")')
+                # increase the layer index of every image (should now start with layer 1 instead of layer 0)
+                self.db.execute_sql('UPDATE image SET layer = layer+1')
+                # add layer entries for each layer referenced in the image table
+                self.db.execute_sql('INSERT INTO layer SELECT DISTINCT layer, "layer " || layer FROM image')
+
+                # convert the layer field to a foreign key field
+                self.db.execute_sql('CREATE TABLE "image_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "filename" VARCHAR(255) NOT NULL, "ext" VARCHAR(10) NOT NULL, "frame" INTEGER NOT NULL, "external_id" INTEGER, "timestamp" DATETIME, "sort_index" INTEGER NOT NULL, "width" INTEGER, "height" INTEGER, "path_id" INTEGER NOT NULL, "layer_id" INTEGER, FOREIGN KEY ("path_id") REFERENCES "path" ("id") ON DELETE CASCADE, FOREIGN KEY ("layer_id") REFERENCES "layer" ("id") ON DELETE CASCADE);')
+                self.db.execute_sql('INSERT INTO image_tmp SELECT * FROM image')
+                self.db.execute_sql("DROP TABLE image")
+                self.db.execute_sql("ALTER TABLE image_tmp RENAME TO image")
+
+                # rename the first layer to "default"
+                self.db.execute_sql('UPDATE layer SET name="default" WHERE id = 1')
+
+            self._SetVersion(19)
+
         self.db.connection().row_factory = None
 
     def _SetVersion(self, nr_new_version):
@@ -1811,6 +1850,18 @@ class DataFile:
         else:
             types = CheckType(types)
         return types
+
+    def _processLayerNameField(self, layers):
+        def CheckLayer(layer):
+            if isinstance(layer, basestring):
+                return self.getLayeyr(layer)
+            return layer
+
+        if isinstance(layers, (tuple, list)):
+            layers = [CheckLayer(layer) for layer in layers]
+        else:
+            layers = CheckLayer(layers)
+        return layers
 
     def _processPathNameField(self, paths):
         def CheckPath(path):
@@ -2003,6 +2054,132 @@ class DataFile:
             query = query.where(self.table_path.path.startswith(base_path))
         return query.execute()
 
+    def getLayer(self, layer_name=None, id=None, create=False):
+        """
+        Get a :py:class:`Layer` entry from the database.
+
+        See also: :py:meth:`~.DataFile.getLayers`, :py:meth:`~.DataFile.setLayer`, :py:meth:`~.DataFile.deleteLayers`
+
+        Parameters
+        ----------
+        layer_name: string, optional
+            the string specifying the layers name.
+        id: int, optional
+            the id of the layer.
+        create: bool, optional
+            whether the layer should be created if it does not exist. (default: False)
+
+        Returns
+        -------
+        path : :py:class:`Layer`
+            the created/requested :py:class:`Layer` entry.
+        """
+        # check input
+        assert any(e is not None for e in [id, layer_name]), "Name and ID may not be both None"
+
+        # collect arguments
+        kwargs = {}
+        # normalize the path, making it relative to the database file
+        if layer_name is not None:
+            kwargs["name"] = layer_name
+        # add the id
+        if id:
+            kwargs["id"] = id
+
+        # try to get the path
+        try:
+            layer = self.table_layer.get(**kwargs)
+        # if not create it
+        except peewee.DoesNotExist as err:
+            if create:
+                layer = self.table_layer(**kwargs)
+                layer.save()
+            else:
+                return None
+        # return the path
+        return layer
+
+    def getLayers(self, layer_name=None, id=None):
+        """
+        Get all :py:class:`Layer` entries from the database, which match the given criteria. If no critera a given, return all layers.
+
+        See also: :py:meth:`~.DataFile.getLayer`, :py:meth:`~.DataFile.setLayer`, :py:meth:`~.DataFile.deleteLayers`
+
+        Parameters
+        ----------
+        layer_name : string, optional
+            the string/s specifying the layer name/s.
+        id: int, array_like, optional
+            the id/s of the layer/s.
+
+        Returns
+        -------
+        entries : array_like
+            a query object containing all the matching :py:class:`Layer` entries in the database file.
+        """
+
+        query = self.table_layer.select()
+
+        query = addFilter(query, id, self.table_layer.id)
+        query = addFilter(query, layer_name, self.table_layer.name)
+
+        return query
+
+    def setLayer(self, layer_name=None, id=None):
+        """
+        Update or create a new :py:class:`Layer` entry with the given parameters.
+
+        See also: :py:meth:`~.DataFile.getLayer`, :py:meth:`~.DataFile.getLayers`, :py:meth:`~.DataFile.deleteLayers`
+
+        Parameters
+        ----------
+        layer_name: string, optional
+            the string specifying the name of the layer.
+        id: int, optional
+            the id of the layers.
+
+        Returns
+        -------
+        entries : :py:class:`Layer`
+            the changed or created :py:class:`Layer` entry.
+        """
+
+        try:
+            layer = self.table_layer.get(**noNoneDict(id=id, name=layer_name))
+        except peewee.DoesNotExist:
+            layer = self.table_layer()
+
+        setFields(layer, dict(path=layer_name))
+        layer.save()
+
+        return layer
+
+    def deleteLayers(self, layer_name=None, id=None):
+        """
+        Delete all :py:class:`Layer` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getLayer`, :py:meth:`~.DataFile.getLayers`, :py:meth:`~.DataFile.setLayer`
+
+        Parameters
+        ----------
+        layer_name: string, optional
+            the string/s specifying the name/s of the layer/s.
+        id: int, optional
+            the id/s of the layers.
+
+        Returns
+        -------
+        rows : int
+            the number of affected rows.
+        """
+
+        query = self.table_layer.delete()
+
+        query = addFilter(query, id, self.table_layer.id)
+        query = addFilter(query, layer_name, self.table_layer.path)
+
+        return query.execute()
+
     def getImageCount(self):
         """
         Returns the number of images in the database.
@@ -2029,14 +2206,16 @@ class DataFile:
             the filename of the desired image.
         id : int, optional
             the id of the image.
-        layer : int, optional
-            the layer_id of the image.
+        layer : int, string, optional
+            the layer_id or name of the layer of the image.
 
         Returns
         -------
         image : :py:class:`Image`
             the image entry.
         """
+
+        layer = self._processLayerNameField(layer)
 
         kwargs = noNoneDict(sort_index=frame, filename=filename, id=id, layer=layer)
         try:
@@ -2070,7 +2249,7 @@ class DataFile:
             the height/s of the image/s
         path : int, :py:class:`Path`, array_like, optional
             the path/s (or path id/s) of the image/s
-        layer : int, array_like, optional
+        layer : int, string, array_like, optional
             the layer/s of the image/s
         order_by : string, optional
             sort by either 'sort_index' (default) or 'timestamp'.
@@ -2080,6 +2259,8 @@ class DataFile:
         entries : array_like
             a query object containing all the :py:class:`Image` entries in the database file.
         """
+
+        layer = self._processLayerNameField(layer)
 
         query = self.table_image.select()
 
@@ -2102,7 +2283,7 @@ class DataFile:
 
         return query
 
-    def getImageIterator(self, start_frame=0, end_frame=None, skip=1, layer=0):
+    def getImageIterator(self, start_frame=0, end_frame=None, skip=1, layer=1):
         """
         Get an iterator to iterate over all :py:class:`Image` entries starting from start_frame.
 
@@ -2116,7 +2297,7 @@ class DataFile:
             the last frame of the iteration (excluded). Default is None, the iteration stops when no more images are present.
         skip : int, optional
             how many frames to jump. Default is 1
-        layer : int, optional
+        layer : int, string, optional
             layer of frames, over which should be iterated.
 
         Returns
@@ -2139,6 +2320,8 @@ class DataFile:
                 print(image.filename)
         """
 
+        layer = self._processLayerNameField(layer)
+
         frame = start_frame
         while True:
             if frame == end_frame:
@@ -2150,7 +2333,7 @@ class DataFile:
                 break
             frame += skip
 
-    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer=0, sort_index=None):
+    def setImage(self, filename=None, path=None, frame=None, external_id=None, timestamp=None, width=None, height=None, id=None, layer="default", sort_index=None):
 
         """
         Update or create new :py:class:`Image` entry with the given parameters.
@@ -2175,7 +2358,7 @@ class DataFile:
             the height of the image
         id : int, optional
             the id of the image
-        layer : int, optional
+        layer : int, string, optional
             the layer_id of the image, always use with sort_index
         sort_index: int, only use with layer
             the sort index (position in the time line) if not in layer 0
@@ -2191,6 +2374,9 @@ class DataFile:
         except peewee.DoesNotExist:
             item = self.table_image()
             new_image = True
+
+        if isinstance(layer, basestring):
+            layer = self.getLayer(layer, create=True)
 
         if filename is not None:
             item.filename = os.path.split(filename)[1]
@@ -2246,6 +2432,7 @@ class DataFile:
         """
         query = self.table_image.delete()
 
+        layer = self._processLayerNameField(layer)
         path = self._processPathNameField(path)
 
         query = addFilter(query, id, self.table_image.id)

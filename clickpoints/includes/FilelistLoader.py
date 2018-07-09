@@ -247,14 +247,16 @@ class FolderEditor(QtWidgets.QWidget):
         selected_path = str(self.text_input.text())
         if selected_path == "":
             return
+        # get a layer for the paths
+        layer_entry = self.getLayer("default", create=True)
         # if selected path is a directory, add it with the options
         if os.path.isdir(selected_path):
-            addPath(self.data_file, selected_path, str(self.text_input_filter.text()), self.checkbox_subfolders.isChecked(),
+            addPath(self.data_file, selected_path, str(self.text_input_filter.text()), layer_entry, self.checkbox_subfolders.isChecked(),
                     self.checkbox_natsort.isChecked())
         # if it is a path, set the filter to the filename to just import this file
         else:
             selected_path, filename = os.path.split(selected_path)
-            addPath(self.data_file, selected_path, filename)
+            addPath(self.data_file, selected_path, filename, layer_entry)
         self.update_folder_list()
         self.window.GetModule("Timeline").ImagesAdded()
         self.window.ImagesAdded()
@@ -282,12 +284,16 @@ class FolderEditor(QtWidgets.QWidget):
         self.window.ImagesAdded()
 
 
-def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=False, select_file=None, window=None):
+def addPath(data_file, path, file_filter="", layer_entry=None, subdirectories=False, use_natsort=False, select_file=None, window=None):
     # if we should add subdirectories, add them or create a list with only one path
     if subdirectories:
         path_list = iter(sorted(GetSubdirectories(path)))
     else:
         path_list = iter([path])
+
+    if layer_entry is None:
+        # get a layer for the paths
+        layer_entry = data_file.getLayer("default", create=True)
 
     #with data_file.db.atomic():
     data = []
@@ -322,7 +328,7 @@ def addPath(data_file, path, file_filter="", subdirectories=False, use_natsort=F
                         continue
                     # add the file to the database
                     try:
-                        data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, full_path=os.path.join(path, filename), commit=False))
+                        data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, layer=layer_entry, full_path=os.path.join(path, filename), commit=False))
                     except OSError as err:
                         print("ERROR:", err)
                     if len(data) > 100 or filename == select_file:

@@ -33,7 +33,7 @@ def dict_factory(cursor, row):
 # create a temporary ClickPoints table
 db = clickpoints.DataFile("tmp.cdb", "w")
 # enable dictionaries as query results
-db.db.get_conn().row_factory = dict_factory
+db.db.connection().row_factory = dict_factory
 
 # open schema.sql
 with open("schema.sql", "w") as fp:

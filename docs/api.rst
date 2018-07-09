@@ -93,6 +93,17 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class
         - **x** *(int)* - the x offset
         - **y** *(int)* - the y offset
 
+.. py:class:: Layer()
+
+    Stores the name of a layer. Referenced by each image entry.
+
+    See also: :py:meth:`~.DataFile.getLayer`, :py:meth:`~.DataFile.getLayers`, :py:meth:`~.DataFile.setLayer`,
+    :py:meth:`~.DataFile.deleteLayers`.
+
+    Attributes:
+        - **name** *(str, unique)* - the name of the layer
+        - **images** *(list of* :py:class:`Image` *)* - the images with this layer.
+
 .. py:class:: Track()
 
     A track containing multiple markers.
