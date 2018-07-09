@@ -87,7 +87,9 @@ def getEvalValuesGT(groundtruth_pos, pos_program, distance_cost_parameter):
         cost = distance.cdist(pos_program, groundtruth_pos, 'sqeuclidean')
 
         # solve the assignment to optimize the pairing
-        row_ind, col_ind = linear_sum_assignment(cost)
+        # row_ind, col_ind = linear_sum_assignment(cost)
+        from PenguTrack.Assignment import network_assignment
+        row_ind, col_ind = network_assignment(cost, threshold=distance_cost_parameter**2)
 
         # get the distances for the matches
         distance_cost = cost[row_ind, col_ind]
@@ -181,7 +183,7 @@ class Addon(clickpoints.Addon):
         self.layout_buttons = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.layout_buttons)
 
-        self.optimization_count = QtShortCuts.QInputNumber(self.layout, "Optimizer iterations", 100, False)
+        self.optimization_count = QtShortCuts.QInputNumber(self.layout, "Optimizer iterations", 100, float=False)
         self.optimization_count.setHidden(True)
 
         self.button = QtWidgets.QPushButton("apply")
