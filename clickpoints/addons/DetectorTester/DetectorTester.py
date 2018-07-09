@@ -25,6 +25,7 @@ from qtpy import QtCore, QtWidgets
 
 import clickpoints
 from clickpoints.includes.QtShortCuts import AddQSpinBox, AddQOpenFileChoose
+from clickpoints.includes import QtShortCuts
 
 from inspect import getdoc
 from PenguTrack import Detectors
@@ -150,14 +151,16 @@ class Addon(clickpoints.Addon):
         self.marker_type_false_negative = self.db.setMarkerType("false negative", "#ff730f", self.db.TYPE_Normal, style='{"shape":"ring", "scale":2}')
         self.cp.reloadTypes()
 
-        self.distance_cost_parameter = AddQSpinBox(self.layout, "Max Distance to Groundtruth", 10, False)
+        self.input_groundtruth_marktertype = QtShortCuts.QInputChoice(self.layout, "Groundtruth Markertype", value="ground truth", value_names=[n.name for n in self.db.getMarkerTypes()], values=[n for n in self.db.getMarkerTypes()])
 
-        self.detector_file = AddQOpenFileChoose(self.layout, "Detector File:", "", file_type="Python File (*.py)")
-        self.detector_file.textChanged.connect(self.detectorFileSelected)
+        self.distance_cost_parameter = QtShortCuts.QInputNumber(self.layout, "Max Distance to Groundtruth", 10, False)
+
+        self.detector_file = QtShortCuts.QInputFilename(self.layout, "Detector File:", "", file_type="Python File (*.py)", existing=True)
+        self.detector_file.valueChanged.connect(self.detectorFileSelected)
         self.detector_file_button_reload = QtWidgets.QPushButton()
         self.detector_file_button_reload.setIcon(qta.icon("fa.repeat"))
         self.detector_file_button_reload.clicked.connect(self.detectorFileSelected)
-        self.detector_file.managingLayout.addWidget(self.detector_file_button_reload)
+        self.detector_file.layout().addWidget(self.detector_file_button_reload)
 
         self.detector_classes = getClassDefinitions(Detectors, Detectors.Detector)#[DetectorThreshold, DetectorRandom]
 
@@ -178,7 +181,7 @@ class Addon(clickpoints.Addon):
         self.layout_buttons = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.layout_buttons)
 
-        self.optimization_count = AddQSpinBox(self.layout, "Optimizer iterations", 100, False)
+        self.optimization_count = QtShortCuts.QInputNumber(self.layout, "Optimizer iterations", 100, False)
         self.optimization_count.setHidden(True)
 
         self.button = QtWidgets.QPushButton("apply")
@@ -212,7 +215,7 @@ class Addon(clickpoints.Addon):
             self.comboBox.addItem(value.__name__)
 
     def detectorFileSelected(self):
-        filename = self.detector_file.text()
+        filename = self.detector_file.value()
         module = loadModule(filename)
         module = loadModule(filename, module)
         self.detectorModuleChanged(module)
@@ -259,6 +262,7 @@ class Addon(clickpoints.Addon):
                 self.scheduled_run = True
 
     def getGroundTruthPositions(self, frame):
+        self.marker_type_truth = self.input_groundtruth_marktertype.value()
         return np.array([x for x in self.db.getMarkers(frame=frame, type=self.marker_type_truth).select(self.db.table_marker.x, self.db.table_marker.y).tuples().execute()])
 
     def checkGroundTruth(self, detections, frame):
