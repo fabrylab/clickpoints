@@ -23,6 +23,7 @@ from __future__ import print_function, division
 import clickpoints
 import os
 import re
+from qtpy import QtCore
 try:
     import ConfigParser as configparser # Python 2
 except ImportError:
@@ -79,6 +80,11 @@ def parse(format, string):
 
 
 class Addon(clickpoints.Addon):
+    finished = QtCore.Signal()
+
+    def __init__(self, *args, **kwargs):
+        clickpoints.Addon.__init__(self, *args, **kwargs)
+        self.finished.connect(lambda: self.cp.updateImageCount())
 
     def sort(self):
         # get the first image
@@ -106,8 +112,11 @@ class Addon(clickpoints.Addon):
         # sort the index list
         z_values.sort()
 
+        first_layer = True
+
         # iterate over the images again and set the layer
         for image in self.db.getImages():
+            print("parsing image", image)
             # parse the image filename
             data = parse(format, image.filename)
             # compose the index_value
@@ -115,12 +124,17 @@ class Addon(clickpoints.Addon):
             # set the sort_index according to the measurement repetition
             image.sort_index = int(data["repetition"])
             # and the layer as the index value
-            image.layer = z_values.index(index_value)
+            if first_layer:
+                first_layer = False
+                self.db.setLayer(id=1, layer_name=index_value)
+                image.layer = self.db.getLayer(index_value, create=False)
+            else:
+                image.layer = self.db.getLayer(index_value, create=True)
             # save the image
             image.save()
 
         # notify ClickPoints that we have meddled with the image list
-        self.cp.updateImageCount()
+        self.finished.emit()
 
     def run(self, *args, **kwargs):
         # sort when the user clicks the button
