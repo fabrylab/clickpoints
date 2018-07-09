@@ -354,8 +354,6 @@ class DataFileExtended(DataFile):
             return data
 
     def add_bulk(self, data):
-        print("adding bulk", len(data))
-        print(data)
         if len(data) == 0:
             return
         # try to perform the bulk insert
@@ -407,7 +405,7 @@ class DataFileExtended(DataFile):
 
     def load_frame(self, index, threaded, layer=1):
         # check if frame is already buffered then we don't need to load it
-        if self.buffer.get_frame(index) is not None:
+        if self.buffer.get_frame(index, layer) is not None:
             self.signals.loaded.emit(index, layer, threaded)
             return
         # if we are still loading a frame finish first
@@ -423,7 +421,7 @@ class DataFileExtended(DataFile):
         if self.replace is not None:
             filename = filename.replace(self.replace[0], self.replace[1])
         # prepare a slot in the buffer
-        slots, slot_index, = self.buffer.prepare_slot(index)
+        slots, slot_index, = self.buffer.prepare_slot(index, layer)
         # call buffer_frame in a separate thread or directly
         if threaded:
             self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, layer, True, threaded))
@@ -477,19 +475,19 @@ class DataFileExtended(DataFile):
     def get_image_data(self, index=None, layer=1):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             # get the pixel data from the current image
-            return self.buffer.get_frame(self.current_image_index)
+            return self.buffer.get_frame(self.current_image_index, self.current_layer)
         try:
             image = self.table_image.get(sort_index=index, layer_id=layer)
         except peewee.DoesNotExist:
             return None
 
-        buffer = self.buffer.get_frame(index)
+        buffer = self.buffer.get_frame(index, layer)
         if buffer is not None:
             return buffer
         filename = os.path.join(image.path.path, image.filename)
-        slots, slot_index, = self.buffer.prepare_slot(index)
+        slots, slot_index, = self.buffer.prepare_slot(index, layer)
         self.buffer_frame(image, filename, slots, slot_index, index, layer, signal=False)
-        return self.buffer.get_frame(index)
+        return self.buffer.get_frame(index, layer)
 
     def get_image(self, index=None, layer=1):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
@@ -737,9 +735,11 @@ class FrameBuffer:
         self.indices = []
         self.last_index = -1
 
-    def add_frame(self, number, image):
+    def add_frame(self, number, layer_id, image):
+        if not isinstance(layer_id, int):
+            layer_id = layer_id.id
         self.slots[self.last_index] = image
-        self.indices[self.last_index] = number
+        self.indices[self.last_index] = (number, layer_id)
         self.last_index = (self.last_index+1) % len(self.slots)
 
     def getMemoryUsage(self):
@@ -754,8 +754,10 @@ class FrameBuffer:
     def getImageCount(self):
         return np.sum([1 for index in self.indices if index is not None])
 
-    def prepare_slot(self, number):
-        if self.get_slot_index(number) is not None:
+    def prepare_slot(self, number, layer_id):
+        if not isinstance(layer_id, int):
+            layer_id = layer_id.id
+        if self.get_slot_index(number, layer_id) is not None:
             return None, None
         if self.buffer_mode == 2:
             memory = self.getMemoryUsage()
@@ -773,22 +775,26 @@ class FrameBuffer:
         self.last_index = index
         # prepare the slot
         if index >= len(self.indices):
-            self.indices.append(number)
+            self.indices.append((number, layer_id))
             self.slots.append(None)
         else:
-            self.indices[index] = number
+            self.indices[index] = (number, layer_id)
             self.slots[index] = None
         return self.slots, index
 
-    def get_slot_index(self, number):
+    def get_slot_index(self, number, layer_id):
+        if not isinstance(layer_id, int):
+            layer_id = layer_id.id
         try:
-            return self.indices.index(number)
+            return self.indices.index((number, layer_id))
         except ValueError:
             return None
 
-    def get_frame(self, number):
+    def get_frame(self, number, layer_id):
+        if not isinstance(layer_id, int):
+            layer_id = layer_id.id
         try:
-            index = self.indices.index(number)
+            index = self.indices.index((number, layer_id))
             return self.slots[index]
         except ValueError:
             return None
