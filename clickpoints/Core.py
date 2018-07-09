@@ -552,8 +552,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
             # @key PageUp: show next upper layer
             BroadCastEvent(self.modules, "LayerChangedEvent", self.layer)
             self.layer += 1
-            #dirtydirtydirty
-            self.data_file.buffer.reset()
             try:
                 self.JumpFrames(0)
             except:
@@ -563,8 +561,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
             # @key PageDown: show next lower layer
             BroadCastEvent(self.modules, "LayerChangedEvent", self.layer)
             self.layer -= 1
-            #dirtydirtydirty
-            self.data_file.buffer.reset()
             try:
                 self.JumpFrames(0)
             except:
