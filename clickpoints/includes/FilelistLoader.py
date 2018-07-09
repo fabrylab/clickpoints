@@ -248,7 +248,7 @@ class FolderEditor(QtWidgets.QWidget):
         if selected_path == "":
             return
         # get a layer for the paths
-        layer_entry = self.getLayer("default", create=True)
+        layer_entry = self.data_file.getLayer("default", create=True)
         # if selected path is a directory, add it with the options
         if os.path.isdir(selected_path):
             addPath(self.data_file, selected_path, str(self.text_input_filter.text()), layer_entry, self.checkbox_subfolders.isChecked(),
