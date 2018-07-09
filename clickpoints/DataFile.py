@@ -2147,9 +2147,9 @@ class DataFile:
         try:
             layer = self.table_layer.get(**noNoneDict(id=id, name=layer_name))
         except peewee.DoesNotExist:
-            layer = self.table_layer()
+            layer = self.table_layer(id=id)
 
-        setFields(layer, dict(path=layer_name))
+        setFields(layer, dict(name=layer_name))
         layer.save()
 
         return layer
