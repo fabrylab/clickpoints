@@ -320,7 +320,7 @@ class DataFileExtended(DataFile):
                     break
         return path
 
-    def add_image(self, filename, extension, external_id, frames, path, full_path=None, timestamp=None, commit=True):
+    def add_image(self, filename, extension, external_id, frames, path, full_path=None, timestamp=None, layer=1, commit=True):
         # if no timestamp is supplied quickly get one from the filename
         if timestamp is None:
             # do we have a video? then we need two timestamps
@@ -339,7 +339,7 @@ class DataFileExtended(DataFile):
         # add an entry for every frame in the image container
         # prepare a list of dictionaries for a bulk insert
         data = []
-        entry = dict(filename=filename, ext=extension, external_id=external_id, timestamp=timestamp, path=path.id)
+        entry = dict(filename=filename, ext=extension, external_id=external_id, timestamp=timestamp, path=path.id, layer_id=layer)
         for i, time in zip(range(frames), timestamps):
             current_entry = entry.copy()
             current_entry["frame"] = i
@@ -354,6 +354,8 @@ class DataFileExtended(DataFile):
             return data
 
     def add_bulk(self, data):
+        print("adding bulk", len(data))
+        print(data)
         if len(data) == 0:
             return
         # try to perform the bulk insert
@@ -403,7 +405,7 @@ class DataFileExtended(DataFile):
         # return the current image index
         return self.current_layer
 
-    def load_frame(self, index, threaded, layer=0):
+    def load_frame(self, index, threaded, layer=1):
         # check if frame is already buffered then we don't need to load it
         if self.buffer.get_frame(index) is not None:
             self.signals.loaded.emit(index, layer, threaded)
@@ -412,7 +414,7 @@ class DataFileExtended(DataFile):
         if self.thread:
             self.thread.join()
         # query the information on the image to load
-        image = self.table_image.get(sort_index=index, layer=layer)
+        image = self.table_image.get(sort_index=index, layer_id=layer)
         filename = os.path.join(image.path.path, image.filename)
         # replace samba path for linux
         if platform.system() == 'Linux' and filename.startswith("\\\\"):
@@ -427,9 +429,9 @@ class DataFileExtended(DataFile):
             self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, layer, True, threaded))
             self.thread.start()
         else:
-            return self.buffer_frame(image, filename, slots, slot_index, index, layer=layer, threaded=threaded)
+            return self.buffer_frame(image, filename, slots, slot_index, index, layer_id=layer, threaded=threaded)
 
-    def buffer_frame(self, image, filename, slots, slot_index, index, layer=0, signal=True, threaded=True):
+    def buffer_frame(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
         # if we have already a reader...
         if self.reader:
             # ... check if it is the right one, if not delete it
@@ -472,12 +474,12 @@ class DataFileExtended(DataFile):
         if signal:
             self.signals.loaded.emit(index, layer, threaded)
 
-    def get_image_data(self, index=None, layer=None):
+    def get_image_data(self, index=None, layer=1):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             # get the pixel data from the current image
             return self.buffer.get_frame(self.current_image_index)
         try:
-            image = self.table_image.get(sort_index=index, layer=layer)
+            image = self.table_image.get(sort_index=index, layer_id=layer)
         except peewee.DoesNotExist:
             return None
 
@@ -489,18 +491,18 @@ class DataFileExtended(DataFile):
         self.buffer_frame(image, filename, slots, slot_index, index, layer, signal=False)
         return self.buffer.get_frame(index)
 
-    def get_image(self, index=None, layer=None):
+    def get_image(self, index=None, layer=1):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             return self.image
         try:
-            image = self.table_image.get(sort_index=index, layer=layer)
+            image = self.table_image.get(sort_index=index, layer_id=layer)
         except peewee.DoesNotExist:
             return None
         return image
 
-    def set_image(self, index, layer=None):
+    def set_image(self, index, layer=1):
         # the the current image number and retrieve its information from the database
-        self.image = self.table_image.get(sort_index=index, layer=layer)
+        self.image = self.table_image.get(sort_index=index, layer_id=layer)
         self.timestamp = self.image.timestamp
         self.current_image_index = index
         self.current_layer = self.image.layer

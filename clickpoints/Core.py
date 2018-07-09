@@ -181,7 +181,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.new_frame_number = None
         self.loading_image = -1
         self.im = None
-        self.layer = 0
+        self.layer = 1
 
         # select the first frame
         self.target_frame = 0
