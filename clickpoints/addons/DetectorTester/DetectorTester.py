@@ -309,7 +309,7 @@ class Addon(clickpoints.Addon):
             name = parameter
             parameter = detect.detection_parameters[name]
             if "layer" in parameter:
-                layer = dict(MaximumIndices=0, MaximumProjection=1, MinimumIndices=2, MinimumProjection=3)[parameter["layer"]]
+                layer = parameter["layer"]
             else:
                 layer = current_layer
             if "frame" in parameter:
