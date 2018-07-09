@@ -283,6 +283,7 @@ class QInputColor(QInput):
 
 
 class QInputFilename(QInput):
+    last_folder = None
 
     def __init__(self, layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
         # initialize the super widget
@@ -303,14 +304,16 @@ class QInputFilename(QInput):
 
         # set the color
         self.setValue(value)
+        if value is None:
+            self.last_folder = os.getcwd()
 
     def _openDialog(self):
         # open an new files
         if not self.existing:
-            filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, os.getcwd(), self.file_type)
+            filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type)
         # or choose an existing file
         else:
-            filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, os.getcwd(), self.file_type)
+            filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type)
 
         # get the string
         if isinstance(filename, tuple):  # Qt5
@@ -325,8 +328,10 @@ class QInputFilename(QInput):
         # set the filename
         if filename:
             self.setValue(filename)
+            self._emitSignal()
 
     def _doSetValue(self, value):
+        self.last_folder = os.path.dirname(value)
         self.line.setText(value)
 
     def value(self):
