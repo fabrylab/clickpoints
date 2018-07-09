@@ -472,7 +472,7 @@ class DataFileExtended(DataFile):
         if signal:
             self.signals.loaded.emit(index, layer, threaded)
 
-    def get_image_data(self, index=None, layer=1):
+    def get_image_data(self, index=None, layer=None):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             # get the pixel data from the current image
             return self.buffer.get_frame(self.current_image_index, self.current_layer)
