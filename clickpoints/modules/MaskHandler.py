@@ -37,7 +37,8 @@ from skimage import measure
 import imageio
 
 from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, MyCommandButton, IconFromFile
-from includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex
+from includes.QtShortCuts import GetColorByIndex
+from includes import QtShortCuts
 
 
 class MaskFile:
@@ -281,8 +282,8 @@ class MaskEditor(QtWidgets.QWidget):
         self.typeWidget = QtWidgets.QGroupBox()
         edit_layout.addWidget(self.typeWidget)
         layout = QtWidgets.QVBoxLayout(self.typeWidget)
-        self.typeWidget.name = AddQLineEdit(layout, "Name:")
-        self.typeWidget.color = AddQColorChoose(layout, "Color:")
+        self.typeWidget.name = QtShortCuts.QInputString(layout, "Name:")
+        self.typeWidget.color = QtShortCuts.QInputColor(layout, "Color:")
         layout.addStretch()
 
         # control buttons
@@ -324,8 +325,8 @@ class MaskEditor(QtWidgets.QWidget):
             self.pushbutton_Remove.setHidden(False)
             self.typeWidget.setTitle("Type #%s" % self.data.name)
         # set text and color
-        self.typeWidget.name.setText(self.data.name)
-        self.typeWidget.color.setColor(self.data.color)
+        self.typeWidget.name.setValue(self.data.name)
+        self.typeWidget.color.setValue(self.data.color)
 
     def saveMaskType(self):
         # if a new type should be added create it
@@ -343,8 +344,8 @@ class MaskEditor(QtWidgets.QWidget):
                 new_index += 1
             self.data.index = new_index
         # get data from fields
-        self.data.name = self.typeWidget.name.text()
-        self.data.color = self.typeWidget.color.getColor()
+        self.data.name = self.typeWidget.name.value()
+        self.data.color = self.typeWidget.color.value()
         # save and update
         try:
             self.data.save()
