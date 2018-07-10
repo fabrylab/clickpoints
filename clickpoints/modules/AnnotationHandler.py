@@ -191,8 +191,8 @@ class AnnotationFile:
                                         db.table_annotation.image_id, db.table_annotation.rating,
                                         peewee.fn.GROUP_CONCAT(db.table_tag.name).alias("tags"))
              # .where(db.table_annotation.id << id_list)
-             .join(db.table_tagassociation, join_type="LEFT JOIN")
-             .join(db.table_tag, join_type="LEFT JOIN")
+             .join(db.table_tagassociation, join_type="LEFT")
+             .join(db.table_tag, join_type="LEFT")
              .group_by(db.table_annotation.id)
              .switch(db.table_annotation)
              .join(db.table_image))
