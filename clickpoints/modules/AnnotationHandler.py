@@ -107,12 +107,12 @@ class AnnotationFile:
     def getAnnotation(self):
         try:
             if self.server:
-                if self.data_file.image.external_id is not None:
-                    self.annotation = self.table_annotation.get(file_id=self.data_file.image.external_id, frame=self.data_file.image.frame)
+                if self.data_file.current_reference_image.external_id is not None:
+                    self.annotation = self.table_annotation.get(file_id=self.data_file.current_reference_image.external_id, frame=self.data_file.current_reference_image.frame)
                 else:
-                    self.annotation = self.table_annotation.get(self.table_annotation.reffilename == self.data_file.image.filename)
+                    self.annotation = self.table_annotation.get(self.table_annotation.reffilename == self.data_file.current_reference_image.filename)
             else:
-                self.annotation = self.table_annotation.get(self.table_annotation.image == self.data_file.image.id)
+                self.annotation = self.table_annotation.get(self.table_annotation.image == self.data_file.current_reference_image.id)
         except peewee.DoesNotExist:
             self.annotation = None
         return self.annotation
@@ -556,15 +556,15 @@ class AnnotationHandler:
             self.AnnotationOverviewWindow.AnnotationRemoved(annotation)
 
     def showAnnotationEditor(self):
-        if self.data_file is None or self.data_file.image is None:
+        if self.data_file is None or self.data_file.current_reference_image is None:
             reply = QtWidgets.QMessageBox.warning(self.window, 'Warning', 'To add an annotation to an image, '
                                                                    'an image has to be loaded.')
             return
         if self.AnnotationEditorWindow is not None:
             self.AnnotationEditorWindow.close()
             del self.AnnotationEditorWindow
-        self.AnnotationEditorWindow = AnnotationEditor(self, self.data_file.image.filename,
-                                                           self.data_file.get_current_image(), self.db,
+        self.AnnotationEditorWindow = AnnotationEditor(self, self.data_file.current_reference_image.filename,
+                                                           self.data_file.current_reference_image, self.db,
                                                            modules=self.modules, config=self.config)
         self.AnnotationEditorWindow.show()
 
