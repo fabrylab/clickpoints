@@ -61,10 +61,10 @@ Here is a list of publications that used ClickPoints for their evaluation.
 
 - Richter, S., Gerum, R., Schneider, W., Fabry, B., Le Bohec, C., & Zitterbart, D. P. (2018). *A remote-controlled observatory for behavioural and ecological research: A case study on emperor penguins*. Methods in Ecology and Evolution. https://doi.org/10.1111/2041-210X.12971
 
-- Gerum, R., Richter, S., Fabry, B., Le Bohec, C., Bonadonna, F., Nesterova, A., Zitterbart, D. *Structural organisation and dynamics in kin penguin colonies*, Journal of Physics D, 51(16), 164004. https://doi.org/10.1088/1361-6463/AAB46B
+- Gerum, R., Richter, S., Fabry, B., Le Bohec, C., Bonadonna, F., Nesterova, A., Zitterbart, D. (2018). *Structural organisation and dynamics in kin penguin colonies*, Journal of Physics D: Applied Physics, 51(16), 164004. https://doi.org/10.1088/1361-6463/AAB46B
 
-- Richter, S., Gerum, R., Winterl, A., Houstin, A., Seifert, M., Peschel1, J., Fabry, B., Le Bohec, C., Zitterbart, D.P., *Phase transitions in huddling emperor penguin colonies*, Journal of Physics D, accepted.
+- Richter, S., Gerum, R., Winterl, A., Houstin, A., Seifert, M., Peschel1, J., Fabry, B., Le Bohec, C., Zitterbart, D.P., (2018). *Phase transitions in huddling emperor penguin colonies*, Journal of Physics D, 51(21), 214002. https://doi.org/10.1088/1361-6463/aabb8e
 
-- Gerlitz, N., Gerum, R., Sauer, N., Stadler, R. *Photoinducible DRONPA-s: a new tool to investigate cell-cell connectivity*, The Plant Journal, under review.
+- Gerlitz, N., Gerum, R., Sauer, N., Stadler, R. (2018). *Photoinducible DRONPA-s: a new tool to investigate cell-cell connectivity*, The Plant Journal, https://doi.org/10.1111/tpj.13918
 
-- Cóndor, M., Gerum, R., Mark, C., García-Aznar, J.M., Fabry, B. *Breast cancer cells adapt contractile forces to overcome steric hindrance*, unpublished manuscript
+- Cóndor, M., Gerum, R., Mark, C., García-Aznar, J.M., Fabry, B. *Breast cancer cells adapt contractile forces to overcome steric hindrance*, under review
