@@ -1892,7 +1892,12 @@ class DataFile:
 
     def _processImagesField(self, images, frames, filenames, layer):
         if images is not None:
-            return images
+            if not isinstance(frames, (tuple, list)):
+                return self.getImage(frame=images.sort_index, layer=images.layer.base_layer)
+            new_images = []
+            for image in images:
+                new_images.append(self.getImage(frame=image.sort_index, layer=image.layer.base_layer))
+            return new_images
 
         def CheckImageFrame(frame, layer):
             image = self.getImage(frame=frame, layer=layer)
@@ -3179,6 +3184,8 @@ class DataFile:
 
         query = self.table_marker.select(self.table_marker, self.table_image).join(self.table_image)
 
+        image = self._processImagesField(image, frame, filename, layer)
+
         query = addFilter(query, id, self.table_marker.id)
         query = addFilter(query, image, self.table_marker.image)
         query = addFilter(query, frame, self.table_image.sort_index)
@@ -3295,7 +3302,7 @@ class DataFile:
         return self.saveReplaceMany(self.table_marker, data)
 
     def deleteMarkers(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None,
-                      track=None, text=None, id=None):
+                      track=None, text=None, id=None, layer=None):
         """
         Delete all :py:class:`Marker` entries with the given criteria.
 
@@ -3333,6 +3340,8 @@ class DataFile:
         type = self._processesTypeNameField(type, ["TYPE_Normal", "TYPE_Track"])
 
         query = self.table_marker.delete()
+
+        image = self._processImagesField(image, frame, filename, layer)
 
         if image is None and (frame is not None or filename is not None):
             images = self.table_image.select(self.table_image.id)
@@ -3659,6 +3668,8 @@ class DataFile:
 
         query = self.table_rectangle.select(self.table_rectangle, self.table_image).join(self.table_image)
 
+        image = self._processImagesField(image, frame, filename, layer)
+
         query = addFilter(query, id, self.table_rectangle.id)
         query = addFilter(query, image, self.table_rectangle.image)
         query = addFilter(query, frame, self.table_image.sort_index)
@@ -3816,6 +3827,7 @@ class DataFile:
             the number of affected rows.
         """
         type = self._processesTypeNameField(type, ["TYPE_Rect"])
+        image = self._processImagesField(image, frame, filename, layer)
 
         query = self.table_rectangle.delete()
 

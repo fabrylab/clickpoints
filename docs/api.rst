@@ -17,11 +17,6 @@ This will open an existing project file called ``project.cdb``.
     The `Examples <examples.html>`_ section demonstrates the use of the API with various examples and provides a good
     starting point to write custom evaluations.
 
-.. attention::
-    To be able to use the API, the clickpoints package has to be installed!
-    If a ``ImportError: No module named clickpoints`` error is raised, you have to install the package first. Go to clickpoints\package in your clickpoints directory and execute ``python setup.py develop`` there.
-
-
 Database Models
 ---------------
 
@@ -31,7 +26,7 @@ all functions necessary to access the data. For each table a ``get`` (retrieve e
 and ``delete`` (remove entries) function is provided. Functions with a plural name always work on multiple entries at once
 and all arguments can be provided as single values or arrays if multiple entries should be affected.
 
-The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Image`, :py:class:`Offset`, :py:class:`Track`, :py:class:`MarkerType`,
+The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class:`Image`, :py:class:`Offset`, :py:class:`Track`, :py:class:`MarkerType`,
 :py:class:`Marker`, :py:class:`Line`, :py:class:`Rectangle`, :py:class:`Mask`, :py:class:`MaskType`, :py:class:`Annotation`,
 :py:class:`Tag`, :py:class:`TagAssociation`.
 
