@@ -278,7 +278,7 @@ class DataFile:
     """
     db = None
     _reader = None
-    _current_version = "19"
+    _current_version = "20"
     _database_filename = None
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
@@ -383,6 +383,7 @@ class DataFile:
 
         class Layer(BaseModel):
             name = peewee.CharField(unique=True)
+            base_layer = peewee.ForeignKeyField('self', related_name='dependent_layers')
 
             def __str__(self):
                 return "LayerObject id%s:\tname=%s" \
@@ -1770,6 +1771,20 @@ class DataFile:
 
             self._SetVersion(19)
 
+        if nr_version < 20:
+            print("\tto 20")
+
+            with self.db.transaction():
+                # create a new tmp table with base_layer_id added as a foreign key field
+                self.db.execute_sql('CREATE TABLE "layer_tmp" ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(255) NOT NULL, "base_layer_id" INTEGER NOT NULL, FOREIGN KEY ("base_layer_id") REFERENCES "layer" ("id"));')
+                self.db.execute_sql('INSERT INTO layer_tmp SELECT id, name, (SELECT id FROM layer ORDER BY id LIMIT 1) FROM layer')
+                self.db.execute_sql("DROP TABLE layer")
+                self.db.execute_sql("ALTER TABLE layer_tmp RENAME TO layer")
+
+                self.db.execute_sql('CREATE UNIQUE INDEX "layer_name" ON "layer" ("name");')
+
+            self._SetVersion(20)
+
         self.db.connection().row_factory = None
 
     def _SetVersion(self, nr_new_version):
@@ -2054,7 +2069,7 @@ class DataFile:
             query = query.where(self.table_path.path.startswith(base_path))
         return query.execute()
 
-    def getLayer(self, layer_name=None, id=None, create=False):
+    def getLayer(self, layer_name=None, base_layer=None, id=None, create=False):
         """
         Get a :py:class:`Layer` entry from the database.
 
@@ -2064,6 +2079,8 @@ class DataFile:
         ----------
         layer_name: string, optional
             the string specifying the layers name.
+        base_layer : int, :py:class:`Layer`, optional
+            the base layer to which this layer should reference.
         id: int, optional
             the id of the layer.
         create: bool, optional
@@ -2085,6 +2102,10 @@ class DataFile:
         # add the id
         if id:
             kwargs["id"] = id
+        if base_layer is not None:
+            kwargs["base_layer"] = base_layer
+        else:
+            kwargs["base_layer"] = 0
 
         # try to get the path
         try:
@@ -2096,10 +2117,13 @@ class DataFile:
                 layer.save()
             else:
                 return None
+        if base_layer is None:
+            layer.base_layer = layer
+            layer.save()
         # return the path
         return layer
 
-    def getLayers(self, layer_name=None, id=None):
+    def getLayers(self, layer_name=None, base_layer=None, id=None):
         """
         Get all :py:class:`Layer` entries from the database, which match the given criteria. If no critera a given, return all layers.
 
@@ -2109,6 +2133,8 @@ class DataFile:
         ----------
         layer_name : string, optional
             the string/s specifying the layer name/s.
+        base_layer : int, :py:class:`Layer`, optional
+            the base layer to which this layer should reference.
         id: int, array_like, optional
             the id/s of the layer/s.
 
@@ -2122,10 +2148,11 @@ class DataFile:
 
         query = addFilter(query, id, self.table_layer.id)
         query = addFilter(query, layer_name, self.table_layer.name)
+        query = addFilter(query, base_layer, self.table_layer.base_layer)
 
         return query
 
-    def setLayer(self, layer_name=None, id=None):
+    def setLayer(self, layer_name=None, base_layer=None, id=None):
         """
         Update or create a new :py:class:`Layer` entry with the given parameters.
 
@@ -2135,6 +2162,8 @@ class DataFile:
         ----------
         layer_name: string, optional
             the string specifying the name of the layer.
+        base_layer: int, :py:class:`Layer`, optional
+            the base layer to which this layer should reference.
         id: int, optional
             the id of the layers.
 
@@ -2145,16 +2174,16 @@ class DataFile:
         """
 
         try:
-            layer = self.table_layer.get(**noNoneDict(id=id, name=layer_name))
+            layer = self.table_layer.get(**noNoneDict(id=id, name=layer_name, base_layer=base_layer))
         except peewee.DoesNotExist:
             layer = self.table_layer(id=id)
 
-        setFields(layer, dict(name=layer_name))
+        setFields(layer, dict(name=layer_name, base_layer=base_layer))
         layer.save()
 
         return layer
 
-    def deleteLayers(self, layer_name=None, id=None):
+    def deleteLayers(self, layer_name=None, base_layer=None, id=None):
         """
         Delete all :py:class:`Layer` entries with the given criteria.
 
@@ -2164,6 +2193,8 @@ class DataFile:
         ----------
         layer_name: string, optional
             the string/s specifying the name/s of the layer/s.
+        base_layer: int, :py:class:`Layer`, optional
+            the base layer to which this layer should reference.
         id: int, optional
             the id/s of the layers.
 
@@ -2176,7 +2207,8 @@ class DataFile:
         query = self.table_layer.delete()
 
         query = addFilter(query, id, self.table_layer.id)
-        query = addFilter(query, layer_name, self.table_layer.path)
+        query = addFilter(query, layer_name, self.table_layer.name)
+        query = addFilter(query, base_layer, self.table_layer.base_layer)
 
         return query.execute()
 

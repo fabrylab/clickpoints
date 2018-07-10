@@ -112,7 +112,8 @@ class Addon(clickpoints.Addon):
         # sort the index list
         z_values.sort()
 
-        first_layer = True
+        last_pos_value = None
+        base_layer = None
 
         # iterate over the images again and set the layer
         for image in self.db.getImages():
@@ -121,17 +122,25 @@ class Addon(clickpoints.Addon):
             data = parse(format, image.filename)
             # compose the index_value
             index_value = data["pos"] + "-" + data["x"] + "-" + data["y"] + data["mode"] + data["z"]
+            pos_value = data["pos"] + "-" + data["x"] + "-" + data["y"]
             # set the sort_index according to the measurement repetition
             image.sort_index = int(data["repetition"])
             # and the layer as the index value
-            if first_layer:
-                first_layer = False
-                self.db.setLayer(id=1, layer_name=index_value)
-                image.layer = self.db.getLayer(index_value, create=False)
+            if pos_value != last_pos_value:
+                print("Differente", last_pos_value, pos_value)
+                last_pos_value = pos_value
+                print("Differente", last_pos_value, pos_value)
+                print("get layer", index_value, pos_value, None)
+                base_layer = self.db.getLayer(index_value, create=True)
+                image.layer = base_layer
             else:
-                image.layer = self.db.getLayer(index_value, create=True)
+                print("get layer", index_value, pos_value, base_layer)
+                image.layer = self.db.getLayer(index_value, base_layer=base_layer, create=True)
             # save the image
             image.save()
+
+        # delete empty layers
+        self.db.db.execute_sql("DELETE FROM layer WHERE (SELECT count(i.id) FROM image i WHERE i.layer_id = layer.id) = 0")
 
         # notify ClickPoints that we have meddled with the image list
         self.finished.emit()

@@ -238,6 +238,8 @@ class Command:
         if self.script_launcher is None:
             return
         self.window.data_file.image_count = None
+        self.window.current_layer = None
+        self.window.layer_index = 1
         self.window.GetModule("Timeline").ImagesAddedMain()
 
     def hasTerminateSignal(self):

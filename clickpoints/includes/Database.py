@@ -489,7 +489,7 @@ class DataFileExtended(DataFile):
         self.buffer_frame(image, filename, slots, slot_index, index, layer, signal=False)
         return self.buffer.get_frame(index, layer)
 
-    def get_image(self, index=None, layer=1):
+    def get_image(self, index=None, layer=None):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             return self.image
         try:
@@ -498,12 +498,13 @@ class DataFileExtended(DataFile):
             return None
         return image
 
-    def set_image(self, index, layer=1):
+    def set_image(self, index, layer):
         # the the current image number and retrieve its information from the database
         self.image = self.table_image.get(sort_index=index, layer_id=layer)
         self.timestamp = self.image.timestamp
         self.current_image_index = index
         self.current_layer = self.image.layer
+        self.current_reference_image = self.table_image.get(sort_index=index, layer_id = self.current_layer.base_layer)
 
     def get_offset(self, image=None):
         # if no image is specified, use the current one
