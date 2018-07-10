@@ -563,7 +563,7 @@ class MaskTypeChooser(QtWidgets.QGraphicsPathItem):
         if self.tool is None or not self.tool.isColorTool():
             self.mask_handler.selectTool(0)
 
-    def SetActiveDrawType(self, new_index, silent=True):
+    def SetActiveDrawType(self, new_index):
         # only allow valid types
         if new_index >= len(self.buttons)-1:
             return
@@ -574,8 +574,7 @@ class MaskTypeChooser(QtWidgets.QGraphicsPathItem):
         self.active_draw_type_index = new_index
         self.mask_handler.config.selected_draw_type = new_index
         # set the new button to active
-        if not silent:
-            self.buttons[self.active_draw_type_index].SetToActiveColor()
+        self.setActive()
         # update mask and draw cursor
         self.mask_handler.RedrawMask()
         self.mask_handler.UpdateDrawCursorDisplay()
@@ -980,7 +979,7 @@ class MaskHandler:
         self.changeCursorSize(self.config.mask_brush_size - self.DrawCursorSize)
         self.ToggleInterfaceEvent(hidden=self.config.mask_interface_hidden)
         if self.config.selected_draw_type >= 0:
-            self.maskTypeChooser.SetActiveDrawType(self.config.selected_draw_type, silent=True)
+            self.maskTypeChooser.SetActiveDrawType(self.config.selected_draw_type)
 
         # place tick marks for already present masks
         # but lets take care that there are masks ...
