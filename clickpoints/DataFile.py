@@ -1869,7 +1869,10 @@ class DataFile:
     def _processLayerNameField(self, layers):
         def CheckLayer(layer):
             if isinstance(layer, basestring):
-                return self.getLayer(layer)
+                layer_entry = self.getLayer(layer)
+                if layer_entry is None:
+                    raise peewee.DoesNotExist("Layer with name \"%s\" does not exist" % layer)
+                return layer_entry
             return layer
 
         if isinstance(layers, (tuple, list)):
@@ -2109,8 +2112,6 @@ class DataFile:
             kwargs["id"] = id
         if base_layer is not None:
             kwargs["base_layer"] = base_layer
-        else:
-            kwargs["base_layer"] = 0
 
         # try to get the path
         try:
