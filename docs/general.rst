@@ -1,12 +1,8 @@
 General
 =======
 
-Once ClickPoints has been `installed <installation.html>`_ it can be started directly from the Start Menu/Program launcher
-or by running the ``ClickPoints.bat``, or respectively ``ClickPoints`` in Linux.
+Once ClickPoints has been `installed <installation.html>`_ it can be started directly from the Start Menu/Program launcher.
 
-.. attention::
-    If the ``ClickPoints.bat`` file isn't present in the ClickPoints directory the ``install_bat.py`` script needs to be
-    executed first.
 
 This will open ClickPoints with an empty project.
 
