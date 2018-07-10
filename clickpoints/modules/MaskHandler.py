@@ -61,13 +61,12 @@ class MaskFile:
         return self.table_masktype.select()
 
     def add_mask(self, **kwargs):
-        kwargs.update(dict(image=self.data_file.get_image(index=self.data_file.current_image_index)))
+        kwargs.update(dict(image=self.data_file.current_reference_image))
         return self.table_mask(**kwargs)
 
     def get_mask(self):
         try:
-            image_id = self.data_file.get_image(index=self.data_file.current_image_index).id
-            return self.table_mask.get(self.table_mask.image == image_id)
+            return self.table_mask.get(self.table_mask.image == self.data_file.current_reference_image)
         except peewee.DoesNotExist:
             return None
 

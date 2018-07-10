@@ -181,7 +181,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.new_frame_number = None
         self.loading_image = -1
         self.im = None
-        self.layer = 1
+        self.layer_index = 1
+        self.current_layer = None
 
         # select the first frame
         self.target_frame = 0
@@ -433,10 +434,13 @@ class ClickPointsWindow(QtWidgets.QWidget):
         else:
             self.loading_image += 1
 
+        if self.current_layer is None:
+            self.current_layer = self.data_file.table_layer.select().paginate(self.layer_index, 1)[0]
+
         if self.data_file.getOption("threaded_image_load") and threaded:
-            self.data_file.load_frame(target_id, layer=self.layer, threaded=1)
+            self.data_file.load_frame(target_id, layer=self.current_layer.id, threaded=1)
         else:
-            self.data_file.load_frame(target_id, layer=self.layer, threaded=0)
+            self.data_file.load_frame(target_id, layer=self.current_layer.id, threaded=0)
 
     def CenterOn(self, x, y):
         print("Center on: %d %d" % (x,y))
@@ -452,7 +456,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         # Notify that the frame will be loaded TODO are all these events necessary?
         BroadCastEvent(self.modules, "frameChangedEvent")
-        self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (self.new_filename, self.data_file.getFilename(), self.layer))
+        self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (self.new_filename, self.data_file.getFilename(), self.current_layer.name))
 
         # get image
         self.im = self.data_file.get_image_data()
@@ -550,21 +554,22 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         if event.key() == QtCore.Qt.Key_PageUp:
             # @key PageUp: show next upper layer
-            BroadCastEvent(self.modules, "LayerChangedEvent", self.layer)
-            self.layer += 1
             try:
+                self.current_layer = self.data_file.table_layer.select().paginate(self.layer_index + 1, 1)[0]
+            except IndexError:
+                pass
+            else:
+                self.layer_index += 1
                 self.JumpFrames(0)
-            except:
-                self.layer -= 1
+                BroadCastEvent(self.modules, "LayerChangedEvent", self.layer_index)
 
         if event.key() == QtCore.Qt.Key_PageDown:
             # @key PageDown: show next lower layer
-            BroadCastEvent(self.modules, "LayerChangedEvent", self.layer)
-            self.layer -= 1
-            try:
+            if self.layer_index > 1:
+                self.current_layer = self.data_file.table_layer.select().paginate(self.layer_index - 1, 1)[0]
+                self.layer_index -= 1
+                BroadCastEvent(self.modules, "LayerChangedEvent", self.layer_index)
                 self.JumpFrames(0)
-            except:
-                self.layer += 1
 
         if event.key() == QtCore.Qt.Key_Escape:
             # @key Escape: close window
