@@ -20,25 +20,21 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 from __future__ import division, print_function
+
 import os
-import sys
-import peewee
-
-from qtpy import QtGui, QtCore, QtWidgets
-from qtpy.QtCore import Qt
-import qtawesome as qta
-
-import numpy as np
-
-from PIL import Image, ImageDraw
-import includes.ImageQt_Stride as ImageQt
-from qimage2ndarray import array2qimage
-from skimage import measure
 import imageio
-
-from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, MyCommandButton, IconFromFile, MyTextButtonGroup, MyToolGroup
-from includes.QtShortCuts import GetColorByIndex
+import includes.ImageQt_Stride as ImageQt
+import numpy as np
+import peewee
+import qtawesome as qta
+from PIL import Image, ImageDraw
 from includes import QtShortCuts
+from includes.QtShortCuts import GetColorByIndex
+from includes.Tools import GraphicsItemEventFilter, BroadCastEvent, HTMLColorToRGB, IconFromFile, MyTextButtonGroup, \
+    MyToolGroup
+from qimage2ndarray import array2qimage
+from qtpy import QtGui, QtCore, QtWidgets
+from skimage import measure
 
 
 class MaskFile:
@@ -77,20 +73,9 @@ class MaskFile:
                 .join(self.table_mask)
                 .group_by(self.data_file.table_image.id))
 
-    def get_mask_path(self):
-        if self.mask_path:
-            return self.mask_path
-        try:
-            outputpath_mask = self.data_file.table_meta.get(key="mask_path").value
-        except peewee.DoesNotExist:
-            outputpath_mask = self.data_file.database_filename+"_mask.png"
-            self.data_file.table_meta(key="mask_path", value=outputpath_mask).save()
-        self.mask_path = os.path.join(os.path.dirname(self.data_file.database_filename), outputpath_mask)
-        return self.mask_path
-
 
 class BigPaintableImageDisplay:
-    def __init__(self, origin, max_image_size=2**12):
+    def __init__(self, origin, max_image_size=2 ** 12):
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
@@ -165,15 +150,17 @@ class BigPaintableImageDisplay:
             for x in range(self.number_of_imagesX):
                 i = y * self.number_of_imagesX + x
                 if x * self.max_image_size < x1 < (x + 1) * self.max_image_size or x * self.max_image_size < x2 < (
-                            x + 1) * self.max_image_size:
+                        x + 1) * self.max_image_size:
                     if y * self.max_image_size < y1 < (y + 1) * self.max_image_size or y * self.max_image_size < y2 < (
-                                y + 1) * self.max_image_size:
+                            y + 1) * self.max_image_size:
                         draw = self.DrawImages[i]
-                        draw.line((x1 - x * self.max_image_size, y1 - y * self.max_image_size, x2 - x * self.max_image_size,
-                                   y2 - y * self.max_image_size), fill=color, width=size + 1)
-                        draw.ellipse((x1 - x * self.max_image_size - size // 2, y1 - y * self.max_image_size - size // 2,
-                                      x1 - x * self.max_image_size + size // 2, y1 - y * self.max_image_size + size // 2),
-                                     fill=color)
+                        draw.line(
+                            (x1 - x * self.max_image_size, y1 - y * self.max_image_size, x2 - x * self.max_image_size,
+                             y2 - y * self.max_image_size), fill=color, width=size + 1)
+                        draw.ellipse(
+                            (x1 - x * self.max_image_size - size // 2, y1 - y * self.max_image_size - size // 2,
+                             x1 - x * self.max_image_size + size // 2, y1 - y * self.max_image_size + size // 2),
+                            fill=color)
         draw = ImageDraw.Draw(self.full_image)
         draw.line((x1, y1, x2, y2), fill=color, width=size + 1)
         draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=color)
@@ -213,7 +200,7 @@ class BigPaintableImageDisplay:
             lut[index * 3:(index + 1) * 3] = draw_type[1]
         self.full_image.putpalette(lut)
 
-        fpath,fname = os.path.split(filename)
+        fpath, fname = os.path.split(filename)
         if not os.path.exists(fpath):
             os.mkdir(fpath)
 
@@ -264,7 +251,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.new_type.color = GetColorByIndex(mask_types.count() + 16)
         item.entry = self.new_type
         self.mask_type_modelitems[-1] = item
-        model.setItem(row+1, 0, item)
+        model.setItem(row + 1, 0, item)
 
         # some settings for the tree view
         self.tree.setUniformRowHeights(True)
@@ -436,7 +423,7 @@ class MaskTypeChooser(MyTextButtonGroup):
         # gather the properties of the mask types
         props = []
         for index, type in enumerate(self.types):
-            props.append(dict(text="%d: %s" % (index+1, type.name), color=type.color))
+            props.append(dict(text="%d: %s" % (index + 1, type.name), color=type.color))
         # ad a button to open the mask type editor
         props.append(dict(text="+ add type", color="white"))
         # update the buttons with the properties
@@ -535,10 +522,10 @@ class MaskTool:
         # load the cursor image
         cursor = imageio.imread(os.path.join(os.environ["CLICKPOINTS_ICON"], "Cursor.png"))
         # compose them
-        cursor3 = np.zeros([cursor.shape[0]+cursor2.shape[0], cursor.shape[1]+cursor2.shape[1], 4], cursor.dtype)
+        cursor3 = np.zeros([cursor.shape[0] + cursor2.shape[0], cursor.shape[1] + cursor2.shape[1], 4], cursor.dtype)
         cursor3[:cursor.shape[0], :cursor.shape[1], :] = cursor
-        y, x = (cursor.shape[0]-6, cursor.shape[1]-4)
-        cursor3[y:y+cursor2.shape[0], x:x+cursor2.shape[1], :] = cursor2
+        y, x = (cursor.shape[0] - 6, cursor.shape[1] - 4)
+        cursor3[y:y + cursor2.shape[0], x:x + cursor2.shape[1], :] = cursor2
         # create a cursor
         cursor = QtGui.QCursor(QtGui.QPixmap(array2qimage(cursor3)), 0, 0)
 
@@ -554,7 +541,7 @@ class MaskTool:
                 angle = event.delta()
 
             # wheel with SHIFT means changing the opacity
-            if event.modifiers() == Qt.ShiftModifier:
+            if event.modifiers() == QtCore.ShiftModifier:
                 if angle > 0:
                     self.parent.changeOpacity(+0.1)
                 else:
@@ -579,7 +566,8 @@ class BrushTool(MaskTool):
     def DrawLine(self, start_x, end_x, start_y, end_y):
         # draw the line on the mask
         if self.scene_parent.tool_index == 0:
-            self.parent.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.parent.DrawCursorSize, self.parent.maskTypeChooser.active_draw_type)
+            self.parent.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.parent.DrawCursorSize,
+                                             self.parent.maskTypeChooser.active_draw_type)
         else:
             self.parent.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.parent.DrawCursorSize, 0)
         self.parent.MaskChanged = True
@@ -610,7 +598,7 @@ class BrushTool(MaskTool):
             except AttributeError:  # PyQt 4
                 angle = event.delta()
             # wheel with CTRL means changing the cursor size
-            if event.modifiers() == Qt.ControlModifier:
+            if event.modifiers() == QtCore.Qt.ControlModifier:
                 if angle > 0:
                     self.parent.changeCursorSize(+1)
                 else:
@@ -790,21 +778,21 @@ class MaskToolGroup(MyToolGroup):
 
         # show the erase tool highlighted when Control is pressed
         if self.tool_index != -1:
-            if event.key() == Qt.Key_Control and self.tool_index != 1:
+            if event.key() == QtCore.Qt.Key_Control and self.tool_index != 1:
                 self.selectTool(1, temporary=True)
-            if event.key() == Qt.Key_Alt and self.tool_index != 2:
+            if event.key() == QtCore.Qt.Key_Alt and self.tool_index != 2:
                 self.selectTool(2, temporary=True)
-            #if event.key() == Qt.Key_Shift and self.tool_index != 3:
+            # if event.key() == QtCore.Qt.Key_Shift and self.tool_index != 3:
             #    self.selectTool(3, temporary=True)
 
     def keyReleaseEvent(self, event):
         if self.tool_index != -1:
             # show the erase tool highlighted when Control is pressed
-            if event.key() == Qt.Key_Control:
+            if event.key() == QtCore.Qt.Key_Control:
                 self.selectTool(self.tool_index_clicked)
-            if event.key() == Qt.Key_Alt:
+            if event.key() == QtCore.Qt.Key_Alt:
                 self.selectTool(self.tool_index_clicked)
-            #if event.key() == Qt.Key_Shift:
+            # if event.key() == QtCore.Qt.Key_Shift:
             #    self.selectTool(self.tool_index_clicked)
 
 
@@ -1007,7 +995,7 @@ class MaskHandler:
 
         # create a pen with this color and apply it to the drawPathItem
         pen = QtGui.QPen(color, self.DrawCursorSize)
-        pen.setCapStyle(Qt.RoundCap)
+        pen.setCapStyle(QtCore.Qt.RoundCap)
         self.drawPathItem.setPen(pen)
 
         # update color and size of brush cursor
@@ -1026,7 +1014,7 @@ class MaskHandler:
             except AttributeError:  # PyQt 4
                 angle = event.delta()
             # wheel with CTRL means changing the cursor size
-            if event.modifiers() == Qt.ControlModifier:
+            if event.modifiers() == QtCore.Qt.ControlModifier:
                 if angle > 0:
                     self.changeCursorSize(+1)
                 else:
@@ -1034,7 +1022,7 @@ class MaskHandler:
                 event.accept()
                 return True
             # wheel with SHIFT means changing the opacity
-            elif event.modifiers() == Qt.ShiftModifier:
+            elif event.modifiers() == QtCore.Qt.ShiftModifier:
                 if angle > 0:
                     self.changeOpacity(+0.1)
                 else:
@@ -1065,7 +1053,7 @@ class MaskHandler:
             # get the mask for one color
             type_region = (mask == type.index)
             # cut out the mask region from the original image
-            image1 = (1-self.mask_opacity*type_region[:, :, None]) * image
+            image1 = (1 - self.mask_opacity * type_region[:, :, None]) * image
             # fill the mask with the mask color
             image2 = self.mask_opacity * type_region[:, :, None] * np.array(HTMLColorToRGB(type.color))[None, None, :]
             # and compose the images
@@ -1074,7 +1062,7 @@ class MaskHandler:
     def keyPressEvent(self, event):
         numberkey = event.key() - 49
         # @key ---- Painting ----
-        #if self.tool_index >= 0 and 0 <= numberkey < self.mask_file.get_mask_type_list().count()+1 and event.modifiers() != Qt.KeypadModifier:
+        # if self.tool_index >= 0 and 0 <= numberkey < self.mask_file.get_mask_type_list().count()+1 and event.modifiers() != Qt.KeypadModifier:
         #    # @key 0-9: change brush type
         #    self.maskTypeChooser.selectType(numberkey)
 
