@@ -372,6 +372,74 @@ class MyCommandButton(QtWidgets.QGraphicsRectItem):
         self.scene().removeItem(self)
 
 
+class MyToolGroup(QtWidgets.QGraphicsPathItem):
+    buttons = None
+    active_index = 0
+
+    def __init__(self, parent, font, scale_factor, group_name):
+        QtWidgets.QGraphicsPathItem.__init__(self, parent)
+        self.font = font
+        self.scale_factor = scale_factor
+        self.buttons = []
+        self.group_name = group_name
+
+    def setTools(self, tools, parent_class):
+        self.command_object = parent_class
+
+        self.tools = tools
+
+        self.tool_buttons = []
+        for index, tool in enumerate(self.tools):
+            if self.getAlign() == QtCore.Qt.AlignLeft:
+                pos = (30 + (26 + 5) * index, 10)
+            else:
+                pos = (-30 - (26 + 5) * index, 10)
+            button = MyCommandButton(self, self, tool.getIcon(), pos,
+                                     scale=self.scale_factor)
+            button.setToolTip(tool.getTooltip())
+            button.clicked = lambda i=index: self.selectTool(i)
+            self.tool_buttons.append(button)
+            self.tools[index].button = button
+
+        self.tool_index = -1
+        self.tool_index_clicked = -1
+
+    def getAlign(self):
+        return QtCore.Qt.AlignLeft
+
+    def selectTool(self, index, temporary=False):
+        if self.tool_index == index:
+            return
+
+        if self.tool_index >= 0:
+            self.tools[self.tool_index].setInactive()
+        # set the tool
+        self.tool_index = index
+        # and if not temporary the "clicked" tool
+        # (this is for temporary changing the tool with Ctrl or Alt)
+        if not temporary:
+            self.tool_index_clicked = index
+
+        if self.tool_index >= 0:
+            # and notify the other modules
+            BroadCastEvent(self.command_object.modules, "eventToolSelected", self.group_name, self.tool_index)
+
+            self.tools[self.tool_index].setActive()
+
+        # set the cursor according to the tool
+        self.tools[self.tool_index].setCursor()
+
+    def eventToolSelected(self, module, tool):
+        if module == self.group_name:
+            return
+        # if another module has selected a tool, we deselect our tool
+        self.selectTool(-1)
+
+    def setVisible(self, visible: bool):
+        if visible is False:
+            self.selectTool(-1)
+        return QtWidgets.QGraphicsPathItem.setVisible(self, visible)
+
 class MyTextButton(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, font, scale=1):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
