@@ -36,7 +36,7 @@ from qimage2ndarray import array2qimage
 from skimage import measure
 import imageio
 
-from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, MyCommandButton, IconFromFile
+from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, MyCommandButton, IconFromFile, MyTextButtonGroup
 from includes.QtShortCuts import GetColorByIndex
 from includes import QtShortCuts
 
@@ -409,113 +409,17 @@ class MaskEditor(QtWidgets.QWidget):
             self.saveMaskType()
 
 
-class MaskTypeButton(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent, mask_handler, point_type, index, scale=1):
-        QtWidgets.QGraphicsRectItem.__init__(self, parent)
-
-        # store mask handler, type and index
-        self.mask_handler = mask_handler
-        self.type = point_type
-        self.index = index
-        self.scale_factor = scale
-        self.parent = parent
-
-        # get hover events and set to inactive
-        self.setAcceptHoverEvents(True)
-        self.active = False
-
-        # define the font
-        self.font = self.mask_handler.window.mono_font
-        self.font.setPointSize(14)
-
-        # initialize the tex
-        self.text = QtWidgets.QGraphicsSimpleTextItem(self)
-        self.text.setFont(self.font)
-        self.text.setZValue(10)
-        self.updateText()
-
-        # set the brush for the background color
-        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-        self.setZValue(9)
-
-    def updateText(self):
-        # get text and color from type
-        if self.type is None:
-            self.text.setText("+ add type")
-            color = QtGui.QColor("white")
-        else:
-            self.text.setText("%d: %s" % (self.index + 1, self.type.name))
-            color = QtGui.QColor(*HTMLColorToRGB(self.type.color))
-        # apply color
-        self.text.setBrush(QtGui.QBrush(color))
-        # update rect to fit text
-        rect = self.text.boundingRect()
-        rect.setX(-5*self.scale_factor)
-        rect.setWidth(rect.width() + 5*self.scale_factor)
-        self.setRect(rect)
-        self.setPos(-rect.width() - 5*self.scale_factor, (10 + 25 * self.index + 25)*self.scale_factor)
-
-    def SetToActiveColor(self):
-        # change background color
-        self.active = True
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
-
-    def SetToInactiveColor(self):
-        # change background color
-        self.active = False
-        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-
-    def hoverEnterEvent(self, event):
-        # if not active highlight on mouse over
-        if self.active is False:
-            self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
-
-    def hoverLeaveEvent(self, event):
-        # ... or switch back to standard color
-        if self.active is False:
-            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-
-    def mousePressEvent(self, event):
-        # right mouse button opens the mask menu
-        if event.button() == QtCore.Qt.RightButton or self.type is None:
-            # open the menu if it is not open already
-            if not self.mask_handler.mask_edit_window or not self.mask_handler.mask_edit_window.isVisible():
-                self.mask_handler.mask_edit_window = MaskEditor(self.mask_handler, self.mask_handler.mask_file)
-                self.mask_handler.mask_edit_window.show()
-            else:
-                self.mask_handler.mask_edit_window.raise_()
-            # select this mask type in the menu
-            self.mask_handler.mask_edit_window.setMaskType(self.type if self.index != 0 else None)
-        # a left click selects this type
-        elif event.button() == QtCore.Qt.LeftButton:
-            # select this mask type
-            self.parent.selectType(self.index)
-
-    def delete(self):
-        # delete from scene
-        self.scene().removeItem(self)
-
-
-class MaskTypeChooser(QtWidgets.QGraphicsPathItem):
-    buttons = None
+class MaskTypeChooser(MyTextButtonGroup):
     tool = None
-
     active_draw_type = None
-    active_draw_type_index = None
 
     def __init__(self, mask_handler, parent_hud):
-        QtWidgets.QGraphicsPathItem.__init__(self, parent_hud)
+        MyTextButtonGroup.__init__(self, parent_hud, mask_handler.window.mono_font, mask_handler.window.scale_factor)
         # store the mask handler
         self.mask_handler = mask_handler
 
-    def setActive(self):
-        # and the tool button to active
-        self.buttons[self.active_draw_type_index].SetToActiveColor()
-
-    def setInatice(self):
-        # and the tool button to active
-        for button_index in self.buttons:
-            self.buttons[button_index].SetToInactiveColor()
+    def getAlign(self):
+        return QtCore.Qt.AlignRight
 
     def toolSelected(self, tool):
         # store the tool
@@ -526,62 +430,57 @@ class MaskTypeChooser(QtWidgets.QGraphicsPathItem):
         else:
             self.setInatice()
 
-    def clear(self):
-        # remove all counters
-        if self.buttons is not None:
-            for button in self.buttons:
-                self.buttons[button].delete()
-        self.buttons = []
-
     def updateButtons(self, mask_file):
-        # remove all counter
-        for button in self.buttons:
-            self.buttons[button].delete()
-
-        # create new ones
-        type_list = mask_file.get_mask_type_list()
-        # create buttons for types
-        self.buttons = {index: MaskTypeButton(self, self.mask_handler, type, index, scale=self.mask_handler.window.scale_factor) for index, type in enumerate(type_list)}
-        # create button for "add_type"
-        self.buttons[-1] = MaskTypeButton(self, self.mask_handler, None, len(self.buttons), scale=self.mask_handler.window.scale_factor)
-        ## create button for background "delete"
-        #self.buttons[0] = MaskTypeButton(self.parent_hud, self, self.mask_file.table_mask(name="delete", color="#B0B0B0", index=0), 0)
-
-        # set "delete" the active draw type
-        self.active_draw_type = self.buttons[-1].type
-        self.active_draw_type_index = -1
+        # get all mask types
+        self.types = mask_file.get_mask_type_list()
+        # gather the properties of the mask types
+        props = []
+        for index, type in enumerate(self.types):
+            props.append(dict(text="%d: %s" % (index+1, type.name), color=type.color))
+        # ad a button to open the mask type editor
+        props.append(dict(text="+ add type", color="white"))
+        # update the buttons with the properties
+        self.setButtons(props)
 
         # update the colormap of the displayed mask
-        self.mask_handler.MaskDisplay.UpdateColormap(type_list)
+        self.mask_handler.MaskDisplay.UpdateColormap(self.types)
 
-        # buttons are visible according to self.hidden flag
-        for key in self.buttons:
-            self.buttons[key].setVisible(not self.mask_handler.hidden)
+    def buttonPressEvent(self, event, index):
+        # right mouse button opens the mask menu
+        if event.button() == QtCore.Qt.RightButton or index >= len(self.types):
+            # open the menu if it is not open already
+            if not self.mask_handler.mask_edit_window or not self.mask_handler.mask_edit_window.isVisible():
+                self.mask_handler.mask_edit_window = MaskEditor(self.mask_handler, self.mask_handler.mask_file)
+                self.mask_handler.mask_edit_window.show()
+            else:
+                self.mask_handler.mask_edit_window.raise_()
+            # select this mask type in the menu
+            self.mask_handler.mask_edit_window.setMaskType(self.types[index] if index < len(self.types) else None)
+        # a left click selects this type
+        elif event.button() == QtCore.Qt.LeftButton:
+            # select this mask type
+            self.selectType(index)
 
     def selectType(self, index):
-        self.SetActiveDrawType(index)
+        self.setActiveDrawType(index)
         if self.tool is None or not self.tool.isColorTool():
             self.mask_handler.selectTool(0)
 
-    def SetActiveDrawType(self, new_index):
+    def setActiveDrawType(self, new_index):
         # only allow valid types
-        if new_index >= len(self.buttons)-1:
+        if new_index >= len(self.types):
             return
         # set the old button to inactive
         self.setInatice()
         # store the new type
-        self.active_draw_type = self.buttons[new_index].type
-        self.active_draw_type_index = new_index
+        self.active_draw_type = self.types[new_index]
+        self.active_index = new_index
         self.mask_handler.config.selected_draw_type = new_index
         # set the new button to active
         self.setActive()
         # update mask and draw cursor
         self.mask_handler.RedrawMask()
         self.mask_handler.UpdateDrawCursorDisplay()
-
-    def setVisible(self, hidden):
-        for button in self.buttons:
-            self.buttons[button].setVisible(hidden)
 
 
 class MaskTool:
@@ -779,10 +678,10 @@ class PickerTool(MaskTool):
         # find the type which corresponds to the color_under_cursor
         for index, draw_type in enumerate(self.parent.mask_file.get_mask_type_list()):
             if draw_type.index == self.color_under_cursor:
-                self.parent.maskTypeChooser.SetActiveDrawType(index)
+                self.parent.maskTypeChooser.setActiveDrawType(index)
                 return
         # if no color has been found, take background color
-        self.parent.maskTypeChooser.SetActiveDrawType(0)
+        self.parent.maskTypeChooser.setActiveDrawType(0)
 
     def sceneEventFilter(self, event):
         if MaskTool.sceneEventFilter(self, event):
@@ -979,7 +878,7 @@ class MaskHandler:
         self.changeCursorSize(self.config.mask_brush_size - self.DrawCursorSize)
         self.ToggleInterfaceEvent(hidden=self.config.mask_interface_hidden)
         if self.config.selected_draw_type >= 0:
-            self.maskTypeChooser.SetActiveDrawType(self.config.selected_draw_type)
+            self.maskTypeChooser.setActiveDrawType(self.config.selected_draw_type)
 
         # place tick marks for already present masks
         # but lets take care that there are masks ...
