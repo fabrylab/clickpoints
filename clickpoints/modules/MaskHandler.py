@@ -36,7 +36,7 @@ from qimage2ndarray import array2qimage
 from skimage import measure
 import imageio
 
-from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, MyCommandButton, IconFromFile, MyTextButtonGroup
+from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, MyCommandButton, IconFromFile, MyTextButtonGroup, MyToolGroup
 from includes.QtShortCuts import GetColorByIndex
 from includes import QtShortCuts
 
@@ -464,7 +464,7 @@ class MaskTypeChooser(MyTextButtonGroup):
     def selectType(self, index):
         self.setActiveDrawType(index)
         if self.tool is None or not self.tool.isColorTool():
-            self.mask_handler.selectTool(0)
+            self.mask_handler.tool_group.selectTool(0)
 
     def setActiveDrawType(self, new_index):
         # only allow valid types
@@ -488,6 +488,7 @@ class MaskTool:
 
     def __init__(self, parent, scene_parent, image_display):
         self.parent = parent
+        self.scene_parent = scene_parent
         # event filter to grab mouse click and move events
         self.scene_event_filter = GraphicsItemEventFilter(scene_parent, self)
         image_display.AddEventFilter(self.scene_event_filter)
@@ -577,7 +578,7 @@ class BrushTool(MaskTool):
 
     def DrawLine(self, start_x, end_x, start_y, end_y):
         # draw the line on the mask
-        if self.parent.tool_index == 0:
+        if self.scene_parent.tool_index == 0:
             self.parent.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.parent.DrawCursorSize, self.parent.maskTypeChooser.active_draw_type)
         else:
             self.parent.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.parent.DrawCursorSize, 0)
@@ -734,6 +735,79 @@ class BucketTool(MaskTool):
         return False
 
 
+class MaskToolGroup(MyToolGroup):
+    tool = None
+    active_draw_type = None
+
+    def __init__(self, mask_handler, parent_hud, image_display):
+        MyToolGroup.__init__(self, parent_hud, mask_handler.window.mono_font, mask_handler.window.scale_factor,
+                             "Mask")
+
+        tools = [BrushTool, EraserTool, PickerTool, BucketTool]
+        self.tools = [tool(mask_handler, self, image_display) for tool in tools]
+        self.setTools(self.tools, mask_handler)
+
+        # store the mask handler
+        self.mask_handler = mask_handler
+
+    def getAlign(self):
+        return QtCore.Qt.AlignRight
+
+    def selectTool(self, index, temporary=False):
+        if self.tool_index == index:
+            return
+        MyToolGroup.selectTool(self, index, temporary)
+
+        if self.tool_index >= 0:
+            self.mask_handler.maskTypeChooser.toolSelected(self.tools[self.tool_index])
+        else:
+            self.mask_handler.maskTypeChooser.toolSelected(None)
+
+        # and show the brush circle if necessary
+        if index == 0 or index == 1:
+            self.mask_handler.DrawCursor.setVisible(True)
+        else:
+            self.mask_handler.DrawCursor.setVisible(False)
+
+    def keyPressEvent(self, event):
+
+        if self.isVisible():
+            if event.key() == QtCore.Qt.Key_K:
+                # @key K: pick color of brush
+                self.selectTool(2)
+
+            if event.key() == QtCore.Qt.Key_P:
+                # @key P: paint brush
+                self.selectTool(0)
+
+            if event.key() == QtCore.Qt.Key_E:
+                # @key E: eraser
+                self.selectTool(1)
+
+            if event.key() == QtCore.Qt.Key_B:
+                # @key E: fill bucket
+                self.selectTool(3)
+
+        # show the erase tool highlighted when Control is pressed
+        if self.tool_index != -1:
+            if event.key() == Qt.Key_Control and self.tool_index != 1:
+                self.selectTool(1, temporary=True)
+            if event.key() == Qt.Key_Alt and self.tool_index != 2:
+                self.selectTool(2, temporary=True)
+            #if event.key() == Qt.Key_Shift and self.tool_index != 3:
+            #    self.selectTool(3, temporary=True)
+
+    def keyReleaseEvent(self, event):
+        if self.tool_index != -1:
+            # show the erase tool highlighted when Control is pressed
+            if event.key() == Qt.Key_Control:
+                self.selectTool(self.tool_index_clicked)
+            if event.key() == Qt.Key_Alt:
+                self.selectTool(self.tool_index_clicked)
+            #if event.key() == Qt.Key_Shift:
+            #    self.selectTool(self.tool_index_clicked)
+
+
 class MaskHandler:
     mask_edit_window = None
 
@@ -772,7 +846,6 @@ class MaskHandler:
 
         # a cursor to display the currently used brush color and size
         self.DrawCursor = QtWidgets.QGraphicsPathItem(parent)
-        self.DrawCursor.setPos(10, 10)
         self.DrawCursor.setZValue(10)
         self.DrawCursor.setVisible(False)
         self.UpdateDrawCursorDisplay()
@@ -790,57 +863,7 @@ class MaskHandler:
 
         self.closeDataFile()
 
-        self.tools = [BrushTool, EraserTool, PickerTool, BucketTool]
-        self.tools = [tool(self, parent, image_display) for tool in self.tools]
-
-        self.tool_buttons = []
-        for index, tool in enumerate(self.tools):
-            button = MyCommandButton(self.parent_hud, self, tool.getIcon(), (-30 - (26 + 5) * index, 10), scale=self.window.scale_factor)
-            button.setToolTip(tool.getTooltip())
-            button.clicked = lambda i=index: self.selectTool(i)
-            self.tool_buttons.append(button)
-            self.tools[index].button = button
-
-        self.tool_index = -1
-        self.tool_index_clicked = -1
-
-    def selectTool(self, index, temporary=False):
-        if self.tool_index == index:
-            return
-
-        if self.tool_index >= 0:
-            self.tools[self.tool_index].setInactive()
-        # set the tool
-        self.tool_index = index
-        # and if not temporary the "clicked" tool
-        # (this is for temporary changing the tool with Ctrl or Alt)
-        if not temporary:
-            self.tool_index_clicked = index
-
-        if self.tool_index >= 0:
-            # and notify the other modules
-            BroadCastEvent(self.modules, "eventToolSelected", "Mask", self.tool_index)
-
-            self.tools[self.tool_index].setActive()
-
-            self.maskTypeChooser.toolSelected(self.tools[self.tool_index])
-        else:
-            self.maskTypeChooser.toolSelected(None)
-
-        # set the cursor according to the tool
-        self.tools[self.tool_index].setCursor()
-
-        # and show the brush circle if necessary
-        if index == 0 or index == 1:
-            self.DrawCursor.setVisible(True)
-        else:
-            self.DrawCursor.setVisible(False)
-
-    def eventToolSelected(self, module, tool):
-        if module == "Mask":
-            return
-        # if another module has selected a tool, we deselect our tool
-        self.selectTool(-1)
+        self.tool_group = MaskToolGroup(self, self.parent_hud, image_display)
 
     def closeDataFile(self):
         self.data_file = None
@@ -1051,26 +1074,9 @@ class MaskHandler:
     def keyPressEvent(self, event):
         numberkey = event.key() - 49
         # @key ---- Painting ----
-        if self.tool_index >= 0 and 0 <= numberkey < self.mask_file.get_mask_type_list().count()+1 and event.modifiers() != Qt.KeypadModifier:
-            # @key 0-9: change brush type
-            self.maskTypeChooser.selectType(numberkey)
-
-        if not self.hidden:
-            if event.key() == QtCore.Qt.Key_K:
-                # @key K: pick color of brush
-                self.selectTool(2)
-
-            if event.key() == QtCore.Qt.Key_P:
-                # @key P: paint brush
-                self.selectTool(0)
-
-            if event.key() == QtCore.Qt.Key_E:
-                # @key E: eraser
-                self.selectTool(1)
-
-            if event.key() == QtCore.Qt.Key_B:
-                # @key E: fill bucket
-                self.selectTool(3)
+        #if self.tool_index >= 0 and 0 <= numberkey < self.mask_file.get_mask_type_list().count()+1 and event.modifiers() != Qt.KeypadModifier:
+        #    # @key 0-9: change brush type
+        #    self.maskTypeChooser.selectType(numberkey)
 
         if event.key() == QtCore.Qt.Key_Plus:
             # @key +: increase brush radius
@@ -1078,53 +1084,32 @@ class MaskHandler:
         if event.key() == QtCore.Qt.Key_Minus:
             # @key -: decrease brush radius
             self.changeCursorSize(-1)
+
         if event.key() == QtCore.Qt.Key_O:
             # @key O: increase mask transparency
             self.changeOpacity(+0.1)
-
         if event.key() == QtCore.Qt.Key_I:
             # @key I: decrease mask transparency
             self.changeOpacity(-0.1)
 
-        #if event.key() == QtCore.Qt.Key_M:
-        #    # @ key M: redraw the mask
-        #    self.RedrawMask()
-
-        # show the erase tool highlighted when Control is pressed
-        if self.tool_index != -1:
-            if event.key() == Qt.Key_Control and self.tool_index != 1:
-                self.selectTool(1, temporary=True)
-            if event.key() == Qt.Key_Alt and self.tool_index != 2:
-                self.selectTool(2, temporary=True)
-            #if event.key() == Qt.Key_Shift and self.tool_index != 3:
-            #    self.selectTool(3, temporary=True)
+        self.tool_group.keyPressEvent(event)
 
     def keyReleaseEvent(self, event):
-        if self.tool_index != -1:
-            # show the erase tool highlighted when Control is pressed
-            if event.key() == Qt.Key_Control:
-                self.selectTool(self.tool_index_clicked)
-            if event.key() == Qt.Key_Alt:
-                self.selectTool(self.tool_index_clicked)
-            #if event.key() == Qt.Key_Shift:
-            #    self.selectTool(self.tool_index_clicked)
-            
+        self.tool_group.keyReleaseEvent(event)
+
     def ToggleInterfaceEvent(self, event=None, hidden=None):
         if hidden is None:
             # invert hidden status
             self.hidden = not self.hidden
         else:
             self.hidden = hidden
-        # reset the tool
-        if self.hidden:
-            self.selectTool(-1)
         # store in options
         if self.config is not None:
             self.config.mask_interface_hidden = self.hidden
         # update visibility status of the buttons
         self.maskTypeChooser.setVisible(not self.hidden)
-        for button in self.tool_buttons:
-            button.setVisible(not self.hidden)
+
+        self.tool_group.setVisible(not self.hidden)
         # set the mask button to checked/unchecked
         self.buttonMask.setChecked(not self.hidden)
 
