@@ -372,6 +372,158 @@ class MyCommandButton(QtWidgets.QGraphicsRectItem):
         self.scene().removeItem(self)
 
 
+class MyTextButton(QtWidgets.QGraphicsRectItem):
+    def __init__(self, parent, font, scale=1):
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
+
+        self.scale_factor = scale
+        self.parent = parent
+
+        # get hover events and set to inactive
+        self.setAcceptHoverEvents(True)
+        self.active = False
+
+        # define the font
+        self.font = font
+        self.font.setPointSize(14)
+
+        # initialize the tex
+        self.text = QtWidgets.QGraphicsSimpleTextItem(self)
+        self.text.setFont(self.font)
+        self.text.setZValue(10)
+        #self.updateText()
+
+        # set the brush for the background color
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
+        self.setZValue(9)
+
+    def setAlign(self, align):
+        self.align = align
+
+    def getText(self):
+        return "text"
+
+    def getColor(self):
+        return QtGui.QColor("white")
+
+    def updateText(self):
+        # get text and color from type
+        self.text.setText(self.getText())
+        # apply color
+        self.text.setBrush(QtGui.QBrush(self.getColor()))
+        # update rect to fit text
+        rect = self.text.boundingRect()
+        rect.setX(-5*self.scale_factor)
+        rect.setWidth(rect.width() + 5*self.scale_factor)
+        self.setRect(rect)
+        x, y = self.getPos()
+
+        if self.getAlign() == "left":
+            self.setPos(x, y)
+        else:
+            self.setPos(-rect.width() + x * self.scale_factor, y * self.scale_factor)
+
+    def setText(self, text):
+        # get text and color from type
+        self.text.setText(text)
+        # update rect to fit text
+        rect = self.text.boundingRect()
+        rect.setX(-5 * self.scale_factor)
+        rect.setWidth(rect.width() + 5 * self.scale_factor)
+        self.setRect(rect)
+
+    def setColor(self, color):
+        # apply color
+        self.text.setBrush(QtGui.QBrush(color))
+
+    def setPosition(self, x, y):
+        if self.align == QtCore.Qt.AlignLeft:
+            self.setPos(x * self.scale_factor, y * self.scale_factor)
+        else:
+            self.setPos(-self.rect().width() + x * self.scale_factor, y * self.scale_factor)
+
+    def setToActiveColor(self):
+        # change background color
+        self.active = True
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128)))
+
+    def setToInactiveColor(self):
+        # change background color
+        self.active = False
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
+
+    def hoverEnterEvent(self, event):
+        # if not active highlight on mouse over
+        if self.active is False:
+            self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
+
+    def hoverLeaveEvent(self, event):
+        # ... or switch back to standard color
+        if self.active is False:
+            self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
+
+    def mousePressEvent(self, event):
+        pass
+
+    def delete(self):
+        # delete from scene
+        self.scene().removeItem(self)
+
+
+class MyTextButtonGroup(QtWidgets.QGraphicsPathItem):
+    buttons = None
+    active_index = 0
+
+    def __init__(self, parent, font, scale_factor):
+        QtWidgets.QGraphicsPathItem.__init__(self, parent)
+        self.font = font
+        self.scale_factor = scale_factor
+        self.buttons = []
+
+    def getAlign(self):
+        return QtCore.Qt.AlignLeft
+
+    def setButtons(self, list_of_properties):
+        # add buttons if we do not have enough
+        for i in range(len(self.buttons), len(list_of_properties)):
+            self.buttons.append(MyTextButton(self, self.font, self.scale_factor))
+
+        # remove buttons if we do have too much
+        for i in range(len(list_of_properties), len(self.buttons)):
+            self.buttons[i].delete()
+        self.buttons = self.buttons[:len(list_of_properties)]
+
+        # set the properties of the buttons
+        for index, (prop, button) in enumerate(zip(list_of_properties, self.buttons)):
+            button.setAlign(self.getAlign())
+            button.setText(prop["text"])
+            button.setColor(QtGui.QColor(prop["color"]))
+            if self.getAlign() == QtCore.Qt.AlignLeft:
+                button.setPosition(5, (10 + 25 * index + 25))
+            else:
+                button.setPosition(- 5, (10 + 25 * index + 25))
+            button.mousePressEvent = lambda event, index=index: self.buttonPressEvent(event, index)
+
+    def buttonPressEvent(self, event, index):
+        pass
+
+    def setActive(self):
+        # and the tool button to active
+        self.buttons[self.active_index].setToActiveColor()
+
+    def setInatice(self):
+        # and the tool button to active
+        for button in self.buttons:
+            button.setToInactiveColor()
+
+    def clear(self):
+        # remove all counters
+        if self.buttons is not None:
+            for button in self.buttons:
+                button.delete()
+        self.buttons = []
+
+
 class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):
     def __init__(self, parent, command_object):
         super(GraphicsItemEventFilter, self).__init__(parent)
