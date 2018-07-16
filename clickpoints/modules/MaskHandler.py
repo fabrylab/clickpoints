@@ -541,7 +541,7 @@ class MaskTool:
                 angle = event.delta()
 
             # wheel with SHIFT means changing the opacity
-            if event.modifiers() == QtCore.ShiftModifier:
+            if event.modifiers() == QtCore.Qt.ShiftModifier:
                 if angle > 0:
                     self.parent.changeOpacity(+0.1)
                 else:
