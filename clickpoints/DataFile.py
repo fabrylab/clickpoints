@@ -2120,9 +2120,24 @@ class DataFile:
         except peewee.DoesNotExist as err:
             if create:
                 layer = self.table_layer(**kwargs)
+                # if the base_layer is None, we want to create a self-referential entry, but as we don't know the id
+                # of the new entry, we have to assign it later. So for now we just guess a valid id for a base_layer
+                # reference
+                if base_layer is None:
+                    # it is not possible to
+                    try_base_layer_id = 1
+                    while True:
+                        try:
+                            layer.base_layer = try_base_layer_id
+                        except peewee.IntegrityError:
+                            pass
+                        else:
+                            break
+                        try_base_layer_id += 1
                 layer.save()
             else:
                 return None
+        # now the layer has been created and we can assign the self reference
         if base_layer is None:
             layer.base_layer = layer
             layer.save()
