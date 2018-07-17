@@ -365,7 +365,7 @@ class Addon(QtWidgets.QWidget):
         def run_wrapper(*args, **kwargs):
             self.run_started()
             try:
-                function(*args, **kwargs)
+                return function(*args, **kwargs)
             finally:
                 self.run_stopped()
         self.run = run_wrapper
