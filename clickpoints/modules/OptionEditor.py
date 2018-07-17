@@ -32,7 +32,42 @@ import qtawesome as qta
 from includes import QtShortCuts
 from includes import BroadCastEvent
 from includes import LoadConfig
+from distutils.version import LooseVersion
+from threading import Thread
+import subprocess
+import json
+import natsort
 
+
+def getNewestVersion():
+    result = os.popen("conda search -c rgerum -f clickpoints --json").read()
+    result = json.loads(result)
+    try:
+        version = natsort.natsorted([f["version"] for f in result["clickpoints"]])[-1]
+    except KeyError:
+        return None
+    return LooseVersion(version)
+
+def getCurrentVersion():
+    import clickpoints
+    return LooseVersion(clickpoints.__version__)
+
+def getCurrentVersionHG():
+    repo_path = "\""+os.path.join(os.path.dirname(__file__), "..", "..")+"\""
+    try:
+        result = subprocess.check_output("hg id -n -R "+repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
+    except subprocess.CalledProcessError:
+        return None
+    return result
+
+def getNewestVersionHG():
+    repo_path = "\"" + os.path.join(os.path.dirname(__file__), "..", "..") + "\""
+    try:
+        result = subprocess.check_output("hg pull -R "+repo_path, stderr=subprocess.STDOUT)
+        result = subprocess.check_output("hg log -l 1 --template \"{rev}\" -R "+repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
+    except subprocess.CalledProcessError:
+        return None
+    return result
 
 def PrittyPrintSize(bytes):
     if bytes > 1e9:
@@ -44,7 +79,79 @@ def PrittyPrintSize(bytes):
     return "%d bytes" % (bytes)
 
 
+class VersionDisplay(QtWidgets.QWidget):
+    version_changed = QtCore.Signal()
+
+    def __init__(self, parent, layout, window):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.clickpoints_main_window = window
+        layout.addWidget(self)
+        self.version_layout = QtWidgets.QHBoxLayout(self)
+        self.version_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.version_layout.addStretch()
+        self.label_version = QtWidgets.QLabel()
+        self.label_version.linkActivated.connect(self.updateClicked)
+        self.version_layout.addWidget(self.label_version)
+
+        self.current_version = getCurrentVersion()
+        self.current_version_hg = getCurrentVersionHG()
+        self.newestet_version = None
+        self.newestet_version_hg = None
+
+        # self.updateVersionDisplay()
+        self.version_changed.connect(self.updateVersionDisplay)
+        self.version_changed.emit()
+        self.thread = Thread(target=self.queryNewestVersion, args=tuple())
+        self.thread.start()
+        self.thread2 = Thread(target=self.queryNewestVersionHG, args=tuple())
+        self.thread2.start()
+
+    def queryNewestVersion(self):
+        self.newestet_version = getNewestVersion()
+        self.version_changed.emit()
+
+    def queryNewestVersionHG(self):
+        self.newestet_version_hg = getNewestVersionHG()
+        self.version_changed.emit()
+
+    def updateVersionDisplay(self):
+        text = "v" + self.current_version.vstring
+        if self.current_version_hg:
+            text += " (rev %s)" % self.current_version_hg
+            if self.newestet_version_hg is not None:
+                text = text[:-1]
+                if int(self.current_version_hg.strip("+")) < int(self.newestet_version_hg):
+                    text += ", update to version <a href='update.html'>v%s</a>)" % self.newestet_version_hg
+                else:
+                    text += ", up to date)"
+        elif self.newestet_version is not None:
+            if self.newestet_version > self.current_version:
+                text += " (update to version <a href='update.html'>v%s</a>)" % self.newestet_version.vstring
+            else:
+                text += " (up to date)"
+
+        self.label_version.setText(text)
+
+    def updateClicked(self):
+        if self.newestet_version_hg is None:
+            text = 'Do you want to update ClickPoints to version v%s?\nThe current instance will be closed.' % self.newestet_version.vstring
+        else:
+            test = 'Do you want to update ClickPoints to revision rev%s?\nThe current instance will be closed.' % self.newestet_version_hg
+        reply = QtWidgets.QMessageBox.question(self, 'Update', text,
+                                               QtWidgets.QMessageBox.Yes,
+                                               QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.No:
+            return
+        self.clickpoints_main_window.close()
+        if self.newestet_version_hg is None:
+            subprocess.Popen(["conda", "update", "clickpoints", "-c", "rgerum", "-c", "conda-forge", "-y"])
+        else:
+            subprocess.Popen(["hg", "update", self.newestet_version_hg])
+
+
 class OptionEditorWindow(QtWidgets.QWidget):
+
     def __init__(self, window, data_file):
         QtWidgets.QWidget.__init__(self)
         self.window = window
@@ -56,6 +163,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
         self.setWindowTitle("Options - ClickPoints")
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.version_widget = VersionDisplay(self, self.main_layout, window)
 
         self.list_layout = QtWidgets.QVBoxLayout()
         self.stackedLayout = QtWidgets.QStackedLayout()
