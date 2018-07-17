@@ -38,6 +38,7 @@ import subprocess
 import json
 import natsort
 
+repo_path = "\"" + os.path.join(os.path.dirname(__file__), "..", "..") + "\""
 
 def getNewestVersion():
     result = os.popen("conda search -c rgerum -f clickpoints --json").read()
@@ -53,7 +54,7 @@ def getCurrentVersion():
     return LooseVersion(clickpoints.__version__)
 
 def getCurrentVersionHG():
-    repo_path = "\""+os.path.join(os.path.dirname(__file__), "..", "..")+"\""
+    global repo_path
     try:
         result = subprocess.check_output("hg id -n -R "+repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
     except subprocess.CalledProcessError:
@@ -61,7 +62,7 @@ def getCurrentVersionHG():
     return result
 
 def getNewestVersionHG():
-    repo_path = "\"" + os.path.join(os.path.dirname(__file__), "..", "..") + "\""
+    global repo_path
     try:
         result = subprocess.check_output("hg pull -R "+repo_path, stderr=subprocess.STDOUT)
         result = subprocess.check_output("hg log -l 1 --template \"{rev}\" -R "+repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
@@ -137,7 +138,7 @@ class VersionDisplay(QtWidgets.QWidget):
         if self.newestet_version_hg is None:
             text = 'Do you want to update ClickPoints to version v%s?\nThe current instance will be closed.' % self.newestet_version.vstring
         else:
-            test = 'Do you want to update ClickPoints to revision rev%s?\nThe current instance will be closed.' % self.newestet_version_hg
+            text = 'Do you want to update ClickPoints to revision rev%s?\nThe current instance will be closed.' % self.newestet_version_hg
         reply = QtWidgets.QMessageBox.question(self, 'Update', text,
                                                QtWidgets.QMessageBox.Yes,
                                                QtWidgets.QMessageBox.No)
@@ -147,7 +148,7 @@ class VersionDisplay(QtWidgets.QWidget):
         if self.newestet_version_hg is None:
             subprocess.Popen(["conda", "update", "clickpoints", "-c", "rgerum", "-c", "conda-forge", "-y"])
         else:
-            subprocess.Popen(["hg", "update", self.newestet_version_hg])
+            subprocess.Popen(["hg", "update", self.newestet_version_hg, "-R", repo_path[1:-1]])
 
 
 class OptionEditorWindow(QtWidgets.QWidget):
