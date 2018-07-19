@@ -899,6 +899,10 @@ class MaskHandler:
         except IndexError:
             pass
 
+    def maskTypesChangedEvent(self):
+        # update mask interface buttons
+        self.maskTypeChooser.updateButtons(self.mask_file)
+
     def imageLoadedEvent(self, filename, framenumber):
         # Broadcast from ClickPoints Main
 

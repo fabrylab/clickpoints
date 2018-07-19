@@ -163,6 +163,15 @@ class Command:
             return
         self.window.signal_broadcast.emit("UpdateCounter", tuple())
 
+    def reloadMaskTypes(self):
+        """
+        Reloads the mask types.
+        """
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
+        self.window.signal_broadcast.emit("maskTypesChangedEvent", tuple())
+
     def reloadTracks(self):
         """
         Reloads all tracks.
