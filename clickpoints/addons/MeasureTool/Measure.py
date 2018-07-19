@@ -24,6 +24,7 @@ import clickpoints
 import json
 import os
 from qtpy import QtCore, QtGui, QtWidgets
+from clickpoints.includes import QtShortCuts
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib
 
@@ -167,6 +168,9 @@ class Addon(clickpoints.Addon):
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
+        QtWidgets.QVBoxLayout(self)
+        self.setWindowTitle("Measurement Tool - ClickPoints")
+
         self.db.setMarkerType("ruler", "#FFFF00", self.db.TYPE_Line)
         self.cp.reloadTypes()
 
@@ -175,20 +179,29 @@ class Addon(clickpoints.Addon):
 
         self.scaleBar = ModuleScaleBar(self, self.cp.getHUD("lower right"))
 
-        if self.db.image and self.db.image.path:
-            self.initializeOptions()
-
-    def initializeOptions(self):
-        meta = get_meta(os.path.join(self.db.image.path.path, self.db.image.filename))
-
-        self.addOption(key="pixelSize", display_name="Pixel Size", default=meta.get("PixelSize", 6.45) / (
-        meta.get("Magnification", 1) * meta.get("Coupler", 1)), value_type="float", decimals=4,
-                       tooltip="The size of a pixel.")
+        self.addOption(key="pixelSize", display_name="Pixel Size", default=1, value_type="float", decimals=4,
+                       tooltip="The size of a pixel.", unit="µm")
+        self.addOption(key="magnification", display_name="Magnification", default=1, min=1, value_type="float",
+                       tooltip="The magnification with which the image has been recorded.", unit="x")
         self.addOption(key="unit", display_name="Length Unit", default=u"µm", value_type="string",
                        tooltip="The unit for this size.")
         self.addOption(key="color", display_name="Color", default="#FFFFFF", value_type="color",
                        tooltip="The color of the scale bar and the text.")
+        self.addOption(key="from_metadata", hidden=True, default=False, value_type="bool")
 
+        if self.db.image and self.db.image.path:
+            self.initializeOptions()
+
+        self.input_pixelsize = self.inputOption("pixelSize")
+        self.input_magnification = self.inputOption("magnification")
+        self.input_color = self.inputOption("color")
+
+    def initializeOptions(self):
+        if not self.getOption("from_metadata"):
+            meta = get_meta(os.path.join(self.db.image.path.path, self.db.image.filename))
+            self.setOption("pixelSize", meta.get("PixelSize", 6.45))
+            self.setOption("magnification", meta.get("Magnification", 1) * meta.get("Coupler", 1))
+            self.setOption("from_metadata", True)
         self.optionsChanged()
 
         self.initialized = True
@@ -203,14 +216,14 @@ class Addon(clickpoints.Addon):
 
     def optionsChanged(self):
         self.scaleBar.setUnit(self.getOption("unit"))
-        self.scaleBar.setPixToMu(self.getOption("pixelSize"))
+        self.scaleBar.setPixToMu(self.getOption("pixelSize") / self.getOption("magnification"))
         self.scaleBar.setColor(self.getOption("color"))
 
     def markerMoveEvent(self, marker):
         if not self.initialized:
             self.initializeOptions()
         if self.initialized and marker.type == self.type:
-            marker.text = "%.2f %s" % (marker.length()*self.getOption("pixelSize"), self.getOption("unit"))
+            marker.text = "%.2f %s" % (marker.length()*(self.getOption("pixelSize") / self.getOption("magnification")), self.getOption("unit"))
             marker.save()
 
     def run(self, *args, **kwargs):
@@ -218,3 +231,6 @@ class Addon(clickpoints.Addon):
 
     def delete(self):
         self.scaleBar.delete()
+
+    def buttonPressedEvent(self):
+        self.show()
