@@ -26,6 +26,8 @@ from qtpy import QtCore, QtGui, QtWidgets
 from matplotlib import pyplot as plt
 
 from .includes import CanvasWindow
+from .includes import QtShortCuts
+from .modules.OptionEditor import getOptionInputWidget
 from matplotlib import _pylab_helpers
 import threading
 
@@ -317,6 +319,7 @@ class Command:
 class Addon(QtWidgets.QWidget):
     _run_thread = None
     _change_status = QtCore.Signal(int)
+    _option_widgets = None
 
     def __init__(self, database, command=None, name="", database_class=None, icon=None):
         # initialize the Widget base class
@@ -354,6 +357,7 @@ class Addon(QtWidgets.QWidget):
         self.addon_name = name
         # create an option category for the add-on
         self._options_category = "Addon - "+name
+        self._option_widgets = {}
         self.db._last_category = self._options_category
 
         # set the icon for the add-on, if provided
@@ -391,7 +395,10 @@ class Addon(QtWidgets.QWidget):
 
     def setOption(self, key, value):
         # set the value of an option
-        return self.db.setOption(key=self._warpOptionKey(key), value=value)
+        res = self.db.setOption(key=self._warpOptionKey(key), value=value)
+        if key in self._option_widgets:
+            self._option_widgets[key].setValue(self.getOption(key))
+        return res
 
     def linkOption(self, key, widget):
         signal = None
@@ -403,7 +410,21 @@ class Addon(QtWidgets.QWidget):
             signal = widget.editTextChanged
         elif isinstance(widget, QtWidgets.QCheckBox):
             signal = widget.stateChanged
+        elif isinstance(widget, QtShortCuts.QInput):
+            signal = widget.valueChanged
         signal.connect(lambda value, key=key: self.optionInputChanged(value, key))
+
+    def inputOption(self, key, layout=None):
+        if layout is None:
+            layout = self.layout()
+        option = self.db._options_by_key[self._warpOptionKey(key)]
+        widget = getOptionInputWidget(option, layout)
+        def callSetOption(value):
+            self.setOption(key, value)
+            if getattr(self, "optionsChanged"):
+                self.optionsChanged()
+        widget.valueChanged.connect(callSetOption)
+        self._option_widgets[key] = widget
 
     def optionInputChanged(self, value, key):
         self.setOption(key, value)
