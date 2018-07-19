@@ -151,6 +151,33 @@ class VersionDisplay(QtWidgets.QWidget):
             subprocess.Popen(["hg", "update", self.newestet_version_hg, "-R", repo_path[1:-1]])
 
 
+def getOptionInputWidget(option, layout):
+    value = option.value if option.value is not None else option.default
+    if option.value_type == "int":
+        if option.value_count > 1:
+            edit = QtShortCuts.QInputString(layout, option.display_name, value=", ".join(str(v) for v in value),
+                                            tooltip=option.tooltip)
+        else:
+            edit = QtShortCuts.QInputNumber(layout, option.display_name, value=float(value),
+                                            min=option.min_value, max=option.max_value,
+                                            decimals=option.decimals, float=False, unit=option.unit,
+                                            tooltip=option.tooltip)
+    if option.value_type == "choice":
+        edit = QtShortCuts.QInputChoice(layout, option.display_name, value=value, values=option.values,
+                                        tooltip=option.tooltip, reference_by_index=True)
+    if option.value_type == "float":
+        edit = QtShortCuts.QInputNumber(layout, option.display_name, value=float(value), min=option.min_value,
+                                        max=option.max_value, decimals=option.decimals, float=True, unit=option.unit,
+                                        tooltip=option.tooltip)
+    if option.value_type == "bool":
+        edit = QtShortCuts.QInputBool(layout, option.display_name, value=value, tooltip=option.tooltip)
+    if option.value_type == "string":
+        edit = QtShortCuts.QInputString(layout, option.display_name, value=value, tooltip=option.tooltip)
+    if option.value_type == "color":
+        edit = QtShortCuts.QInputColor(layout, option.display_name, value=value, tooltip=option.tooltip)
+    return edit
+
+
 class OptionEditorWindow(QtWidgets.QWidget):
 
     def __init__(self, window, data_file):
@@ -221,25 +248,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
             for option in self.data_file._options[category]:
                 if option.hidden:
                     continue
-                value = option.value if option.value is not None else option.default
-                if option.value_type == "int":
-                    if option.value_count > 1:
-                        edit = QtShortCuts.QInputString(self.layout, option.display_name, value=", ".join(str(v) for v in value),
-                                                        tooltip=option.tooltip)
-                    else:
-                        edit = QtShortCuts.QInputNumber(self.layout, option.display_name, value=float(value),
-                                                        min=option.min_value, max=option.max_value,
-                                                        decimals=option.decimals, float=False, unit=option.unit, tooltip=option.tooltip)
-                if option.value_type == "choice":
-                    edit = QtShortCuts.QInputChoice(self.layout, option.display_name, value=value, values=option.values, tooltip=option.tooltip, reference_by_index=True)
-                if option.value_type == "float":
-                    edit = QtShortCuts.QInputNumber(self.layout, option.display_name, value=float(value), min=option.min_value, max=option.max_value, decimals=option.decimals, float=True, unit=option.unit, tooltip=option.tooltip)
-                if option.value_type == "bool":
-                    edit = QtShortCuts.QInputBool(self.layout, option.display_name, value=value, tooltip=option.tooltip)
-                if option.value_type == "string":
-                    edit = QtShortCuts.QInputString(self.layout, option.display_name, value=value, tooltip=option.tooltip)
-                if option.value_type == "color":
-                    edit = QtShortCuts.QInputColor(self.layout, option.display_name, value=value, tooltip=option.tooltip)
+                edit = getOptionInputWidget(option, self.layout)
                 edit.valueChanged.connect(lambda value, edit=edit, option=option: self.Changed(edit, value, option))
                 edit.current_value = None
                 edit.option = option
