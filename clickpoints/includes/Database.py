@@ -429,7 +429,7 @@ class DataFileExtended(DataFile):
             self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, layer, True, threaded))
             self.thread.start()
         else:
-            return self.buffer_frame(image, filename, slots, slot_index, index, layer_id=layer, threaded=threaded)
+            return self.buffer_frame(image, filename, slots, slot_index, index, layer=layer, threaded=threaded)
 
     def buffer_frame(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
         # if we have already a reader...
