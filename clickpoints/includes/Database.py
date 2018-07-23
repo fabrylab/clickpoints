@@ -41,7 +41,9 @@ import platform
 from ..DataFile import DataFile
 import re
 
-
+# remove decompression bomb warning which is now an exception
+import PIL
+PIL.Image.MAX_IMAGE_PIXELS = None
 
 def max_sql_variables():
     """Get the maximum number of arguments allowed in a query by the current
