@@ -621,8 +621,9 @@ class BrushTool(MaskTool):
             # accept the event
             return True
         if event.type() == QtCore.QEvent.GraphicsSceneMouseRelease and event.button() == QtCore.Qt.LeftButton:
-            with self.parent.window.changeTracker("draw line in mask"):
-                self.parent.save()
+            if self.parent.config.auto_mask_update:
+                with self.parent.window.changeTracker("draw line in mask"):
+                    self.parent.save()
         # Mouse move event to draw the stroke
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
             # get the new position
