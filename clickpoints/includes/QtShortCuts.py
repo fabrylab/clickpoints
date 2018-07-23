@@ -42,7 +42,7 @@ class QInput(QtWidgets.QWidget):
 
     no_signal = False
 
-    last_emited_value = 0
+    last_emited_value = None
 
     def __init__(self, layout=None, name=None, tooltip=None, stretch=False):
         # initialize the super widget
