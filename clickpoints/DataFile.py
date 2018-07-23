@@ -141,15 +141,21 @@ def packToDictList(table, **kwargs):
         return kwargs[key][i]
     def WrapNoneID(key, i):
         field = getattr(table, key)
-        result = table.select(field).where(table.id == singles["id"](i))
         if field.default is not None:
-            result = peewee.fn.COALESCE(result, field.default)
+            result = table.select(peewee.fn.COALESCE(peewee.fn.MAX(field)).where(table.id == singles["id"](i)))
+        else:
+            result = table.select(field).where(table.id == singles["id"](i))
         return result
     def WrapNoneImageTrack(key, i):
         field = getattr(table, key)
-        result = table.select(field).where(table.image == singles["image"](i), table.track == singles["track"](i))
         if field.default is not None:
-            result = peewee.fn.COALESCE(result, field.default)
+            # if the field has no default value, the SELECT query would return an empty list if the element does not exist
+            # this would throw a not-null constraint exception and it would ignore the default value
+            # therefore we have to use the default value, if no entry is found
+            # MAX "convertes" the empy query to a NULL and COALESCE converts the NULL to the default value
+            result = table.select(peewee.fn.COALESCE(peewee.fn.MAX(field), field.default)).where(table.image == singles["image"](i), table.track == singles["track"](i))
+        else:
+            result = table.select(field).where(table.image == singles["image"](i), table.track == singles["track"](i))
         return result
     for key in list(kwargs.keys()):
         if kwargs[key] is None:
