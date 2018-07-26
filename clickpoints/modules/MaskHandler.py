@@ -448,6 +448,13 @@ class MaskTypeChooser(MyTextButtonGroup):
             # select this mask type
             self.selectType(index)
 
+    def keyPressEvent(self, event):
+        numberkey = event.key() - 49
+
+        if 0 <= numberkey < len(self.types) and event.modifiers() != QtCore.Qt.KeypadModifier:
+            # @key 0-9: change brush type
+            self.selectType(numberkey)
+
     def selectType(self, index):
         self.setActiveDrawType(index)
         if self.tool is None or not self.tool.isColorTool():
@@ -1098,6 +1105,16 @@ class MaskHandler:
             self.changeOpacity(-0.1)
 
         self.tool_group.keyPressEvent(event)
+        
+        # only link the mask type chooser
+        if self.tool_group.tool_index >= 0:
+            self.maskTypeChooser.keyPressEvent(event)
+
+    def eventToolSelected(self, module, tool):
+        if module == "Mask":
+            return
+        # if another module has selected a tool, we deselect our tool
+        self.tool_group.selectTool(-1)
 
     def keyReleaseEvent(self, event):
         self.tool_group.keyReleaseEvent(event)
