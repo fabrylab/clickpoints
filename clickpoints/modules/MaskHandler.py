@@ -499,6 +499,9 @@ class MaskTool:
         # save the mask
         if self.parent.MaskChanged:
             self.parent.RedrawMask()
+            if not self.parent.config.auto_mask_update:
+                with self.parent.window.changeTracker("apply draw in mask"):
+                    self.parent.save()
 
     def isColorTool(self):
         return False
