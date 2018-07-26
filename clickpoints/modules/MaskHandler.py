@@ -494,6 +494,9 @@ class MaskTool:
         self.unsetCursor()
         # set the button to inactive
         self.button.SetToInactiveColor()
+        # save the mask
+        if self.parent.MaskChanged:
+            self.parent.RedrawMask()
 
     def isColorTool(self):
         return False
