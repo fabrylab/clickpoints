@@ -487,6 +487,8 @@ class MaskTool:
         self.setCursor()
         self.button.SetToActiveColor()
 
+        self.parent.UpdateDrawCursorDisplay()
+
     def setInactive(self):
         # deactivate the scene event filter
         self.scene_event_filter.active = False
@@ -592,6 +594,9 @@ class BrushTool(MaskTool):
     def sceneEventFilter(self, event):
         # call the inherited method
         if MaskTool.sceneEventFilter(self, event):
+            return True
+
+        if self.parent.maskTypeChooser.active_draw_type is None:
             return True
 
         # Mouse wheel to change the cursor size
@@ -728,7 +733,6 @@ class BucketTool(MaskTool):
 
 
 class MaskToolGroup(MyToolGroup):
-    tool = None
     active_draw_type = None
 
     def __init__(self, mask_handler, parent_hud, image_display):
@@ -1000,6 +1004,8 @@ class MaskHandler:
 
         # get the color from the current type
         color = QtGui.QColor(*HTMLColorToRGB(self.maskTypeChooser.active_draw_type.color))
+        if not self.tool_group.tools[self.tool_group.tool_index].isColorTool():
+            color = QtGui.QColor("black")
 
         # create a pen with this color and apply it to the drawPathItem
         pen = QtGui.QPen(color, self.DrawCursorSize)
