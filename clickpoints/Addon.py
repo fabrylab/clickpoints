@@ -107,6 +107,14 @@ class Command:
         if self.script_launcher is None:
             return
         self.window.signal_jump.emit(int(value))
+
+        # if this is the main thread, we have to call processEvents
+        if isinstance(threading.current_thread(), threading._MainThread):
+            # wait for frame change to be completed
+            while self.window.new_frame_number != int(value) or self.window.loading_image:
+                self.window.app.processEvents()
+            return
+
         # wait for frame change to be completed
         while self.window.new_frame_number != int(value) or self.window.loading_image:
             time.sleep(0.01)
@@ -123,7 +131,16 @@ class Command:
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
+
         self.window.signal_jumpTo.emit(int(value))
+
+        # if this is the main thread, we have to call processEvents
+        if isinstance(threading.current_thread(), threading._MainThread):
+            # wait for frame change to be completed
+            while self.window.new_frame_number != int(value) or self.window.loading_image:
+                self.window.app.processEvents()
+            return
+
         # wait for frame change to be completed
         while self.window.new_frame_number != int(value) or self.window.loading_image:
             time.sleep(0.01)
