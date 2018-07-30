@@ -97,9 +97,10 @@ class ModuleScaleBar(QtWidgets.QWidget):
         pixel_height = 8
         pixel_offset = 20
         pixel_offset2 = 4
-        font_size = 32
+        font_size = int(round(32*scale))
 
         pixel_width, size_in_um = self.getBarParameters(1)
+        pixel_width *= image_scale
         color = tuple((matplotlib.colors.to_rgba_array(self.color)[0, :3]*255).astype("uint8"))
 
         image.rectangle([image.pil_image.size[0] -pixel_offset - pixel_width, image.pil_image.size[1] -pixel_offset - pixel_height, image.pil_image.size[0] -pixel_offset, image.pil_image.size[1] -pixel_offset], color)
@@ -195,6 +196,15 @@ class Addon(clickpoints.Addon):
         self.input_pixelsize = self.inputOption("pixelSize")
         self.input_magnification = self.inputOption("magnification")
         self.input_color = self.inputOption("color")
+
+        self.button = QtWidgets.QPushButton("test")
+        self.layout().addWidget(self.button)
+
+        self.button.clicked.connect(self.test)
+
+    def test(self):
+        self.db.setMaskType("bla", "#FF00FF", 3)
+        self.cp.reloadMaskTypes()
 
     def initializeOptions(self):
         if not self.getOption("from_metadata"):
