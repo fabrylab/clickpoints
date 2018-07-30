@@ -3059,6 +3059,8 @@ class DataFile:
             assert frame is not None, \
                 "Frame should be specified, if layer is given."
 
+        image = self._processImagesField(image, frame, filename, layer)
+
         mask = self.getMask(image=image, frame=frame, filename=filename, id=id, layer=layer)
 
         # get image object
