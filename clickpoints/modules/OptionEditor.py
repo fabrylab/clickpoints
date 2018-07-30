@@ -57,7 +57,7 @@ def getCurrentVersionHG():
     global repo_path
     try:
         result = subprocess.check_output("hg id -n -R "+repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return None
     return result
 
@@ -66,7 +66,7 @@ def getNewestVersionHG():
     try:
         result = subprocess.check_output("hg pull -R "+repo_path, stderr=subprocess.STDOUT)
         result = subprocess.check_output("hg log -l 1 --template \"{rev}\" -R "+repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return None
     return result
 
