@@ -63,10 +63,10 @@ class Addon(clickpoints.Addon):
         image_last = next(images)
 
         # get points and corresponding tracks
-        points = self.db.getMarkers(image=image_last.id, processed=0)
+        points = self.db.getMarkers(image=image_last, processed=0)
         p0 = np.array([[point.x, point.y] for point in points if point.track_id]).astype(np.float32)
-        tracks = [point.track for point in points if point.track_id]
-        types = [point.type for point in points if point.track_id]
+        tracks = np.array([point.track for point in points if point.track_id])
+        types = np.array([point.type for point in points if point.track_id])
 
         # if no tracks are supplied, stop
         if len(tracks) == 0:
@@ -82,19 +82,28 @@ class Addon(clickpoints.Addon):
             # calculate next positions
             p1, st, err = cv2.calcOpticalFlowPyrLK(image_last_data8, image_data8, p0, None, **lk_params)
 
+            # filter valid tracks (i.e. not out of bounds of the image)
+            valid = (p1[:, 0] > 0)*(p1[:, 0] < image_data8.shape[1])*(p1[:, 1] > 0)*(p1[:, 1] < image_data8.shape[0])
+
             # set the new positions
-            self.db.setMarkers(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, track=tracks, type=types)
+            self.db.setMarkers(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, track=list(tracks), type=list(types))
 
             # mark the marker in the last frame as processed
-            self.db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=tracks, type=types)
+            self.db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=list(tracks), type=list(types))
 
             # update ClickPoints
             self.cp.jumpToFrameWait(image.sort_index)
 
             # store positions and image
-            p0 = p1
+            p0 = p1[valid]
+            tracks = tracks[valid]
+            types = types[valid]
             image_last = image
             image_last_data8 = image_data8
+
+            if len(p0) == 0:
+                print("No tracks left")
+                return
 
             # check if we should terminate
             if self.cp.hasTerminateSignal():
