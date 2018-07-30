@@ -51,7 +51,7 @@ class ModuleScaleBar(QtWidgets.QWidget):
         self.scalebar = QtWidgets.QGraphicsRectItem(0, 0, 1, 1, parentItem)
         self.scalebar.setBrush(QtGui.QBrush(QtGui.QColor("white")))
         self.scalebar.setPen(QtGui.QPen(QtGui.QColor("white")))
-        self.scalebar.setPos(-20, -20)
+        self.scalebar.setPos(0, 0)
         self.scalebar_text = QtWidgets.QGraphicsTextItem("", parentItem)
         self.scalebar_text.setFont(self.font)
         self.scalebar_text.setDefaultTextColor(QtGui.QColor("white"))
@@ -75,6 +75,10 @@ class ModuleScaleBar(QtWidgets.QWidget):
             self.updateBar()
 
     def getBarParameters(self, scale):
+        if self.parent.getOption("length") != 0:
+            mu = self.parent.getOption("length")
+            pixel = mu / self.pixtomu * self.scale
+            return pixel, mu
         mu = 100 * self.pixtomu / scale
         values = [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000, 1500, 2000, 2500, 5000, 10000]
         old_v = mu
@@ -88,22 +92,28 @@ class ModuleScaleBar(QtWidgets.QWidget):
 
     def updateBar(self):
         pixel, mu = self.getBarParameters(self.scale)
-        self.scalebar.setRect(0, 0, -pixel, 5)
-        self.scalebar_text.setPos(-pixel-20-25, -20-30)
+        x, y = self.parent.getOption("xpos"), self.parent.getOption("ypos")
+        self.scalebar.setRect(-x, -y-self.parent.getOption("width"), -pixel, self.parent.getOption("width"))
+        self.scalebar_text.setPos(-pixel-x-25, - y - self.parent.getOption("width") - self.parent.getOption("fontsize")*2)
         self.scalebar_text.setTextWidth(pixel+50)
         self.scalebar_text.setHtml(u"<center>%d&thinsp;%s</center>" % (mu, self.unit))
 
+        self.font = QtGui.QFont()
+        self.font.setPointSize(self.parent.getOption("fontsize"))
+        self.scalebar_text.setFont(self.font)
+
     def drawToImage(self, image, start_x, start_y, scale, image_scale):
-        pixel_height = 8
-        pixel_offset = 20
-        pixel_offset2 = 4
-        font_size = int(round(32*scale))
+        pixel_height = self.parent.getOption("width")
+        pixel_offset_x = self.parent.getOption("xpos")
+        pixel_offset_y = self.parent.getOption("ypos")
+        pixel_offset2 = 3
+        font_size = int(round(self.parent.getOption("fontsize")*scale*4/3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
 
         pixel_width, size_in_um = self.getBarParameters(1)
         pixel_width *= image_scale
         color = tuple((matplotlib.colors.to_rgba_array(self.color)[0, :3]*255).astype("uint8"))
 
-        image.rectangle([image.pil_image.size[0] -pixel_offset - pixel_width, image.pil_image.size[1] -pixel_offset - pixel_height, image.pil_image.size[0] -pixel_offset, image.pil_image.size[1] -pixel_offset], color)
+        image.rectangle([image.pil_image.size[0] -pixel_offset_x - pixel_width, image.pil_image.size[1] -pixel_offset_y - pixel_height, image.pil_image.size[0] -pixel_offset_x, image.pil_image.size[1] -pixel_offset_y], color)
         if True:
             # get the font
             try:
@@ -120,8 +130,8 @@ class ModuleScaleBar(QtWidgets.QWidget):
             total_length = length_number + length_space + length_unit
 
             # find the position for the text to have it centered and bottom aligned
-            x = image.pil_image.size[0] - pixel_offset - pixel_width * 0.5 - total_length * 0.5
-            y = image.pil_image.size[1] - pixel_offset - pixel_offset2 - pixel_height - height_number
+            x = image.pil_image.size[0] - pixel_offset_x - pixel_width * 0.5 - total_length * 0.5
+            y = image.pil_image.size[1] - pixel_offset_y - pixel_offset2 - pixel_height - height_number
             # draw the text for the number and the unit
             image.text((x, y), text, color, font=font)
             image.text((x+length_number+length_space, y), self.unit, color, font=font)
@@ -190,12 +200,29 @@ class Addon(clickpoints.Addon):
                        tooltip="The color of the scale bar and the text.")
         self.addOption(key="from_metadata", hidden=True, default=False, value_type="bool")
 
+        self.addOption(key="fontsize", display_name="Fontsize", default=16, value_type="int",
+                       tooltip="The size of the font for the description of the scalebar")
+        self.addOption(key="length", display_name="Length", default=0, value_type="int", unit="µm",
+                       tooltip="The length of the scalebar in µm. 0 for an automatically choosen length.")
+
+        self.addOption(key="width", display_name="Width", default=3, value_type="int",
+                       tooltip="The width of the scalebar in pixel.")
+        self.addOption(key="xpos", display_name="X-Offset", default=20, value_type="int",
+                       tooltip="The x offset of the scalebar in pixel.")
+        self.addOption(key="ypos", display_name="Y-Offset", default=15, value_type="int",
+                       tooltip="The yoffset of the scalebar in pixel.")
+
         if self.db.image and self.db.image.path:
             self.initializeOptions()
 
         self.input_pixelsize = self.inputOption("pixelSize")
         self.input_magnification = self.inputOption("magnification")
         self.input_color = self.inputOption("color")
+        self.input_fontsize = self.inputOption("fontsize")
+        self.input_length = self.inputOption("length")
+        self.input_width = self.inputOption("width")
+        self.input_xpos = self.inputOption("xpos")
+        self.input_ypos = self.inputOption("ypos")
 
         self.button = QtWidgets.QPushButton("test")
         self.layout().addWidget(self.button)
