@@ -2141,12 +2141,12 @@ class DataFile:
                             break
                         try_base_layer_id += 1
                 layer.save()
+                # now the layer has been created and we can assign the self reference
+                if base_layer is None:
+                    layer.base_layer = layer
+                    layer.save()
             else:
                 return None
-        # now the layer has been created and we can assign the self reference
-        if base_layer is None:
-            layer.base_layer = layer
-            layer.save()
         # return the path
         return layer
 
