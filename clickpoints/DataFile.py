@@ -2943,6 +2943,8 @@ class DataFile:
         assert sum(e is not None for e in [id, image, frame, filename]) == 1, \
             "Image, frame (with layer) or filename should be specified or should be referenced by it's id."
 
+        image = self._processImagesField(image, frame, filename, layer)
+
         query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
 
         query = addFilter(query, id, self.table_mask.id)
@@ -3002,6 +3004,8 @@ class DataFile:
         if layer is not None:
             assert frame is not None, \
                 "Frame should be specified, if layer is given."
+
+        image = self._processImagesField(image, frame, filename, layer)
 
         query = self.table_mask.select(self.table_mask, self.table_image).join(self.table_image)
 
