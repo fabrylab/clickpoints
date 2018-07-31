@@ -72,15 +72,15 @@ class Addon(clickpoints.Addon):
 
         if not self.db.getMaskType("area (auto)"):
             self.MaskType_auto = self.db.setMaskType("area (auto)", '#009fff', id=1)
-            self.cp.reloadTypes()
+            self.cp.reloadMaskTypes()
 
         if not self.db.getMaskType("area (manual)"):
             self.MaskType_manual = self.db.setMaskType("area (manual)", '#ff00bf', id=2)
-            self.cp.reloadTypes()
+            self.cp.reloadMaskTypes()
 
         if not self.db.getMaskType("exclude (manual)"):
             self.MaskType_exclude = self.db.setMaskType("exclude (manual)", '#ffbf00', id=3)
-            self.cp.reloadTypes()
+            self.cp.reloadMaskTypes()
 
         """ default parameter """
         # start param
