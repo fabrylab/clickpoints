@@ -1925,7 +1925,7 @@ class DataFile:
                 images = [CheckImageFrame(frame, layer) for frame in frames]
             else:
                 images = CheckImageFrame(frames, layer)
-        else:
+        elif filenames is not None:
             if isinstance(filenames, (tuple, list)):
                 images = [CheckImageFilename(filename) for filename in filenames]
             else:
