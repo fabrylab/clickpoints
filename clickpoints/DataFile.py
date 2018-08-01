@@ -3655,7 +3655,7 @@ class DataFile:
             return None
 
     def getRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
-                 processed=None, text=None, id=None):
+                 processed=None, text=None, id=None, layer=None):
         """
         Get all :py:class:`Rectangle` entries with the given criteria.
 
@@ -3686,6 +3686,8 @@ class DataFile:
             the text/s of the rectangles.
         id : int, array_like, optional
             the id/s of the rectangles.
+        layer : int, optional
+            the id of the image of the rectangle
 
         Returns
         -------
