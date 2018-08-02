@@ -2865,7 +2865,9 @@ class DataFile:
         if not index:
             index_list = [l.index for l in self.table_masktype.select().order_by(self.table_masktype.index)]
             free_idxs = list(set(range(1,254)) - set(index_list))
-            index = free_idxs[0]
+            new_index = free_idxs[0]
+        else:
+            new_index = index
 
         try:
             # only use id if multiple unique fields are specified
@@ -2873,10 +2875,13 @@ class DataFile:
                 mask_type = self.table_masktype.get(id=id)
             else:
                 mask_type = self.table_masktype.get(**noNoneDict(id=id, name=name, color=color, index=index))
+            # if no desired index is provided keep the existing index
+            if index is None:
+                new_index = mask_type.index
         except peewee.DoesNotExist:
             mask_type = self.table_masktype()
 
-        setFields(mask_type, dict(name=name, color=color, index=index))
+        setFields(mask_type, dict(name=name, color=color, index=new_index))
         mask_type.save()
 
         return mask_type
