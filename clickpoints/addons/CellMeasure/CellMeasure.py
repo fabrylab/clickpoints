@@ -56,6 +56,8 @@ class Addon(clickpoints.Addon):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
         """ get or set options """
+        self.addOption(key="segmentation_layer", display_name="Segmentation Layer", default=0, value_type="choice",
+                       values=[l.name for l in self.db.getLayers()], tooltip="The layer on which to segment the image")
         self.addOption(key="segmentation_th", display_name="Threshold Segmentation", default=125, value_type="int",
                        min_value=1, max_value=255, tooltip="Threshold for binary segmentation")
         self.addOption(key="segmentation_slm_size", display_name="Threshold SELEM size", default=2, value_type="int",
@@ -64,6 +66,9 @@ class Addon(clickpoints.Addon):
                        min_value=0, max_value=10, tooltip="Width of the gaussian used to smooth the image")
         self.addOption(key="auto_apply", display_name="auto apply segmentation", default=False, value_type="bool",
                        tooltip="If true, changes of the parameters will automatically trigger a new segmentation")
+
+        self.addOption(key="evaluation_layer", display_name="Evaluation Layer", default=0, value_type="choice",
+                       values=[l.name for l in self.db.getLayers()], tooltip="The layer on which to evaluate the mask")
         self.addOption(key="min_area", display_name="Min Area", default=200, value_type="int",
                        min_value=0, max_value=10000, tooltip="Exclude all patches with areas smaller than this value.")
 
@@ -97,6 +102,7 @@ class Addon(clickpoints.Addon):
         self.segmentation_layout = QtWidgets.QVBoxLayout()
         self.segmentation_groupbox.setLayout(self.segmentation_layout)
 
+        self.segmentationLayer = self.inputOption("segmentation_layer", self.segmentation_layout)
         self.sliderSegmentationTH = self.inputOption("segmentation_th", self.segmentation_layout, use_slider=True)
         self.sliderSelemSize = self.inputOption("segmentation_slm_size", self.segmentation_layout, use_slider=True)
         self.inputGauss = self.inputOption("segmentation_gauss", self.segmentation_layout, use_slider=True)
@@ -115,6 +121,7 @@ class Addon(clickpoints.Addon):
         self.position_layout = QtWidgets.QVBoxLayout()
         self.position_groupbox.setLayout(self.position_layout)
 
+        self.evaluationLayer = self.inputOption("evaluation_layer", self.position_layout)
         self.inputMinSize = self.inputOption("min_area", self.position_layout, use_slider=True)
 
         # button Properties
@@ -164,9 +171,12 @@ class Addon(clickpoints.Addon):
             self.cframe = self.cp.getCurrentFrame()
 
             # retrieve data
-            self.qimg = self.db.getImage(frame=self.cframe)
+            self.qimg = self.db.getImage(frame=self.cframe, layer=self.getOption("segmentation_layer"))
         else:
             self.qimg = qimg
+
+        if self.qimg is None:
+            raise IndexError("No image found with sort_index %d and layer %s." % (self.cframe, self.getOption("segmentation_layer")))
 
         img = self.qimg.data
 
@@ -223,9 +233,12 @@ class Addon(clickpoints.Addon):
             self.cframe = self.cp.getCurrentFrame()
 
             # retrieve data
-            self.qimg = self.db.getImage(frame=self.cframe)
+            self.qimg = self.db.getImage(frame=self.cframe, layer=self.getOption("evaluation_layer"))
         else:
             self.qimg = qimg
+
+        if self.qimg is None:
+            raise IndexError("No image found with sort_index %d and layer %s." % (self.cframe, self.getOption("evaluation_layer")))
 
         img = self.qimg.data
 
