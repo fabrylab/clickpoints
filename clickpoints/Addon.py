@@ -440,17 +440,18 @@ class Addon(QtWidgets.QWidget):
             signal = widget.valueChanged
         signal.connect(lambda value, key=key: self.optionInputChanged(value, key))
 
-    def inputOption(self, key, layout=None):
+    def inputOption(self, key, layout=None, **kwargs):
         if layout is None:
             layout = self.layout()
         option = self.db._options_by_key[self._warpOptionKey(key)]
-        widget = getOptionInputWidget(option, layout)
+        widget = getOptionInputWidget(option, layout, **kwargs)
         def callSetOption(value):
             self.setOption(key, value)
-            if getattr(self, "optionsChanged"):
+            if getattr(self, "optionsChanged", None) is not None:
                 self.optionsChanged()
         widget.valueChanged.connect(callSetOption)
         self._option_widgets[key] = widget
+        return widget
 
     def optionInputChanged(self, value, key):
         self.setOption(key, value)
