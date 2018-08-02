@@ -27,9 +27,11 @@ import os
 import json
 from qtpy import QtCore, QtGui, QtWidgets
 from clickpoints.includes.QtShortCuts import AddQLineEdit, AddQComboBox, QInputNumber
+from clickpoints.includes import QtShortCuts
 import qtawesome as qta
 from skimage.measure import label, regionprops
 from skimage.color import rgb2grey
+from scipy.ndimage.filters import gaussian_filter
 from skimage.filters import gaussian
 from skimage.morphology import binary_closing
 import pandas as pd
@@ -55,38 +57,28 @@ class Addon(clickpoints.Addon):
 
         """ get or set options """
         self.addOption(key="segmentation_th", display_name="Threshold Segmentation", default=125, value_type="int",
-                       tooltip="Threshold for binary segmentation")
+                       min_value=1, max_value=255, tooltip="Threshold for binary segmentation")
         self.addOption(key="segmentation_slm_size", display_name="Threshold SELEM size", default=2, value_type="int",
-                       tooltip="Size of the DISK shaped element for the binary open operation")
+                       min_value=0, max_value=255, tooltip="Size of the DISK shaped element for the binary open operation")
         self.addOption(key="segmentation_gauss", display_name="Gauss Sigma", default=1.25, value_type="float",
-                       tooltip="Width of the gaussion used to smooth the image")
+                       min_value=0, max_value=10, tooltip="Width of the gaussian used to smooth the image")
+        self.addOption(key="auto_apply", display_name="auto apply segmentation", default=False, value_type="bool",
+                       tooltip="If true, changes of the parameters will automatically trigger a new segmentation")
+        self.addOption(key="min_area", display_name="Min Area", default=200, value_type="int",
+                       min_value=0, max_value=10000, tooltip="Exclude all patches with areas smaller than this value.")
 
         """ Setup Marker and Masks """
         # Check if the marker type is present
-        if not self.db.getMarkerType("cell (auto)"):
-            self.db.setMarkerType("cell (auto)", [0, 255, 255], self.db.TYPE_Normal)
-            self.cp.reloadTypes()
+        self.db.setMarkerType("cell (auto)", [0, 255, 255], self.db.TYPE_Normal)
+        self.cp.reloadTypes()
 
         if self.db.getMaskType('mask'):
             self.db.deleteMaskTypes('mask')
 
-        if not self.db.getMaskType("area (auto)"):
-            self.MaskType_auto = self.db.setMaskType("area (auto)", '#009fff', id=1)
-            self.cp.reloadMaskTypes()
-
-        if not self.db.getMaskType("area (manual)"):
-            self.MaskType_manual = self.db.setMaskType("area (manual)", '#ff00bf', id=2)
-            self.cp.reloadMaskTypes()
-
-        if not self.db.getMaskType("exclude (manual)"):
-            self.MaskType_exclude = self.db.setMaskType("exclude (manual)", '#ffbf00', id=3)
-            self.cp.reloadMaskTypes()
-
-        """ default parameter """
-        # start param
-        self.th = self.getOption("segmentation_th")
-        self.slm_size = self.getOption("segmentation_slm_size")
-        self.gauss_sigma = self.getOption("segmentation_gauss")
+        self.MaskType_auto = self.db.setMaskType("area (auto)", '#009fff')
+        self.MaskType_manual = self.db.setMaskType("area (manual)", '#ff00bf')
+        self.MaskType_exclude = self.db.setMaskType("exclude (manual)", '#ffbf00')
+        self.cp.reloadMaskTypes()
 
         """ GUI Widgets"""
         # set the title and layout
@@ -101,97 +93,44 @@ class Addon(clickpoints.Addon):
         self.segmentation_groupbox = QtWidgets.QGroupBox("Segmentation")
         self.layout.addWidget(self.segmentation_groupbox)
 
-        # add a grid layout for elements
+        # add a layout for elements
         self.segmentation_layout = QtWidgets.QVBoxLayout()
         self.segmentation_groupbox.setLayout(self.segmentation_layout)
 
-        # Note: for each parameter a combination of label / slider / spinbox is used
-        # changing slider or spinbox values updates the other via signals
+        self.sliderSegmentationTH = self.inputOption("segmentation_th", self.segmentation_layout, use_slider=True)
+        self.sliderSelemSize = self.inputOption("segmentation_slm_size", self.segmentation_layout, use_slider=True)
+        self.inputGauss = self.inputOption("segmentation_gauss", self.segmentation_layout, use_slider=True)
+        self.checkboxSegmentation = self.inputOption("auto_apply", self.segmentation_layout)
 
-        ## threshold parameter
-        self.layout_TH = QtWidgets.QGridLayout()
-        self.segmentation_layout.addLayout(self.layout_TH)
-        self.sliderSegmentationTH = QtWidgets.QSlider()
-        self.sliderSegmentationTH.setOrientation(1)
-        self.sliderSegmentationTH.setMinimum(1)
-        self.sliderSegmentationTH.setMaximum(255)
-        self.sliderSegmentationTH.setValue(self.th)
-        self.leSegmentationTH = QtWidgets.QSpinBox()
-        self.leSegmentationTH.setMinimum(1)
-        self.leSegmentationTH.setMaximum(255)
-        self.leSegmentationTH.setValue(self.th)
-
-        # connect signals and slots
-        self.sliderSegmentationTH.sliderReleased.connect(self.sliderTHUpdate)
-        self.leSegmentationTH.valueChanged.connect(self.spinnTHUpdate)
-
-        # add to horizontal layout
-        self.layout_TH.addWidget(QtWidgets.QLabel("TH:"),0,0)
-        self.layout_TH.addWidget(self.sliderSegmentationTH,0,1)
-        self.layout_TH.addWidget(self.leSegmentationTH,0,2)
-
-
-        ## open parameter
-        self.sliderSelemSize = QtWidgets.QSlider()
-        self.sliderSelemSize.setOrientation(1)
-        self.sliderSelemSize.setMinimum(0)
-        self.sliderSelemSize.setMaximum(10)
-        self.sliderSelemSize.setValue(self.slm_size)
-        self.sbSlemSize = QtWidgets.QSpinBox()
-        self.sbSlemSize.setMinimum(0)
-        self.sbSlemSize.setMaximum(10)
-        self.sbSlemSize.setValue(self.slm_size)
-
-        # add to layout
-        self.layout_TH.addWidget(QtWidgets.QLabel("SELEM:"),1,0)
-        self.layout_TH.addWidget(self.sliderSelemSize, 1, 1)
-        self.layout_TH.addWidget(self.sbSlemSize,1,2)
-
-        # connect signals and slots
-        self.sliderSelemSize.sliderReleased.connect(self.sliderSELEMUpdate)
-        self.sbSlemSize.valueChanged.connect(self.spinnSELEMUpdate)
-
-
-        self.inputGauss = QInputNumber(layout=None, name ='Gauss:', value = 0, min = 0, max = 10, use_slider = True, float = True, decimals = 2, unit = None, tooltip = None)
-        self.inputGauss.setValue(self.gauss_sigma)
-        self.layout_TH.addWidget(self.inputGauss, 2, 0, 1, 3)
-        self.inputGauss.valueChanged.connect(self.inputGausUpdate)
-
-
-        ## auto apply checkbox
-        self.checkboxSegmentation = QtWidgets.QCheckBox()
-        self.checkboxSegmentation.setEnabled(True)
-        self.layout_TH.addWidget(QtWidgets.QLabel('auto apply segmentation'),3,1)
-        self.layout_TH.addWidget(self.checkboxSegmentation,3,0)
-
-        ## segment on button press
+        # segment on button press
         self.buttonSegmentation = QtWidgets.QPushButton("Segment")
         self.buttonSegmentation.released.connect(self.updateSegmentation)
-        self.layout_TH.addWidget(self.buttonSegmentation,3,2)
-
-
+        self.checkboxSegmentation.layout().addWidget(self.buttonSegmentation)
 
         """ groupbox PROPERTIES """
         self.position_groupbox = QtWidgets.QGroupBox("Properties")
         self.layout.addWidget(self.position_groupbox)
 
         # add a grid layout for elements
-        self.position_layout = QtWidgets.QGridLayout()
+        self.position_layout = QtWidgets.QVBoxLayout()
         self.position_groupbox.setLayout(self.position_layout)
 
-        self.inputMinSize = QInputNumber(layout=None, name ='Min Area:', value = 200, min = 0, max = 10000, use_slider = True, float = False, decimals = None, unit = None, tooltip = None)
-        self.position_layout.addWidget(self.inputMinSize, 0, 0, 1, 3)
-        # self.inputMinSize.valueChanged.connect(self.inputMinSize)
+        self.inputMinSize = self.inputOption("min_area", self.position_layout, use_slider=True)
 
         # button Properties
+        self.position_layout2 = QtWidgets.QHBoxLayout()
+        self.position_layout.addLayout(self.position_layout2)
+
         self.buttonProps = QtWidgets.QPushButton('Get Properties')
-        self.position_layout.addWidget(self.buttonProps)
+        self.position_layout2.addWidget(self.buttonProps)
         self.buttonProps.released.connect(self.updateProperties)
 
         # button Remove Marker
         self.buttonRemoveMarker = QtWidgets.QPushButton('Remove Marker')
-        self.position_layout.addWidget(self.buttonRemoveMarker)
+        self.position_layout2.addWidget(self.buttonRemoveMarker)
         self.buttonRemoveMarker.released.connect(self.removeMarker)
+
+        self.position_layout2.addStretch()
 
         """ groupbox BATCH PROCESS"""
         self.batch_groupbox = QtWidgets.QGroupBox("Batch Process")
@@ -205,73 +144,8 @@ class Addon(clickpoints.Addon):
         self.batch_layout.addWidget(self.buttonProcAll)
         self.buttonProcAll.released.connect(self.processAll)
 
-    """ slider spinbox SELEM updates"""
-    def spinnSELEMUpdate(self, value):
-        """
-        Update internal selem size and set slider value
-        Trigger display update if auto apply checkbox is set
-        """
-        # store slm
-        self.slm_size = value
-        self.sliderSelemSize.setValue(self.slm_size)
-
-        # update segmentation
-        if self.checkboxSegmentation.isChecked():
-            self.updateSegmentation()
-
-    def sliderSELEMUpdate(self):
-        """
-        Update internal selem size and set spinbox value
-        Trigger display update if auto apply checkbox is set
-        """
-
-        # store slm
-        self.slm_size = self.sliderSelemSize.value()
-
-        self.sbSlemSize.setValue( self.slm_size)
-
-        # update segmentation
-        if self.checkboxSegmentation.isChecked():
-            self.updateSegmentation()
-
-    """ slider spinbox TH updates"""
-    def spinnTHUpdate(self, value):
-        """
-        Update internal TH value and set slider value
-        Trigger display update if auto apply checkbox is set
-        """
-
-        # store th
-        self.th = value
-        self.sliderSegmentationTH.setValue(self.th)
-
-        # update segmentation
-        if self.checkboxSegmentation.isChecked():
-            self.updateSegmentation()
-
-    def sliderTHUpdate(self):
-        """
-        Update internal TH value and set spinnbox value
-        Trigger display update if auto apply checkbox is set
-        """
-
-        # store th
-        self.th = self.sliderSegmentationTH.value()
-
-        # update spin box
-        self.leSegmentationTH.setValue(self.th)
-
-        # update segmentation
-        if self.checkboxSegmentation.isChecked():
-            self.updateSegmentation()
-
-
-    def inputGausUpdate(self):
-        # store th
-        self.gauss = self.inputGauss.value()
-
-        # update segmentation
-        if self.checkboxSegmentation.isChecked():
+    def optionsChanged(self):
+        if self.getOption("auto_apply"):
             self.updateSegmentation()
 
     """ PROCESSING """
@@ -302,32 +176,36 @@ class Addon(clickpoints.Addon):
         print(img.max())
         print(img.min())
 
-
         if self.inputGauss.value() > 0:
-            img = gaussian(img, self.inputGauss.value())
-            print("apply gaus with value", self.inputGauss.value())
+            img = gaussian_filter(img, self.getOption("segmentation_gauss"))
+            print("apply Gauss with value", self.getOption("segmentation_gauss"))
 
         # create binary mask
         mask = np.zeros(img.shape, dtype='uint8')
-        mask[img > self.th] = 1
+        mask[img > self.getOption("segmentation_th")] = 1
 
         # use open operation to reduce noise
-        from skimage.morphology import opening, disk
-        mask_open = opening(mask, disk(self.slm_size))
+        if self.getOption("segmentation_slm_size") != 0:
+            from skimage.morphology import opening, disk
+            mask_open = opening(mask, disk(self.getOption("segmentation_slm_size")))
+        else:
+            mask_open = mask
 
         # # use close operation to fill gaps
         # mask_open = binary_closing(mask_open, disk(self.slm_size)).astype('uint8')
 
         # add user input
         cp_mask = self.db.getMask(image=self.qimg)
+        mask_open[mask_open == 1] = self.MaskType_auto.index
         if not cp_mask is None:
             # add additional information
-            mask_open[cp_mask.data==2]=2
-            mask_open[cp_mask.data==3]=3
+            mask_open[cp_mask.data == self.MaskType_exclude.index] = self.MaskType_exclude.index
+            mask_open[cp_mask.data == self.MaskType_manual.index] = self.MaskType_manual.index
+
+        print(mask_open)
 
         self.db.setMask(image=self.qimg, data=mask_open)
         self.cp.reloadMask()
-
 
     def updateProperties(self, qimg=None, save_properties=True):
         """
@@ -367,9 +245,8 @@ class Addon(clickpoints.Addon):
 
         # get mask data and apply filter for user data
         mask = np.array(cp_mask.data).copy()
-        mask[mask==2]=1 # set manual marked area to true
-        mask[mask==3]=0 # remove manually excluded areas
-
+        mask[mask == self.MaskType_manual.index] = 1  # set manual marked area to true
+        mask[mask == self.MaskType_exclude.index] = 0  # remove manually excluded areas
 
         # get regionprops
         mask_labeled = label(mask)
@@ -385,7 +262,7 @@ class Addon(clickpoints.Addon):
 
         # store parameters in Pandas DF
         results = []
-        for nr,prop in enumerate(props):
+        for nr, prop in enumerate(props):
             if prop.area > self.inputMinSize.value():
                 tmp = dotdict()
                 tmp.filename = self.qimg.filename
@@ -445,26 +322,7 @@ class Addon(clickpoints.Addon):
             df_all = pd.concat(results)
             df_all.to_excel(os.path.splitext(self.qimg.filename)[0][0:15] + '_eval_summary.xls')
 
-
-
-
     """ DEFAULT ADDON FUNCTIONS """
-    def run(self, start_frame=0):
-
-        self.frame = start_frame
-
-        # # get image parameters
-        # image = self.db.getImage(frame=start_frame)
-        # data = image.data
-        # im_height, im_width, channels = data.shape
-
-
     def buttonPressedEvent(self):
         # show the addon window when the button in ClickPoints is pressed
         self.show()
-
-        try:
-            self.run()
-        except:
-            pass
-
