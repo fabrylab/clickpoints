@@ -151,30 +151,30 @@ class VersionDisplay(QtWidgets.QWidget):
             subprocess.Popen(["hg", "update", self.newestet_version_hg, "-R", repo_path[1:-1]])
 
 
-def getOptionInputWidget(option, layout):
+def getOptionInputWidget(option, layout, **kwargs):
     value = option.value if option.value is not None else option.default
     if option.value_type == "int":
         if option.value_count > 1:
             edit = QtShortCuts.QInputString(layout, option.display_name, value=", ".join(str(v) for v in value),
-                                            tooltip=option.tooltip)
+                                            tooltip=option.tooltip, **kwargs)
         else:
             edit = QtShortCuts.QInputNumber(layout, option.display_name, value=float(value),
                                             min=option.min_value, max=option.max_value,
                                             decimals=option.decimals, float=False, unit=option.unit,
-                                            tooltip=option.tooltip)
+                                            tooltip=option.tooltip, **kwargs)
     if option.value_type == "choice":
         edit = QtShortCuts.QInputChoice(layout, option.display_name, value=value, values=option.values,
-                                        tooltip=option.tooltip, reference_by_index=True)
+                                        tooltip=option.tooltip, reference_by_index=True, **kwargs)
     if option.value_type == "float":
         edit = QtShortCuts.QInputNumber(layout, option.display_name, value=float(value), min=option.min_value,
                                         max=option.max_value, decimals=option.decimals, float=True, unit=option.unit,
-                                        tooltip=option.tooltip)
+                                        tooltip=option.tooltip, **kwargs)
     if option.value_type == "bool":
-        edit = QtShortCuts.QInputBool(layout, option.display_name, value=value, tooltip=option.tooltip)
+        edit = QtShortCuts.QInputBool(layout, option.display_name, value=value, tooltip=option.tooltip, **kwargs)
     if option.value_type == "string":
-        edit = QtShortCuts.QInputString(layout, option.display_name, value=value, tooltip=option.tooltip)
+        edit = QtShortCuts.QInputString(layout, option.display_name, value=value, tooltip=option.tooltip, **kwargs)
     if option.value_type == "color":
-        edit = QtShortCuts.QInputColor(layout, option.display_name, value=value, tooltip=option.tooltip)
+        edit = QtShortCuts.QInputColor(layout, option.display_name, value=value, tooltip=option.tooltip, **kwargs)
     return edit
 
 
