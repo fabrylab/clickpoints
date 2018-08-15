@@ -187,8 +187,8 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
 
     Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this marker.
-        - **x** *(int)* - the x coordinate of the marker.
-        - **y** *(int)* - the y coordinate of the marker.
+        - **x** *(float)* - the x coordinate of the marker.
+        - **y** *(float)* - the y coordinate of the marker.
         - **type** *(* :py:class:`MarkerType` *)* - the marker type.
         - **processed** *(bool)* - a flag that is set to 0 if the marker is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this marker.
         - **style** *(str)* - the style definition of the marker.
@@ -214,10 +214,10 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
 
     Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this line.
-        - **x1** *(int)* - the first x coordinate of the line.
-        - **y1** *(int)* - the first y coordinate of the line.
-        - **x2** *(int)* - the second x coordinate of the line.
-        - **y2** *(int)* - the second y coordinate of the line.
+        - **x1** *(float)* - the first x coordinate of the line.
+        - **y1** *(float)* - the first y coordinate of the line.
+        - **x2** *(float)* - the second x coordinate of the line.
+        - **y2** *(float)* - the second y coordinate of the line.
         - **type** *(* :py:class:`MarkerType` *)* - the marker type.
         - **processed** *(bool)* - a flag that is set to 0 if the line is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this line.
         - **style** *(str)* - the style definition of the line.
@@ -244,10 +244,10 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
 
     Attributes:
         - **image** *(* :py:class:`Image` *)* - the image entry associated with this rectangle.
-        - **x** *(int)* - the x coordinate of the rectangle.
-        - **y** *(int)* - the y coordinate of the rectangle.
-        - **width** *(int)* - the width of the rectangle.
-        - **height** *(int)* - the height of the rectangle.
+        - **x** *(float)* - the x coordinate of the rectangle.
+        - **y** *(float)* - the y coordinate of the rectangle.
+        - **width** *(float)* - the width of the rectangle.
+        - **height** *(float)* - the height of the rectangle.
         - **type** *(* :py:class:`MarkerType` *)* - the marker type.
         - **processed** *(bool)* - a flag that is set to 0 if the rectangle is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this line.
         - **style** *(str)* - the style definition of the rectangle.
