@@ -3231,6 +3231,9 @@ class DataFile:
         query = addFilter(query, track, self.table_marker.track)
         query = addFilter(query, text, self.table_marker.text)
 
+        # define the __array__ method of the query to make np.array(db.getMarkers()) possible
+        query.__array__ = lambda: np.array([p.pos() for p in query])
+
         return query
 
     def setMarker(self, image=None, frame=None, filename=None, x=None, y=None, type=None, processed=None, track=None, style=None, text=None, id=None, layer=None):
