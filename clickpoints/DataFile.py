@@ -673,19 +673,13 @@ class DataFile:
                 other_image_ids = [m.image_id for m in track.markers]
                 # test if they share any image ids
                 if set(my_image_ids) & set(other_image_ids):
-                    if mode=="average":
-                        if self.id < track.id:
-                            self.database_class.db.execute_sql('WITH bla as (SELECT image_id, min(track_id) as track_id, AVG(x) as x, AVG(y) as y, count(image_id) as count FROM marker WHERE track_id in (?, ?) GROUP BY image_id) UPDATE marker SET x = (SELECT x from bla where count == 2 and bla.image_id = marker.image_id), y = (SELECT y from bla where count == 2 and bla.image_id =  marker.image_id) WHERE track_id == ? AND image_id in (SELECT image_id from bla where count == 2)',
-                                                               [self.id,track.id,self.id,])
-                            self.database_class.db.execute_sql('WITH bla as (SELECT image_id, min(track_id) as track_id, AVG(x) as x, AVG(y) as y, count(image_id), style, text FROM marker WHERE track_id in (?, ?) GROUP BY image_id) INSERT INTO marker (image_id, x, y, track_id, processed, type_id, style, text) VALUES ((SELECT image_id FROM bla WHERE track_id == ?), (SELECT x FROM bla WHERE track_id == ?), (SELECT y FROM bla WHERE track_id == ?), ?, 0, ?, (SELECT style FROM bla WHERE track_id == ?),(SELECT text FROM bla WHERE track_id == ?))',
-                                                               [self.id,track.id, track.id, track.id, track.id, self.id, self.type_id, track.id, track.id])
-                        elif self.id > track.id:
-                            self.database_class.db.execute_sql(
-                                'WITH bla as (SELECT image_id, max(track_id) as track_id, AVG(x) as x, AVG(y) as y, count(image_id) as count FROM marker WHERE track_id in (?, ?) GROUP BY image_id) UPDATE marker SET x = (SELECT x from bla where count == 2 and bla.image_id = marker.image_id), y = (SELECT y from bla where count == 2 and bla.image_id =  marker.image_id) WHERE track_id == ? AND image_id in (SELECT image_id from bla where count == 2)',
-                                [self.id, track.id, self.id, ])
-                            self.database_class.db.execute_sql(
-                                'WITH bla as (SELECT image_id, max(track_id) as track_id, AVG(x) as x, AVG(y) as y, count(image_id), style, text FROM marker WHERE track_id in (?, ?) GROUP BY image_id) INSERT INTO marker (image_id, x, y, track_id, processed, type_id, style, text) VALUES ((SELECT image_id FROM bla WHERE track_id == ?), (SELECT x FROM bla WHERE track_id == ?), (SELECT y FROM bla WHERE track_id == ?), ?, 0, ?, (SELECT style FROM bla WHERE track_id == ?),(SELECT text FROM bla WHERE track_id == ?))',
-                                [self.id, track.id, track.id, track.id, track.id, self.id, self.type_id, track.id, track.id])
+                    if mode == "average":
+                        # the temporary table generates the averaged track, every point of this temporary table is
+                        # upserted in the original track
+                        self.database_class.db.execute_sql("WITH bla as (SELECT id, image_id, AVG(x) as x, AVG(y) as y, ? as track_id, type_id, processed, style, text FROM marker WHERE track_id in (?, ?) GROUP BY image_id);"
+                                                           "INSERT OR REPLACE INTO marker(image_id, x, y, track_id, type_id, processed, style, text) SELECT image_id, x, y, track_id, type_id, processed, style, text from bla", [self.id, self.id, track.id])
+                        # than we can delete the second track
+                        track.delete_instance()
                     else:
                         # they are not allowed to share any images
                         image_list = set(my_image_ids) & set(other_image_ids)
@@ -698,16 +692,16 @@ class DataFile:
                         raise ValueError(
                             "Can't merge track #%d with #%d, because they have markers in the same images.\n(images %s)" % (
                             self.id, track.id, image_list))
-
-            # elif set(my_image_ids) & set(other_image_ids) and force:
-                #     if len(set(my_image_ids) & set(other_image_ids))>1:
-                #         self.database_class.db.execute_sql('update marker set track_id = ? where id in (select min(id) as id from marker where track_id in (?,?) group by image_id)',[self.id, self.id, track.id])
-                #         self.database_class.db.execute_sql('delete from marker where track_id=?',[track.id])
-                # move the markers from the other track to this track
-                count = Marker.update(track=self.id, type=self.type).where(Marker.id << track.markers).execute()
-                # and delete the other track
-                track.delete_instance()
-                return count
+                else:
+                # elif set(my_image_ids) & set(other_image_ids) and force:
+                    #     if len(set(my_image_ids) & set(other_image_ids))>1:
+                    #         self.database_class.db.execute_sql('update marker set track_id = ? where id in (select min(id) as id from marker where track_id in (?,?) group by image_id)',[self.id, self.id, track.id])
+                    #         self.database_class.db.execute_sql('delete from marker where track_id=?',[track.id])
+                    # move the markers from the other track to this track
+                    count = Marker.update(track=self.id, type=self.type).where(Marker.id << track.markers).execute()
+                    # and delete the other track
+                    track.delete_instance()
+                    return count
 
         class Marker(BaseModel):
             image = peewee.ForeignKeyField(Image, backref="markers", on_delete='CASCADE')
