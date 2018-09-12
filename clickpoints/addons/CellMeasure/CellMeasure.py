@@ -64,6 +64,8 @@ class Addon(clickpoints.Addon):
                        min_value=0, max_value=255, tooltip="Size of the DISK shaped element for the binary open operation")
         self.addOption(key="segmentation_gauss", display_name="Gauss Sigma", default=1.25, value_type="float",
                        min_value=0, max_value=10, tooltip="Width of the gaussian used to smooth the image")
+        self.addOption(key="invert_mask", display_name="invert mask", default=False, value_type="bool",
+                       tooltip="If true, inverts the mask, so that darker areas are marked instead of brighter ones.")
         self.addOption(key="auto_apply", display_name="auto apply segmentation", default=False, value_type="bool",
                        tooltip="If true, changes of the parameters will automatically trigger a new segmentation")
 
@@ -106,6 +108,7 @@ class Addon(clickpoints.Addon):
         self.sliderSegmentationTH = self.inputOption("segmentation_th", self.segmentation_layout, use_slider=True)
         self.sliderSelemSize = self.inputOption("segmentation_slm_size", self.segmentation_layout, use_slider=True)
         self.inputGauss = self.inputOption("segmentation_gauss", self.segmentation_layout, use_slider=True)
+        self.checkboxInvert = self.inputOption("invert_mask", self.segmentation_layout)
         self.checkboxSegmentation = self.inputOption("auto_apply", self.segmentation_layout)
 
         # segment on button press
@@ -192,7 +195,10 @@ class Addon(clickpoints.Addon):
 
         # create binary mask
         mask = np.zeros(img.shape, dtype='uint8')
-        mask[img > self.getOption("segmentation_th")] = 1
+        if self.getOption("invert_mask"):
+            mask[img < self.getOption("segmentation_th")] = 1
+        else:
+            mask[img > self.getOption("segmentation_th")] = 1
 
         # use open operation to reduce noise
         if self.getOption("segmentation_slm_size") != 0:
