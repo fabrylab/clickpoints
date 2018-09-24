@@ -93,8 +93,13 @@ class ModuleScaleBar(QtWidgets.QWidget):
     def updateBar(self):
         pixel, mu = self.getBarParameters(self.scale)
         x, y = self.parent.getOption("xpos"), self.parent.getOption("ypos")
-        self.scalebar.setRect(-x, -y-self.parent.getOption("width"), -pixel, self.parent.getOption("width"))
-        self.scalebar_text.setPos(-pixel-x-25, - y - self.parent.getOption("width") - self.parent.getOption("fontsize")*2)
+        if x > 0:
+            self.scalebar.setRect(-x, -y-self.parent.getOption("width"), -pixel, self.parent.getOption("width"))
+            self.scalebar_text.setPos(-pixel-x-25, - y - self.parent.getOption("width") - self.parent.getOption("fontsize")*2)
+        else:
+            self.scalebar.setRect(-x, -y - self.parent.getOption("width"), pixel, self.parent.getOption("width"))
+            self.scalebar_text.setPos(- x - 25,
+                                      - y - self.parent.getOption("width") - self.parent.getOption("fontsize") * 2)
         self.scalebar_text.setTextWidth(pixel+50)
         self.scalebar_text.setHtml(u"<center>%d&thinsp;%s</center>" % (mu, self.unit))
 
@@ -113,7 +118,13 @@ class ModuleScaleBar(QtWidgets.QWidget):
         pixel_width *= image_scale
         color = tuple((matplotlib.colors.to_rgba_array(self.color)[0, :3]*255).astype("uint8"))
 
-        image.rectangle([image.pil_image.size[0] -pixel_offset_x - pixel_width, image.pil_image.size[1] -pixel_offset_y - pixel_height, image.pil_image.size[0] -pixel_offset_x, image.pil_image.size[1] -pixel_offset_y], color)
+        if pixel_offset_x > 0:
+            image.rectangle([image.pil_image.size[0] -pixel_offset_x - pixel_width, image.pil_image.size[1] -pixel_offset_y - pixel_height, image.pil_image.size[0] -pixel_offset_x, image.pil_image.size[1] -pixel_offset_y], color)
+        else:
+            image.rectangle([-pixel_offset_x,
+                             image.pil_image.size[1] - pixel_offset_y - pixel_height,
+                             -pixel_offset_x + pixel_width,
+                             image.pil_image.size[1] - pixel_offset_y], color)
         if True:
             # get the font
             try:
@@ -130,7 +141,10 @@ class ModuleScaleBar(QtWidgets.QWidget):
             total_length = length_number + length_space + length_unit
 
             # find the position for the text to have it centered and bottom aligned
-            x = image.pil_image.size[0] - pixel_offset_x - pixel_width * 0.5 - total_length * 0.5
+            if pixel_offset_x > 0:
+                x = image.pil_image.size[0] - pixel_offset_x - pixel_width * 0.5 - total_length * 0.5
+            else:
+                x = - pixel_offset_x + pixel_width * 0.5 - total_length * 0.5
             y = image.pil_image.size[1] - pixel_offset_y - pixel_offset2 - pixel_height - height_number
             # draw the text for the number and the unit
             image.text((x, y), text, color, font=font)
@@ -208,7 +222,7 @@ class Addon(clickpoints.Addon):
         self.addOption(key="width", display_name="Width", default=3, value_type="int",
                        tooltip="The width of the scalebar in pixel.")
         self.addOption(key="xpos", display_name="X-Offset", default=20, value_type="int",
-                       tooltip="The x offset of the scalebar in pixel.")
+                       tooltip="The x offset of the scalebar in pixel.", min_value=-10000, max_value=10000)
         self.addOption(key="ypos", display_name="Y-Offset", default=15, value_type="int",
                        tooltip="The yoffset of the scalebar in pixel.")
 
@@ -255,6 +269,12 @@ class Addon(clickpoints.Addon):
         self.scaleBar.setUnit(self.getOption("unit"))
         self.scaleBar.setPixToMu(self.getOption("pixelSize") / self.getOption("magnification"))
         self.scaleBar.setColor(self.getOption("color"))
+        if self.getOption("xpos") < 0:
+            self.scaleBar.scalebar.setParentItem(self.cp.getHUD("lower left"))
+            self.scaleBar.scalebar_text.setParentItem(self.cp.getHUD("lower left"))
+        else:
+            self.scaleBar.scalebar.setParentItem(self.cp.getHUD("lower right"))
+            self.scaleBar.scalebar_text.setParentItem(self.cp.getHUD("lower right"))
 
     def markerMoveEvent(self, marker):
         if not self.initialized:
