@@ -1071,7 +1071,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.data.x = self.markerWidget.x.value()
                 self.data.y = self.markerWidget.y.value()
             self.data.type = self.marker_handler.marker_file.get_type(self.markerWidget.type.currentText())
-            self.data.style = self.markerWidget.style.text()
+            self.data.style = self.markerWidget.style.text().strip()
             self.data.text = self.filterText(self.markerWidget.text.text())
             self.data.save()
 
@@ -1084,7 +1084,7 @@ class MarkerEditor(QtWidgets.QWidget):
                 if marker_item:
                     marker_item.ReloadData()
         elif type(self.data) == self.data_file.table_track:
-            self.data.style = self.trackWidget.style.text()
+            self.data.style = self.trackWidget.style.text().strip()
             self.data.text = self.filterText(self.trackWidget.text.text())
             self.data.hidden = self.trackWidget.hidden.isChecked()
             self.data.save()
