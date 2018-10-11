@@ -41,15 +41,15 @@ Developer Version
 
 If you want to have ClickPoints installed from the repository and be able to update to the newest changesets, you can
 follow this guide. First of all you need to have mercurial installed (`Mercurial <https://www.mercurial-scm.org/>`_).
-Then you can open a command line in the folder where you want to install ClickPoints and run the following command:
+Then you can open a command line in the folder where you want to install ClickPoints (e.g. C:\Software) and run the following command:
 
     ``hg clone https://bitbucket.org/fabry_biophysics/clickpoints``
 
-To install the package with all dendencies, execute:
+To install the package with all dendencies, go to the folder where ClickPoints has been downloaded (e.g. C:\Software\clickpoints) and execute:
 
     ``python install_requirements_with_conda.py``
 
-in the downloaded repository directory. Then execute
+in the downloaded repository directory. Then execute the command
 
     ``clickpoints register``
 
