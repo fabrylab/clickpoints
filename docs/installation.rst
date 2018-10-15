@@ -54,3 +54,12 @@ in the downloaded repository directory. Then execute the command
     ``clickpoints register``
 
 which will add clickpoints to the right click menu in the file explorer.
+
+Possible Errors
+~~~~~~~~~~~~~~~
+
+Here is a short list of possible error messages after installation and how they can be fixed.
+
+    ``This application failed to start because it could not find or load the Qt platform plugin "windows" in "".``
+
+reinstall pyqt5 with ``pip install pyqt5``.
