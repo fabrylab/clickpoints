@@ -21,7 +21,7 @@
 
 from __future__ import division, print_function
 import clickpoints
-from clickpoints.includes.QtShortCuts import AddQComboBox, AddQSaveFileChoose, AddQSpinBox, AddQLineEdit, AddQOpenFileChoose
+from clickpoints.includes.QtShortCuts import AddQComboBox, AddQSaveFileChoose, AddQSpinBox, AddQLineEdit, AddQOpenFileChoose, QInputBool, QInputNumber
 from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
 from clickpoints.includes.matplotlibwidget import MatplotlibWidget, NavigationToolbar
@@ -98,6 +98,8 @@ class Addon(clickpoints.Addon):
         self.button_export.clicked.connect(self.exportButton)
         layout.addWidget(self.button_export)
 
+
+        ## FLOW DISPLAY
         group = QtWidgets.QGroupBox("Flow Display")
         self.layout.addWidget(group)
         layout = QtWidgets.QVBoxLayout(group)
@@ -117,6 +119,28 @@ class Addon(clickpoints.Addon):
         self.opacity_slider.setOrientation(QtCore.Qt.Horizontal)
         self.opacity_slider.valueChanged.connect(lambda value: self.imageLoadedEvent("", self.cp.getCurrentFrame()))
 
+        # use mask
+        self.mask = None
+        self.mask_checkbox = QInputBool(layout=layout, name='Use Mask',value=False)
+        self.mask_checkbox.checkbox.stateChanged.connect(lambda value: self.imageLoadedEvent("", self.cp.getCurrentFrame()))
+
+        # use display slider
+        self.displacement_checkbox = QInputBool(layout=layout, name='Use displacement',value=False)
+        self.displacement_checkbox.checkbox.stateChanged.connect(lambda value: self.imageLoadedEvent("", self.cp.getCurrentFrame()))
+
+        # min displacement slider
+        self.minDisplacement_slider = QInputNumber(layout, 'min Disp', 0, 0, 100, True, True, 2)
+        self.minDisplacement_slider.slider.setOrientation(QtCore.Qt.Horizontal)
+        self.minDisplacement_slider.valueChanged.connect(
+            lambda value: self.imageLoadedEvent("", self.cp.getCurrentFrame()))
+
+        # max displacement slider
+        self.maxDisplacement_slider = QInputNumber(layout, 'max Disp', 100, 0, 100, True, True, 2)
+        self.maxDisplacement_slider.slider.setOrientation(QtCore.Qt.Horizontal)
+        self.maxDisplacement_slider.valueChanged.connect(
+            lambda value: self.imageLoadedEvent("", self.cp.getCurrentFrame()))
+
+        ## FLOW TRACKING
         group = QtWidgets.QGroupBox("Flow Tracking")
         self.layout.addWidget(group)
         layout = QtWidgets.QVBoxLayout(group)
@@ -156,6 +180,22 @@ class Addon(clickpoints.Addon):
         dx = flow[:, :, 0]
         dy = flow[:, :, 1]
 
+        if self.mask_checkbox.value():
+            print("mask used")
+            try:
+                self.mask = self.db.getMasks()[0].data
+                print(self.mask.shape)
+
+                # set masked values to zero
+                dx[self.mask>0]=0
+                dy[self.mask>0]=0
+
+            except:
+                print('No mask available')
+        else:
+            self.mask = None
+
+
         from scipy.ndimage.filters import gaussian_filter
 
         #ox = gaussian_filter(dx, sigma=5)
@@ -172,10 +212,15 @@ class Addon(clickpoints.Addon):
 
         cmap = mpl.cm.get_cmap('hsv')
         flow_mapped = cmap(flow_dir)
-        flow_mag -= 0.5
-        flow_mag[flow_mag<0] = 0
-        flow_mag /= 5
-        flow_mag[flow_mag>1] = 1
+
+        if self.displacement_checkbox.value():
+            flow_mag = (flow_mag - self.minDisplacement_slider.value()) / (self.maxDisplacement_slider.value() - self.minDisplacement_slider.value() )
+        else:
+            flow_mag -= 0.5
+            flow_mag[flow_mag<0] = 0
+            flow_mag /= 5
+            flow_mag[flow_mag>1] = 1
+
         flow_mapped[:, :, 3] = flow_mag*self.opacity_slider.value()/255.
 
         self.image.setPixmap(QtGui.QPixmap(array2qimage(flow_mapped*255)))
