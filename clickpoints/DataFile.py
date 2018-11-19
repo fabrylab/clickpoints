@@ -734,27 +734,10 @@ class DataFile:
                       .format(self.id, self.image, self.x, self.y, self.type, self.processed, self.track, self.style, self.text))
 
             def correctedXY(self):
-                offset = self.image.offset
-                # print("---", self.image)
-                # print("----", offset)
-                join_condition = ((Marker.image == Offset.image))
+                return np.array(self.database_class.db.execute_sql(
+                    "SELECT m.x - IFNULL(o.x, 0), m.y - IFNULL(o.y, 0) FROM marker m LEFT JOIN image i ON m.image_id == i.id LEFT JOIN offset o ON i.id == o.image_id WHERE m.id == ?",
+                    [self.id]).fetchone())
 
-                querry = Marker.select(Marker.x,
-                                       Marker.y,
-                                       Offset.x,
-                                       Offset.y) \
-                    .join(Offset, peewee.JOIN_LEFT_OUTER, on=(join_condition).alias('offset')) \
-                    .where(Marker.id == self.id)
-
-
-                for q in querry:
-                    # print("query", q.offset.x)
-                    if not (q.offset.x is None) or not (q.offset.y is None):
-                        pt = [q.x + q.offset.x, q.y + q.offset.y]
-                    else:
-                        pt = [q.x, q.y]
-
-                return pt
 
             def pos(self):
                 return np.array([self.x, self.y])
