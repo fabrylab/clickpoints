@@ -154,7 +154,7 @@ class Addon(clickpoints.Addon):
         self.batch_layout.addWidget(self.buttonProcAll)
         self.buttonProcAll.released.connect(self.processAll)
 
-    def optionsChanged(self):
+    def optionsChanged(self, key):
         if self.getOption("auto_apply"):
             self.updateSegmentation()
 

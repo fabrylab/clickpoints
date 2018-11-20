@@ -1189,7 +1189,7 @@ class Timeline(QtCore.QObject):
         self.button.setChecked(not self.hidden)
         self.layoutCtrl2.setHidden(self.timeSlider.is_hidden | (self.data_file is None or not self.data_file.getOption("datetimeline_show")))
 
-    def optionsChanged(self):
+    def optionsChanged(self, key):
         self.HideInterface(self.hidden)
 
     def keyPressEvent(self, event):

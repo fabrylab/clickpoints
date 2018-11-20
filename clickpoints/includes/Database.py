@@ -213,7 +213,7 @@ class DataFileExtended(DataFile):
             loaded = QtCore.Signal(int, int, int)
         self.signals = DataFileSignals()
 
-    def optionsChanged(self):
+    def optionsChanged(self, key=None):
         self.buffer.setBufferCount(self.getOption("buffer_size"), self.getOption("buffer_memory"), self.getOption("buffer_mode"))
 
     def setChangesMade(self):

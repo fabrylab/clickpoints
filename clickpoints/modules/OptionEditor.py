@@ -297,9 +297,9 @@ class OptionEditorWindow(QtWidgets.QWidget):
                     # not a valid option
                     pass
         # notify everyone that the options have changed
-        self.data_file.optionsChanged()
+        self.data_file.optionsChanged(None)
         BroadCastEvent(self.window.modules, "optionsImported")
-        BroadCastEvent(self.window.modules, "optionsChanged")
+        BroadCastEvent(self.window.modules, "optionsChanged", None)
         self.window.JumpFrames(0)
 
     def Export(self):
@@ -422,8 +422,8 @@ class OptionEditorWindow(QtWidgets.QWidget):
             if edit.current_value is not None:
                 self.data_file.setOption(edit.option.key, edit.current_value)
         self.button_apply.setDisabled(True)
-        self.data_file.optionsChanged()
-        BroadCastEvent(self.window.modules, "optionsChanged")
+        self.data_file.optionsChanged(None)
+        BroadCastEvent(self.window.modules, "optionsChanged", None)
         self.window.JumpFrames(0)
         return True
 

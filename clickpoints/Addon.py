@@ -448,7 +448,10 @@ class Addon(QtWidgets.QWidget):
         def callSetOption(value):
             self.setOption(key, value)
             if getattr(self, "optionsChanged", None) is not None:
-                self.optionsChanged()
+                try:
+                    self.optionsChanged(key)
+                except TypeError:
+                    self.optionsChanged()
         widget.valueChanged.connect(callSetOption)
         self._option_widgets[key] = widget
         return widget

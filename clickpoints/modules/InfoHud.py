@@ -156,7 +156,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             rect.setHeight(rect.height() + 10)
             self.setRect(rect)
 
-    def optionsChanged(self):
+    def optionsChanged(self, key):
         if not self.hidden and self.data_file.getOption("info_hud_string") == "":
             self.ToggleInterfaceEvent()
         elif self.hidden and self.data_file.getOption("info_hud_string") != "":
