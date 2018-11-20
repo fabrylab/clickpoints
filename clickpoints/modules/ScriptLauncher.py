@@ -478,6 +478,7 @@ class ScriptLauncher(QtCore.QObject):
                 try:
                     getattr(script.addon_class_instance, function)(*args, **kwargs)
                 except:
+                    print("Calling", script.addon_class_instance, function, args, kwargs, file=sys.stderr)
                     traceback.print_exc()
 
     def showScriptSelector(self):

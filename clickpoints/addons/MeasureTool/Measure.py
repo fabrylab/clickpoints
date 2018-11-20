@@ -265,7 +265,7 @@ class Addon(clickpoints.Addon):
     def drawToImage2(self, image, start_x, start_y, scale, image_scale, rotation):
         self.scaleBar.drawToImage(image, start_x, start_y, scale, image_scale)
 
-    def optionsChanged(self):
+    def optionsChanged(self, key=None):
         self.scaleBar.setUnit(self.getOption("unit"))
         self.scaleBar.setPixToMu(self.getOption("pixelSize") / self.getOption("magnification"))
         self.scaleBar.setColor(self.getOption("color"))
