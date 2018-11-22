@@ -959,17 +959,22 @@ class DataFile:
                 if image is None:
                     image = self.image
                 # get the date from the image if it is a database entry
-                try:
+                if isinstance(image, Image):
                     image_data = image.data
                 # if not, assume it is a numpy array
-                except AttributeError as err:
-                    print("eeer", err)
+                else:
                     image_data = image
 
+                try:
+                    border_y, border_x = border
+                except TypeError:
+                    border_y = border
+                    border_x = border
+
                 # the start of the rectangle
-                start = np.array([self.x-border, self.y-border])
+                start = np.array([self.x-border_x, self.y-border_y])
                 # the dimensions of the rectangle (needs to be integers)
-                extent = np.array([self.width+border*2, self.height+border*2]).astype("int")
+                extent = np.array([self.width+border_x*2, self.height+border_y*2]).astype("int")
 
                 # check if some dimensions are negative
                 if self.width < 0:
