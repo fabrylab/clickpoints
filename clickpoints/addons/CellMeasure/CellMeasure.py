@@ -56,7 +56,7 @@ class Addon(clickpoints.Addon):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
         """ get or set options """
-        self.addOption(key="segmentation_layer", display_name="Segmentation Layer", default=0, value_type="choice",
+        self.addOption(key="segmentation_layer", display_name="Segmentation Layer", default=1, value_type="choice",
                        values=[l.name for l in self.db.getLayers()], tooltip="The layer on which to segment the image")
         self.addOption(key="segmentation_th", display_name="Threshold Segmentation", default=125, value_type="int",
                        min_value=1, max_value=255, tooltip="Threshold for binary segmentation")
