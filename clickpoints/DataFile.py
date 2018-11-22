@@ -1352,6 +1352,8 @@ class DataFile:
                 option.value = ast.literal_eval(entry.value)
             if option.value_type == "choice":
                 option.value = int(entry.value)
+            if option.value_type == "choice_string":
+                option.value = str(entry.value)
             if option.value_type == "float":
                 option.value = float(entry.value)
             if option.value_type == "bool":
