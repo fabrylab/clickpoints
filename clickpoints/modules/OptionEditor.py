@@ -165,6 +165,10 @@ def getOptionInputWidget(option, layout, **kwargs):
     if option.value_type == "choice":
         edit = QtShortCuts.QInputChoice(layout, option.display_name, value=value, values=option.values,
                                         tooltip=option.tooltip, reference_by_index=True, **kwargs)
+    if option.value_type == "choice_string":
+        edit = QtShortCuts.QInputChoice(layout, option.display_name, value=value, values=option.values,
+                                        tooltip=option.tooltip, reference_by_index=False, **kwargs)
+
     if option.value_type == "float":
         edit = QtShortCuts.QInputNumber(layout, option.display_name, value=float(value), min=option.min_value,
                                         max=option.max_value, decimals=option.decimals, float=True, unit=option.unit,
