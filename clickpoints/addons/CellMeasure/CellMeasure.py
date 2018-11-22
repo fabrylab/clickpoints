@@ -49,15 +49,15 @@ class dotdict(dict):
     __delattr__ = dict.__delitem__
 
 
-
 class Addon(clickpoints.Addon):
 
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
 
         """ get or set options """
-        self.addOption(key="segmentation_layer", display_name="Segmentation Layer", default=1, value_type="choice",
-                       values=[l.name for l in self.db.getLayers()], tooltip="The layer on which to segment the image")
+        layers = ([l.name for l in self.db.getLayers()])
+        self.addOption(key="segmentation_layer", display_name="Segmentation Layer", default=layers[0], value_type="choice_string",
+                       values=layers, tooltip="The layer on which to segment the image")
         self.addOption(key="segmentation_th", display_name="Threshold Segmentation", default=125, value_type="int",
                        min_value=1, max_value=255, tooltip="Threshold for binary segmentation")
         self.addOption(key="segmentation_slm_size", display_name="Threshold SELEM size", default=2, value_type="int",
@@ -69,10 +69,15 @@ class Addon(clickpoints.Addon):
         self.addOption(key="auto_apply", display_name="auto apply segmentation", default=False, value_type="bool",
                        tooltip="If true, changes of the parameters will automatically trigger a new segmentation")
 
-        self.addOption(key="evaluation_layer", display_name="Evaluation Layer", default=0, value_type="choice",
-                       values=[l.name for l in self.db.getLayers()], tooltip="The layer on which to evaluate the mask")
+        self.addOption(key="evaluation_layer", display_name="Evaluation Layer", default=layers[0], value_type="choice_string",
+                       values=layers, tooltip="The layer on which to evaluate the mask",)
         self.addOption(key="min_area", display_name="Min Area", default=200, value_type="int",
                        min_value=0, max_value=10000, tooltip="Exclude all patches with areas smaller than this value.")
+
+        # define options groups for unified callback handling, e.g only call an update if parameter of this group was changed
+        self.options_Segmentation = ['segmentation_th', 'segmentation_slm_size','segmentation_gauss','invert_mask','segmentation_layer']
+        self.options_Output = ['min_area', 'evaluation_layer']
+
 
         """ Setup Marker and Masks """
         # Check if the marker type is present
@@ -155,8 +160,10 @@ class Addon(clickpoints.Addon):
         self.buttonProcAll.released.connect(self.processAll)
 
     def optionsChanged(self, key):
-        if self.getOption("auto_apply"):
+        if key in self.options_Segmentation and self.getOption("auto_apply"):
             self.updateSegmentation()
+        elif key in self.options_Output:
+            pass
 
     """ PROCESSING """
     def updateSegmentation(self, qimg=None):
@@ -183,15 +190,16 @@ class Addon(clickpoints.Addon):
 
         img = self.qimg.data
 
+        # convert rgb to grayscale
         if img.shape[-1] == 3:
-            img = rgb2grey(img)*255
-
-        print(img.max())
-        print(img.min())
+            img = rgb2grey(img)
+            # convert to 0-255 range if applicable
+            if img.max() <= 1.0:
+                img*=255
 
         if self.inputGauss.value() > 0:
             img = gaussian_filter(img, self.getOption("segmentation_gauss"))
-            print("apply Gauss with value", self.getOption("segmentation_gauss"))
+            #print("apply Gauss with value", self.getOption("segmentation_gauss"))
 
         # create binary mask
         mask = np.zeros(img.shape, dtype='uint8')
@@ -218,7 +226,7 @@ class Addon(clickpoints.Addon):
             mask_open[cp_mask.data == self.MaskType_exclude.index] = self.MaskType_exclude.index
             mask_open[cp_mask.data == self.MaskType_manual.index] = self.MaskType_manual.index
 
-        print(mask_open)
+        # print(mask_open)
 
         self.db.setMask(image=self.qimg, data=mask_open)
         self.cp.reloadMask()
@@ -248,8 +256,12 @@ class Addon(clickpoints.Addon):
 
         img = self.qimg.data
 
+        # convert rgb to grayscale
         if img.shape[-1] == 3:
-            img = rgb2grey(img)*255
+            img = rgb2grey(img)
+            # convert to 0-255 range if applicable
+            if img.max() <= 1.0:
+                img*=255
 
         # cleanup
         self.db.deleteMarkers(image=self.qimg, type='cell (auto)')
