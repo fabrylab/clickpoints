@@ -881,6 +881,9 @@ class DataFile:
                 self.type = new_type
                 return self.save()
 
+            def __array__(self):
+                return np.array([[self.x1, self.y1], [self.x2, self.y2]])
+
         class Rectangle(BaseModel):
             image = peewee.ForeignKeyField(Image, backref="rectangles", on_delete='CASCADE')
             x = peewee.FloatField()
@@ -3456,6 +3459,9 @@ class DataFile:
         query = addFilter(query, type, self.table_line.type)
         query = addFilter(query, processed, self.table_line.processed)
         query = addFilter(query, text, self.table_line.text)
+
+        # define the __array__ method of the query to make np.array(db.getLines()) possible
+        query.__array__ = lambda:  np.array([[[l.x1, l.y1], [l.x2, l.y2]] for l in query])
 
         return query
 
