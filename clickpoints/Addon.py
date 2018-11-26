@@ -346,6 +346,7 @@ class Addon(QtWidgets.QWidget):
     _run_thread = None
     _change_status = QtCore.Signal(int)
     _option_widgets = None
+    _input_widgets = []
 
     def __init__(self, database, command=None, name="", database_class=None, icon=None):
         # initialize the Widget base class
@@ -400,6 +401,8 @@ class Addon(QtWidgets.QWidget):
                 self.run_stopped()
         self.run = run_wrapper
 
+        self._input_widgets = []
+
         # connect the status changed signal (to be able to change the status from another thread)
         self._change_status.connect(self.cp.setStatus)
 
@@ -445,6 +448,8 @@ class Addon(QtWidgets.QWidget):
             layout = self.layout()
         option = self.db._options_by_key[self._warpOptionKey(key)]
         widget = getOptionInputWidget(option, layout, **kwargs)
+        widget.options_key = key
+        self._input_widgets.append(widget)
         def callSetOption(value):
             self.setOption(key, value)
             if getattr(self, "optionsChanged", None) is not None:
@@ -455,6 +460,11 @@ class Addon(QtWidgets.QWidget):
         widget.valueChanged.connect(callSetOption)
         self._option_widgets[key] = widget
         return widget
+
+    def setHiddenInputs(self, filter, hidden):
+        for widget in self._input_widgets:
+            if widget.options_key.contains(filter):
+                widget.setHidden(hidden)
 
     def optionInputChanged(self, value, key):
         self.setOption(key, value)
