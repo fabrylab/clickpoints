@@ -276,7 +276,7 @@ class Addon(clickpoints.Addon):
 
         self.last_update = time.time()
 
-        self.run_threaded(image_start.sort_index+1)
+        self.run_threaded(image_start.sort_index+1, self.run)
 
     def updatePlotImageEvent(self):
         t = time.time()
