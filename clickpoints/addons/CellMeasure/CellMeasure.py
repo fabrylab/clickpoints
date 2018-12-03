@@ -31,10 +31,12 @@ from clickpoints.includes import QtShortCuts
 import qtawesome as qta
 from skimage.measure import label, regionprops
 from skimage.color import rgb2grey
+from scipy.ndimage.morphology import binary_erosion, binary_fill_holes
 from scipy.ndimage.filters import gaussian_filter
-from skimage.filters import gaussian
-from skimage.morphology import binary_closing
+from skimage.filters import threshold_otsu, gaussian, threshold_local
+from skimage.morphology import binary_closing, remove_small_objects
 import pandas as pd
+from imageio import imread
 
 
 
@@ -56,27 +58,48 @@ class Addon(clickpoints.Addon):
 
         """ get or set options """
         layers = ([l.name for l in self.db.getLayers()])
+
+        ## fileload
+        # Note: file can either be read directly from file or from clickpoints, however in case of 14 bit files these are already converted to 8bit!
+        self.addOption(key="file_source", display_name="File Source", default='file', value_type="choice_string",
+                       values=["file","clickpoints"], tooltip="Read src data from file or from clickpoints (8 bit only!)")
+
+        ## segmentation
         self.addOption(key="segmentation_layer", display_name="Segmentation Layer", default=layers[0], value_type="choice_string",
                        values=layers, tooltip="The layer on which to segment the image")
+        self.addOption(key="segmentation_invert_mask", display_name="Invert Mask", default=False, value_type="bool",
+                       tooltip="If true, inverts the mask, so that darker areas are marked instead of brighter ones.")
+        self.addOption(key="segmentation_mode", display_name="Segmentation Mode", default="th_simple", value_type="choice_string",
+                       values=["th_simple","th_local", "th_lukas"], tooltip="segmentation approach")
+
+        # preprocessing
+        self.addOption(key="segmentation_gauss", display_name="Gauss Sigma\t", default=1.25, value_type="float",
+                       min_value=0, max_value=25, tooltip="Width of the gaussian used to smooth the image")
+        # th_simple
         self.addOption(key="segmentation_th", display_name="Threshold Segmentation", default=125, value_type="int",
                        min_value=1, max_value=255, tooltip="Threshold for binary segmentation")
-        self.addOption(key="segmentation_slm_size", display_name="Threshold SELEM size", default=2, value_type="int",
-                       min_value=0, max_value=255, tooltip="Size of the DISK shaped element for the binary open operation")
-        self.addOption(key="segmentation_gauss", display_name="Gauss Sigma", default=1.25, value_type="float",
-                       min_value=0, max_value=10, tooltip="Width of the gaussian used to smooth the image")
-        self.addOption(key="invert_mask", display_name="invert mask", default=False, value_type="bool",
-                       tooltip="If true, inverts the mask, so that darker areas are marked instead of brighter ones.")
-        self.addOption(key="auto_apply", display_name="auto apply segmentation", default=False, value_type="bool",
-                       tooltip="If true, changes of the parameters will automatically trigger a new segmentation")
+        # th_local
+        self.addOption(key="segmentation_localth_block_size", display_name="Block Radius", default=16, value_type="int",
+                       min_value=0, max_value=200, tooltip="Block radius used for local thresholding")
+        self.addOption(key="segmentation_localth_min_size", display_name="Min object size", default=31, value_type="int",
+                       min_value=0, max_value=100, tooltip="Objects below this size will be removed")
+        # post processing
+        self.addOption(key="segmentation_slm_size", display_name="opening DISK size", default=2, value_type="int",
+                       min_value=0, max_value=10, tooltip="Size of the DISK shaped element for the binary open operation")
 
+        self.addOption(key="segmentation_auto_apply", display_name="Auto Apply", default=False, value_type="bool",
+                       tooltip="If enabled, changes of the parameters will automatically trigger a new segmentation")
+
+        ## evaluation
         self.addOption(key="evaluation_layer", display_name="Evaluation Layer", default=layers[0], value_type="choice_string",
                        values=layers, tooltip="The layer on which to evaluate the mask",)
-        self.addOption(key="min_area", display_name="Min Area", default=200, value_type="int",
-                       min_value=0, max_value=10000, tooltip="Exclude all patches with areas smaller than this value.")
+        self.addOption(key="evaluation_min_area", display_name="Min Area", default=200, value_type="int",
+                       min_value=0, max_value=100000, tooltip="Exclude all patches with areas smaller than this value.")
 
         # define options groups for unified callback handling, e.g only call an update if parameter of this group was changed
-        self.options_Segmentation = ['segmentation_th', 'segmentation_slm_size','segmentation_gauss','invert_mask','segmentation_layer']
-        self.options_Output = ['min_area', 'evaluation_layer']
+        self.options_Segmentation = ['segmentation_th', 'segmentation_slm_size','segmentation_gauss','segmentation_invert_mask','segmentation_layer',
+                                     'segmentation_localth_block_size', 'segmentation_localth_min_size']
+        self.options_Output = ['evaluation_min_area', 'evaluation_layer']
 
 
         """ Setup Marker and Masks """
@@ -109,12 +132,31 @@ class Addon(clickpoints.Addon):
         self.segmentation_layout = QtWidgets.QVBoxLayout()
         self.segmentation_groupbox.setLayout(self.segmentation_layout)
 
+        self.file_source_mode = self.inputOption("file_source", self.segmentation_layout)
         self.segmentationLayer = self.inputOption("segmentation_layer", self.segmentation_layout)
-        self.sliderSegmentationTH = self.inputOption("segmentation_th", self.segmentation_layout, use_slider=True)
-        self.sliderSelemSize = self.inputOption("segmentation_slm_size", self.segmentation_layout, use_slider=True)
+
+        self.segmentation_layout.addWidget(QtWidgets.QLabel("<b>Pre-Processing</b>"))
         self.inputGauss = self.inputOption("segmentation_gauss", self.segmentation_layout, use_slider=True)
-        self.checkboxInvert = self.inputOption("invert_mask", self.segmentation_layout)
-        self.checkboxSegmentation = self.inputOption("auto_apply", self.segmentation_layout)
+
+        self.segmentation_layout.addWidget(QtWidgets.QLabel("<b>Segmentation</b>"))
+        self.selectSegMode = self.inputOption("segmentation_mode", self.segmentation_layout)
+
+        # MODE th_simple
+        self.sliderSegmentationTH = self.inputOption("segmentation_th", self.segmentation_layout, use_slider=True)
+
+        # MODE th_local
+        self.sliderBlocksize = self.inputOption("segmentation_localth_block_size", self.segmentation_layout, use_slider=True)
+        self.sliderMinsize = self.inputOption("segmentation_localth_min_size", self.segmentation_layout, use_slider=True)
+
+        self.segmentation_layout.addWidget(QtWidgets.QLabel("<b>Post-Processing</b>"))
+        self.sliderSelemSize = self.inputOption("segmentation_slm_size", self.segmentation_layout, use_slider=True)
+
+        self.checkboxInvert = self.inputOption("segmentation_invert_mask", self.segmentation_layout)
+        self.checkboxSegmentation = self.inputOption("segmentation_auto_apply", self.segmentation_layout)
+
+        self.segmode_simpleTH = [self.sliderSegmentationTH ]
+        self.segmode_localTH = [self.sliderBlocksize, self.sliderMinsize]
+        self.segmode_all = self.segmode_simpleTH + self.segmode_localTH
 
         # segment on button press
         self.buttonSegmentation = QtWidgets.QPushButton("Segment")
@@ -130,7 +172,7 @@ class Addon(clickpoints.Addon):
         self.position_groupbox.setLayout(self.position_layout)
 
         self.evaluationLayer = self.inputOption("evaluation_layer", self.position_layout)
-        self.inputMinSize = self.inputOption("min_area", self.position_layout, use_slider=True)
+        self.inputMinSize = self.inputOption("evaluation_min_area", self.position_layout, use_slider=True)
 
         # button Properties
         self.position_layout2 = QtWidgets.QHBoxLayout()
@@ -159,11 +201,40 @@ class Addon(clickpoints.Addon):
         self.batch_layout.addWidget(self.buttonProcAll)
         self.buttonProcAll.released.connect(self.processAll)
 
+        """ update view """
+        self.updateSegmentationMode()
+
     def optionsChanged(self, key):
-        if key in self.options_Segmentation and self.getOption("auto_apply"):
+        print("optionsChanged:\t",key)
+        if key in self.options_Segmentation and self.getOption("segmentation_auto_apply"):
             self.updateSegmentation()
         elif key in self.options_Output:
             pass
+        elif key == 'segmentation_mode':
+            print("Mode changed to ", self.getOption("segmentation_mode"))
+            self.updateSegmentationMode()
+
+    def updateSegmentationMode(self):
+        """
+        Trigger on change Mode
+        Hide and Show elements related to the current segmentation mode
+
+        """
+
+        if self.getOption("segmentation_mode") == "th_local":
+            _ = [ e.setVisible(False) for e in self.segmode_all]
+            _ = [ e.setVisible(True) for e in self.segmode_localTH]
+
+        if self.getOption("segmentation_mode") == "th_lukas":
+            _ = [e.setVisible(False) for e in self.segmode_all]
+            _ = [e.setVisible(True) for e in self.segmode_localTH]
+
+        elif self.getOption("segmentation_mode") == "th_simple":
+            _ = [ e.setVisible(False) for e in self.segmode_all]
+            _ = [ e.setVisible(True) for e in self.segmode_simpleTH]
+
+
+
 
     """ PROCESSING """
     def updateSegmentation(self, qimg=None):
@@ -188,7 +259,10 @@ class Addon(clickpoints.Addon):
         if self.qimg is None:
             raise IndexError("No image found with sort_index %d and layer %s." % (self.cframe, self.getOption("segmentation_layer")))
 
-        img = self.qimg.data
+        if self.getOption("file_source") == "clickpoints":
+            img = self.qimg.data
+        elif self.getOption("file_source") == "file":
+            img = imread(os.path.join(list(self.db.getPaths())[0].path, self.qimg.filename))
 
         # convert rgb to grayscale
         if img.shape[-1] == 3:
@@ -197,16 +271,45 @@ class Addon(clickpoints.Addon):
             if img.max() <= 1.0:
                 img*=255
 
+        ### pre processing ###
         if self.inputGauss.value() > 0:
             img = gaussian_filter(img, self.getOption("segmentation_gauss"))
             #print("apply Gauss with value", self.getOption("segmentation_gauss"))
 
+
+        ### segmentation ###
+        """
+        NOTE:
+        add additional approaches here, please follow the provided samples
+        return should be binary mask in uint8 dtype
+        """
+
+        mode = self.getOption("segmentation_mode")
         # create binary mask
         mask = np.zeros(img.shape, dtype='uint8')
-        if self.getOption("invert_mask"):
-            mask[img < self.getOption("segmentation_th")] = 1
-        else:
-            mask[img > self.getOption("segmentation_th")] = 1
+        if mode == "th_simple":
+            if self.getOption("segmentation_invert_mask"):
+                mask[img < self.getOption("segmentation_th")] = 1
+            else:
+                mask[img > self.getOption("segmentation_th")] = 1
+
+        if mode == "th_local":
+            local_thresh = threshold_local(img, block_size=self.getOption("segmentation_localth_block_size")*2-1)
+            if self.getOption("segmentation_invert_mask"):
+                mask[img < local_thresh] = 1
+            else:
+                mask[img > local_thresh] = 1
+
+        if mode == "th_lukas":
+            local_thresh = threshold_local(img, block_size=self.getOption("segmentation_localth_block_size")*2-1)
+            img_thresh = (img > local_thresh) + 0
+            img_erosion = binary_erosion(img_thresh)
+            img_re_small = remove_small_objects(img_erosion, min_size=self.getOption("segmentation_localth_min_size"))
+            img_gaus = gaussian(img_re_small)
+            otsu_th = threshold_otsu(img_gaus)
+            img_otsu = (img_gaus > otsu_th) + 0
+            mask = (binary_fill_holes(img_otsu) + 0).astype('uint8')
+
 
         # use open operation to reduce noise
         if self.getOption("segmentation_slm_size") != 0:
@@ -214,9 +317,6 @@ class Addon(clickpoints.Addon):
             mask_open = opening(mask, disk(self.getOption("segmentation_slm_size")))
         else:
             mask_open = mask
-
-        # # use close operation to fill gaps
-        # mask_open = binary_closing(mask_open, disk(self.slm_size)).astype('uint8')
 
         # add user input
         cp_mask = self.db.getMask(image=self.qimg)
@@ -254,7 +354,10 @@ class Addon(clickpoints.Addon):
         if self.qimg is None:
             raise IndexError("No image found with sort_index %d and layer %s." % (self.cframe, self.getOption("evaluation_layer")))
 
-        img = self.qimg.data
+        if self.getOptions("file_source") == "clickpoints":
+            img = self.qimg.data
+        elif self.getOptions("file_source") == "file":
+            img = imread(os.path.join(list(self.db.getPaths())[0].path, self.qimg.filename))
 
         # convert rgb to grayscale
         if img.shape[-1] == 3:
