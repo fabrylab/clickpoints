@@ -354,9 +354,9 @@ class Addon(clickpoints.Addon):
         if self.qimg is None:
             raise IndexError("No image found with sort_index %d and layer %s." % (self.cframe, self.getOption("evaluation_layer")))
 
-        if self.getOptions("file_source") == "clickpoints":
+        if self.getOption("file_source") == "clickpoints":
             img = self.qimg.data
-        elif self.getOptions("file_source") == "file":
+        elif self.getOption("file_source") == "file":
             img = imread(os.path.join(list(self.db.getPaths())[0].path, self.qimg.filename))
 
         # convert rgb to grayscale
