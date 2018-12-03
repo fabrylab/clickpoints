@@ -101,14 +101,14 @@ if options.release:
     # upload to pipy
     os.system("pip install twine")
     os.system("python setup.py sdist")
-    os.system("twine upload dist/clickpoints-%s.tar.gz --username %s --password %s" % (new_version, options.username, options.password))
+    #os.system("twine upload dist/clickpoints-%s.tar.gz --username %s --password %s" % (new_version, options.username, options.password))
 
     # upload to conda
     os.system("conda install anaconda-client conda-build -y")
     os.system("conda update -n root conda-build")
     os.system("conda update -n root anaconda-client")
 
-    os.system("anaconda login --username %s --password %s" % (options.username, options.password))
+    #os.system("anaconda login --username %s --password %s" % (options.username, options.password))
 
     os.system("conda config --set anaconda_upload yes")
 
