@@ -3817,7 +3817,7 @@ class DataFile:
         return self.saveReplaceMany(self.table_rectangle, data)
 
     def deleteRectangles(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, type=None,
-                    processed=None, text=None, id=None):
+                    processed=None, text=None, id=None, layer=None):
         """
         Delete all :py:class:`Rectangle` entries with the given criteria.
 
