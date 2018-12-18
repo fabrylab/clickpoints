@@ -95,7 +95,7 @@ vidformats = [fmt if fmt[0] == "." else "."+fmt for fmt in vidformats]
 
 formats = tuple(imgformats+vidformats)
 imgformats = tuple(imgformats)
-specialformats = ['.gif']   # potential animated gif = video or gif = image
+specialformats = ['.gif']+[".vms"]   # potential animated gif = video or gif = image
 
 
 class FolderEditor(QtWidgets.QWidget):
@@ -426,6 +426,15 @@ def getFrameNumber(file, extension):
             except IOError:
                 print("ERROR: can't read file", file)
                 return 0
+            except ValueError:
+                try:
+                    import openslide
+                    reader = openslide.OpenSlide(file)
+                    reader.close()
+                    return 1
+                except IOError:
+                    print("ERROR: can't read file", file)
+                    return 0
         frames = reader.get_length()
         reader.close()
     # return the number of frames

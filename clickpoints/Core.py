@@ -26,6 +26,7 @@ import natsort
 
 import threading
 import time
+import numpy as np
 
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
@@ -275,7 +276,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
                     self.first_frame = None
                     # addPath(self.data_file, directory, use_natsort=config.use_natsort)
                 # for videos just load the file
-                elif ext.lower() in vidformats:
+                elif ext.lower() in vidformats or ext.lower() == ".vms":
                     self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
                                                         kwargs=dict(file_filter=os.path.split(filename)[1]))
                     # addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
@@ -533,6 +534,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
         if event.key() == Qt.Key_F2:
             # @key F2: hide/show interfaces
             BroadCastEvent(self.modules, "ToggleInterfaceEvent")
+
+        if event.key() == Qt.Key_G:
+            self.ImageDisplay.updateSlideView()
 
         # @key W: fullscreen toggle
         if event.key() == QtCore.Qt.Key_W:

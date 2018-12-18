@@ -117,6 +117,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             self.schedule_update = True
 
     def updateHist(self, hist):
+        if hist is None:
+            return
         histpath = QtGui.QPainterPath()
         w = 100 / 256.
         for i, h in enumerate(hist[0]):

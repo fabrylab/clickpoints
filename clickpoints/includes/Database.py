@@ -443,8 +443,19 @@ class DataFileExtended(DataFile):
             try:
                 self.reader = imageio.get_reader(filename)
                 self.reader.filename = filename
+                self.reader.is_slide = False
             except (IOError, ValueError):
-                pass
+                try:
+                    import openslide
+                    self.reader = openslide.OpenSlide(filename)
+                    self.reader.filename = filename
+                    self.reader.shape = (self.reader.dimensions[1], self.reader.dimensions[0], 4)
+                    def raiseValueError(i):
+                        raise ValueError
+                    self.reader.get_data = raiseValueError
+                    self.reader.is_slide = True
+                except IOError:
+                    pass
         # get the data from the reader
         image_data = None
         if self.reader is not None:
@@ -469,13 +480,18 @@ class DataFileExtended(DataFile):
             image_data = (image_data/256).astype(np.uint8)
         # store data in the slot
         if slots is not None:
-            slots[slot_index] = image_data
+            if self.reader.is_slide:
+                slots[slot_index] = self.reader
+            else:
+                slots[slot_index] = image_data
         # notify that the frame has been loaded
         if signal:
             self.signals.loaded.emit(index, layer, threaded)
 
     def get_image_data(self, index=None, layer=None):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
+            if self.reader.is_slide:
+                return self.reader
             # get the pixel data from the current image
             return self.buffer.get_frame(self.current_image_index, self.current_layer)
         try:
@@ -489,6 +505,8 @@ class DataFileExtended(DataFile):
         filename = os.path.join(image.path.path, image.filename)
         slots, slot_index, = self.buffer.prepare_slot(index, layer)
         self.buffer_frame(image, filename, slots, slot_index, index, layer, signal=False)
+        if self.reader.is_slide:
+            return self.reader
         return self.buffer.get_frame(index, layer)
 
     def get_image(self, index=None, layer=None):
@@ -746,7 +764,7 @@ class FrameBuffer:
         self.last_index = (self.last_index+1) % len(self.slots)
 
     def getMemoryUsage(self):
-        return np.sum([im.nbytes for im in self.slots if im is not None])
+        return np.sum([im.nbytes for im in self.slots if isinstance(im, np.ndarray)])
 
     def getMemoryOfSlot(self, index):
         try:
