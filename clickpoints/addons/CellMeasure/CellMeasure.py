@@ -262,7 +262,8 @@ class Addon(clickpoints.Addon):
         if self.getOption("file_source") == "clickpoints":
             img = self.qimg.data
         elif self.getOption("file_source") == "file":
-            img = imread(os.path.join(list(self.db.getPaths())[0].path, self.qimg.filename))
+            # img = imread(os.path.join(list(self.db.getPaths())[0].path, self.qimg.filename))
+            img = imread(os.path.join(self.q_img.path.path, self.qimg.filename))
 
         # convert rgb to grayscale
         if img.shape[-1] == 3:
