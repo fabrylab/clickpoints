@@ -170,18 +170,13 @@ class BigImageDisplay:
             #    return
             self.last_level = level
             downsample = self.image.level_downsamples[level]
-            print("level", level)
 
             dimensions_downsampled = (np.array(preview_rect[2:4]) - np.array(preview_rect[:2])) / downsample
             data = np.asarray(self.image.read_region(preview_rect[0:2], level, dimensions_downsampled.astype("int")))
-            # data.flags.writeable = True
-            # data[:, 0:10, :2] = 0
-            # data[0:10, :, :2] = 0
-            # data[:, -10:, :2] = 0
-            # data[-10:, :, :2] = 0
-            # print(data)
-            # self.view.e
-            self.slice_zoom_pixmap.setPixmap(QtGui.QPixmap(array2qimage(data)))
+            self.slice_zoom_image = data
+            if self.conversion is not None:
+                self.slice_zoom_image = self.conversion[self.slice_zoom_image.astype(np.uint8)[:, :, :3]]
+            self.slice_zoom_pixmap.setPixmap(QtGui.QPixmap(array2qimage(self.slice_zoom_image)))
             self.slice_zoom_pixmap.setOffset(*(np.array(preview_rect[0:2]) / downsample))
             self.slice_zoom_pixmap.setScale(downsample)
             self.slice_zoom_pixmap.show()
@@ -197,6 +192,7 @@ class BigImageDisplay:
             self.QImages[0] = array2qimage(image)
             self.pixMapItems[0].setScale(self.image.level_downsamples[-1])
             self.pixMapItems[0].to_hide = False
+            self.slice_zoom_image = image
         else:
             # iterate over tiles
             for y in range(self.number_of_imagesY):
@@ -259,8 +255,6 @@ class BigImageDisplay:
         self.gamma = 1
 
     def PreviewRect(self):
-        if not isinstance(self.image, np.ndarray):
-            return
         # get currently displayed rect as int (add one pixel to account for fraction values)
         self.preview_rect = np.array(self.window.view.GetExtend(True)).astype("int")+np.array([0, 0, 1, 1])
         # add currently used display offset
@@ -269,6 +263,8 @@ class BigImageDisplay:
         self.UpdatePreviewImage()
 
     def GetImageRect(self, rect, use_max_image_size=False):
+        if not isinstance(self.image, np.ndarray):
+            return self.slice_zoom_image, 0, 0
         # extract start and end points from rect
         start_x, start_y, end_x, end_y = rect
         # constrain start points
@@ -292,15 +288,14 @@ class BigImageDisplay:
         self.preview_qimage = array2qimage(self.preview_slice)
         self.preview_qimageView = rgb_view(self.preview_qimage)
         # add pixmap and set offsets
-        self.preview_pixMapItem.setPixmap(QtGui.QPixmap(self.preview_qimage))
-        self.preview_pixMapItem.setOffset(start_x, start_y)
-        self.preview_pixMapItem.setParentItem(self.pixMapItems[0])
+        if isinstance(self.image, np.ndarray):
+            self.preview_pixMapItem.setPixmap(QtGui.QPixmap(self.preview_qimage))
+            self.preview_pixMapItem.setOffset(start_x, start_y)
+            self.preview_pixMapItem.setParentItem(self.pixMapItems[0])
         # calculate histogram over image patch
         self.hist = np.histogram(self.preview_slice.flatten(), bins=range(0, 256), normed=True)
 
     def Change(self, gamma=None, min_brightness=None, max_brightness=None):
-        if not isinstance(self.image, np.ndarray):  # is slide
-            return
         # if no display rect is selected choose current region
         if self.preview_slice is None:
             self.PreviewRect()
@@ -321,6 +316,9 @@ class BigImageDisplay:
         self.conversion[:self.min] = 0
         self.conversion[self.min:self.max] = np.power(np.arange(0, color_range) / color_range, self.gamma) * 256
         self.conversion[self.max:] = 255
+
+        if not isinstance(self.image, np.ndarray):  # is slide
+            return
         # apply changes
         self.preview_qimageView[:, :, :] = self.conversion[self.preview_slice.astype(np.uint8)[:, :, :3]]
         self.preview_pixMapItem.setPixmap(QtGui.QPixmap(self.preview_qimage))
