@@ -37,6 +37,12 @@ from threading import Thread
 from qtpy import QtCore
 import numpy as np
 import platform
+try:
+    import openslide
+    openslide_loaded = True
+    print("openslide", openslide.__version__)
+except ImportError:
+    openslide_loaded = False
 
 from ..DataFile import DataFile
 import re
@@ -440,21 +446,26 @@ class DataFileExtended(DataFile):
                 self.reader = None
         # if we don't have a reader, create a new one
         if self.reader is None:
-            try:
-                self.reader = imageio.get_reader(filename)
-                self.reader.filename = filename
-                self.reader.is_slide = False
-            except (IOError, ValueError):
+            if openslide_loaded:
+                import openslide
                 try:
-                    import openslide
                     self.reader = openslide.OpenSlide(filename)
                     self.reader.filename = filename
                     self.reader.shape = (self.reader.dimensions[1], self.reader.dimensions[0], 4)
+
                     def raiseValueError(i):
                         raise ValueError
+
                     self.reader.get_data = raiseValueError
                     self.reader.is_slide = True
-                except IOError:
+                except openslide.lowlevel.OpenSlideUnsupportedFormatError:
+                    pass
+            if self.reader is None:
+                try:
+                    self.reader = imageio.get_reader(filename)
+                    self.reader.filename = filename
+                    self.reader.is_slide = False
+                except (IOError, ValueError):
                     pass
         # get the data from the reader
         image_data = None
