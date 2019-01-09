@@ -3057,7 +3057,7 @@ class DataFile:
 
         image = self._processImagesField(image, frame, filename, layer)
 
-        mask = self.getMask(image=image, frame=frame, filename=filename, id=id, layer=layer)
+        mask = self.getMask(image=image, filename=filename, id=id)
 
         # get image object
         if not image:
