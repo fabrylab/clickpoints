@@ -501,7 +501,7 @@ class DataFileExtended(DataFile):
 
     def get_image_data(self, index=None, layer=None):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
-            if self.reader.is_slide:
+            if self.reader is not None and self.reader.is_slide:
                 return self.reader
             # get the pixel data from the current image
             return self.buffer.get_frame(self.current_image_index, self.current_layer)
