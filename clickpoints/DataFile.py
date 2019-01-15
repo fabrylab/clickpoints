@@ -2851,7 +2851,7 @@ class DataFile:
         # get lowest free index is not specified by user
         if not index:
             index_list = [l.index for l in self.table_masktype.select().order_by(self.table_masktype.index)]
-            free_idxs = list(set(range(1,254)) - set(index_list))
+            free_idxs = list(set(range(1, 254)) - set(index_list))
             new_index = free_idxs[0]
         else:
             new_index = index
@@ -2860,10 +2860,12 @@ class DataFile:
             # only use id if multiple unique fields are specified
             if id:
                 mask_type = self.table_masktype.get(id=id)
+            elif name:
+                mask_type = self.table_masktype.get(name=name)
             else:
-                mask_type = self.table_masktype.get(**noNoneDict(id=id, name=name, color=color, index=index))
+                raise peewee.DoesNotExist
             # if no desired index is provided keep the existing index
-            if index is None:
+            if index is None or mask_type.index is not None:
                 new_index = mask_type.index
         except peewee.DoesNotExist:
             mask_type = self.table_masktype()
