@@ -2802,10 +2802,10 @@ class MarkerHandler:
         self.window.layoutButtons.addWidget(self.button)
 
         self.MarkerParent = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
-        self.MarkerParent.setZValue(10)
+        self.MarkerParent.setZValue(20)
 
         self.TrackParent = QtWidgets.QGraphicsPixmapItem(QtGui.QPixmap(array2qimage(np.zeros([1, 1, 4]))), self.parent)
-        self.TrackParent.setZValue(10)
+        self.TrackParent.setZValue(20)
 
         self.scene_event_filter = GraphicsItemEventFilter(parent, self)
         image_display.AddEventFilter(self.scene_event_filter)
