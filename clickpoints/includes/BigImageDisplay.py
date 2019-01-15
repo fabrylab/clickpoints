@@ -58,7 +58,7 @@ class BigImageDisplay:
 
         self.background_rect = QtWidgets.QGraphicsRectItem(self.origin)
         self.background_rect.setRect(0, 0, 10, 10)
-        self.background_rect.setZValue(100)
+        self.background_rect.setZValue(15)
 
         self.preview_pixMapItem = QtWidgets.QGraphicsPixmapItem(self.origin)
         self.preview_pixMapItem.setZValue(10)
@@ -293,7 +293,7 @@ class BigImageDisplay:
             self.preview_pixMapItem.setOffset(start_x, start_y)
             self.preview_pixMapItem.setParentItem(self.pixMapItems[0])
         # calculate histogram over image patch
-        self.hist = np.histogram(self.preview_slice.flatten(), bins=range(0, 256), normed=True)
+        self.hist = np.histogram(self.preview_slice.flatten(), bins=range(0, 256), density=True)
 
     def Change(self, gamma=None, min_brightness=None, max_brightness=None):
         # if no display rect is selected choose current region
