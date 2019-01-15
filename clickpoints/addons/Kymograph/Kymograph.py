@@ -174,10 +174,10 @@ class Addon(clickpoints.Addon):
         self.setTableText(idx, 0, bar.length())
 
     def getLinePoint(self, line, percentage):
-        x1 = np.min([line.x1, line.x2])
-        x2 = np.max([line.x1, line.x2])
-        y1 = np.min([line.y1, line.y2])
-        y2 = np.max([line.y1, line.y2])
+        x1 = line.x1
+        x2 = line.x2
+        y1 = line.y1
+        y2 = line.y2
         if self.mirror:
             y1, y2 = y2, y1
         w = x2 - x1
@@ -188,10 +188,10 @@ class Addon(clickpoints.Addon):
         return x1 + w * percentage/length, y1 + h * percentage/length
 
     def getLine(self, image, line, height, image_entry=None):
-        x1 = np.min([line.x1, line.x2])
-        x2 = np.max([line.x1, line.x2])
-        y1 = np.min([line.y1, line.y2])
-        y2 = np.max([line.y1, line.y2])
+        x1 = line.x1
+        x2 = line.x2
+        y1 = line.y1
+        y2 = line.y2
         if self.mirror:
             y1, y2 = y2, y1
         w = x2 - x1
