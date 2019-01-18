@@ -91,8 +91,10 @@ class Addon(clickpoints.Addon):
         image0 = self.db.getImage(0)
         # and extract from its filename the filename of the config
         config_filename = image0.filename.split("_")[0]+"_Config.txt"
+        print(config_filename)
         # load the config
         if not os.path.exists(config_filename):
+            print("No Config Found - Terminating!")
             return
         config = configparser.ConfigParser()
         config.read(config_filename)
