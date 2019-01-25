@@ -20,35 +20,45 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 from __future__ import print_function, division
+
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "clickpoints"))
-import clickpoints
-current_version = clickpoints.__version__
+current_folder = os.getcwd()
 
-from optparse import OptionParser
+try:
+    # go to parent folder
+    os.chdir(os.path.join(os.path.dirname(__file__), ".."))
 
-parser = OptionParser()
-parser.add_option("-u", "--username", action="store", dest="username")
-parser.add_option("-p", "--password", action="store", dest="password")
-(options, args) = parser.parse_args()
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "clickpoints"))
+    import clickpoints
 
-# upgrade twine (used for uploading)
-os.system("pip install twine --upgrade")
+    current_version = clickpoints.__version__
 
-# pack clickpoints
-os.system("python setup.py sdist")
+    from optparse import OptionParser
 
-# the command
-command_string = "twine upload dist/clickpoints-%s.tar.gz" % current_version
-# optionally add the username
-if options.username:
-    command_string += " --username %s" % options.username
-# optionally add the password
-if options.password:
-    command_string += " --password %s" % options.password
-# print the command string
-print(command_string)
-# and execute it
-os.system(command_string)
+    parser = OptionParser()
+    parser.add_option("-u", "--username", action="store", dest="username")
+    parser.add_option("-p", "--password", action="store", dest="password")
+    (options, args) = parser.parse_args()
+
+    # upgrade twine (used for uploading)
+    os.system("pip install twine --upgrade")
+
+    # pack clickpoints
+    os.system("python setup.py sdist")
+
+    # the command
+    command_string = "twine upload dist/clickpoints-%s.tar.gz" % current_version
+    # optionally add the username
+    if options.username:
+        command_string += " --username %s" % options.username
+    # optionally add the password
+    if options.password:
+        command_string += " --password %s" % options.password
+    # print the command string
+    print(command_string)
+    # and execute it
+    os.system(command_string)
+finally:
+    os.chdir(current_folder)
