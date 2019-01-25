@@ -20,32 +20,42 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 from __future__ import print_function, division
+
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "clickpoints"))
-import clickpoints
-current_version = clickpoints.__version__
+current_folder = os.getcwd()
 
-from optparse import OptionParser
+try:
+    # go to parent folder
+    os.chdir(os.path.join(os.path.dirname(__file__), ".."))
 
-parser = OptionParser()
-parser.add_option("-u", "--username", action="store", dest="username")
-parser.add_option("-p", "--password", action="store", dest="password")
-(options, args) = parser.parse_args()
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "clickpoints"))
+    import clickpoints
 
-# upload to conda
-os.system("conda install anaconda-client conda-build -y")
-os.system("conda update -n root conda-build")
-os.system("conda update -n root anaconda-client")
+    current_version = clickpoints.__version__
 
-# login is normally cached so you need to login only once
-if options.username is not None:
-    if options.password is not None:
-        os.system("anaconda login --username %s --password %s" % (options.username, options.password))
-    else:
-        os.system("anaconda login --username %s" % options.username)
+    from optparse import OptionParser
 
-os.system("conda config --set anaconda_upload yes")
+    parser = OptionParser()
+    parser.add_option("-u", "--username", action="store", dest="username")
+    parser.add_option("-p", "--password", action="store", dest="password")
+    (options, args) = parser.parse_args()
 
-os.system("conda-build . -c conda-forge")
+    # upload to conda
+    os.system("conda install anaconda-client conda-build -y")
+    os.system("conda update -n root conda-build")
+    os.system("conda update -n root anaconda-client")
+
+    # login is normally cached so you need to login only once
+    if options.username is not None:
+        if options.password is not None:
+            os.system("anaconda login --username %s --password %s" % (options.username, options.password))
+        else:
+            os.system("anaconda login --username %s" % options.username)
+
+    os.system("conda config --set anaconda_upload yes")
+
+    os.system("conda-build . -c conda-forge")
+finally:
+    os.chdir(current_folder)
