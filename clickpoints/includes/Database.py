@@ -705,7 +705,7 @@ class DataFileExtended(DataFile):
             with tifffile.TiffFile(file) as tif:
                 metadata = tif.shaped_metadata
                 if metadata is None:
-                    return None
+                    return self.getTimeStampQuick(file)
                 try:
                     t = tif.shaped_metadata[0]["Time"]
                 except KeyError:
