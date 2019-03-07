@@ -1018,7 +1018,10 @@ class DataFile:
                 # apply the subpixel decimal shift
                 if with_subpixel and (start_float[0] or start_float[1]):
                     from scipy.ndimage import shift
-                    crop = shift(crop, [start_float[1], start_float[0], 0])
+                    if len(crop.shape) == 2:  # bw image
+                        crop = shift(crop, [start_float[1], start_float[0]])
+                    else:  # color image
+                        crop = shift(crop, [start_float[1], start_float[0], 0])
 
                 # return the cropped image
                 return crop
