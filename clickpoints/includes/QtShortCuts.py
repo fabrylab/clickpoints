@@ -217,9 +217,10 @@ class QInputChoice(QInput):
 
         self.combobox = QtWidgets.QComboBox()
         self.layout().addWidget(self.combobox)
-        self.combobox.currentIndexChanged.connect(lambda: self._valueChangedEvent(self.value()))
 
         self.combobox.addItems(self.value_names)
+
+        self.combobox.currentIndexChanged.connect(lambda: self._valueChangedEvent(self.value()))
 
         if value is not None:
             self.setValue(value)
