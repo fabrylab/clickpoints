@@ -467,6 +467,9 @@ class DataFile:
 
                 return BaseModel.__getattribute__(self, item)
 
+            def __array__(self):
+                return self.get_data()
+
             def getShape(self):
                 if self.width is not None and self.height is not None:
                     return (self.height, self.width)
