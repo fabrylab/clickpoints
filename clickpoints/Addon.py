@@ -204,11 +204,20 @@ class Command:
         for type in track_types:
             marker_handler.ReloadTrackType(type)
 
-    def getImage(self, value):
+    def getImage(self):
+        """
+        Get the current image displayed in ClickPoints.
+
+        Returns
+        -------
+        image : :py:class:`Image`
+            the currently displayed image in ClickPoints
+
+        """
         # only if we are not a dummy connection
         if self.script_launcher is None:
             return
-        image = self.window.data_file.get_image_data(int(value))
+        image = self.window.data_file.image
         return image
 
     def getCurrentFrame(self):
