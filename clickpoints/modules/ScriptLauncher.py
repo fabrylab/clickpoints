@@ -130,18 +130,13 @@ class Script(QtCore.QObject):
         if self.image:
             self.image = os.path.join(os.path.dirname(filename), self.image)
 
-        if self.icon.startswith("fa.") or self.icon.startswith("ei."):
-            try:
-                self.icon = qta.icon(self.icon)
-            except Exception as err:
-                print(err)
-                self.icon_name = "fa.code"
-                self.icon = qta.icon(self.icon_name)
-        else:
+        try:
+            self.icon = qta.icon(self.icon)
+        except Exception as err:
             try:
                 self.icon = QtGui.QIcon(self.icon)
             except Exception as err:
-                print(err)
+                print("ERROR: the icon %s is neither a valid qtawsome icon nor a valid filename." % self.icon_name)
                 self.icon_name = "fa.code"
                 self.icon = qta.icon(self.icon_name)
 
