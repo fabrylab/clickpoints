@@ -957,7 +957,7 @@ class DataFile:
                     border_x = border
                 return (self.slice_y(border_y), self.slice_x(border_x))
 
-            def cropImage(self, image=None, with_offset=True, with_subpixel=True, border=0):
+            def cropImage(self, image=None, with_offset=True, with_subpixel=False, border=0):
                 # if no image is given take the image of the rectangle
                 if image is None:
                     image = self.image
