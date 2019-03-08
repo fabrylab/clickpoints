@@ -131,9 +131,19 @@ class Script(QtCore.QObject):
             self.image = os.path.join(os.path.dirname(filename), self.image)
 
         if self.icon.startswith("fa.") or self.icon.startswith("ei."):
-            self.icon = qta.icon(self.icon)
+            try:
+                self.icon = qta.icon(self.icon)
+            except Exception as err:
+                print(err)
+                self.icon_name = "fa.code"
+                self.icon = qta.icon(self.icon_name)
         else:
-            self.icon = QtGui.QIcon(self.icon)
+            try:
+                self.icon = QtGui.QIcon(self.icon)
+            except Exception as err:
+                print(err)
+                self.icon_name = "fa.code"
+                self.icon = qta.icon(self.icon_name)
 
         self.hourglassAnimationTimer = QtCore.QTimer()
         self.hourglassAnimationTimer.timeout.connect(self.displayHourglassAnimation)
