@@ -36,8 +36,8 @@ A typical meta file looks like this:
       Defines the filename of the python file that contains the add-on class.
 
 -  **icon** - ``icon=fa.flask``
-      Defines the icon of the add-on. It can be either a filename or ``fa.`` followed by the name of a font awesome icon
-      see the `font awesome iconlist <http://fontawesome.io/icons/>`_.
+      Defines the icon of the add-on. It can be either a filename or a valid qtawesome icon name (see `<https://github.com/spyder-ide/qtawesome>`_, e.g. it starts with ``fa.`` followed by the name of a font awesome icon
+      see the `font awesome iconlist <https://fontawesome.com/v4.7.0/icons/>`_).
 
 -  **image** - ``image=Image.png``
       Defines the image of the add-on. The image will be displayed in ClickPoints in the add-on list directly above the
