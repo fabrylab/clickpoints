@@ -418,8 +418,13 @@ class DataFile:
                 indexes = ((('filename', 'path', 'frame'), True),)
 
             def get_data(self):
+                # if we have a buffer
                 if self.database_class._buffer is not None:
-                    return self.database_class.get_image_data(self.sort_index, self.layer)
+                    # we try to get the image from the buffer to speed up the loading
+                    image = self.database_class.get_image_data(self.sort_index, self.layer)
+                    # if for some reason the buffer returns None, we have to load the image from the file
+                    if image is not None:
+                        return image
                 # only if we don't have the file already open (which in case for videos is important)
                 if self.database_class._reader is None or self.database_class._reader.filename != self.filename:
                     # compose the path
