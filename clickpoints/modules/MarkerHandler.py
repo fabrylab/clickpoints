@@ -44,6 +44,13 @@ from threading import Thread
 from includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
 from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile, MyCommandButton
 
+try:
+    import openslide
+    openslide_loaded = True
+    print("openslide", openslide.__version__)
+except ImportError:
+    openslide_loaded = False
+
 w = 1.
 b = 7
 r2 = 10
@@ -2609,6 +2616,8 @@ class Crosshair(QtWidgets.QGraphicsPathItem):
         x = int(x)
         self.setPos(x, y)
         if not self.isVisible() or self.radius <= 10:
+            return
+        if openslide_loaded and isinstance(self.image.image, openslide.OpenSlide):
             return
         self.CrosshairQImageView[:, :, :] = self.SaveSlice(self.image.image,
                                                            [[y - self.radius, y + self.radius + 1],
