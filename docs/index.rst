@@ -67,4 +67,6 @@ Here is a list of publications that used ClickPoints for their evaluation.
 
 - Gerlitz, N., Gerum, R., Sauer, N., Stadler, R. (2018). *Photoinducible DRONPA-s: a new tool to investigate cell-cell connectivity*, The Plant Journal, https://doi.org/10.1111/tpj.13918
 
-- Cóndor, M., Gerum, R., Mark, C., García-Aznar, J.M., Fabry, B. *Breast cancer cells adapt contractile forces to overcome steric hindrance*, under review
+- Pârvulescu, L. (2019). *Introducing a new Austropotamobius crayfish species (Crustacea, Decapoda, Astacidae): A Miocene endemism of the Apuseni Mountains, Romania*, Zoologischer Anzeiger, 279, 94–102. https://doi.org/10.1016/j.jcz.2019.01.006
+
+- Cóndor, M., Mark, C., Gerum, R. C., Grummel, N. C., Bauer, A., García-Aznar, J. M., & Fabry, B. (2019). *Breast cancer cells adapt contractile forces to overcome steric hindrance*, Biophysical Journal. https://doi.org/10.1016/j.bpj.2019.02.029
