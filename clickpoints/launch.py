@@ -21,21 +21,26 @@
 
 from __future__ import division, print_function
 
-def main():
+def main(*args):
     import sys
+    if len(args) == 0:
+        args = sys.argv
+    else:
+        args = [sys.executable]+list(args)
+    print("args", args)
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "register" or sys.argv[1] == "install":
+    if len(args) > 1:
+        if args[1] == "register" or args[1] == "install":
             from .includes.RegisterRegistry import install
             return install()
-        elif sys.argv[1] == "unregister" or sys.argv[1] == "uninstall":
+        elif args[1] == "unregister" or args[1] == "uninstall":
             from .includes.RegisterRegistry import install
             return install("uninstall")
-        elif sys.argv[1] == "-v" or sys.argv[1] == "--version":
+        elif args[1] == "-v" or args[1] == "--version":
             import clickpoints
             print(clickpoints.__version__)
             return
-        elif sys.argv[1] == "ffmpeg":
+        elif args[1] == "ffmpeg":
             import imageio
             import glob
             import os
@@ -78,7 +83,7 @@ def main():
 
     define_paths()
 
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication(args)
 
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
@@ -86,12 +91,13 @@ def main():
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     # load config and exec addon code
-    config = LoadConfig()
+    config = LoadConfig(*args)
 
     # init and open the ClickPoints window
     window = ClickPointsWindow(config, app)
     window.show()
     app.exec_()
+
 
 # start the main function as entry point
 if __name__ == '__main__':

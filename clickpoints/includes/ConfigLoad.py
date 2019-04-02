@@ -44,15 +44,21 @@ class dotdict(dict):
 
 class ExceptionPathDoesntExist(Exception): pass
 
-def LoadConfig(srcpath="", just_load=False):
+def LoadConfig(*args, srcpath="", just_load=False):
     """ Determine the input path """
+
+    if len(args) == 0:
+        args = sys.argv
+    else:
+        args = list(args)
+    print("LoadConfig", args, srcpath, just_load)
 
     replacements = dict(TYPE_Normal=0, TYPE_Rect=1, TYPE_Line=2, TYPE_Track=4)
     config = {}
 
     if not just_load:
         # get global variables from command line
-        for arg in sys.argv[1:]:
+        for arg in args[1:]:
             if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
                 key, value = arg[1:].split("=", 1)
                 if key == "srcpath" and value != "":
@@ -62,8 +68,8 @@ def LoadConfig(srcpath="", just_load=False):
                         sys.tracebacklimit = 0
                         raise ExceptionPathDoesntExist("ERROR: path "+value+" does not exist.")
 
-        if srcpath == "" and len(sys.argv) > 1 and sys.argv[1][0] != "-":
-            srcpath = sys.argv[1]
+        if srcpath == "" and len(args) > 1 and args[1][0] != "-":
+            srcpath = args[1]
 
         """ Get config data """
         # Search config recursive in the folder tree or from the command line
@@ -129,7 +135,7 @@ def LoadConfig(srcpath="", just_load=False):
     """ get command line data """
 
     # get global variables from command line
-    for arg in sys.argv[1:]:
+    for arg in args[1:]:
         if arg[0] == "-" and arg.find("=") != -1 and arg[1] != "_":
             key, value = arg[1:].split("=", 1)
             if key == "srcpath":
