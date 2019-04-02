@@ -399,12 +399,16 @@ def addList(data_file, path, list_filename):
 
 
 def GetSubdirectories(directory):
+    if directory == "":
+        directory = "."
     # return all subdirectories
     return [x[0] for x in os.walk(directory)]
 
 
 def GetFilesInDirectory(root):
     # return all file names which have and known file extension
+    if root == "":
+        root = "."
     return [filename for filename in next(os.walk(root))[2] if filename.lower().endswith(formats)]
 
 
