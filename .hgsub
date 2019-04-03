@@ -4,3 +4,4 @@ clickpoints/includes/qextendedgraphicsview = qextendedgraphicsview
 https://bitbucket\.org/fabry_biophysics/clickpoints/qextendedgraphicsview = https://bitbucket.org/fabry_biophysics/qextendedgraphicsview
 https://(.*@)bitbucket\.org/fabry_biophysics/clickpoints/qextendedgraphicsview = https://\1bitbucket.org/fabry_biophysics/qextendedgraphicsview
 ssh://(.*@)bitbucket\.org/fabry_biophysics/clickpoints/qextendedgraphicsview = ssh://\1bitbucket.org/fabry_biophysics/qextendedgraphicsview
+(.*Randrian45/)clickpoints.git/qextendedgraphicsview = \1qextendedgraphicsview.git
