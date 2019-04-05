@@ -27,6 +27,7 @@ import natsort
 import threading
 import time
 import numpy as np
+import asyncio
 
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
@@ -135,6 +136,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.view = QExtendedGraphicsView(dropTarget=self)
         self.layout.addWidget(self.view)
         self.view.zoomEvent = self.zoomEvent
+        self.view.panEvent = self.panEvent
         self.local_scene = self.view.scene
         self.origin = self.view.origin
 
@@ -178,9 +180,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 break
 
         # initialize some variables
-        self.new_filename = None
-        self.new_frame_number = None
-        self.loading_image = -1
         self.im = None
         self.layer_index = 1
         self.current_layer = None
@@ -343,7 +342,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
             BroadCastEvent(self.modules, "closeDataFile")
         # open new database
         self.data_file = Database.DataFileExtended(filename, config, storage_path=os.environ["CLICKPOINTS_TMP"])
-        self.data_file.signals.loaded.connect(self.FrameLoaded)
+        #self.data_file.signals.loaded.connect(self.FrameLoaded)
         # apply image rotation from config
         if self.data_file.getOption("rotation") != 0:
             self.view.rotate(self.data_file.getOption("rotation"))
@@ -407,6 +406,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
     # jump absolute
     def JumpToFrame(self, target_id, threaded=True):
+        asyncio.ensure_future(self.load_frame(target_id), loop=self.app.loop)
+
+    async def load_frame(self, target_id, layer_id=None):
         # if no frame is loaded yet, do nothing
         if self.data_file.get_image_count() == 0:
             return
@@ -416,66 +418,49 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         # Test if the new frame is valid
         if target_id >= self.data_file.get_image_count():
-            if self.target_frame == self.data_file.get_image_count()-1:
+            if self.target_frame == self.data_file.get_image_count() - 1:
                 target_id = 0
             else:
-                target_id = self.data_file.get_image_count()-1
+                target_id = self.data_file.get_image_count() - 1
+
         if target_id < 0:
             if self.target_frame == 0:
-                target_id = self.data_file.get_image_count()-1
+                target_id = self.data_file.get_image_count() - 1
             else:
                 target_id = 0
 
-        self.target_frame = target_id
-
-        # load the next frame (threaded or not)
-        # this will call FrameLoaded afterwards
-        if self.loading_image == -1:
-            self.loading_image = 1
-        else:
-            self.loading_image += 1
-
+        # ensure that we have a layer
         if self.current_layer is None:
             self.current_layer = self.data_file.table_layer.select().paginate(self.layer_index, 1)[0]
+        layer_id = self.current_layer
 
-        if self.data_file.getOption("threaded_image_load") and threaded:
-            self.data_file.load_frame(target_id, layer=self.current_layer.id, threaded=1)
-        else:
-            self.data_file.load_frame(target_id, layer=self.current_layer.id, threaded=0)
+        # get the database entry of the iamge
+        image_object = self.data_file.table_image.get(sort_index=target_id, layer_id=layer_id)
+
+        # load the image from disk
+        image = await self.data_file.load_frame_async(image_object, target_id, layer=layer_id)
+
+        # set the index of the current frame
+        self.data_file.set_image(target_id, layer_id)
+
+        # Notify that the frame will be loaded
+        BroadCastEvent(self.modules, "frameChangedEvent")
+        self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (image_object.filename, self.data_file.getFilename(), self.current_layer.name))
+
+        # display the image
+        await self.ImageDisplay.SetImage_async(image, self.data_file.get_offset())
+
+        # tell the QExtendedGraphicsView the shape of the new image
+        self.view.setExtend(*image.shape[:2][::-1])
+
+        # notify all modules that a new frame is loaded
+        BroadCastEvent(self.modules, "imageLoadedEvent", image_object.filename, target_id)
+
+        self.target_frame = target_id
 
     def CenterOn(self, x, y):
         print("Center on: %d %d" % (x,y))
         self.view.centerOn(float(x),float(y))
-
-    def FrameLoaded(self, frame_number, layer, threaded=True):
-        # set the index of the current frame
-        self.data_file.set_image(frame_number, layer)
-
-        # get filename and frame number
-        self.new_filename = self.data_file.image.filename
-        self.new_frame_number = self.target_frame
-
-        # Notify that the frame will be loaded TODO are all these events necessary?
-        BroadCastEvent(self.modules, "frameChangedEvent")
-        self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (self.new_filename, self.data_file.getFilename(), self.current_layer.name))
-
-        # get image
-        self.im = self.data_file.get_image_data()
-
-        # get offsets
-        offset = self.data_file.get_offset()
-
-        # display the image
-        self.ImageDisplay.SetImage(self.im, offset, threaded)  # calls DisplayedImage
-
-    def DisplayedImage(self):
-        # tell the QExtendedGraphicsView the shape of the new image
-        self.view.setExtend(*self.im.shape[:2][::-1])
-
-        # notify all modules that a new frame is loaded
-        BroadCastEvent(self.modules, "imageLoadedEvent", self.new_filename, self.new_frame_number)
-
-        self.loading_image -= 1
 
     """ some Qt events which should be passed around """
 
@@ -513,6 +498,10 @@ class ClickPointsWindow(QtWidgets.QWidget):
     def zoomEvent(self, scale, pos):
         # broadcast event to the modules
         BroadCastEvent(self.modules, "zoomEvent", scale, pos)
+
+    def panEvent(self, xoff, yoff):
+        # broadcast event to the modules
+        BroadCastEvent(self.modules, "panEvent", xoff, yoff)
 
     def keyReleaseEvent(self, event):
         # broadcast event to the modules

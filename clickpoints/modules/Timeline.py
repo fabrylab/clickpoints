@@ -25,7 +25,7 @@ import time
 import numpy as np
 import re
 import datetime
-from threading import Thread
+import asyncio
 
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
@@ -825,47 +825,6 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
 def PosToArray(pos):
     return np.array([pos.x(), pos.y()])
 
-class PreciseTimer(QtCore.QObject):
-    timeout = QtCore.Signal()
-    thread = None
-    timer_start = None
-    delta = 1
-    count = 1
-    run = False
-    active = 1
-
-    def __init__(self, ):
-        QtCore.QObject.__init__(self)
-        self.timer_start = time.time()
-
-    def start(self, delta=None):
-        if delta is not None:
-            self.delta = delta
-        self.timer_start = time.time()
-        self.count = 1
-        if not self.run:
-            self.run = True
-            if self.thread is not None:
-                self.thread.join()
-            self.thread = Thread(target=self.thread_timer, args=tuple())
-            self.thread.start()
-
-    def stop(self):
-        self.run = False
-        if self.thread is not None:
-            self.thread.join()
-
-    def allow_next(self):
-        self.active = 1
-
-    def thread_timer(self):
-        while self.run:
-            if (time.time()-self.timer_start)*1e3 > self.delta*self.count and self.active:
-                self.count = int((time.time()-self.timer_start)*1e3//self.delta)+1
-                self.timeout.emit()
-                self.active = 0
-            time.sleep(0.01)
-
 
 class Timeline(QtCore.QObject):
     images_added_signal = QtCore.Signal()
@@ -971,12 +930,43 @@ class Timeline(QtCore.QObject):
         # video replay
         self.current_fps = 0
         self.last_time = time.time()
-        self.timer = PreciseTimer()
-        self.timer.timeout.connect(self.updateFrame)
+        # initialize the frame timer
+        loop = self.window.app.loop
+        asyncio.ensure_future(self.runTimer(loop), loop=loop)
 
         self.hidden = True
 
         self.closeDataFile()
+
+    async def runTimer(self, loop):
+
+        t = time.time()
+        target_fps = 25
+        self.target_delta_t = 1 / target_fps
+        last_overhead = 0
+        mean_fps = target_fps
+        averaging_decay = 0.9
+
+        while True:
+            if self.running:
+                wait = loop.create_task(asyncio.sleep(self.target_delta_t - last_overhead))
+                if self.data_file is None or self.get_current_frame() is None:
+                    return
+                if self.get_current_frame() < self.frameSlider.startValue() or self.get_current_frame()+self.skip > self.frameSlider.endValue():
+                    await self.window.load_frame(self.frameSlider.startValue())
+                else:
+                    await self.window.load_frame(self.window.target_frame + self.skip)
+                await wait
+
+                # calculate the time slip
+                delta_t = time.time() - t
+                t = time.time()
+                last_overhead += 0.1 * (delta_t - self.target_delta_t)
+
+                mean_fps = averaging_decay * mean_fps + (1 - averaging_decay) * 1 / delta_t
+            else:
+                await asyncio.sleep(0.01)
+                t = time.time()
 
     def closeDataFile(self):
         self.data_file = None
@@ -1071,7 +1061,9 @@ class Timeline(QtCore.QObject):
         self.fps = self.spinBox_FPS.value()
         self.data_file.setOption("fps", self.fps)
         if self.playing:
-            self.timer.start(1000 / self.fps)
+            self.target_delta_t = 1 / self.fps
+            self.running = True
+            #self.timer.start(1000 / self.fps)
 
     def ReleasedSlider(self):
         n = self.frameSlider.value()
@@ -1092,11 +1084,14 @@ class Timeline(QtCore.QObject):
 
     def Play(self, state):
         if state:
-            self.timer.start(1000 / self.fps)
+            self.target_delta_t = 1 / self.fps
+            self.running = True
+            #self.timer.start(1000 / self.fps)
             self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "pause.ico")))
             self.playing = True
         else:
-            self.timer.stop()
+            self.running = False
+            #self.timer.stop()
             self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "play.ico")))
             self.playing = False
 
@@ -1151,7 +1146,7 @@ class Timeline(QtCore.QObject):
             self.current_fps = a*self.current_fps + (1-a) * 1/dt
 
         self.updateLabel()
-        self.timer.allow_next()
+        #self.timer.allow_next() TODO
 
     def MaskAdded(self):
         self.frameSlider.addTickMarker(self.get_current_frame(), type=1)

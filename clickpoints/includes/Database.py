@@ -411,33 +411,19 @@ class DataFileExtended(DataFile):
         # return the current image index
         return self.current_layer
 
-    def load_frame(self, index, threaded, layer=1):
+    async def load_frame_async(self, image, index, layer):
         # check if frame is already buffered then we don't need to load it
-        if self.buffer.get_frame(index, layer) is not None:
-            self.signals.loaded.emit(index, layer, threaded)
-            return
-        # if we are still loading a frame finish first
-        if self.thread:
-            self.thread.join()
-        # query the information on the image to load
-        image = self.table_image.get(sort_index=index, layer_id=layer)
-        filename = os.path.join(image.path.path, image.filename)
-        # replace samba path for linux
-        if platform.system() == 'Linux' and filename.startswith("\\\\"):
-            filename = "/mnt/" + filename[2:].replace("\\", "/")
-        # apply replace pattern
-        if self.replace is not None:
-            filename = filename.replace(self.replace[0], self.replace[1])
+        frame = self.buffer.get_frame(index, layer)
+        if frame is not None:
+            return frame
+        filename = image.get_full_filename()
         # prepare a slot in the buffer
         slots, slot_index, = self.buffer.prepare_slot(index, layer)
         # call buffer_frame in a separate thread or directly
-        if threaded:
-            self.thread = Thread(target=self.buffer_frame, args=(image, filename, slots, slot_index, index, layer, True, threaded))
-            self.thread.start()
-        else:
-            return self.buffer_frame(image, filename, slots, slot_index, index, layer=layer, threaded=threaded)
+        frame = await self.buffer_frame_async(image, filename, slots, slot_index, index, layer=layer)
+        return frame
 
-    def buffer_frame(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
+    async def buffer_frame_async(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
         # if we have already a reader...
         if self.reader:
             # ... check if it is the right one, if not delete it
@@ -465,7 +451,7 @@ class DataFileExtended(DataFile):
                     self.reader = imageio.get_reader(filename)
                     self.reader.filename = filename
                     self.reader.is_slide = False
-                except (IOError, ValueError):
+                except (IOError, ValueError, SyntaxError):
                     pass
         # get the data from the reader
         image_data = None
@@ -478,26 +464,16 @@ class DataFileExtended(DataFile):
         if image_data is None:
             width = image.width if image.width is not None else 640
             height = image.height if image.height is not None else 480
-            image_data = np.zeros((height, width))
-        # do an automatic contrast enhancement
-        if self.getOptionAccess().auto_contrast:
-            image_data = image_data-np.amin(image_data)
-            image_data = (image_data/np.amax(image_data)*256).astype(np.uint8)
-        # scale 12 bit images
-        elif 2**8 < np.amax(image_data) < 2**12:
-            image_data = (image_data/16).astype(np.uint8)
-        # or 16 bit images
-        elif 2**12 < np.amax(image_data) < 2**16:
-            image_data = (image_data/256).astype(np.uint8)
+            image_data = np.zeros((height, width), dtype=np.uint8)
+
+        if self.reader and self.reader.is_slide:
+            image_data = self.reader
+
         # store data in the slot
         if slots is not None:
-            if self.reader.is_slide:
-                slots[slot_index] = self.reader
-            else:
-                slots[slot_index] = image_data
-        # notify that the frame has been loaded
-        if signal:
-            self.signals.loaded.emit(index, layer, threaded)
+            slots[slot_index] = image_data
+
+        return image_data
 
     def get_image_data(self, index=None, layer=None):
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):

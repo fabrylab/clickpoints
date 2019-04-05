@@ -2870,8 +2870,7 @@ class MarkerHandler:
     def setCursor(self, cursor_name):
         # if no cursor is given, hide the cursor
         if cursor_name is None:
-            for pixmap in self.window.ImageDisplay.pixMapItems:
-                pixmap.unsetCursor()
+            self.window.ImageDisplay.unsetCursor()
         else:
             # get the cursor from file or name
             if cursor_name.startswith("fa."):
@@ -2893,8 +2892,7 @@ class MarkerHandler:
             cursor = QtGui.QCursor(QtGui.QPixmap(array2qimage(cursor3)), 0, 0)
 
             # and the the cursor as the active one
-            for pixmap in self.window.ImageDisplay.pixMapItems:
-                pixmap.setCursor(cursor)
+            self.window.ImageDisplay.setCursor(cursor)
 
     def eventToolSelected(self, module, tool):
         if module == "Marker":
