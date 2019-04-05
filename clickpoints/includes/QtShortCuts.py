@@ -141,8 +141,12 @@ class QInputNumber(QInput):
 
         if min is not None:
             self.spin_box.setMinimum(min)
+        else:
+            self.spin_box.setMinimum(-99999)
         if max is not None:
             self.spin_box.setMaximum(max)
+        else:
+            self.spin_box.setMaximum(+99999)
 
         self.setValue(value)
 
