@@ -78,12 +78,17 @@ def main(*args):
     import ctypes
     from clickpoints.Core import ClickPointsWindow
     from clickpoints.includes import LoadConfig
+    import quamash
+    import asyncio
 
     from clickpoints import define_paths
 
     define_paths()
 
     app = QtWidgets.QApplication(args)
+    loop = quamash.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    app.loop = loop
 
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
@@ -93,10 +98,11 @@ def main(*args):
     # load config and exec addon code
     config = LoadConfig(*args)
 
-    # init and open the ClickPoints window
-    window = ClickPointsWindow(config, app)
-    window.show()
-    app.exec_()
+    with loop:
+        # init and open the ClickPoints window
+        window = ClickPointsWindow(config, app)
+        window.show()
+        loop.run_forever()
 
 
 # start the main function as entry point

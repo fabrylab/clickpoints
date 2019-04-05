@@ -526,8 +526,7 @@ class MaskTool:
 
     def unsetCursor(self):
         # if no cursor is given, hide the cursor
-        for pixmap in self.parent.ImageDisplay.pixMapItems:
-            pixmap.unsetCursor()
+        self.parent.ImageDisplay.unsetCursor()
 
     def setCursor(self):
         icon = self.getIcon(color=QtGui.QColor(255, 255, 255))
@@ -545,8 +544,7 @@ class MaskTool:
         cursor = QtGui.QCursor(QtGui.QPixmap(array2qimage(cursor3)), 0, 0)
 
         # and the the cursor as the active one
-        for pixmap in self.parent.ImageDisplay.pixMapItems:
-            pixmap.setCursor(cursor)
+        self.parent.ImageDisplay.setCursor(cursor)
 
     def sceneEventFilter(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneWheel:

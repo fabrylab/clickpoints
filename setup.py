@@ -48,6 +48,7 @@ setup(name='clickpoints',
                         'imageio',
                         'natsort',
                         'sortedcontainers',
-                        'psutil'
+                        'psutil',
+                        'quamash'
                        ],
       include_package_data=True)

@@ -439,6 +439,16 @@ class DataFile:
                 # return the image
                 return self.database_class._reader.get_data(self.frame)
 
+            def get_full_filename(self):
+                filename = os.path.join(self.path.path, self.filename)
+                # replace samba path for linux
+                if platform.system() == 'Linux' and filename.startswith("\\\\"):
+                    filename = "/mnt/" + filename[2:].replace("\\", "/")
+                # apply replace pattern
+                if self.database_class.replace is not None:
+                    filename = filename.replace(self.database_class.replace[0], self.database_class.replace[1])
+                return filename
+
             def __getattribute__(self, item):
                 if item == "mask":
                     try:

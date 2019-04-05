@@ -34,6 +34,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
     config = None
     schedule_update = False
 
+    initialized = False
+
     def __init__(self, parent_hud, image_display, window):
         QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
         self.window = window
@@ -58,28 +60,6 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.conv.setPos(0, 110)
 
         self.sliders = {}
-        functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
-        min_max = [[0, 2], [0, 255], [0, 255]]
-        start = [1, 255, 0]
-        formats = [" %.2f", "    %3d", "    %3d"]
-        for i, name in enumerate(["Gamma", "Max", "Min"]):
-            slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0], font=window.mono_font, scale=self.window.scale_factor)
-            slider.format = formats[i]
-            slider.setPos(5, 40 + i * 30)
-            slider.setValue(start[i])
-            slider.valueChanged = functions[i]
-            self.sliders.update({name: slider})
-
-        self.button_update = TextButton(self, 50, "update", font=window.mono_font, scale=self.window.scale_factor)
-        self.button_update.setPos(3, 40 + 3 * 30 - 20)
-        self.button_update.clicked.connect(self.updateROI)
-        self.button_reset = TextButton(self, 50, "reset", font=window.mono_font, scale=self.window.scale_factor)
-        self.button_reset.setPos(56, 40 + 3 * 30 - 20)
-        self.button_reset.clicked.connect(self.reset)
-
-        self.setRect(QtCore.QRectF(0, 0, 110, 110+18))
-        BoxGrabber(self)
-        self.dragged = False
 
         self.button_brightness = QtWidgets.QPushButton()
         self.button_brightness.setCheckable(True)
@@ -91,7 +71,35 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.hidden = False
         self.ToggleInterfaceEvent(hidden=True)
 
-        self.current_layer=0
+        self.current_layer = 0
+
+    def initSliders(self):
+        functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
+        self.max_value = self.image.image_pixMapItem.max_value
+        min_max = [[0, 2], [0, self.max_value], [0, self.max_value]]
+        start = [1, self.max_value, 0]
+        formats = [" %.2f", "    %3d", "    %3d"]
+        for i, name in enumerate(["Gamma", "Max", "Min"]):
+            slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0],
+                              font=self.window.mono_font, scale=self.window.scale_factor)
+            slider.format = formats[i]
+            slider.setPos(5, 40 + i * 30)
+            slider.setValue(start[i])
+            slider.valueChanged = functions[i]
+            self.sliders.update({name: slider})
+
+        self.button_update = TextButton(self, 50, "update", font=self.window.mono_font, scale=self.window.scale_factor)
+        self.button_update.setPos(3, 40 + 3 * 30 - 20)
+        self.button_update.clicked.connect(self.updateROI)
+        self.button_reset = TextButton(self, 50, "reset", font=self.window.mono_font, scale=self.window.scale_factor)
+        self.button_reset.setPos(56, 40 + 3 * 30 - 20)
+        self.button_reset.clicked.connect(self.reset)
+
+        self.setRect(QtCore.QRectF(0, 0, 110, 110 + 18))
+        BoxGrabber(self)
+        self.dragged = False
+
+        self.ToggleInterfaceEvent(hidden=True)
 
     def closeDataFile(self):
         self.data_file = None
@@ -120,16 +128,18 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         if hist is None:
             return
         histpath = QtGui.QPainterPath()
-        w = 100 / 256.
-        for i, h in enumerate(hist[0]):
-            histpath.addRect(i * w + 5, 0, w, -h * 100 / max(hist[0]))
+        w = 100. / self.max_value
+        h = 98./max(hist[0])
+        for i, v in enumerate(hist[0]):
+            histpath.addRect(i * w + 5, 0, w, -v * h)
         self.hist.setPath(histpath)
 
     def updateConv(self):
         convpath = QtGui.QPainterPath()
-        w = 100 / 256.
-        for i, h in enumerate(self.image.conversion):
-            convpath.lineTo(i * w + 5, -h * 98 / 255.)
+        w = 100. / len(self.image.conversion)
+        h = 98./255
+        for i, v in enumerate(self.image.conversion):
+            convpath.lineTo(float(i) * w + 5, -float(v) * h)
         self.conv.setPath(convpath)
 
     def updateGamma(self, value):
@@ -148,7 +158,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
                 contrast_old.update({self.current_layer: old_value})
                 self.config.contrast = contrast_old
             else:
-                contrast_old.update({self.current_layer: [value, 255, 0]})
+                contrast_old.update({self.current_layer: [value, self.max_value, 0]})
                 self.config.contrast = contrast_old
         QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -188,7 +198,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
                 contrast_old.update({self.current_layer: old_value})
                 self.config.contrast = contrast_old
             else:
-                contrast_old.update({self.current_layer: [1.0, 255, value]})
+                contrast_old.update({self.current_layer: [1.0, self.max_value, value]})
                 self.config.contrast = contrast_old
 
         QtWidgets.QApplication.restoreOverrideCursor()
@@ -221,6 +231,9 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def imageLoadedEvent(self, filename="", frame_number=0):
+        if not self.initialized:
+            self.initialized = True
+            self.initSliders()
         if self.image.preview_rect is not None:
             self.updateHist(self.image.hist)
         if self.schedule_update:
@@ -246,7 +259,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
 
     def updateROI(self):
         #QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-        self.image.PreviewRect()
+        #self.image.PreviewRect()
         self.image.Change()
         self.updateHist(self.image.hist)
         QtWidgets.QApplication.restoreOverrideCursor()

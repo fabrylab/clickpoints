@@ -35,20 +35,80 @@ def BoundBy(value, min, max):
         return max
     return value
 
+
+def generateLUT(min, max, gamma, bins):
+    if min >= max:
+        min = max-1
+    if min < 0:
+        min = 0
+    if max >= bins:
+        max = bins-1
+    if max <= min:
+        max = min+1
+    dynamic_range = max - min
+    conversion = np.arange(0, int(bins), dtype=np.uint8)
+    conversion[:min] = 0
+    conversion[min:max] = np.power(np.linspace(0, 1, dynamic_range, endpoint=False), gamma) * 255
+    conversion[max:] = 255
+    return conversion
+
+
 class ImageDisplaySignal(QtCore.QObject):
     display = QtCore.Signal()
+
+
+def array2qimage(a):
+    if a.shape[2] == 3:
+        return QtGui.QImage(a, a.shape[1], a.shape[0], QtGui.QImage.Format_RGB888)
+    if a.shape[2] == 4:
+        return QtGui.QImage(a, a.shape[1], a.shape[0], QtGui.QImage.Format_RGBA8888)
+    im = QtGui.QImage(a, a.shape[1], a.shape[0], QtGui.QImage.Format_Grayscale8)
+    return im
+
+
+class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
+    conversion = None
+    max_value = 256
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.setImage = self.setImageFirstTime
+
+    def setImage(self, image):
+        pass
+
+    def setImageFirstTime(self, image):
+        # set image called for the first time, therefore, we set a conversion if none is set
+        if image.dtype == np.uint16:
+            if image.max() < 2**12:
+                self.max_value = 2**12
+            else:
+                self.max_value = 2**16
+            self.setConversion(generateLUT(0, self.max_value, 1, 2**16))
+        else:
+            self.setImage = self.setImageDirect
+        self.setImage(image)
+
+    def setImageDirect(self, image):
+        self.setPixmap(QtGui.QPixmap(array2qimage(image.astype(np.uint8))))
+
+    def setImageLUT(self, image):
+        self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
+
+    def setConversion(self, conversion):
+        self.conversion = conversion
+        if isinstance(conversion, np.ndarray):
+            self.setImage = self.setImageLUT
+        else:
+            self.setImage = self.setImageDirect
+
+
 
 class BigImageDisplay:
     data_file = None
     config = None
 
     def __init__(self, origin, window):
-        self.number_of_imagesX = 0
-        self.number_of_imagesY = 0
-        self.pixMapItems = []
-        self.QImages = []
-        self.QImageViews = []
-        self.ImageSlices = []
         self.origin = origin
         self.window = window
 
@@ -59,6 +119,9 @@ class BigImageDisplay:
         self.background_rect = QtWidgets.QGraphicsRectItem(self.origin)
         self.background_rect.setRect(0, 0, 10, 10)
         self.background_rect.setZValue(15)
+
+        self.image_pixMapItem = MyQGraphicsPixmapItem(self.origin)
+        self.image_pixMapItem.setZValue(1)
 
         self.preview_pixMapItem = QtWidgets.QGraphicsPixmapItem(self.origin)
         self.preview_pixMapItem.setZValue(10)
@@ -73,16 +136,18 @@ class BigImageDisplay:
 
         self.gamma = 1
         self.min = 0
-        self.max = 255
+        self.max = None
 
         self.eventFilters = []
 
-        self.signal_images_prepared = ImageDisplaySignal()
-        self.signal_images_prepared.display.connect(self.UpdatePixmaps)
-        self.thread = None
-
         self.last_offset = np.array([0, 0])
         self.new_offset = np.array([0, 0])
+
+    def setCursor(self, cursor):
+        self.image_pixMapItem.setCursor(cursor)
+
+    def unsetCursor(self):
+        self.image_pixMapItem.unsetCursor()
 
     def closeDataFile(self):
         if self.thread is not None:
@@ -102,62 +167,30 @@ class BigImageDisplay:
         self.background_rect.setAcceptHoverEvents(True)
         self.background_rect.installSceneEventFilter(event_filter)
 
-    def UpdatePixmapCount(self):
-        # Create new tiles if needed
-        for i in range(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
-            # the first has the origin as parent, all others have the first image as parent
-            if i == 0:
-                new_pixmap = QtWidgets.QGraphicsPixmapItem(self.origin)
-            else:
-                new_pixmap = QtWidgets.QGraphicsPixmapItem(self.pixMapItems[0])
-            # create new entries in the arrays
-            self.pixMapItems.append(new_pixmap)
-            self.ImageSlices.append(None)
-            self.QImages.append(None)
-            self.QImageViews.append(None)
-
-            # install all eventfilters for the new pixmaps
-            #new_pixmap.setAcceptHoverEvents(True)
-            #for event_filter in self.eventFilters:
-            #    new_pixmap.installSceneEventFilter(event_filter)
-
-        # Hide images which are not needed at the moment
-        for i in range(self.number_of_imagesX * self.number_of_imagesY, len(self.pixMapItems)):
-            im = np.zeros((1, 1, 1))
-            self.pixMapItems[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
-            self.pixMapItems[i].setOffset(0, 0)
-
-    def SetImage(self, image, offset, threaded):
+    async def SetImage_async(self, image, offset):
         self.background_rect.setRect(0, 0, image.shape[1], image.shape[0])
         # if image doesn't have a dimension for color channels, add one
         if len(image.shape) == 2:
             image = image.reshape((image.shape[0], image.shape[1], 1))
-        if image is not None and not isinstance(image, np.ndarray):  # is slide
-            self.number_of_imagesX = 1
-            self.number_of_imagesY = 1
-        else:
-            # get number of tiles
-            self.number_of_imagesX = int(np.ceil(image.shape[1] / self.config.max_image_size))
-            self.number_of_imagesY = int(np.ceil(image.shape[0] / self.config.max_image_size))
-        # update pixmaps to new number of tiles
-        self.UpdatePixmapCount()
 
         # store the image
         self.image = image
 
-        # call PrepareImageDisplay threaded or directly
-        if self.data_file.getOption("threaded_image_display") and threaded:
-            self.thread = Thread(target=self.PrepareImageDisplay, args=(image, np.array(offset)))
-            self.thread.start()
+        if not isinstance(image, np.ndarray):
+            image = self.image.read_region((0, 0), self.image.level_count - 1,
+                                           self.image.level_dimensions[self.image.level_count - 1])
+            image = np.asarray(image)
+            self.image_pixMapItem.setImage(image)
+            self.image_pixMapItem.setScale(self.image.level_downsamples[-1])
+            self.slice_zoom_image = image
+            self.updateSlideView()
         else:
-            self.PrepareImageDisplay(image, np.array(offset))
-
-    def closeEvent(self, QCloseEvent):
-        if self.thread is not None:
-            self.thread.join()
+            self.image_pixMapItem.setImage(image)
+            self.image_pixMapItem.setScale(1)
+            self.slice_zoom_pixmap.setVisible(False)
 
     def updateSlideView(self):
-        if not isinstance(self.image, np.ndarray):  # is slide
+        if self.image is not None and not isinstance(self.image, np.ndarray):  # is slide
             preview_rect = np.array(self.window.view.GetExtend(True)).astype("int") + np.array([0, 0, 1, 1])
             for i in [0, 1]:
                 if preview_rect[i] < 0:
@@ -166,8 +199,6 @@ class BigImageDisplay:
                     preview_rect[i + 2] = self.image.dimensions[i] + preview_rect[i]
 
             level = self.image.get_best_level_for_downsample(1 / self.window.view.getOriginScale())
-            #if level == self.last_level:
-            #    return
             self.last_level = level
             downsample = self.image.level_downsamples[level]
 
@@ -180,87 +211,6 @@ class BigImageDisplay:
             self.slice_zoom_pixmap.setOffset(*(np.array(preview_rect[0:2]) / downsample))
             self.slice_zoom_pixmap.setScale(downsample)
             self.slice_zoom_pixmap.show()
-
-    def PrepareImageDisplay(self, image, offset):
-        # set all the tiles to hide, so that in the end only the ones that will be used are shown
-        for i in range(len(self.pixMapItems)):
-            self.pixMapItems[i].to_hide = True
-        if not isinstance(image, np.ndarray):
-            image = self.image.read_region((0, 0), self.image.level_count - 1,
-                                           self.image.level_dimensions[self.image.level_count - 1])
-            image = np.asarray(image)
-            self.QImages[0] = array2qimage(image)
-            self.pixMapItems[0].setScale(self.image.level_downsamples[-1])
-            self.pixMapItems[0].to_hide = False
-            self.slice_zoom_image = image
-        else:
-            # iterate over tiles
-            for y in range(self.number_of_imagesY):
-                for x in range(self.number_of_imagesX):
-                    # determine tile region
-                    i = y * self.number_of_imagesX + x
-                    start_x = x * self.config.max_image_size
-                    start_y = y * self.config.max_image_size
-                    end_x = min([(x + 1) * self.config.max_image_size, image.shape[1]])
-                    end_y = min([(y + 1) * self.config.max_image_size, image.shape[0]])
-                    # retrieve image slice and convert it to qimage
-                    self.ImageSlices[i] = image[start_y:end_y, start_x:end_x, :]
-                    self.QImages[i] = array2qimage(image[start_y:end_y, start_x:end_x, :])
-                    self.QImageViews[i] = rgb_view(self.QImages[i])
-                    # set the offset for the tile
-                    self.pixMapItems[i].setOffset(start_x, start_y)
-                    self.pixMapItems[i].setScale(1)
-                    # store that we want to show that tile
-                    self.pixMapItems[i].to_hide = False
-        # hide or show the tiles
-        for i in range(len(self.pixMapItems)):
-            # hide a tile
-            if self.pixMapItems[i].to_hide and self.pixMapItems[i].isVisible():
-                self.pixMapItems[i].hide()
-            # show a tile
-            elif self.pixMapItems[i].to_hide is False and not self.pixMapItems[i].isVisible():
-                self.pixMapItems[i].show()
-        self.slice_zoom_pixmap.hide()
-
-        self.new_offset = offset
-
-        # emmit signal which calls UpdatePixmaps
-        self.signal_images_prepared.display.emit()
-
-    def UpdatePixmaps(self):
-        # revert last offset and apply new one
-        self.window.view.DoTranslateOrigin(-self.last_offset)
-        self.window.view.DoTranslateOrigin(self.new_offset)
-        self.last_offset = self.new_offset
-
-        # fill all pixmaps with the corresponding qimages
-        for i in range(len(self.pixMapItems)):
-            self.pixMapItems[i].setPixmap(QtGui.QPixmap(self.QImages[i]))
-        # if display region is choosen update it
-        if self.preview_rect is not None:
-            self.UpdatePreviewImage()
-            self.Change()
-        # set painted flag to false and execute callback
-        self.window.view.painted = False
-        self.window.DisplayedImage()
-
-    def ResetPreview(self):
-        # reset pixmap, display image, recgion and conversion
-        self.preview_pixMapItem.setPixmap(QtGui.QPixmap())
-        self.preview_slice = None
-        self.preview_rect = None
-        self.conversion = None
-        self.min = 0
-        self.max = 255
-        self.gamma = 1
-
-    def PreviewRect(self):
-        # get currently displayed rect as int (add one pixel to account for fraction values)
-        self.preview_rect = np.array(self.window.view.GetExtend(True)).astype("int")+np.array([0, 0, 1, 1])
-        # add currently used display offset
-        self.preview_rect += np.hstack((self.last_offset, self.last_offset)).astype("int")
-        # update the displayed gamma correction
-        self.UpdatePreviewImage()
 
     def GetImageRect(self, rect, use_max_image_size=False):
         if not isinstance(self.image, np.ndarray):
@@ -284,21 +234,15 @@ class BigImageDisplay:
         rect = self.preview_rect-np.hstack((self.last_offset, self.last_offset))
         # extract the image rect
         self.preview_slice, start_x, start_y = self.GetImageRect(rect, use_max_image_size=True)
-        # crate a qimage and a view to it
-        self.preview_qimage = array2qimage(self.preview_slice)
-        self.preview_qimageView = rgb_view(self.preview_qimage)
-        # add pixmap and set offsets
-        if isinstance(self.image, np.ndarray):
-            self.preview_pixMapItem.setPixmap(QtGui.QPixmap(self.preview_qimage))
-            self.preview_pixMapItem.setOffset(start_x, start_y)
-            self.preview_pixMapItem.setParentItem(self.pixMapItems[0])
+
         # calculate histogram over image patch
-        self.hist = np.histogram(self.preview_slice.flatten(), bins=range(0, 256), density=True)
+        #self.hist = np.histogram(self.preview_slice.flatten(), bins=np.linspace(0, 2**12, 255), density=True)
 
     def Change(self, gamma=None, min_brightness=None, max_brightness=None):
-        # if no display rect is selected choose current region
-        if self.preview_slice is None:
-            self.PreviewRect()
+        if not isinstance(self.image, np.ndarray):
+            return
+        if self.hist is None:
+            self.hist = np.histogram(self.image.flatten(), bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
         # update gamma if set
         if gamma is not None:
             if gamma > 1:
@@ -310,15 +254,20 @@ class BigImageDisplay:
         # update max brightness if set
         if max_brightness is not None:
             self.max = int(max_brightness)
+        elif self.max is None:
+            self.max = self.image_pixMapItem.max_value
+        # ensure that min is smaller than max
+        if self.min >= self.max:
+            if self.max == 0:
+                self.max = self.min + 1
+            else:
+                self.min = self.max-1
+
         # calculate conversion look up table
-        color_range = self.max - self.min
-        self.conversion = np.arange(0, 256)
-        self.conversion[:self.min] = 0
-        self.conversion[self.min:self.max] = np.power(np.arange(0, color_range) / color_range, self.gamma) * 256
-        self.conversion[self.max:] = 255
+        self.conversion = generateLUT(self.min, self.max, self.gamma, self.image_pixMapItem.max_value)
 
         if not isinstance(self.image, np.ndarray):  # is slide
             return
         # apply changes
-        self.preview_qimageView[:, :, :] = self.conversion[self.preview_slice.astype(np.uint8)[:, :, :3]]
-        self.preview_pixMapItem.setPixmap(QtGui.QPixmap(self.preview_qimage))
+        self.image_pixMapItem.setConversion(self.conversion)
+        self.image_pixMapItem.setImage(self.image)
