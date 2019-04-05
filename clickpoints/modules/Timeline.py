@@ -949,7 +949,7 @@ class Timeline(QtCore.QObject):
 
         while True:
             if self.running:
-                wait = loop.create_task(asyncio.sleep(self.target_delta_t - last_overhead))
+                wait = loop.create_task(asyncio.sleep(max(self.target_delta_t - last_overhead, 0)))
                 if self.data_file is None or self.get_current_frame() is None:
                     return
                 if self.get_current_frame() < self.frameSlider.startValue() or self.get_current_frame()+self.skip > self.frameSlider.endValue():

@@ -4,12 +4,10 @@
 
 .. |ClickPoints| image:: https://bitbucket.org/repo/a4axLL/images/3919025919-Logo.png
 
-|DOC|_ |Python27| |Python36| |License|_ |DOI|_
+|DOC|_  |Python36| |License|_ |DOI|_
 
 .. |DOC| image:: https://readthedocs.org/projects/clickpoints/badge/
 .. _DOC: http://clickpoints.readthedocs.io
-
-.. |Python27| image:: https://img.shields.io/badge/python-2.7-blue.svg
 
 .. |Python36| image:: https://img.shields.io/badge/python-3.6-blue.svg
 
