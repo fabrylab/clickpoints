@@ -135,6 +135,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.hist.setPath(histpath)
 
     def updateConv(self):
+        if self.image.conversion is None:
+            return
         convpath = QtGui.QPainterPath()
         w = 100. / len(self.image.conversion)
         h = 98./255
