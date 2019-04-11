@@ -2208,10 +2208,12 @@ class DataFile:
             the changed or created :py:class:`Layer` entry.
         """
 
+        base_layer = self._processLayerNameField(base_layer)
+
         try:
             layer = self.table_layer.get(**noNoneDict(id=id, name=layer_name, base_layer=base_layer))
         except peewee.DoesNotExist:
-            layer = self.table_layer(id=id)
+            return self.getLayer(layer_name=layer_name, base_layer=base_layer, id=id, create=True)
 
         setFields(layer, dict(name=layer_name, base_layer=base_layer))
         layer.save()
