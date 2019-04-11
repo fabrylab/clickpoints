@@ -238,6 +238,12 @@ class BigImageDisplay:
         # calculate histogram over image patch
         #self.hist = np.histogram(self.preview_slice.flatten(), bins=np.linspace(0, 2**12, 255), density=True)
 
+    def ResetPreview(self):
+        self.min = 0
+        self.max = self.image_pixMapItem.max_value
+        self.gamma = 1
+        self.Change()
+
     def Change(self, gamma=None, min_brightness=None, max_brightness=None):
         if not isinstance(self.image, np.ndarray):
             return
