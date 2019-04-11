@@ -1260,7 +1260,7 @@ class DataFile:
         self._AddOption(key="contrast_max", default=255, value_type="float", hidden=True)
         self._AddOption(key="contrast_min", default=0, value_type="float", hidden=True)
 
-        self._AddOption(key="contrast", default={0: [1.0, 255, 0]}, value_type="dict", hidden=True)
+        self._AddOption(key="contrast", default={}, value_type="dict", hidden=True)
 
         self._last_category = "Marker"
         self._AddOption(key="types", default={0: ["marker", [255, 0, 0], self.TYPE_Normal]}, value_type="dict", hidden=True)
