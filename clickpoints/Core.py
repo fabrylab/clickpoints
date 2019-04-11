@@ -432,10 +432,11 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # ensure that we have a layer
         if self.current_layer is None:
             self.current_layer = self.data_file.table_layer.select().paginate(self.layer_index, 1)[0]
+            BroadCastEvent(self.modules, "LayerChangedEvent", self.current_layer.id)
         layer_id = self.current_layer
 
-        # get the database entry of the iamge
-        image_object = self.data_file.table_image.get(sort_index=target_id, layer_id=layer_id)
+        # get the database entry of the image
+        image_object = self.data_file.table_image.get(sort_index=target_id, layer_id=layer_id.id)
 
         # load the image from disk
         image = await self.data_file.load_frame_async(image_object, target_id, layer=layer_id)
@@ -554,14 +555,14 @@ class ClickPointsWindow(QtWidgets.QWidget):
             else:
                 self.layer_index += 1
                 self.JumpFrames(0)
-                BroadCastEvent(self.modules, "LayerChangedEvent", self.layer_index)
+                BroadCastEvent(self.modules, "LayerChangedEvent", self.current_layer.id)
 
         if event.key() == QtCore.Qt.Key_PageDown:
             # @key PageDown: show next lower layer
             if self.layer_index > 1:
                 self.current_layer = self.data_file.table_layer.select().paginate(self.layer_index - 1, 1)[0]
                 self.layer_index -= 1
-                BroadCastEvent(self.modules, "LayerChangedEvent", self.layer_index)
+                BroadCastEvent(self.modules, "LayerChangedEvent", self.current_layer.id)
                 self.JumpFrames(0)
 
         if event.key() == QtCore.Qt.Key_Escape:

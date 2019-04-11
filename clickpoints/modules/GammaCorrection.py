@@ -120,9 +120,10 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.ToggleInterfaceEvent(hidden=self.config.contrast_interface_hidden)
         # if self.config.contrast_gamma != 1 or self.config.contrast_max != 255 or self.config.contrast_min != 0:
         #     self.schedule_update = True
-        if self.config.contrast[self.current_layer][0] != 1. or self.config.contrast[self.current_layer][1] != 255 or \
+        if self.current_layer in self.config.contrast:
+            if self.config.contrast[self.current_layer][0] != 1. or self.config.contrast[self.current_layer][1] != 255 or \
                         self.config.contrast[self.current_layer][2] != 0:
-            self.schedule_update = True
+                self.schedule_update = True
 
     def updateHist(self, hist):
         if hist is None:
@@ -212,21 +213,18 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             values = self.config.contrast[new_index]
             for i, name in enumerate(self.sliders):
                 self.sliders[name].setValue(values[i])
-            self.image.Change(gamma=values[0])
-            self.image.Change(max_brightness=values[1])
-            self.image.Change(min_brightness=values[2])
-            print("Setting to %s"%values)
+            self.image.Change(min_brightness=values[2], max_brightness=values[1], gamma=values[0])
             self.updateConv()
             if update_hist:
                 self.updateHist(self.image.hist)
         else:
-            values = self.config.contrast[0]
+            if len(self.config.contrast.keys()) == 0:
+                values = [1, self.image.image_pixMapItem.max_value, 0]
+            else:
+                values = self.config.contrast[list(self.config.contrast.keys())[0]]
             for i, name in enumerate(self.sliders):
                 self.sliders[name].setValue(values[i])
-            self.image.Change(gamma=values[0])
-            self.image.Change(max_brightness=values[1])
-            self.image.Change(min_brightness=values[2])
-            print("Setting to %s"%values)
+            self.image.Change(min_brightness=values[2], max_brightness=values[1], gamma=values[0])
             self.updateConv()
             if update_hist:
                 self.updateHist(self.image.hist)
