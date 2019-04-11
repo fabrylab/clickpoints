@@ -273,7 +273,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         end_y = BoundBy(end_y, start_y+1, image.shape[0])
         if (end_y-start_y) % 2 != 0: end_y -= 1
         if (end_x-start_x) % 2 != 0: end_x -= 1
-        self.preview_slice = np.zeros((end_y-start_y, end_x-start_x, 3), "uint8")
+        self.preview_slice = np.zeros((end_y-start_y, end_x-start_x, 3), self.window.ImageDisplay.image.dtype)
 
         # iterate over frames
         iter_range = range(start, end+1, skip)
@@ -303,7 +303,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
             end_y3 = BoundBy(end_y2, start_y3+1, image.shape[0])
 
             # extract cropped image
-            self.preview_slice[:] = 0
+            self.preview_slice = np.zeros((end_y-start_y, end_x-start_x, 3), self.window.ImageDisplay.image.dtype)
             self.preview_slice[start_y3-start_y2:self.preview_slice.shape[0]+(end_y3-end_y2), start_x3-start_x2:self.preview_slice.shape[1]+(end_x3-end_x2), :] = image[start_y3:end_y3, start_x3:end_x3, :3]
 
             # draw mask on the image
@@ -314,8 +314,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
                 self.preview_slice = shift(self.preview_slice, [offset_float[1], offset_float[0], 0])
 
             # use min/max & gamma correction
-            if self.window.ImageDisplay.conversion is not None:
-                self.preview_slice = self.window.ImageDisplay.conversion[self.preview_slice.astype(np.uint8)[:, :, :3]].astype(np.uint8)
+            if self.window.ImageDisplay.image_pixMapItem.conversion is not None:
+                self.preview_slice = self.window.ImageDisplay.image_pixMapItem.conversion[self.preview_slice[:, :, :3]]
 
             # convert image to PIL draw object
             pil_image = Image.fromarray(self.preview_slice)
