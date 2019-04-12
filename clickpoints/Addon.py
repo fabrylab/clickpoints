@@ -30,6 +30,7 @@ from .includes import QtShortCuts
 from .modules.OptionEditor import getOptionInputWidget
 from matplotlib import _pylab_helpers
 import threading
+import asyncio
 
 figures = {}
 
@@ -353,6 +354,7 @@ class Command:
 
 class Addon(QtWidgets.QWidget):
     _run_thread = None
+    _run_task = None
     _change_status = QtCore.Signal(int)
     _option_widgets = None
     _input_widgets = []
@@ -402,13 +404,27 @@ class Addon(QtWidgets.QWidget):
 
         # wrap the run function, so that it automatically updates the current state of the add-on (for the button state in ClickPoints)
         function = self.run
-        def run_wrapper(*args, **kwargs):
-            self.run_started()
-            try:
-                return function(*args, **kwargs)
-            finally:
-                self.run_stopped()
-        self.run = run_wrapper
+        if not asyncio.iscoroutinefunction(self.run):
+            function = self.run
+            def run_wrapper(*args, **kwargs):
+                self.run_started()
+                try:
+                    return function(*args, **kwargs)
+                finally:
+                    self.run_stopped()
+            self.run = run_wrapper
+        else:
+            function = self.run
+
+            async def run_wrapper(*args, **kwargs):
+                self.run_started()
+                try:
+                    return await function(*args, **kwargs)
+                finally:
+                    self.run_stopped()
+
+            self.run = run_wrapper
+            self.run_threaded = self.run_async
 
         self._input_widgets = []
 
@@ -487,11 +503,14 @@ class Addon(QtWidgets.QWidget):
         self.cp.stop = True
         if self._run_thread is not None:
             self._run_thread.join(1)
+        if self._run_task is not None:
+            self._run_task.cancel()
         self._run_thread = None
+        self._run_task = None
 
     def is_running(self):
         # check if the run thread is running
-        if self._run_thread and self._run_thread.isAlive():
+        if (self._run_task and not self._run_task.done()) or (self._run_thread and self._run_thread.isAlive()):
             return True
         return False
 
@@ -525,6 +544,23 @@ class Addon(QtWidgets.QWidget):
             self._run_thread = threading.Thread(target=self.run, args=(start_frame,))
             self._run_thread.daemon = True
             self._run_thread.start()
+
+    def run_async(self, start_frame=None, function=None):
+        if function is not None:
+            def run_wrapper(*args, **kwargs):
+                self.run_started()
+                try:
+                    function(*args, **kwargs)
+                finally:
+                    self.run_stopped()
+            self.run = run_wrapper
+        # start the run function in another thread, or stop it, if it is already running
+        if self.is_running():
+            self.terminate()
+        else:
+            if start_frame is None or isinstance(start_frame, bool):
+                start_frame = self.cp.getCurrentFrame()
+            self._run_task = asyncio.ensure_future(self.run(start_frame), loop=self.cp.window.app.loop)
 
     def run(self, start_frame=0):
         # here the add-on can implement it's run routine
