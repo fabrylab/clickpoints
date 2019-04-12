@@ -424,6 +424,9 @@ class DataFileExtended(DataFile):
         return frame
 
     async def buffer_frame_async(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
+        return self.buffer_frame(image, filename, slots, slot_index, index, layer, signal, threaded)
+
+    def buffer_frame(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
         # if we have already a reader...
         if self.reader:
             # ... check if it is the right one, if not delete it
