@@ -23,6 +23,7 @@ from __future__ import print_function, division
 import clickpoints
 import numpy as np
 import cv2
+import asyncio
 
 
 class Addon(clickpoints.Addon):
@@ -47,7 +48,7 @@ class Addon(clickpoints.Addon):
             self.db.setMarkerType("track", "#FFFF00", self.db.TYPE_Track)
             self.cp.reloadTypes()
 
-    def run(self, start_frame=0):
+    async def run(self, start_frame=0):
         # get the frame range
         self.start, self.end, self.skip = self.cp.getFrameRange()
 
@@ -89,10 +90,11 @@ class Addon(clickpoints.Addon):
             self.db.setMarkers(image=image, x=p1[:, 0], y=p1[:, 1], processed=0, track=list(tracks), type=list(types))
 
             # mark the marker in the last frame as processed
-            self.db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=list(tracks), type=list(types))
+            self.db.setMarkers(image=image_last, x=p0[:, 0], y=p0[:, 1], processed=1, track=list(tracks),
+                               type=list(types))
 
             # update ClickPoints
-            self.cp.jumpToFrameWait(image.sort_index)
+            await self.cp.window.load_frame(image.sort_index)
 
             # store positions and image
             p0 = p1[valid]
@@ -101,11 +103,10 @@ class Addon(clickpoints.Addon):
             image_last = image
             image_last_data8 = image_data8
 
+            # stop if there are no valid tracks
             if len(p0) == 0:
                 print("No tracks left")
                 return
 
-            # check if we should terminate
-            if self.cp.hasTerminateSignal():
-                print("Cancelled Tracking")
-                return
+            # add a task switch point to allow qt to display the next image
+            await asyncio.sleep(0)
