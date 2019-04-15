@@ -363,10 +363,6 @@ class Addon(QtWidgets.QWidget):
         # initialize the Widget base class
         QtWidgets.QWidget.__init__(self)
 
-        # overload two matplotlib functions to help use them from the run function from a different thread
-        plt.show = show
-        plt.figure = figure
-
         # initialize the command class to communicate with ClickPoints
         self.cp = Command(command, self)
 
@@ -405,6 +401,10 @@ class Addon(QtWidgets.QWidget):
         # wrap the run function, so that it automatically updates the current state of the add-on (for the button state in ClickPoints)
         function = self.run
         if not asyncio.iscoroutinefunction(self.run):
+            # overload two matplotlib functions to help use them from the run function from a different thread
+            plt.show = show
+            plt.figure = figure
+
             function = self.run
             def run_wrapper(*args, **kwargs):
                 self.run_started()
