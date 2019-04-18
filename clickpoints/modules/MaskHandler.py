@@ -106,6 +106,7 @@ class BigPaintableImageDisplay:
                 new_pixmap = QtWidgets.QGraphicsPixmapItem(self.origin)
             else:
                 new_pixmap = QtWidgets.QGraphicsPixmapItem(self.origin)
+            new_pixmap.setZValue(20)
             self.pixMapItems.append(new_pixmap)
             new_pixmap.setOpacity(self.opacity)
         # Hide images which are not needed
@@ -839,6 +840,7 @@ class MaskHandler:
         self.MaskDisplay = BigPaintableImageDisplay(parent)
         self.drawPathItem = QtWidgets.QGraphicsPathItem(parent)
         self.drawPathItem.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
+        self.drawPathItem.setZValue(20)
 
         # the mask_type chooser (the buttons for the different mask colors)
         self.maskTypeChooser = MaskTypeChooser(self, parent_hud)
