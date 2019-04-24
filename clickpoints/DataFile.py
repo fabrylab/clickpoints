@@ -1910,6 +1910,10 @@ class DataFile:
     def _processImagesField(self, images, frames, filenames, layer):
         if images is not None:
             if not isinstance(frames, (tuple, list)):
+                # if a number is provided, than it is the id of an image in the database
+                if isinstance(images, int):
+                    return self.getImage(id=images)
+                # if not, it should be an image entry object
                 return self.getImage(frame=images.sort_index, layer=images.layer.base_layer)
             new_images = []
             for image in images:
