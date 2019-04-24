@@ -32,7 +32,7 @@ requirements:
     - tifffile
     - scikit-image
     - opencv
-    - ffmpeg
+    - imageio-ffmpeg
 
 about:
     home: https://bitbucket.org/fabry_biophysics/clickpoints
