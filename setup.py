@@ -49,6 +49,7 @@ setup(name='clickpoints',
                         'natsort',
                         'sortedcontainers',
                         'psutil',
-                        'quamash'
+                        'imageio-ffmpeg',
+                        'quamash',
                        ],
       include_package_data=True)
