@@ -963,7 +963,7 @@ class Timeline(QtCore.QObject):
                 t = time.time()
                 last_overhead += 0.1 * (delta_t - self.target_delta_t)
 
-                mean_fps = averaging_decay * mean_fps + (1 - averaging_decay) * 1 / delta_t
+                mean_fps = averaging_decay * mean_fps + (1 - averaging_decay) * 1 / (delta_t + 1e-9)
             else:
                 await asyncio.sleep(0.01)
                 t = time.time()
