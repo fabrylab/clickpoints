@@ -29,6 +29,22 @@ import os
 import sys
 
 
+def array2qimage(a):
+    # get the dimensions and color channels
+    h, w, c = a.shape
+    # get the number of bytes per line
+    bytesPerLine = a.nbytes // h
+    # a grayscale image
+    if c == 1:
+        return QtGui.QImage(a.data, w, h, bytesPerLine, QtGui.QImage.Format_Grayscale8)
+    # a RGB image
+    if c == 3:
+        return QtGui.QImage(a.data, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
+    # a RGBa image
+    if c == 4:
+        return QtGui.QImage(a.data, w, h, bytesPerLine, QtGui.QImage.Format_RGBA8888)
+
+
 def disk(radius):
     disk_array = np.zeros((radius * 2 + 1, radius * 2 + 1))
     for x in range(radius * 2 + 1):
