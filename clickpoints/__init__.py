@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-__version__ = '1.7.0'
+__version__ = '1.8.0'
 
 from .Addon import Addon
 from .DataFile import DataFile, MaskDtypeMismatch, MaskDimensionMismatch, MaskDimensionUnknown
