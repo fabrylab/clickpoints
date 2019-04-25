@@ -22,8 +22,8 @@
 from __future__ import division, print_function
 from qtpy import QtGui, QtCore, QtWidgets
 import numpy as np
-from qimage2ndarray import array2qimage, rgb_view
-from threading import Thread
+from includes.Tools import array2qimage
+
 
 def BoundBy(value, min, max):
     # return value bound by min and max
@@ -55,15 +55,6 @@ def generateLUT(min, max, gamma, bins):
 
 class ImageDisplaySignal(QtCore.QObject):
     display = QtCore.Signal()
-
-
-def array2qimage(a):
-    if a.shape[2] == 3:
-        return QtGui.QImage(a, a.shape[1], a.shape[0], QtGui.QImage.Format_RGB888)
-    if a.shape[2] == 4:
-        return QtGui.QImage(a, a.shape[1], a.shape[0], QtGui.QImage.Format_RGBA8888)
-    im = QtGui.QImage(a, a.shape[1], a.shape[0], QtGui.QImage.Format_Grayscale8)
-    return im
 
 
 class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):

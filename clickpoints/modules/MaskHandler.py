@@ -31,8 +31,7 @@ from PIL import Image, ImageDraw
 from includes import QtShortCuts
 from includes.QtShortCuts import GetColorByIndex
 from includes.Tools import GraphicsItemEventFilter, BroadCastEvent, HTMLColorToRGB, IconFromFile, MyTextButtonGroup, \
-    MyToolGroup
-from qimage2ndarray import array2qimage
+    MyToolGroup, array2qimage
 from qtpy import QtGui, QtCore, QtWidgets
 from skimage import measure
 
