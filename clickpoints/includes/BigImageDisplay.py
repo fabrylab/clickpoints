@@ -22,7 +22,7 @@
 from __future__ import division, print_function
 from qtpy import QtGui, QtCore, QtWidgets
 import numpy as np
-from includes.Tools import array2qimage
+from clickpoints.includes.Tools import array2qimage
 
 
 def BoundBy(value, min, max):
