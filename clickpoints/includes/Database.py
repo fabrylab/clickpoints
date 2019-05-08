@@ -26,6 +26,7 @@ import glob
 import importlib
 import itertools
 import subprocess
+import math
 from datetime import datetime, timedelta, MINYEAR
 import peewee
 try:
@@ -50,6 +51,38 @@ import re
 # remove decompression bomb warning which is now an exception
 import PIL
 PIL.Image.MAX_IMAGE_PIXELS = None
+
+class PseudoSlide:
+    min_break_width = 1052
+
+    def __init__(self, image):
+        self.image = image
+        self.level_count = int(np.ceil(math.log(max(image.shape)/self.min_break_width, 2)))
+
+        self.dimensions = (image.shape[1], image.shape[0])
+        self.shape = image.shape
+
+        self.level_dimensions = []
+        self.level_downsamples = []
+        for i in range(self.level_count):
+            downsample = 1<<i
+            self.level_dimensions.append((int(np.ceil(self.dimensions[0]/downsample)), int(np.ceil(self.dimensions[1]/downsample))))
+            self.level_downsamples.append(downsample)
+
+    def get_best_level_for_downsample(self, downsample):
+        best = 0
+        for index, i in enumerate(self.level_downsamples):
+            if i < downsample:
+                best = index
+        return best
+
+    def read_region(self, location, level, size):
+        downsample = self.level_downsamples[level]
+        end_x = location[0] + size[0]*downsample
+        end_y = location[1] + size[1]*downsample
+        im = self.image[location[1]:end_y:downsample, location[0]:end_x:downsample]
+        return np.array(im)
+
 
 def max_sql_variables():
     """Get the maximum number of arguments allowed in a query by the current
@@ -468,6 +501,8 @@ class DataFileExtended(DataFile):
             width = image.width if image.width is not None else 640
             height = image.height if image.height is not None else 480
             image_data = np.zeros((height, width), dtype=np.uint8)
+        elif max(image_data.shape) > 6400:
+            image_data = PseudoSlide(image_data)
 
         if self.reader and self.reader.is_slide:
             image_data = self.reader
