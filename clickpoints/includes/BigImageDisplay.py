@@ -197,7 +197,7 @@ class BigImageDisplay:
             data = np.asarray(self.image.read_region(preview_rect[0:2], level, dimensions_downsampled.astype("int")))
             self.slice_zoom_image = data
             if self.conversion is not None:
-                self.slice_zoom_image = self.conversion[self.slice_zoom_image.astype(np.uint8)[:, :, :3]]
+                self.slice_zoom_image = self.conversion[self.slice_zoom_image[:, :, :3]]
             self.slice_zoom_pixmap.setPixmap(QtGui.QPixmap(array2qimage(self.slice_zoom_image)))
             self.slice_zoom_pixmap.setOffset(*(np.array(preview_rect[0:2]) / downsample))
             self.slice_zoom_pixmap.setScale(downsample)
@@ -236,9 +236,7 @@ class BigImageDisplay:
         self.Change()
 
     def Change(self, gamma=None, min_brightness=None, max_brightness=None):
-        if not isinstance(self.image, np.ndarray):
-            return
-        if self.hist is None:
+        if self.hist is None and isinstance(self.image, np.ndarray):
             self.hist = np.histogram(self.image.flatten(), bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
         # update gamma if set
         if gamma is not None:
@@ -264,6 +262,7 @@ class BigImageDisplay:
         self.conversion = generateLUT(self.min, self.max, self.gamma, self.image_pixMapItem.max_value)
 
         if not isinstance(self.image, np.ndarray):  # is slide
+            self.updateSlideView()
             return
         # apply changes
         self.image_pixMapItem.setConversion(self.conversion)
