@@ -937,6 +937,10 @@ class DataFile:
                 return [self.x, self.y+self.height]
 
             def correctedXY(self):
+                return np.array(self.database_class.db.execute_sql(
+                    "SELECT r.x - IFNULL(o.x, 0), r.y - IFNULL(o.y, 0) FROM rectangle r LEFT JOIN image i ON r.image_id == i.id LEFT JOIN offset o ON i.id == o.image_id WHERE r.id == ?",
+                    [self.id]).fetchone())
+            
                 join_condition = (Marker.image == Offset.image)
 
                 querry = Marker.select(Marker.x,
