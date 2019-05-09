@@ -33,6 +33,7 @@ requirements:
     - scikit-image
     - opencv
     - imageio-ffmpeg
+    - quamash
 
 about:
     home: https://bitbucket.org/fabry_biophysics/clickpoints
