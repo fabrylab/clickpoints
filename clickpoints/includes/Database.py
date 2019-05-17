@@ -494,6 +494,15 @@ class DataFileExtended(DataFile):
         if self.reader is not None:
             try:
                 image_data = self.reader.get_data(image.frame)
+
+                # FIX: tifffile now returns float instead of int
+                if image_data.dtype == np.float:
+                    if image_data.max() < 2**8:
+                        image_data = image_data.astype('uint8')
+                    else:
+                        image_data = image_data.astpye('uint16')
+
+
             except ValueError:
                 pass
         # if the image can't be opened, open a black image instead
