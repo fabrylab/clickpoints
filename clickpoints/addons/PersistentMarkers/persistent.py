@@ -61,6 +61,7 @@ class Addon(clickpoints.Addon):
 
     def addPoint(self, marker):
         point = MyNonGrabberItem(self.cp.window.view.origin, QtGui.QColor(self.my_type.color), marker.x, marker.y)
+        point.setZValue(1000)
         self.points[marker.id] = point
 
     def markerMoveEvent(self, entry):
