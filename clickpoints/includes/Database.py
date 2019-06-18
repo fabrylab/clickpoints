@@ -461,7 +461,7 @@ class DataFileExtended(DataFile):
 
     def buffer_frame(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
         # if we have already a reader...
-        if self.reader:
+        if self.reader is not None:
             # ... check if it is the right one, if not delete it
             if filename != self.reader.filename:
                 del self.reader
@@ -513,7 +513,7 @@ class DataFileExtended(DataFile):
         elif max(image_data.shape) > 6400:
             image_data = PseudoSlide(image_data)
 
-        if self.reader and self.reader.is_slide:
+        if self.reader is not None and self.reader.is_slide:
             image_data = self.reader
 
         # store data in the slot
