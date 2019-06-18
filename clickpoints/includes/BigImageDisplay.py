@@ -98,6 +98,7 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
 class BigImageDisplay:
     data_file = None
     config = None
+    thread = None
 
     def __init__(self, origin, window):
         self.origin = origin
