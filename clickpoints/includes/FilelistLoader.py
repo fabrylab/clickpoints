@@ -420,8 +420,9 @@ def getFrameNumber(file, extension):
         # for videos, we have to open them and get the length
         # try forcing AVBin as its faster than ffmpeg
         try:
-            reader = imageio.get_reader(file, format='AVBin')
-            if reader.get_length() <= 1:
+            reader = imageio.get_reader(file, format='ffmpeg')
+            print("Reader frames", reader.count_frames())
+            if reader.count_frames() <= 1:
                 raise IOError()
         except (IOError):
             # for other formats let imagio choose a reader
@@ -440,6 +441,9 @@ def getFrameNumber(file, extension):
                     print("ERROR: can't read file", file)
                     return 0
         frames = reader.get_length()
+        # for imagio ffmpeg > 2.5.0, check if frames might be inf
+        if not isinstance(frames,int):
+            frames = reader.count_frames()
         reader.close()
     # return the number of frames
     return frames
