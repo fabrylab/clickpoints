@@ -1,0 +1,5 @@
+[addon]
+name=Polygon (alpha)
+file=PolygonAddon.py
+icon=fa.map-pin
+image=PolygonAddon.png
