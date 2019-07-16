@@ -173,7 +173,12 @@ class BigPaintableImageDisplay:
         if self.GetColor(x, y) == color:
             return False
         pix = np.asarray(self.full_image)
-        pix.setflags(write=True)
+        try:
+            pix.setflags(write=True)
+        except ValueError:
+            print("Could not set writeable Flag. Copying array.")
+            pix = np.array(self.full_image)
+            pix.setflags(write=True)
         label = measure.label(pix, background=-1)
         pix[label == label[int(y), int(x)]] = color
         self.SetImage(Image.fromarray(pix))
