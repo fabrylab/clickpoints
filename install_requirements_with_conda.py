@@ -58,7 +58,7 @@ with open("meta.yaml", 'r') as fp:
 if len(packages):
     # start a conda installation with the list of packages
     print("Install packages:", packages)
-    os.system("conda install -c conda-forge -y "+" ".join(packages))
+    os.system("conda install -c conda-forge -c rgerum -y "+" ".join(packages))
 
 # as there was a problem with PyQt5, try to install it with pip
 try:
