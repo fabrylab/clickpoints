@@ -84,7 +84,7 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
         self.setPixmap(QtGui.QPixmap(array2qimage(image.astype(np.uint8))))
 
     def setImageLUT(self, image):
-        self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
+        self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3].astype(np.uint8)])))
 
     def setConversion(self, conversion):
         self.conversion = conversion
