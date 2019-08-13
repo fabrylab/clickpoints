@@ -167,7 +167,7 @@ def get_meta(file):
                 if metadata is None:
                     return {}
                 return tif.shaped_metadata[0]
-        except ValueError:  # invalid tiff file
+        except (ValueError, tifffile.tifffile.TiffFileError):  # invalid tiff file
             return {}
     else:
         try:
@@ -183,7 +183,7 @@ def get_meta(file):
                     return json.loads(metadata.decode('utf-8'))
                 except (AttributeError, ValueError, KeyError):
                     return {}
-        except ValueError:  # invalid tiff file
+        except (ValueError, tifffile.tifffile.TiffFileError):  # invalid tiff file
             return {}
 
 
