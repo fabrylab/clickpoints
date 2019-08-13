@@ -96,7 +96,12 @@ class Addon(clickpoints.Addon):
                 wb_sheet.write(ridx, 1, image.filename)
 
                 # extract type information for markers
-                for idx, marker in enumerate(self.db.getMarkers(image=image, type=type)):
+                try:
+                    marker_query = self.db.getMarkers(image=image, type=type)
+                except ValueError:
+                    # not a marker type
+                    continue
+                for idx, marker in enumerate(marker_query):
                     wb_sheet.write(ridx, idx*2 + 2, marker.x)
                     wb_sheet.write(ridx, idx*2 + 3, marker.y)
 
@@ -107,7 +112,12 @@ class Addon(clickpoints.Addon):
                         maximum_header_column = idx
 
                 # extract type information for lines
-                for idx, marker in enumerate(self.db.getLines(image=image, type=type)):
+                try:
+                    line_query = self.db.getLines(image=image, type=type)
+                except ValueError:
+                    # type is not a line type
+                    continue
+                for idx, marker in enumerate(line_query):
                     wb_sheet.write(ridx, idx * 4 + 2, marker.x1)
                     wb_sheet.write(ridx, idx * 4 + 3, marker.y1)
                     wb_sheet.write(ridx, idx * 4 + 4, marker.x2)
@@ -149,7 +159,12 @@ class Addon(clickpoints.Addon):
         # get the tracks for each type
         tracks = []
         for idx, type in enumerate(q_types):
-            for track in self.db.getTracks(type=type):
+            try:
+                track_query = self.db.getTracks(type=type)
+            except ValueError:
+                # ignore marker types that are not tracks
+                continue
+            for track in track_query:
                 wb_sheet.write(0, len(tracks)*2 + 2, type.name + ' #%d' % track.id)
                 tracks.append(track)
         header_offset = 1
