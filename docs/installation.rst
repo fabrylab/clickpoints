@@ -22,9 +22,9 @@ Python Packages
 
 If you are already familiar with python and have a python installation, you can choose one of the following ways:
 
-- If you are in a conda env: ``conda install -c conda-forge -c rgerum clickpoints`` (recomended)
-- If you have pip: ``pip install clickpoints``
-- Or with ``python setup.py install``
+- If you have pip: ``pip install clickpoints`` (recomended)
+- If you are in a conda env: ``conda install -c conda-forge -c rgerum clickpoints``
+- Or with ``python setup.py install`` (to use this command download the package and call the command in the main folder)
 
 We recommend the conda installation, as this should always be the newest version of ClickPoints.
 
@@ -45,9 +45,9 @@ Then you can open a command line in the folder where you want to install ClickPo
 
     ``hg clone https://bitbucket.org/fabry_biophysics/clickpoints``
 
-To install the package with all dendencies, go to the folder where ClickPoints has been downloaded (e.g. C:\Software\clickpoints) and execute:
+To install the package with all dependencies, go to the folder where ClickPoints has been downloaded (e.g. C:\Software\clickpoints) and execute:
 
-    ``python install_requirements_with_conda.py``
+    ``pip install -e .``
 
 in the downloaded repository directory. Then execute the command
 
