@@ -2,5 +2,5 @@
 name=Fluorescence Diffusion
 file=Dronpa.py
 icon=fa.flask
-requirements=theano,skimage,xlwt
+requirements=theano,opencv-python,xlwt
 image=Image.png
