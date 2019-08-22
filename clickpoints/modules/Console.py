@@ -40,6 +40,9 @@ class WriteStream(QtCore.QObject):
         self.written.emit(text)
         self.out.write(text)
 
+    def flush(self):
+        pass
+
 writerStdOut = WriteStream(sys.stdout)
 sys.stdout = writerStdOut
 writerStdErr = WriteStream(sys.stderr)
