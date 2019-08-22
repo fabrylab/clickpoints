@@ -52,5 +52,6 @@ setup(name='clickpoints',
                         'psutil',
                         'imageio-ffmpeg',
                         'quamash',
+                        'pyqt5',
                        ],
       include_package_data=True)
