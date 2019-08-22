@@ -112,12 +112,12 @@ class Command:
         # if this is the main thread, we have to call processEvents
         if isinstance(threading.current_thread(), threading._MainThread):
             # wait for frame change to be completed
-            while self.window.new_frame_number != int(value) or self.window.loading_image:
+            while self.window.target_frame != int(value):
                 self.window.app.processEvents()
             return
 
         # wait for frame change to be completed
-        while self.window.new_frame_number != int(value) or self.window.loading_image:
+        while self.window.target_frame != int(value):
             time.sleep(0.01)
 
     def jumpToFrameWait(self, value):
@@ -138,12 +138,12 @@ class Command:
         # if this is the main thread, we have to call processEvents
         if isinstance(threading.current_thread(), threading._MainThread):
             # wait for frame change to be completed
-            while self.window.new_frame_number != int(value) or self.window.loading_image:
+            while self.window.target_frame != int(value):
                 self.window.app.processEvents()
             return
 
         # wait for frame change to be completed
-        while self.window.new_frame_number != int(value) or self.window.loading_image:
+        while self.window.target_frame != int(value):
             time.sleep(0.01)
 
     def reloadMask(self):
@@ -154,6 +154,22 @@ class Command:
         if self.script_launcher is None:
             return
         self.window.signal_broadcast.emit("ReloadMask", tuple())
+
+    def reloadImage(self, frame_index=None, layer_id=None):
+        """
+        Reloads the an image file in ClickPoints. Defaults to the current image.
+
+        Parameters
+        ----------
+        frame_index : int, optional
+            the sort_index of the image to reload.
+        layer_id : int, optional
+            the layer to reload.
+        """
+        # only if we are not a dummy connection
+        if self.script_launcher is None:
+            return
+        self.window.reloadImage(frame_index, layer_id)
 
     def reloadMarker(self, frame=None):
         """
