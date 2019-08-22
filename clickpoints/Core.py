@@ -400,6 +400,15 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
     """ jumping frames and displaying images """
 
+    def reloadImage(self, target_id=None, layer_id=None):
+        print("reloadImage")
+        if target_id is None:
+            target_id = self.target_frame
+        if layer_id is None:
+            layer_id = self.current_layer
+        self.data_file.buffer.remove_frame(target_id, layer_id)
+        self.JumpFrames(0)
+
     def JumpFrames(self, amount):
         # redirect to an absolute jump
         self.JumpToFrame(self.target_frame + amount)

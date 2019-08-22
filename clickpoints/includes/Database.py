@@ -853,3 +853,13 @@ class FrameBuffer:
         except ValueError:
             return None
 
+    def remove_frame(self, number, layer_id):
+        if not isinstance(layer_id, int):
+            layer_id = layer_id.id
+        try:
+            index = self.indices.index((number, layer_id))
+            self.indices[index] = (None, None)
+            self.slots[index] = None
+        except ValueError:
+            return None
+
