@@ -44,6 +44,15 @@ except ImportError:
     import configparser as ConfigParser
 from importlib import import_module
 import pip
+
+if int(pip.__version__.split('.')[0])>9:
+    from pip._internal import main
+else:
+    from pip import main
+
+def install(package_name):
+    main(['install', package_name])
+
 try:
     # python 3
     from importlib import reload
@@ -58,7 +67,7 @@ def check_packages_installed(package_name):
     """ check if a package is installed"""
 
     # some packages have other names when they are imported compared to the install name
-    translation_names = {"pillow": "PIL", "scikit-image": "skimage", "opencv": "cv2"}
+    translation_names = {"pillow": "PIL", "scikit-image": "skimage", "opencv-python": "cv2", "opencv": "cv2"}
 
     # translate the package name if it is in the list
     if package_name in translation_names:
@@ -161,7 +170,7 @@ class Script(QtCore.QObject):
             if reply == QtWidgets.QMessageBox.No:
                 return
             for package_name in needed_packages:
-                pip.main(["install", package_name])
+                install(package_name)
         folder, filename = os.path.split(path)
         path, folder = os.path.split(folder)
         basefilename, ext = os.path.splitext(filename)
