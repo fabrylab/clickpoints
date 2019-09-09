@@ -60,6 +60,7 @@ class PseudoSlide:
         self.level_count = int(np.ceil(math.log(max(image.shape)/self.min_break_width, 2)))
 
         self.dimensions = (image.shape[1], image.shape[0])
+        self.ndim = len(image.shape)
         self.shape = image.shape
 
         self.level_dimensions = []
@@ -82,6 +83,10 @@ class PseudoSlide:
         end_y = location[1] + size[1]*downsample
         im = self.image[location[1]:end_y:downsample, location[0]:end_x:downsample]
         return np.array(im)
+
+    def __getitem__(self, item):
+        return self.image.__getitem__(item)
+
 
 
 def max_sql_variables():
