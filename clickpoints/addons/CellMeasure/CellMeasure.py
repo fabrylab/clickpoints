@@ -435,7 +435,6 @@ class Addon(clickpoints.Addon):
             struct = disk(self.getOption("segmentation_EL_min_size"))#structural element for binary erosion
             # "segmentation_EL_min_size", "segmentation_EL_max_size","segmentation_EL_low_th","segmentation_EL_high_th"
             mask = canny(img, sigma=1, low_threshold=self.getOption("segmentation_EL_low_th"), high_threshold=self.getOption("segmentation_EL_high_th"),use_quantiles=True)  # edge detection
-            print(mask)
             mask = binary_fill_holes(mask, structure=struct) #fill holes
             mask = binary_erosion(mask, structure=struct).astype(np.uint8)  # erode to remove lines and small schmutz
 
@@ -515,6 +514,7 @@ class Addon(clickpoints.Addon):
 
         # iterate over properties and set marker for display
         passed = {}
+        cell_markers = {}
         for nr,region in enumerate(regions):
             passed[nr] = True
             text = ""
@@ -527,8 +527,8 @@ class Addon(clickpoints.Addon):
                         passed[nr] = False
                         break
             if passed[nr]:
-                self.db.setMarker(image=self.qimg, x=region.centroid[1], y=region.centroid[0],
-                                  text='Cell %d%s' % (nr, text), type='cell (auto)')
+                cell_markers[nr] = self.db.setMarker(image=self.qimg, x=region.centroid[1], y=region.centroid[0],
+                                  text='Cell $marker_id%s' % (text), type='cell (auto)')
 
         # update CP display to show marker
         self.cp.reloadMarker()
@@ -539,20 +539,25 @@ class Addon(clickpoints.Addon):
             # if prop.area > self.inputMinSize.value():
             if passed[nr]:
                 tmp = dotdict()
+                tmp.frame = cell_markers[nr].image.sort_index
+                tmp.nr = cell_markers[nr].id
                 tmp.filename = self.qimg.filename
-                tmp.nr = nr
                 tmp.centroid_x = prop.centroid[0]
                 tmp.centroid_y = prop.centroid[1]
-                tmp.area = prop.area
-                tmp.mean_intensity = prop.mean_intensity
-                tmp.equivalent_diameter = prop.equivalent_diameter
-                tmp.axis_minor = prop.minor_axis_length
-                tmp.axis_major = prop.major_axis_length
+
+                for key in REGIONPROPS_TYPE:
+                    tmp[key]=prop[key]
+                # tmp.area = prop.area
+                # tmp.mean_intensity = prop.mean_intensity
+                # tmp.equivalent_diameter = prop.equivalent_diameter
+                # tmp.axis_minor = prop.minor_axis_length
+                # tmp.axis_major = prop.major_axis_length
 
                 results.append(tmp)
+        columns = ["frame", "nr", "filename", "centroid_x", "centroid_y", *REGIONPROPS_TYPE.keys()]
 
-        df = pd.DataFrame.from_records(results)
-        print(df)
+        df = pd.DataFrame.from_records(results, columns=columns)
+        # print(df)
 
         # if the save flag is set - store results to file
         if save_properties:
@@ -596,6 +601,8 @@ class Addon(clickpoints.Addon):
 
         if save_properties:
             df_all = pd.concat(results)
+            df_all = df_all.reset_index()
+            df_all = df_all.drop(columns=["index"])
             df_all.to_excel(os.path.splitext(self.qimg.filename)[0][0:15] + '_eval_summary.xls')
 
     """ DEFAULT ADDON FUNCTIONS """
