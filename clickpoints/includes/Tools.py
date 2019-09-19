@@ -34,15 +34,19 @@ def array2qimage(a):
     h, w, c = a.shape
     # get the number of bytes per line
     bytesPerLine = a.nbytes // h
+    if not all(np.diff(a.strides)>0):
+        a = a.data.tobytes()
+    else:
+        a = a.data
     # a grayscale image
     if c == 1:
-        return QtGui.QImage(a.data.tobytes(), w, h, bytesPerLine, QtGui.QImage.Format_Grayscale8)
+        return QtGui.QImage(a, w, h, bytesPerLine, QtGui.QImage.Format_Grayscale8)
     # a RGB image
     if c == 3:
-        return QtGui.QImage(a.data.tobytes(), w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
+        return QtGui.QImage(a, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
     # a RGBa image
     if c == 4:
-        return QtGui.QImage(a.data.tobytes(), w, h, bytesPerLine, QtGui.QImage.Format_RGBA8888)
+        return QtGui.QImage(a, w, h, bytesPerLine, QtGui.QImage.Format_RGBA8888)
 
 
 def disk(radius):
