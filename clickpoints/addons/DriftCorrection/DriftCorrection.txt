@@ -2,6 +2,5 @@
 name=DriftCorrection
 file=DriftCorrection.py
 icon=fa.object-ungroup
-requirements=cv2
 image=Image.png
 requirements=opencv-python
