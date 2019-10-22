@@ -284,7 +284,7 @@ class DataFile:
     """
     db = None
     _reader = None
-    _current_version = "20"
+    _current_version = "21"
     _database_filename = None
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
@@ -296,6 +296,7 @@ class DataFile:
     TYPE_Rect = 1
     TYPE_Line = 2
     TYPE_Track = 4
+    TYPE_Ellipse = 8
 
     def max_sql_variables(self):
         """Get the maximum number of arguments allowed in a query by the current
@@ -1093,12 +1094,72 @@ class DataFile:
                 self.type = new_type
                 return self.save()
 
+        class Ellipse(BaseModel):
+            image = peewee.ForeignKeyField(Image, backref="ellipses", on_delete='CASCADE')
+            x = peewee.FloatField()
+            y = peewee.FloatField()
+            width = peewee.FloatField()
+            height = peewee.FloatField()
+            angle = peewee.FloatField()
+            type = peewee.ForeignKeyField(MarkerType, backref="ellipses", null=True, on_delete='CASCADE')
+            processed = peewee.IntegerField(default=0)
+            style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
+
+            def pos(self):
+                return np.array([self.x, self.y])
+
+            @property
+            def area(self):
+                return np.pi * self.width * self.height
+
+            def __str__(self):
+                return "EllipseObject id%s:\timage=%s\tx=%s\ty=%s\twidth=%s\theight=%s\tangle=%s\ttype=%s\tprocessed=%s\tstyle=%s\ttext=%s" \
+                       % (
+                           self.id, self.image, self.x, self.y, self.width, self.height, self.angle, self.type, self.processed,
+                           self.style,
+                           self.text)
+
+            def print_details(self):
+                print("EllipseObject:\n"
+                      f"id:\t\t{self.id}\n"
+                      f"image:\t{self.image}\n"
+                      f"x:\t{self.x}\n"
+                      f"y:\t{self.y}\n"
+                      f"width:\t{self.width}\n"
+                      f"height:\t{self.height}\n"
+                      f"angle:\t{self.angle}\n"
+                      f"type:\t{self.type}\n"
+                      f"processed:\t{self.processed}\n"
+                      f"style:\t{self.style}\n"
+                      f"text:\t{self.text}")
+
+            def changeType(self, new_type):
+                # if we are not given a MarkerType entry..
+                if not isinstance(new_type, MarkerType):
+                    # we try to get it by its id
+                    if isinstance(new_type, int):
+                        new_type = MarkerType.get(id=new_type)
+                    # or by its name
+                    else:
+                        new_type = MarkerType.get(name=new_type)
+                    # if we don't find anything, complain
+                    if new_type is None:
+                        raise ValueError("No valid marker type given.")
+                # ensure that the mode is correct
+                if new_type.mode != self.database_class.TYPE_Ellipse:
+                    raise ValueError("Given type has not the mode TYPE_Ellipse")
+                # change the type and save
+                self.type = new_type
+                return self.save()
+
         self.table_marker = Marker
         self.table_line = Line
         self.table_rectangle = Rectangle
+        self.table_ellipse = Ellipse
         self.table_track = Track
         self.table_markertype = MarkerType
-        self._tables.extend([Marker, Line, Rectangle, Track, MarkerType])
+        self._tables.extend([Marker, Line, Rectangle, Ellipse, Track, MarkerType])
 
         """ Mask Tables """
 
@@ -1802,6 +1863,37 @@ class DataFile:
                 self.db.execute_sql('CREATE UNIQUE INDEX "layer_name" ON "layer" ("name");')
 
             self._SetVersion(20)
+
+        if nr_version < 21:
+            print("\tto 21")
+
+            with self.db.transaction():
+                # create a new table for the ellipses
+                self.db.execute_sql("""CREATE TABLE ellipse (
+                                                            id        INTEGER       NOT NULL
+                                                                                    PRIMARY KEY,
+                                                            image_id  INTEGER       NOT NULL,
+                                                            x         REAL          NOT NULL,
+                                                            y         REAL          NOT NULL,
+                                                            width     REAL          NOT NULL,
+                                                            height    REAL          NOT NULL,
+                                                            angle     REAL          NOT NULL,
+                                                            type_id   INTEGER,
+                                                            processed INTEGER       NOT NULL,
+                                                            style     VARCHAR (255),
+                                                            text      VARCHAR (255),
+                                                            FOREIGN KEY (
+                                                                image_id
+                                                            )
+                                                            REFERENCES image (id) ON DELETE CASCADE,
+                                                            FOREIGN KEY (
+                                                                type_id
+                                                            )
+                                                            REFERENCES markertype (id) ON DELETE CASCADE
+                                                        );
+
+                """)
+            self._SetVersion(21)
 
         self.db.connection().row_factory = None
 
