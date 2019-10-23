@@ -2220,34 +2220,34 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
         MyDisplayItem.__init__(self, marker_handler, data, event, type)
 
     def getRect(self):
-        return [self.data.x - self.data.width, self.data.y - self.data.height, self.data.width*2, self.data.height*2]
+        return [self.data.x - self.data.width / 2, self.data.y - self.data.height / 2, self.data.width, self.data.height]
 
     def getPos1(self):
-        return [self.data.x + self.data.width, self.data.y]
+        return [self.data.x + self.data.width / 2, self.data.y]
 
     def getPos2(self):
-        return [self.data.x - self.data.width, self.data.y]
+        return [self.data.x - self.data.width / 2, self.data.y]
 
     def getPos3(self):
-        return [self.data.x, self.data.y + self.data.height]
+        return [self.data.x, self.data.y + self.data.height / 2]
 
     def getPos4(self):
-        return [self.data.x, self.data.y - self.data.height]
+        return [self.data.x, self.data.y - self.data.height / 2]
 
     def getPos5(self):
         return [self.data.x, self.data.y]
 
     def getPos6(self):
-        return [self.data.x + self.data.width, self.data.y + self.data.height]
+        return [self.data.x + self.data.width / 2, self.data.y + self.data.height / 2]
 
     def init2(self):
         self.setRect(*self.getRect())
+        self.g5 = MyGrabberItem(self, self.color, *self.getPos5())
+        self.g6 = MyGrabberItem(self, self.color, *self.getPos6())
         self.g1 = MyGrabberItem(self, self.color, *self.getPos1())
         self.g2 = MyGrabberItem(self, self.color, *self.getPos2())
         self.g3 = MyGrabberItem(self, self.color, *self.getPos3())
         self.g4 = MyGrabberItem(self, self.color, *self.getPos4())
-        self.g5 = MyGrabberItem(self, self.color, *self.getPos5())
-        self.g6 = MyGrabberItem(self, self.color, *self.getPos6())
         self.setTransformOriginPoint(self.data.x, self.data.y)
         self.setRotation(self.data.angle)
         self.start_grabber = self.g6
@@ -2259,7 +2259,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
     def newData(self, event, type):
         x, y = event.pos().x(), event.pos().y()
         return self.marker_handler.data_file.table_ellipse(image=self.marker_handler.reference_image,
-                                                        x=x, y=y, width=0, height=0, angle=0, type=type)
+                                                        x=x, y=y, width=10, height=10, angle=0, type=type)
 
     def ReloadData(self):
         MyDisplayItem.ReloadData(self)
@@ -2275,6 +2275,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
         self.g5.setPos(*self.getPos5())
         self.g6.setPos(*self.getPos6())
         self.setTransformOriginPoint(self.data.x, self.data.y)
+        self.setRotation(self.data.angle)
         self.setText(self.GetText())
 
     def CheckPositiveWidthHeight(self):
@@ -2286,45 +2287,65 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
             #self.g3, self.g4 = self.g4, self.g3
 
     def graberMoved(self, grabber, pos, event):
+        def process(p1, p2, c, a):
+            sin, cos = np.sin(a * np.pi / 180), np.cos(a * np.pi / 180)
+            rotation = np.array([[cos, -sin], [sin, cos]])
+
+            p1 = rotation @ (p1 - c) + c
+            p2 = rotation @ (p2 - c) + c
+
+            delta = p1 - p2
+            center = (p1 + p2) / 2
+            angle = np.arctan2(delta[1], delta[0]) * 180 / np.pi
+            dist = np.linalg.norm(delta)
+            return dist, center, angle
+
         if grabber == self.g5:
             a = self.rotation() * np.pi / 180
             sin, cos = np.sin(a), np.cos(a)
             rotation = np.array([[cos, -sin], [sin, cos]])
             self.data.x, self.data.y = rotation @ np.array([pos.x() - self.data.x, pos.y() - self.data.y]) + np.array([self.data.x, self.data.y])
-            #self.data.y = pos.y()
+
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g1:
-            angle = np.arctan2(pos.y() - self.data.y, pos.x() - self.data.x)*180/np.pi
-            self.setRotation((self.rotation() + angle) % 360)
-            self.data.angle = self.rotation()
-            self.data.width = pos.x() - self.data.x
+            dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g2.x(), self.g2.y()]), self.data.pos(), self.data.angle)
+            self.data.angle = angle
+            self.data.width = dist
+            self.data.x, self.data.y = center
+
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g2:
-            angle = np.arctan2(pos.y() - self.data.y, self.data.x - pos.x())*180/np.pi
-            self.setRotation((self.rotation() - angle) % 360)
-            self.data.angle = self.rotation()
-            self.data.width = - pos.x() + self.data.x
+            dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g1.x(), self.g1.y()]),
+                                          self.data.pos(), self.data.angle)
+            self.data.angle = angle + 180
+            self.data.width = dist
+            self.data.x, self.data.y = center
+
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g3:
-            angle = np.arctan2(pos.y() - self.data.y, pos.x() - self.data.x)*180/np.pi - 90
-            self.setRotation((self.rotation() + angle) % 360)
-            self.data.angle = self.rotation()
-            self.data.height = pos.y() - self.data.y
+            dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g4.x(), self.g4.y()]),
+                                          self.data.pos(), self.data.angle)
+            self.data.angle = angle - 90
+            self.data.height = dist
+            self.data.x, self.data.y = center
+
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g4:
-            angle = np.arctan2(pos.y() - self.data.y, pos.x() - self.data.x) * 180 / np.pi + 90
-            self.setRotation((self.rotation() + angle) % 360)
-            self.data.angle = self.rotation()
-            self.data.height = - pos.y() + self.data.y
+            dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g3.x(), self.g3.y()]),
+                                          self.data.pos(), self.data.angle)
+            self.data.angle = angle + 90
+            self.data.height = dist
+            self.data.x, self.data.y = center
+
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g6:
-            self.data.width = pos.x() - self.data.x
-            self.data.height = pos.y() - self.data.y
+            self.data.width = (pos.x() - self.data.x)*2
+            self.data.height = (pos.y() - self.data.y)*2
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
         BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
