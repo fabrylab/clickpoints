@@ -1111,14 +1111,10 @@ class DataFile:
 
             @property
             def area(self):
-                return np.pi * self.width * self.height
+                return np.pi * self.width / 2 * self.height / 2
 
             def __str__(self):
-                return "EllipseObject id%s:\timage=%s\tx=%s\ty=%s\twidth=%s\theight=%s\tangle=%s\ttype=%s\tprocessed=%s\tstyle=%s\ttext=%s" \
-                       % (
-                           self.id, self.image, self.x, self.y, self.width, self.height, self.angle, self.type, self.processed,
-                           self.style,
-                           self.text)
+                return f"EllipseObject id{self.id}:\timage={self.image}\tx={self.x}\ty={self.y}\twidth={self.width}\theight={self.height}\tangle={self.angle}\ttype={self.type}\tprocessed={self.processed}\tstyle={self.style}\ttext={self.text}"
 
             def print_details(self):
                 print("EllipseObject:\n"

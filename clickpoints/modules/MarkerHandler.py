@@ -2358,20 +2358,28 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         x1, y1 = self.data.x - start_x, self.data.y - start_y
-        x1, y1, w, h = np.array([x1, y1, self.data.w, self.data.h]) * image_scale
+        x1, y1, w, h = np.array([x1, y1, self.data.width, self.data.height]) * image_scale
         color = (self.color.red(), self.color.green(), self.color.blue())
-        line_width = int(3 * scale * self.style.get("scale", 1))
-        image.ellipse((x1-w, y1-h, x1+w, y1+h), outline=color)
-        # TODO implement drawing or rotated ellipses
+
+        from PIL import Image, ImageDraw
+        w, h = int(np.ceil(w)), int(np.ceil(h))
+        s = np.max([w, h])+4
+        overlay = Image.new('RGBA', (s, s))
+        draw = ImageDraw.Draw(overlay)
+        xo = (s-w)/2
+        yo = (s-h)/2
+        draw.ellipse((xo, yo, xo+w, yo+h), outline=color)
+
+        rotated = overlay.rotate(-self.data.angle, expand=False)
+        image.pil_image.paste(rotated, (int(x1-rotated.size[0]/2), int(y1-rotated.size[1]/2)), rotated)
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyEllipseItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         x1, y1 = self.data.x - start_x, self.data.y - start_y
-        x1, y1, w, h = np.array([x1, y1, self.data.w, self.data.h]) * image_scale
-        # TODO implement rotated ellipses
-        image.add(image.ellipse((x1, y1), r=(w, h), stroke=self.color.name(), stroke_width=3 * scale * self.style.get("scale", 1), fill="none"))
+        x1, y1, w, h = np.array([x1, y1, self.data.width, self.data.height]) * image_scale
+        image.add(image.ellipse((0, 0), r=(w/2, h/2), stroke=self.color.name(), stroke_width=3 * scale * self.style.get("scale", 1), fill="none", transform="translate(%f, %f) rotate(%d)" % (x1, y1, self.data.angle)))
 
     def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         super(MyEllipseItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
