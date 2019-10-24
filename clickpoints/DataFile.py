@@ -284,7 +284,7 @@ class DataFile:
     """
     db = None
     _reader = None
-    _current_version = "21"
+    _current_version = "22"
     _database_filename = None
     _next_sort_index = 0
     _SQLITE_MAX_VARIABLE_NUMBER = None
@@ -297,6 +297,7 @@ class DataFile:
     TYPE_Line = 2
     TYPE_Track = 4
     TYPE_Ellipse = 8
+    TYPE_Polygon = 16
 
     def max_sql_variables(self):
         """Get the maximum number of arguments allowed in a query by the current
@@ -1149,13 +1150,92 @@ class DataFile:
                 self.type = new_type
                 return self.save()
 
+        this = self
+        class Polygon(BaseModel):
+            image = peewee.ForeignKeyField(Image, backref="polygons", on_delete='CASCADE')
+            type = peewee.ForeignKeyField(MarkerType, backref="polygons", null=True, on_delete='CASCADE')
+            closed = peewee.BooleanField(default=0)
+            processed = peewee.IntegerField(default=0)
+            style = peewee.CharField(null=True)
+            text = peewee.CharField(null=True)
+
+            @property
+            def points(self):
+                if getattr(self, "cached_points", None) is None:
+                    self.cached_points = np.array(self.points_raw.select(this.table_polygon_point.x, this.table_polygon_point.y)
+                                                .order_by(this.table_polygon_point.index).tuples(), dtype=float).ravel().reshape(-1, 2)
+                return self.cached_points
+
+            @points.setter
+            def points(self, points):
+                # remove unnecessary points
+                if len(getattr(self, "cached_points", [])) > len(points):
+                    this.db.execute_sql(f"DELETE FROM polygonpoint WHERE polygon_id = {self.id} AND 'index' >= {len(points)};")
+                # store the points
+                self.cached_points = points
+                # update the points
+                data = []
+                for index, point in enumerate(points):
+                    data.append(dict(polygon=self.id, x=point[0], y=point[1], index=index))
+                this.saveReplaceMany(this.table_polygon_point, data)
+
+            @property
+            def area(self):
+                return np.pi * self.width / 2 * self.height / 2
+
+            def __str__(self):
+                return f"PolygonObject id{self.id}:\timage={self.image}\ttype={self.type}\tprocessed={self.processed}\tstyle={self.style}\ttext={self.text}"
+
+            def print_details(self):
+                print("PolygonObject:\n"
+                      f"id:\t\t{self.id}\n"
+                      f"image:\t{self.image}\n"
+                      f"type:\t{self.type}\n"
+                      f"processed:\t{self.processed}\n"
+                      f"style:\t{self.style}\n"
+                      f"text:\t{self.text}")
+
+            def changeType(self, new_type):
+                # if we are not given a MarkerType entry..
+                if not isinstance(new_type, MarkerType):
+                    # we try to get it by its id
+                    if isinstance(new_type, int):
+                        new_type = MarkerType.get(id=new_type)
+                    # or by its name
+                    else:
+                        new_type = MarkerType.get(name=new_type)
+                    # if we don't find anything, complain
+                    if new_type is None:
+                        raise ValueError("No valid marker type given.")
+                # ensure that the mode is correct
+                if new_type.mode != self.database_class.TYPE_Polygon:
+                    raise ValueError("Given type has not the mode TYPE_Polygon")
+                # change the type and save
+                self.type = new_type
+                return self.save()
+
+        class PolygonPoint(BaseModel):
+            polygon = peewee.ForeignKeyField(Polygon, backref="points_raw", on_delete='CASCADE')
+            x = peewee.FloatField()
+            y = peewee.FloatField()
+            index = peewee.IntegerField()
+
+            class Meta:
+                # image and path in combination have to be unique
+                indexes = ((('polygon', 'index'), True),)
+
+            def pos(self):
+                return np.array([self.x, self.y])
+
         self.table_marker = Marker
         self.table_line = Line
         self.table_rectangle = Rectangle
         self.table_ellipse = Ellipse
+        self.table_polygon = Polygon
+        self.table_polygon_point = PolygonPoint
         self.table_track = Track
         self.table_markertype = MarkerType
-        self._tables.extend([Marker, Line, Rectangle, Ellipse, Track, MarkerType])
+        self._tables.extend([Marker, Line, Rectangle, Ellipse, Polygon, PolygonPoint, Track, MarkerType])
 
         """ Mask Tables """
 
@@ -1890,6 +1970,50 @@ class DataFile:
 
                 """)
             self._SetVersion(21)
+
+        if nr_version < 22:
+            print("\tto 22")
+
+            with self.db.transaction():
+                # create a new table for the polygons
+                self.db.execute_sql("""CREATE TABLE polygon (
+                                                                id        INTEGER       NOT NULL
+                                                                                        PRIMARY KEY,
+                                                                image_id  INTEGER       NOT NULL,
+                                                                type_id   INTEGER,
+                                                                closed    INTEGER       NOT NULL,
+                                                                processed INTEGER       NOT NULL,
+                                                                style     VARCHAR (255),
+                                                                text      VARCHAR (255),
+                                                                FOREIGN KEY (
+                                                                    image_id
+                                                                )
+                                                                REFERENCES image (id) ON DELETE CASCADE,
+                                                                FOREIGN KEY (
+                                                                    type_id
+                                                                )
+                                                                REFERENCES markertype (id) ON DELETE CASCADE
+                                                            );
+                """)
+                self.db.execute_sql("""CREATE TABLE polygonpoint (
+                                                                    id         INTEGER NOT NULL
+                                                                                       PRIMARY KEY,
+                                                                    polygon_id INTEGER NOT NULL,
+                                                                    x          REAL    NOT NULL,
+                                                                    y          REAL    NOT NULL,
+                                                                    [index]    INTEGER NOT NULL,
+                                                                    FOREIGN KEY (
+                                                                        polygon_id
+                                                                    )
+                                                                    REFERENCES polygon (id) ON DELETE CASCADE
+                                                                );
+                """)
+                self.db.execute_sql("""CREATE UNIQUE INDEX polygonpoint_polygon_id_index ON polygonpoint (
+                                        polygon_id,
+                                        "index"
+                                    );
+                """)
+            self._SetVersion(22)
 
         self.db.connection().row_factory = None
 
