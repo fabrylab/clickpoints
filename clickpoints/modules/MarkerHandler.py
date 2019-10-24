@@ -94,6 +94,7 @@ TYPE_Rect = 1
 TYPE_Line = 2
 TYPE_Track = 4
 TYPE_Ellipse = 8
+TYPE_Polygon = 16
 
 
 def addShapeNone(path, x, y, size):
@@ -245,6 +246,8 @@ class MarkerFile:
         self.table_line = self.data_file.table_line
         self.table_rectangle = self.data_file.table_rectangle
         self.table_ellipse = self.data_file.table_ellipse
+        self.table_polygon = self.data_file.table_polygon
+        self.table_polygon_point = self.data_file.table_polygon_point
 
         self.table_image = self.data_file.table_image
         self.table_offset = self.data_file.table_offset
@@ -307,6 +310,12 @@ class MarkerFile:
         # query all sort_indices which have a ellipse entry
         return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
                                           .join(self.data_file.table_ellipse)
+                                          .group_by(self.data_file.table_image.id))
+
+    def get_marker_frames5(self):
+        # query all sort_indices which have a polygon entry
+        return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
+                                          .join(self.data_file.table_polygon)
                                           .group_by(self.data_file.table_image.id))
 
 
@@ -502,6 +511,10 @@ class MyTreeView(QtWidgets.QTreeView):
                 .join(self.data_file.table_image).order_by(self.data_file.table_image.sort_index)
             elif entry.mode == TYPE_Track:
                 return self.data_file.table_track.select().where(self.data_file.table_track.type == entry)
+            elif entry.mode == TYPE_Ellipse:
+                return self.data_file.table_ellipse.select().where(self.data_file.table_ellipse.type == entry)
+            elif entry.mode == TYPE_Polygon:
+                return self.data_file.table_polygon.select().where(self.data_file.table_polygon.type == entry)
         if isinstance(entry, self.data_file.table_track):
             return self.data_file.table_marker.select().where(self.data_file.table_marker.track == entry)\
                 .join(self.data_file.table_image).order_by(self.data_file.table_image.sort_index)
@@ -525,6 +538,8 @@ class MyTreeView(QtWidgets.QTreeView):
             return "Rectangle #%d (frame %d)" % (entry.id, entry.image.sort_index)
         if isinstance(entry, self.data_file.table_ellipse):
             return "Ellipse #%d (frame %d)" % (entry.id, entry.image.sort_index)
+        if isinstance(entry, self.data_file.table_polygon):
+            return "Polygon #%d (frame %d)" % (entry.id, entry.image.sort_index)
         if isinstance(entry, self.data_file.table_track):
             count = entry.track_markers.count()
             if count == 0:
@@ -545,6 +560,8 @@ class MyTreeView(QtWidgets.QTreeView):
                 return IconFromFile("Track.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
             if entry.mode == TYPE_Ellipse:
                 return IconFromFile("Ellipse.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
+            if entry.mode == TYPE_Polygon:
+                return IconFromFile("Polygon.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
         return QtGui.QIcon()
 
     def getEntrySortRole(self, entry):
@@ -813,7 +830,10 @@ class MarkerEditor(QtWidgets.QWidget):
         self.markerWidget.widget_types = {TYPE_Normal: [self.markerWidget.x, self.markerWidget.y],
                                           TYPE_Line: [self.markerWidget.x1, self.markerWidget.y1, self.markerWidget.x2, self.markerWidget.y2],
                                           TYPE_Rect: [self.markerWidget.x, self.markerWidget.y, self.markerWidget.width, self.markerWidget.height],
-                                          TYPE_Track: [self.markerWidget.x, self.markerWidget.y]}
+                                          TYPE_Track: [self.markerWidget.x, self.markerWidget.y],
+                                          TYPE_Ellipse: [self.markerWidget.x, self.markerWidget.y, self.markerWidget.width, self.markerWidget.height],
+                                          TYPE_Polygon: [],
+                                          }
         self.markerWidget.style = AddQLineEdit(layout, "Style:")
         self.markerWidget.text = AddQLineEdit(layout, "Text:")
         self.markerWidget.label = AddQLabel(layout)
@@ -827,9 +847,9 @@ class MarkerEditor(QtWidgets.QWidget):
         self.StackedWidget.addWidget(self.typeWidget)
         layout = QtWidgets.QVBoxLayout(self.typeWidget)
         self.typeWidget.name = AddQLineEdit(layout, "Name:")
-        self.typeWidget.mode_indices = {TYPE_Normal: 0, TYPE_Line: 1, TYPE_Rect: 2, TYPE_Track: 3, TYPE_Ellipse: 4}
-        self.typeWidget.mode_values = {0: TYPE_Normal, 1: TYPE_Line, 2: TYPE_Rect, 3: TYPE_Track, 4: TYPE_Ellipse}
-        self.typeWidget.mode = AddQComboBox(layout, "Mode:", ["TYPE_Normal", "TYPE_Line", "TYPE_Rect", "TYPE_Track", "TYPE_Ellipse"])
+        self.typeWidget.mode_indices = {TYPE_Normal: 0, TYPE_Line: 1, TYPE_Rect: 2, TYPE_Track: 3, TYPE_Ellipse: 4, TYPE_Polygon: 5}
+        self.typeWidget.mode_values = {0: TYPE_Normal, 1: TYPE_Line, 2: TYPE_Rect, 3: TYPE_Track, 4: TYPE_Ellipse, 5: TYPE_Polygon}
+        self.typeWidget.mode = AddQComboBox(layout, "Mode:", ["TYPE_Normal", "TYPE_Line", "TYPE_Rect", "TYPE_Track", "TYPE_Ellipse", "TYPE_Polygon"])
         self.typeWidget.style = AddQLineEdit(layout, "Style:")
         self.typeWidget.color = AddQColorChoose(layout, "Color:")
         self.typeWidget.text = AddQLineEdit(layout, "Text:")
@@ -893,7 +913,7 @@ class MarkerEditor(QtWidgets.QWidget):
 
     def hoverLeave(self, entry):
         if type(entry) in [self.data_file.table_marker, self.data_file.table_line,
-                                                self.data_file.table_rectangle, self.data_file.table_track, self.data_file.table_ellipse]:
+                                                self.data_file.table_rectangle, self.data_file.table_track, self.data_file.table_ellipse, self.data_file.table_polygon]:
             if isinstance(entry, self.data_file.table_marker) and entry.track_id:
                 track_item = self.marker_handler.GetMarkerItem(entry.track)
                 if track_item:
@@ -907,7 +927,7 @@ class MarkerEditor(QtWidgets.QWidget):
 
     def hoverEnter(self, entry):
         if type(entry) in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle,
-                                self.data_file.table_track, self.data_file.table_ellipse]:
+                                self.data_file.table_track, self.data_file.table_ellipse, self.data_file.table_polygon]:
             if isinstance(entry, self.data_file.table_marker) and entry.track_id:
                 track_item = self.marker_handler.GetMarkerItem(entry.track)
                 if track_item:
@@ -971,7 +991,7 @@ class MarkerEditor(QtWidgets.QWidget):
 
     def treeClicked(self, data):
         # upon selecting one of the tree elements
-        if (type(data)in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle, self.data_file.table_ellipses]) and self.data == data:
+        if (type(data)in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle, self.data_file.table_ellipse, self.data_file.table_polygon]) and self.data == data:
             # got to the frame of the selected object
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
         if (type(data)in [self.data_file.table_marker]) and self.data == data:
@@ -998,7 +1018,7 @@ class MarkerEditor(QtWidgets.QWidget):
         #self.pushbutton_Remove.setHidden(False)
 
         if type(data) == self.data_file.table_marker or type(data) == self.data_file.table_line or type(data) == self.data_file.table_rectangle\
-                or type(data) == self.data_file.table_ellipse:
+                or type(data) == self.data_file.table_ellipse or type(data) == self.data_file.table_polygon:
             self.StackedWidget.setCurrentIndex(0)
             for widget in self.markerWidget.special_widgets:
                 widget.setHidden(True)
@@ -1014,7 +1034,9 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.markerWidget.y1.setValue(data.y1)
                 self.markerWidget.x2.setValue(data.x2)
                 self.markerWidget.y2.setValue(data.y2)
-            elif marker_type.mode & TYPE_Rect:
+            elif marker_type.mode & TYPE_Polygon:
+                pass
+            elif marker_type.mode & TYPE_Rect or marker_type.mode & TYPE_Ellipse:
                 self.markerWidget.x.setValue(data.x)
                 self.markerWidget.y.setValue(data.y)
                 self.markerWidget.width.setValue(data.width)
@@ -1076,7 +1098,8 @@ class MarkerEditor(QtWidgets.QWidget):
         print("Saving changes...")
         # set parameters
         if type(self.data) == self.data_file.table_marker or type(self.data) == self.data_file.table_line or \
-            type(self.data) == self.data_file.table_rectangle or type(self.data) == self.data_file.table_ellipse:
+            type(self.data) == self.data_file.table_rectangle or type(self.data) == self.data_file.table_ellipse or \
+            type(self.data) == self.data_file.table_polygon:
             marker_type = self.data.type if self.data.type else self.data.track.type
             if marker_type.mode & TYPE_Line:
                 self.data.x1 = self.markerWidget.x1.value()
@@ -1120,7 +1143,7 @@ class MarkerEditor(QtWidgets.QWidget):
             new_mode = self.typeWidget.mode_values[self.typeWidget.mode.currentIndex()]
             if new_mode != self.data.mode:
                 if not new_type:
-                    count = self.data.markers.count() + self.data.lines.count() + self.data.rectangles.count() + self.data.ellipses.count()
+                    count = self.data.markers.count() + self.data.lines.count() + self.data.rectangles.count() + self.data.ellipses.count() + self.data.polygons.count()
                     if count:
                         reply = QtWidgets.QMessageBox.question(self, 'Warning',
                                                                'Changing the mode of this markertype will delete all %d previous markers of this type.\nDo you want to proceed?' % count,
@@ -1144,6 +1167,9 @@ class MarkerEditor(QtWidgets.QWidget):
                         elif self.data.mode & TYPE_Ellipse:
                             self.data_file.table_ellipse.delete().where(self.data_file.table_ellipse.type == self.data).execute()
                             self.marker_handler.LoadEllipses()
+                        elif self.data.mode & TYPE_Polygon:
+                            self.data_file.table_polygon.delete().where(self.data_file.table_polygon.type == self.data).execute()
+                            self.marker_handler.LoadPolygons()
                         self.tree.updateEntry(self.data, update_children=True)
                 self.data.mode = new_mode
             self.data.style = self.typeWidget.style.text()
@@ -1173,6 +1199,8 @@ class MarkerEditor(QtWidgets.QWidget):
                 self.marker_handler.LoadRectangles()
             elif self.data.mode & TYPE_Ellipse:
                 self.marker_handler.LoadEllipses()
+            elif self.data.mode & TYPE_Polygon:
+                self.marker_handler.LoadPolygons()
             else:
                 self.marker_handler.LoadPoints()
             if self.marker_handler.active_type is not None and self.marker_handler.active_type.id == self.data.id:
@@ -1305,7 +1333,8 @@ class MarkerEditor(QtWidgets.QWidget):
         print("Remove ...")
         data = self.data
         # currently selected a marker -> remove the marker
-        if type(data) == self.data_file.table_marker or type(data) == self.data_file.table_line or type(data) == self.data_file.table_rectangle or type(data) == self.data_file.table_ellipse:
+        if type(data) == self.data_file.table_marker or type(data) == self.data_file.table_line or type(data) == self.data_file.table_rectangle or \
+                type(data) == self.data_file.table_ellipse or type(data) == self.data_file.table_polygon:
             marker_type = data.type
             if marker_type is None:
                 marker_type = data.track.type
@@ -1344,7 +1373,7 @@ class MarkerEditor(QtWidgets.QWidget):
 
         # currently selected a type -> remove the type
         elif type(data) == self.data_file.table_markertype:
-            count = data.markers.count()+data.lines.count()+data.rectangles.count()+data.ellipses.count()
+            count = data.markers.count()+data.lines.count()+data.rectangles.count()+data.ellipses.count()+data.polygons.count()
             # if this type doesn't have markers delete it without asking
             if count == 0:
                 data.delete_instance()
@@ -1363,6 +1392,7 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.data_file.table_line.delete().where(self.data_file.table_line.type == data.id).execute()
                     self.data_file.table_rectangle.delete().where(self.data_file.table_rectangle.type == data.id).execute()
                     self.data_file.table_ellipse.delete().where(self.data_file.table_ellipse.type == data.id).execute()
+                    self.data_file.table_polygon.delete().where(self.data_file.table_polygon.type == data.id).execute()
                     self.data_file.table_track.delete().where(self.data_file.table_track.type == data.id).execute()
                 else:
                     # change the type of all markers which belonged to this type
@@ -1370,6 +1400,7 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.data_file.table_line.update(type=value).where(self.data_file.table_line.type == data.id).execute()
                     self.data_file.table_rectangle.update(type=value).where(self.data_file.table_rectangle.type == data.id).execute()
                     self.data_file.table_ellipse.update(type=value).where(self.data_file.table_ellipse.type == data.id).execute()
+                    self.data_file.table_polygon.update(type=value).where(self.data_file.table_polygon.type == data.id).execute()
                     self.data_file.table_track.update(type=value).where(self.data_file.table_track.type == data.id).execute()
                     new_entry = self.data_file.table_markertype.get(id=value)
                     self.tree.updateEntry(new_entry, update_children=True)
@@ -1388,6 +1419,8 @@ class MarkerEditor(QtWidgets.QWidget):
                     self.marker_handler.DeleteTrackType(data)
                 elif data.mode & TYPE_Ellipse:
                     self.marker_handler.LoadEllipses()
+                elif data.mode & TYPE_Polygon:
+                    self.marker_handler.LoadPolygons()
 
             # update the counters
             self.marker_handler.removeCounter(data)
@@ -1452,7 +1485,8 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
 
         # set path
         self.color = color
-        self.setPath(paths[shape])
+        #self.setPath(paths[shape])
+        self.setShape(shape)
 
         # accept hover events and set position
         self.setAcceptHoverEvents(True)
@@ -1718,7 +1752,7 @@ class MyDisplayItem:
         i = 1
         while True:
             grabber = getattr(self, "g%d" % i, None)
-            if grabber is None:
+            if grabber is None or grabber == self:
                 break
             grabber.setShape(self.style.get("shape", self.default_shape))
             grabber.setColor(self.color)
@@ -1804,7 +1838,9 @@ class MyDisplayItem:
             else:
                 text = text.replace('$length', '??')
         if '$area' in text:
-            if type(self.data) is self.marker_handler.data_file.table_rectangle or type(self.data) is self.marker_handler.data_file.table_ellipse:
+            if type(self.data) is self.marker_handler.data_file.table_rectangle or\
+                    type(self.data) is self.marker_handler.data_file.table_ellipse or \
+                    type(self.data) is self.marker_handler.data_file.table_polygon:
                 if self.data.area() is not None:
                     text = text.replace('$area', '%.2f' % self.data.area())
                 else:
@@ -2409,6 +2445,196 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
         MyDisplayItem.delete(self, just_display)
 
 
+class MyPolygonItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
+    default_shape = "rect"
+    points = None
+    grabbers = None
+    adding_grabbers = False
+    preview_point = None
+
+    def __init__(self, marker_handler, parent, data=None, event=None, type=None):
+        QtWidgets.QGraphicsLineItem.__init__(self, parent)
+        self.points = []
+        self.grabbers = []
+        if data is None:
+            self.adding_grabbers = True
+        else:
+            self.points = list(data.points)
+        MyDisplayItem.__init__(self, marker_handler, data, event, type)
+
+    def init2(self):
+        self.start_grabber = None
+        self.text_parent = None
+        pen = self.pen()
+        pen.setWidth(2)
+        self.setPen(pen)
+
+        self.updateDisplay()
+
+    def newData(self, event, type):
+        x, y = event.pos().x(), event.pos().y()
+        self.points = [np.array([x, y])]
+        return self.marker_handler.data_file.table_polygon(image=self.marker_handler.reference_image, type=type)
+
+    def ReloadData(self):
+        MyDisplayItem.ReloadData(self)
+        self.updateDisplay()
+
+    def storePoints(self):
+        self.data.points = self.points
+
+    def updateDisplay(self):
+        path = QtGui.QPainterPath()
+        if len(self.points):
+            path.moveTo(*self.points[0])
+        for point in self.points[1:]:
+            path.lineTo(*point)
+        if self.data.closed and len(self.points):
+            path.lineTo(*self.points[0])
+        if self.preview_point is not None:
+            path.lineTo(*self.preview_point)
+        self.setPath(path)
+
+        grabber_count = len(self.points)*2-1+self.data.closed
+        # only use a center if we have points
+        if len(self.points):
+            grabber_count += 1
+        if len(self.grabbers) < grabber_count:
+            for i in range(len(self.grabbers), grabber_count):
+                self.grabbers.append(MyGrabberItem(self, self.color, 0, 0))
+        if grabber_count < len(self.grabbers):
+            for i in range(grabber_count, len(self.grabbers)):
+                self.grabbers[-1].pop().delete()
+        for i in range(len(self.grabbers)):
+            setattr(self, "g%d" % (i + 1), self.grabbers[i])
+            if i == len(self.grabbers)-1:
+                self.grabbers[i].grabber_index = -1
+                self.grabbers[i].setPos(*np.mean(np.array(self.points), axis=0))
+                self.grabbers[i].setShape("ring")
+                self.grabbers[i].setZValue(3)
+                continue
+            j = i // 2
+            if i % 2 == 0:
+                self.grabbers[i].setPos(*self.points[i//2])
+                self.grabbers[i].setShape("rect")
+                self.grabbers[i].setZValue(10)
+            else:
+                if j == len(self.points)-1:
+                    j = -1
+                self.grabbers[i].setPos(*(self.points[j] + self.points[j + 1])/2)
+                self.grabbers[i].setShape("circle")
+                self.grabbers[i].setZValue(5)
+            self.grabbers[i].grabber_index = i
+
+        self.setText(self.GetText())
+
+    def drag_click(self, event):
+        if self.adding_grabbers:
+            self.points.append(np.array([event.pos().x(), event.pos().y()]))
+            self.grabbers.insert(len(self.grabbers)-1, MyGrabberItem(self, self.color, 0, 0))
+            self.grabbers.insert(len(self.grabbers)-1, MyGrabberItem(self, self.color, 0, 0))
+            self.storePoints()
+            self.updateDisplay()
+            return True
+        else:
+            return False
+
+    def hover_drag(self, event):
+        self.preview_point = (event.pos().x(), event.pos().y())
+        self.updateDisplay()
+
+    def graberMoved(self, grabber, pos, event):
+        if grabber is None:
+            return
+        if self.adding_grabbers:
+            if grabber.grabber_index == 0:
+                self.data.closed = True
+                self.grabbers.insert(len(self.grabbers) - 1, MyGrabberItem(self, self.color, 0, 0))
+            self.preview_point = None
+            self.adding_grabbers = False
+            self.marker_handler.active_drag = None
+            self.updateDisplay()
+            return
+
+        if grabber is not None:
+            i = grabber.grabber_index
+            # center marker
+            if i == -1:
+                center = np.mean(np.array(self.points), axis=0)
+                offset = np.array([pos.x(), pos.y()])-center
+                for point in self.points:
+                    point += offset
+                self.storePoints()
+            else:
+                j = grabber.grabber_index//2
+                if grabber.grabber_index % 2 == 0:
+                    self.points[grabber.grabber_index//2][:] = [pos.x(), pos.y()]
+                    self.storePoints()
+                else:
+                    if j == len(self.points)-1:
+                        self.points.append((self.points[-1] + self.points[0]) / 2)
+                        self.grabbers.insert(i, MyGrabberItem(self, self.color, 0, 0))
+                        self.grabbers.insert(i + 2, MyGrabberItem(self, self.color, 0, 0))
+                    else:
+                        self.points.insert(j+1, (self.points[j] + self.points[j+1])/2)
+                        self.grabbers.insert(i, MyGrabberItem(self, self.color, 0, 0))
+                        self.grabbers.insert(i+2, MyGrabberItem(self, self.color, 0, 0))
+                    self.storePoints()
+            self.updateDisplay()
+        BroadCastEvent(self.marker_handler.modules, "markerMoveEvent", self.data)
+
+    def graberReleased(self, grabber, event):
+        BroadCastEvent(self.marker_handler.modules, "markerMoveFinishedEvent", self.data)
+
+    def drag(self, event):
+        self.graberMoved(self.start_grabber, event.pos(), event)
+
+    def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        pass  # TODO implement
+
+    def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyEllipseItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        pass  # TODO implement
+
+    def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
+        super(MyEllipseItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+
+    def hoverEnter(self):
+        for grabber in self.grabbers:
+            grabber.hoverEnterEvent(None)
+
+    def hoverLeave(self):
+        for grabber in self.grabbers:
+            grabber.hoverLeaveEvent(None)
+
+    def graberDelete(self, grabber):
+        if len(self.points) == 1 or grabber.grabber_index == -1:
+            return self.delete()
+        i = grabber.grabber_index
+        j = grabber.grabber_index // 2
+        if i % 2 == 0:
+            self.points.pop(j)
+            if i+1 == len(self.grabbers):
+                self.grabbers.pop(i).delete()
+                self.grabbers.pop(i-1).delete()
+            elif i == 0:
+                self.grabbers.pop(i+1).delete()
+                self.grabbers.pop(i).delete()
+            else:
+                self.grabbers.pop(i+1).delete()
+                self.grabbers.pop(i-1).delete()
+        self.storePoints()
+        self.updateDisplay()
+
+    def delete(self, just_display=False):
+        if not just_display:
+            for grabber in self.grabbers:
+                grabber.delete()
+        MyDisplayItem.delete(self, just_display)
+
+
 class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     marker = None
     active = False
@@ -2997,6 +3223,7 @@ class MarkerHandler:
     lines = None
     rectangles = None
     ellipses = None
+    polygons = None
     display_lists = None
     display_dicts = None
     counter = None
@@ -3049,8 +3276,9 @@ class MarkerHandler:
         self.lines = []
         self.rectangles = []
         self.ellipses = []
+        self.polygons = []
         self.counter = []
-        self.display_lists = [self.points, IterableDict(self.tracks), self.lines, self.rectangles, self.ellipses]
+        self.display_lists = [self.points, IterableDict(self.tracks), self.lines, self.rectangles, self.ellipses, self.polygons]
 
         self.closeDataFile()
 
@@ -3184,8 +3412,14 @@ class MarkerHandler:
         except IndexError:
             frames4 = []
             pass
+        # frames for polygons
+        try:
+            frames5 = np.array(self.marker_file.get_marker_frames5().tuples())[:, 0]
+        except IndexError:
+            frames5 = []
+            pass
         # join sets
-        frames = set(frames1) | set(frames2) | set(frames3) | set(frames4)
+        frames = set(frames1) | set(frames2) | set(frames3) | set(frames4) | set(frames5)
         # if we have marker, set ticks accordingly
         if len(frames):
             BroadCastEvent(self.modules, "MarkerPointsAddedList", frames)
@@ -3272,6 +3506,7 @@ class MarkerHandler:
             self.LoadLines()
             self.LoadRectangles()
             self.LoadEllipses()
+            self.LoadPolygons()
 
     def imageLoadedEvent(self, filename, framenumber):
         self.frame_number = framenumber
@@ -3283,6 +3518,7 @@ class MarkerHandler:
         self.LoadLines()
         self.LoadRectangles()
         self.LoadEllipses()
+        self.LoadPolygons()
 
     def LoadTracks(self, new_tracks=None):
         # get the current offset
@@ -3484,6 +3720,20 @@ class MarkerHandler:
         for ellipse in ellipse_list:
             self.ellipses.append(MyEllipseItem(self, self.MarkerParent, data=ellipse))
 
+    def LoadPolygons(self):
+        while len(self.polygons):
+            self.polygons[0].delete(just_display=True)
+        frame = self.data_file.get_current_image()
+        image_id = self.data_file.current_reference_image.id
+        polygon_list = (
+            self.marker_file.table_polygon.select(self.marker_file.table_polygon, self.marker_file.table_markertype)
+                .join(self.marker_file.table_markertype)
+                .where(self.marker_file.table_polygon.image == image_id)
+                .where(self.marker_file.table_markertype.hidden == False)
+        )
+        for polygon in polygon_list:
+            self.polygons.append(MyPolygonItem(self, self.MarkerParent, data=polygon))
+
     def ClearPoints(self):
         self.points = []
         self.view.scene.removeItem(self.MarkerParent)
@@ -3575,6 +3825,9 @@ class MarkerHandler:
             return False
         if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and \
                 not event.modifiers() & Qt.ControlModifier and self.active_type is not None and self.tool_index == 0:
+            if getattr(self.active_drag, "drag_click", None) is not None:
+                if getattr(self.active_drag, "drag_click", None)(event):
+                    return True
             self.active_drag = None
             if len(self.points) >= 0:
                 BroadCastEvent(self.modules, "MarkerPointsAdded")
@@ -3599,12 +3852,18 @@ class MarkerHandler:
             elif self.active_type.mode & TYPE_Ellipse:
                 self.ellipses.append(MyEllipseItem(self, self.TrackParent, event=event, type=self.active_type))
                 self.active_drag = self.ellipses[-1]
+            elif self.active_type.mode & TYPE_Polygon:
+                self.polygons.append(MyPolygonItem(self, self.TrackParent, event=event, type=self.active_type))
+                self.active_drag = self.polygons[-1]
             else:
                 self.points.append(MyMarkerItem(self, self.MarkerParent, event=event, type=self.active_type))
             self.data_file.setChangesMade()
             return True
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.active_drag:
             self.active_drag.drag(event)
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneHoverMove and self.active_drag and getattr(self.active_drag, "hover_drag", None) is not None:
+            getattr(self.active_drag, "hover_drag", None)(event)
             return True
         return False
 
