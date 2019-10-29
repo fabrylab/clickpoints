@@ -1107,7 +1107,8 @@ class DataFile:
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
 
-            def pos(self):
+            @property
+            def center(self):
                 return np.array([self.x, self.y])
 
             @property
@@ -3173,6 +3174,8 @@ class DataFile:
         query = addFilter(query, index, self.table_masktype.index)
         query.execute()
 
+    """ Masks """
+
     def getMask(self, image=None, frame=None, filename=None, id=None, layer=None, create=False):
         """
         Get the :py:class:`Mask` entry for the given image frame number or filename.
@@ -3411,6 +3414,8 @@ class DataFile:
 
         query = addFilter(query, id, self.table_mask.id)
         query.execute()
+
+    """ Markers """
 
     def getMarker(self, id):
         """
@@ -3653,6 +3658,8 @@ class DataFile:
         query = addFilter(query, text, self.table_marker.text)
 
         return query.execute()
+
+    """ Lines """
 
     def getLine(self, id):
         """
@@ -3899,6 +3906,7 @@ class DataFile:
 
         return query.execute()
 
+    """ Rectangles """
 
     def getRectangle(self, id):
         """
@@ -4001,7 +4009,7 @@ class DataFile:
         x : int, optional
             the x coordinate of the upper left corner of the rectangle.
         y : int, optional
-            the y coordinate of the upper left of the rectangle.
+            the y coordinate of the upper left corner of the rectangle.
         width : int, optional
             the width of the rectangle.
         height : int, optional
@@ -4065,8 +4073,6 @@ class DataFile:
             the marker type/s (or name/s) of the rectangles.
         processed : int, array_like, optional
             the processed flag/s of the rectangles.
-        track : int, :py:class:`Track`, array_like, optional
-            the track id/s or instance/s of the rectangles.
         text : string, array_like, optional
             the text/s of the rectangles.
         id : int, array_like, optional
@@ -4147,6 +4153,266 @@ class DataFile:
         query = addFilter(query, text, self.table_rectangle.text)
 
         return query.execute()
+
+    """ Ellipses """
+
+    def getEllipse(self, id):
+        """
+        Retrieve an :py:class:`Ellipse` object from the database.
+
+        See also: :py:meth:`~.DataFile.getEllipses`, :py:meth:`~.DataFile.setEllipse`,
+        :py:meth:`~.DataFile.setEllipses`, :py:meth:`~.DataFile.deleteEllipses`.
+
+        Parameters
+        ----------
+        id: int
+            the id of the rllipse.
+
+        Returns
+        -------
+        rectangle : :py:class:`Ellipse`
+            the :py:class:`Ellipse` with the desired id or None.
+        """
+        try:
+            return self.table_ellipse.get(id=id)
+        except peewee.DoesNotExist:
+            return None
+
+    def getEllipses(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, angle=None,
+                    type=None, processed=None, text=None, id=None, layer=None):
+        """
+        Get all :py:class:`Ellipse` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getEllipse`, :py:meth:`~.DataFile.setEllipse`,
+        :py:meth:`~.DataFile.setEllipses`, :py:meth:`~.DataFile.deleteEllipses`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, array_like, optional
+            the image/s of the ellipses.
+        frame : int, array_like, optional
+            the frame/s of the images of the ellipses.
+        filename : string, array_like, optional
+            the filename/s of the images of the ellipses.
+        x : int, array_like, optional
+            the x coordinate/s of the center/s of the ellipses.
+        y : int, array_like, optional
+            the y coordinate/s of the center/s of the ellipses.
+        width : int, array_like, optional
+            the width/s of the ellipses.
+        height : int, array_like, optional
+            the height/s of the ellipses.
+        angle : float, array_like, optional
+            the angle/s of the rectangles in ellipses.
+        type : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the ellipses.
+        processed : int, array_like, optional
+            the processed flag/s of the ellipses.
+        text : string, array_like, optional
+            the text/s of the ellipses.
+        id : int, array_like, optional
+            the id/s of the ellipses.
+        layer : int, optional
+            the id of the image of the ellipses.
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains all :py:class:`Ellipse` entries.
+        """
+        type = self._processesTypeNameField(type, ["TYPE_Ellipse"])
+
+        query = self.table_ellipse.select(self.table_ellipse, self.table_image).join(self.table_image)
+
+        image = self._processImagesField(image, frame, filename, layer)
+
+        query = addFilter(query, id, self.table_ellipse.id)
+        query = addFilter(query, image, self.table_ellipse.image)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, x, self.table_ellipse.x)
+        query = addFilter(query, y, self.table_ellipse.y)
+        query = addFilter(query, height, self.table_ellipse.height)
+        query = addFilter(query, width, self.table_ellipse.width)
+        query = addFilter(query, angle, self.table_ellipse.angle)
+        query = addFilter(query, type, self.table_ellipse.type)
+        query = addFilter(query, processed, self.table_ellipse.processed)
+        query = addFilter(query, text, self.table_ellipse.text)
+
+        return query
+
+    def setEllipse(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, angle=None,
+                   type=None, processed=None, style=None, text=None, id=None, layer=None):
+        """
+        Insert or update an :py:class:`Ellipse` object in the database.
+
+        See also: :py:meth:`~.DataFile.getEllipse`, :py:meth:`~.DataFile.getEllipses`,
+        :py:meth:`~.DataFile.setEllipses`, :py:meth:`~.DataFile.deleteEllipses`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image of the ellipse.
+        frame : int, optional
+            the frame of the images of the ellipse.
+        filename : string, optional
+            the filename of the image of the ellipse.
+        x : int, optional
+            the x coordinate of the center of the ellipse.
+        y : int, optional
+            the y coordinate of the center of the ellipse.
+        width : int, optional
+            the width of the ellipse.
+        height : int, optional
+            the height of the ellipse.
+        angle : float, optional
+            the angle of the ellipse in degrees.
+        type : string, :py:class:`MarkerType`, optional
+            the marker type (or name) of the ellipse.
+        processed : int, optional
+            the processed flag of the ellipse.
+        text : string, optional
+            the text of the ellipse.
+        id : int, optional
+            the id of the ellipse.
+        layer : int, optional
+            the id of the image of the ellipse.
+
+        Returns
+        -------
+        ellipse : :py:class:`Ellipse`
+            the created or changed :py:class:`Ellipse` item.
+        """
+        assert not (id is None and type is None), "Ellipse must either have a type or be referenced by it's id."
+        assert not (id is None and image is None and frame is None and filename is None), "Ellipse must have an image, frame or filename given or be referenced by it's id."
+
+        try:
+            item = self.table_ellipse.get(id=id)
+        except peewee.DoesNotExist:
+            item = self.table_ellipse()
+
+        type = self._processesTypeNameField(type, ["TYPE_Ellipse"])
+        image = self._processImagesField(image, frame, filename, layer)
+
+        setFields(item, dict(image=image, x=x, y=y, width=width, height=height, angle=angle, type=type, processed=processed, style=style, text=text))
+        item.save()
+        return item
+
+    def setEllipses(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, angle=None,
+                    type=None, processed=None, style=None, text=None, id=None, layer=None):
+        """
+        Insert or update multiple :py:class:`Ellipse` objects in the database.
+
+        See also: :py:meth:`~.DataFile.getEllipse`, :py:meth:`~.DataFile.getEllipses`,
+        :py:meth:`~.DataFile.setEllipse`, :py:meth:`~.DataFile.deleteEllipses`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, array_like, optional
+            the image/s of the ellipses.
+        frame : int, array_like, optional
+            the frame/s of the images of the ellipses.
+        filename : string, array_like, optional
+            the filename/s of the images of the ellipses.
+        x : int, array_like, optional
+            the x coordinate/s of the center/s of the ellipses.
+        y : int, array_like, optional
+         the y coordinate/s of the center/s of the ellipses.
+        width : int, array_like, optional
+            the width/s of the ellipses.
+        height : int, array_like, optional
+            the height/s of the ellipses.
+        angle : int, array_like, optional
+            the angle/s of the ellipses.
+        type : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the ellipses.
+        processed : int, array_like, optional
+            the processed flag/s of the ellipses.
+        text : string, array_like, optional
+            the text/s of the ellipses.
+        id : int, array_like, optional
+            the id/s of the ellipses.
+        layer : int, optional
+            the layer of the images of the ellipses.
+
+        Returns
+        -------
+        success : bool
+            it the inserting was successful.
+        """
+        type = self._processesTypeNameField(type, ["TYPE_Ellipse"])
+        image = self._processImagesField(image, frame, filename, layer)
+
+        data = packToDictList(self.table_ellipse, id=id, image=image, x=x, y=y, width=width, height=height, angle=angle,
+                              processed=processed, type=type, style=style, text=text)
+        return self.saveReplaceMany(self.table_ellipse, data)
+
+    def deleteEllipses(self, image=None, frame=None, filename=None, x=None, y=None, width=None, height=None, angle=None,
+                       type=None, processed=None, text=None, id=None, layer=None):
+        """
+        Delete all :py:class:`Ellipse` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getEllipse`, :py:meth:`~.DataFile.getEllipses`,
+        :py:meth:`~.DataFile.setEllipse`, :py:meth:`~.DataFile.setEllipses`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, array_like, optional
+            the image/s of the ellipses.
+        frame : int, array_like, optional
+            the frame/s of the images of the ellipses.
+        filename : string, array_like, optional
+            the filename/s of the images of the ellipses.
+        x : int, array_like, optional
+            the x coordinate/s of the center/s of the ellipses.
+        y : int, array_like, optional
+            the y coordinate/s of the center/s of the ellipses.
+        width : int, array_like, optional
+            the width/s of the ellipses.
+        height : int, array_like, optional
+            the height/s of the ellipses.
+        angle : int, array_like, optional
+            the angle/s of the ellipses in degrees.
+        type : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the ellipses.
+        processed : int, array_like, optional
+            the processed flag/s of the ellipses.
+        text : string, array_like, optional
+            the text/s of the ellipses.
+        id : int, array_like, optional
+            the id/s of the ellipses.
+
+        Returns
+        -------
+        rows : int
+            the number of affected rows.
+        """
+        type = self._processesTypeNameField(type, ["TYPE_Ellipse"])
+        image = self._processImagesField(image, frame, filename, layer)
+
+        query = self.table_ellipse.delete()
+
+        if image is None and (frame is not None or filename is not None):
+            images = self.table_image.select(self.table_image.id)
+            images = addFilter(images, frame, self.table_image.sort_index)
+            images = addFilter(images, filename, self.table_image.filename)
+            query = query.where(self.table_ellipse.image.in_(images))
+        else:
+            query = addFilter(query, image, self.table_ellipse.image)
+
+        query = addFilter(query, id, self.table_ellipse.id)
+        query = addFilter(query, x, self.table_ellipse.x)
+        query = addFilter(query, y, self.table_ellipse.y)
+        query = addFilter(query, width, self.table_ellipse.width)
+        query = addFilter(query, height, self.table_ellipse.height)
+        query = addFilter(query, angle, self.table_ellipse.angle)
+        query = addFilter(query, type, self.table_ellipse.type)
+        query = addFilter(query, processed, self.table_ellipse.processed)
+        query = addFilter(query, text, self.table_ellipse.text)
+
+        return query.execute()
+
+    """ Offset """
 
     def setOffset(self, image, x, y):
         """

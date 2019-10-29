@@ -27,7 +27,7 @@ and ``delete`` (remove entries) function is provided. Functions with a plural na
 and all arguments can be provided as single values or arrays if multiple entries should be affected.
 
 The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class:`Image`, :py:class:`Offset`, :py:class:`Track`, :py:class:`MarkerType`,
-:py:class:`Marker`, :py:class:`Line`, :py:class:`Rectangle`, :py:class:`Mask`, :py:class:`MaskType`, :py:class:`Annotation`,
+:py:class:`Marker`, :py:class:`Line`, :py:class:`Rectangle`, :py:class:`Ellipse`, :py:class:`Mask`, :py:class:`MaskType`, :py:class:`Annotation`,
 :py:class:`Tag`, :py:class:`TagAssociation`.
 
 .. py:class:: Meta()
@@ -276,6 +276,36 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
                 - **with_offset** *(bool)* - whether to apply the offset of the image. Default True.
                 - **with_subpixel** *(bool)* - whether to apply a subpixel shift for the region. Default True.
                 - **border** *(number)* - a number of border pixels to add to the region. Default 0.
+
+
+.. py:class:: Ellipse()
+
+    An ellipse.
+
+    See also: :py:meth:`~.DataFile.getEllipse`, :py:meth:`~.DataFile.getEllipses`, :py:meth:`~.DataFile.setRectangleEllipse`,
+    :py:meth:`~.DataFile.setEllipses`, :py:meth:`~.DataFile.deleteEllipses`.
+
+    Attributes:
+        - **image** *(* :py:class:`Image` *)* - the image entry associated with this ellipse.
+        - **x** *(float)* - the x coordinate of the center of the ellipse.
+        - **y** *(float)* - the y coordinate of the center of the ellipse.
+        - **width** *(float)* - the width of the ellipse.
+        - **height** *(float)* - the height of the ellipse.
+        - **angle** *(float)* - the angle of the ellipse.
+        - **type** *(* :py:class:`MarkerType` *)* - the marker type.
+        - **processed** *(bool)* - a flag that is set to 0 if the ellipse is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this line.
+        - **style** *(str)* - the style definition of the ellipse.
+        - **text** *(str)* - an additional text associated with the ellipse. It is displayed next to the rectangle in ClickPoints.
+        - **center** *(array)* - an array containing the coordinates of the center of the ellipse: [x, y].
+        - **area** *(float)* - the area of the ellipse
+
+    Methods:
+        .. py:function:: changeType(new_type)
+
+            Change the type of the ellipse.
+
+            Parameters:
+                 - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this ellipse. It has to be of mode TYPE_Ellipse.
 
 
 .. py:class:: Mask()
