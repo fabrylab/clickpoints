@@ -1841,8 +1841,12 @@ class MyDisplayItem:
             if type(self.data) is self.marker_handler.data_file.table_rectangle or\
                     type(self.data) is self.marker_handler.data_file.table_ellipse or \
                     type(self.data) is self.marker_handler.data_file.table_polygon:
-                if self.data.area() is not None:
-                    text = text.replace('$area', '%.2f' % self.data.area())
+                try:
+                    area = self.data.area()
+                except TypeError:
+                    area = self.data.area
+                if area is not None:
+                    text = text.replace('$area', '%.2f' % area)
                 else:
                     text = text.replace('$area', '')
             else:
@@ -1962,7 +1966,7 @@ class MyDisplayItem:
 
     def save(self):
         # only if there are fields which are changed
-        if len(self.data.dirty_fields):
+        if self.data.is_dirty():
             self.data.processed = 0
             self.data.save(only=self.data.dirty_fields)
 
@@ -2505,6 +2509,7 @@ class MyPolygonItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         if grabber_count < len(self.grabbers):
             for i in range(grabber_count, len(self.grabbers)):
                 self.grabbers[-1].pop().delete()
+        self.text_parent = self.grabbers[-1]
         for i in range(len(self.grabbers)):
             setattr(self, "g%d" % (i + 1), self.grabbers[i])
             if i == len(self.grabbers)-1:

@@ -1168,20 +1168,45 @@ class DataFile:
 
             @points.setter
             def points(self, points):
-                # remove unnecessary points
-                if len(getattr(self, "cached_points", [])) > len(points):
-                    this.db.execute_sql(f"DELETE FROM polygonpoint WHERE polygon_id = {self.id} AND 'index' >= {len(points)};")
                 # store the points
-                self.cached_points = points
-                # update the points
-                data = []
-                for index, point in enumerate(points):
-                    data.append(dict(polygon=self.id, x=point[0], y=point[1], index=index))
-                this.saveReplaceMany(this.table_polygon_point, data)
+                self.cached_points = np.asarray(points)
+                # remember that this "points" "field" is dirty (e.g. is not synchronous with the database)
+                setattr(self, "points_dirty", True)
 
             @property
             def area(self):
-                return np.pi * self.width / 2 * self.height / 2
+                x, y = self.points.T
+                # the shoelace formula for the area of a polygon
+                return 0.5 * np.abs(x @ np.roll(y, 1) - y @ np.roll(x, 1))
+
+            @property
+            def center(self):
+                # the center is the mean of all points
+                return np.mean(np.asarray(self.points), axis=0)
+
+            @property
+            def perimeter(self):
+                p = np.asarray(self.points)
+                # if it is closed, include the distance form the last to the first
+                if self.closed:
+                    return np.sum(np.linalg.norm(p - np.roll(p, axis=0), axis=1))
+                else:
+                    # if not, it is just the sum of the distances between subsequent points
+                    return np.sum(np.linalg.norm(p[:-1] - p[1:], axis=1))
+
+            def save(self, *args, **kwargs):
+                BaseModel.save(self, *args, **kwargs)
+                if getattr(self, "points_dirty", False) is True:
+                    # remove unnecessary points
+                    this.db.execute_sql(f"DELETE FROM polygonpoint WHERE polygon_id = {self.id} AND 'index' >= {len(self.cached_points)};")
+                    # update the points
+                    data = []
+                    for index, point in enumerate(self.cached_points):
+                        data.append(dict(polygon=self.id, x=point[0], y=point[1], index=index))
+                    this.saveReplaceMany(this.table_polygon_point, data)
+
+            def is_dirty(self):
+                return BaseModel.is_dirty(self) or getattr(self, "points_dirty", False)
 
             def __str__(self):
                 return f"PolygonObject id{self.id}:\timage={self.image}\ttype={self.type}\tprocessed={self.processed}\tstyle={self.style}\ttext={self.text}"
