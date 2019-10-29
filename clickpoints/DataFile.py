@@ -451,38 +451,41 @@ class DataFile:
                     filename = filename.replace(self.database_class.replace[0], self.database_class.replace[1])
                 return filename
 
-            def __getattribute__(self, item):
-                if item == "mask":
-                    try:
-                        return self.masks[0]
-                    except IndexError:
-                        return None
-                if item == "data":
-                    return self.get_data()
+            @property
+            def mask(self):
+                try:
+                    return self.masks[0]
+                except IndexError:
+                    return None
 
-                if item == "annotation":
-                    try:
-                        return self.annotations[0]
-                    except:
-                        return None
+            @property
+            def annotation(self):
+                try:
+                    return self.annotations[0]
+                except IndexError:
+                    return None
 
-                if item == "offset":
-                    try:
-                        return self.offsets[0]
-                    except:
-                        return None
+            @property
+            def offset(self):
+                try:
+                    return self.offsets[0]
+                except IndexError:
+                    return None
 
-                if item == "data8":
-                    data = self.get_data().copy()
-                    if data.dtype == np.uint16:
-                        if data.max() < 2 ** 12:
-                            data >>= 4
-                            return data.astype(np.uint8)
-                        data >>= 8
+            @property
+            def data(self):
+                return self.get_data()
+
+            @property
+            def data8(self):
+                data = self.get_data().copy()
+                if data.dtype == np.uint16:
+                    if data.max() < 2 ** 12:
+                        data >>= 4
                         return data.astype(np.uint8)
-                    return data
-
-                return BaseModel.__getattribute__(self, item)
+                    data >>= 8
+                    return data.astype(np.uint8)
+                return data
 
             def __array__(self):
                 return self.get_data()
@@ -497,25 +500,23 @@ class DataFile:
                         raise IOError("Can't retrieve image dimensions for %s" % self.filename)
 
             def __str__(self):
-                return "ImageObject id%s:\tfilename=%s\text=%s\tframe=%s\texternal_id=%s\ttimestamp=%s\tsort_index=%s," \
-                       " width=%s\theight=%s\tpath=%s\tlayer=%s" \
-                       % (self.id, self.filename, self.ext, self.frame, self.external_id,
-                        self.timestamp, self.sort_index, self.width, self.height, self.path, self.layer)
+                return f"ImageObject id{self.id}:\tfilename={self.filename}\text={self.ext}\tframe={self.frame}" \
+                       f"texternal_id={self.external_id}\ttimestamp={self.timestamp}\tsort_index={self.sort_index}," \
+                       f" width={self.width}\theight={self.height}\tpath={self.path}\tlayer={self.layer}"
 
             def print_details(self):
                 print("ImageObject:\n"
-                      "id:\t\t{0}\n"
-                      "filename:\t{1}\n"
-                      "ext:\t{2}\n"
-                      "external_id:\t{3}\n"
-                      "timestamp:\t{4}\n"
-                      "sort_index:\t{5}\n"
-                      "widht:\t{6}\n"
-                      "height:\t{7}\n"
-                      "path:\t{8}\n"
-                      "layer:\t{9}"
-                      .format(self.id, self.filename, self.ext, self.frame, self.external_id,
-                        self.timestamp, self.sort_index, self.width, self.height, self.path, self.layer))
+                      f"id:\t\t{self.id}\n"
+                      f"filename:\t{self.filename}\n"
+                      f"ext:\t{self.ext}\n"
+                      f"frame:\t{self.frame}\n"
+                      f"external_id:\t{self.external_id}\n"
+                      f"timestamp:\t{self.timestamp}\n"
+                      f"sort_index:\t{self.sort_index}\n"
+                      f"widht:\t{self.width}\n"
+                      f"height:\t{self.height}\n"
+                      f"path:\t{self.path}\n"
+                      f"layer:\t{self.layer}")
 
         self.base_model = BaseModel
         self.table_meta = Meta
