@@ -4235,11 +4235,11 @@ class DataFile:
         Parameters
         ----------
         id: int
-            the id of the rllipse.
+            the id of the ellipse.
 
         Returns
         -------
-        rectangle : :py:class:`Ellipse`
+        ellipse : :py:class:`Ellipse`
             the :py:class:`Ellipse` with the desired id or None.
         """
         try:
@@ -4478,6 +4478,180 @@ class DataFile:
         query = addFilter(query, type, self.table_ellipse.type)
         query = addFilter(query, processed, self.table_ellipse.processed)
         query = addFilter(query, text, self.table_ellipse.text)
+
+        return query.execute()
+
+    """ Polygons """
+
+    def getPolygon(self, id):
+        """
+        Retrieve an :py:class:`Polygon` object from the database.
+
+        See also: :py:meth:`~.DataFile.getPolygons`, :py:meth:`~.DataFile.setPolygon`,
+        :py:meth:`~.DataFile.setPolygons`, :py:meth:`~.DataFile.deletePolygons`.
+
+        Parameters
+        ----------
+        id: int
+            the id of the polygon.
+
+        Returns
+        -------
+        polygon : :py:class:`Polygon`
+            the :py:class:`Polygon` with the desired id or None.
+        """
+        try:
+            return self.table_polygon.get(id=id)
+        except peewee.DoesNotExist:
+            return None
+
+    def getPolygons(self, image=None, frame=None, filename=None, type=None, processed=None, text=None, id=None, layer=None):
+        """
+        Get all :py:class:`Polygon` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getPolygon`, :py:meth:`~.DataFile.setPolygon`,
+        :py:meth:`~.DataFile.setPolygons`, :py:meth:`~.DataFile.deletePolygons`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, array_like, optional
+            the image/s of the polygons.
+        frame : int, array_like, optional
+            the frame/s of the images of the polygons.
+        filename : string, array_like, optional
+            the filename/s of the images of the polygons.
+        type : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the polygons.
+        processed : int, array_like, optional
+            the processed flag/s of the polygons.
+        text : string, array_like, optional
+            the text/s of the polygons.
+        id : int, array_like, optional
+            the id/s of the polygons.
+        layer : int, optional
+            the id of the image of the polygons.
+
+        Returns
+        -------
+        entries : array_like
+            a query object which contains all :py:class:`Polygon` entries.
+        """
+        type = self._processesTypeNameField(type, ["TYPE_Polygon"])
+
+        query = self.table_polygon.select(self.table_polygon, self.table_image).join(self.table_image)
+
+        image = self._processImagesField(image, frame, filename, layer)
+
+        query = addFilter(query, id, self.table_polygon.id)
+        query = addFilter(query, image, self.table_polygon.image)
+        query = addFilter(query, frame, self.table_image.sort_index)
+        query = addFilter(query, filename, self.table_image.filename)
+        query = addFilter(query, type, self.table_polygon.type)
+        query = addFilter(query, processed, self.table_polygon.processed)
+        query = addFilter(query, text, self.table_polygon.text)
+
+        return query
+
+    def setPolygon(self, image=None, frame=None, filename=None, points=None, type=None, processed=None, style=None,
+                   text=None, id=None, layer=None):
+        """
+        Insert or update an :py:class:`Polygon` object in the database.
+
+        See also: :py:meth:`~.DataFile.getPolygon`, :py:meth:`~.DataFile.getPolygons`,
+        :py:meth:`~.DataFile.setPolygons`, :py:meth:`~.DataFile.deletePolygons`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, optional
+            the image of the polygon.
+        frame : int, optional
+            the frame of the images of the polygon.
+        filename : string, optional
+            the filename of the image of the polygon.
+        points : array, optional
+            the points of the vertices of the polygon.
+        type : string, :py:class:`MarkerType`, optional
+            the marker type (or name) of the polygon.
+        processed : int, optional
+            the processed flag of the polygon.
+        text : string, optional
+            the text of the polygon.
+        id : int, optional
+            the id of the polygon.
+        layer : int, optional
+            the id of the image of the polygon.
+
+        Returns
+        -------
+        polygon : :py:class:`Polygon`
+            the created or changed :py:class:`Polygon` item.
+        """
+        assert not (id is None and type is None), "Polygon must either have a type or be referenced by it's id."
+        assert not (id is None and image is None and frame is None and filename is None), "Polygon must have an image, frame or filename given or be referenced by it's id."
+
+        try:
+            item = self.table_polygon.get(id=id)
+        except peewee.DoesNotExist:
+            item = self.table_polygon()
+
+        type = self._processesTypeNameField(type, ["TYPE_Polygon"])
+        image = self._processImagesField(image, frame, filename, layer)
+
+        setFields(item, dict(image=image, points=points, type=type, processed=processed, style=style, text=text))
+        item.save()
+        return item
+
+    def setPolygons(self, image=None, frame=None, filename=None, points=None, type=None, processed=None, style=None,
+                    text=None, id=None, layer=None):
+        raise NotImplemented("Use multiple calls to setPolygon() instead.")
+
+    def deletePolygons(self, image=None, frame=None, filename=None,
+                       type=None, processed=None, text=None, id=None, layer=None):
+        """
+        Delete all :py:class:`Polygon` entries with the given criteria.
+
+        See also: :py:meth:`~.DataFile.getPolygon`, :py:meth:`~.DataFile.getPolygons`,
+        :py:meth:`~.DataFile.setPolygon`, :py:meth:`~.DataFile.setPolygons`.
+
+        Parameters
+        ----------
+        image : int, :py:class:`Image`, array_like, optional
+            the image/s of the polygons.
+        frame : int, array_like, optional
+            the frame/s of the images of the polygons.
+        filename : string, array_like, optional
+            the filename/s of the images of the polygons.
+        type : string, :py:class:`MarkerType`, array_like, optional
+            the marker type/s (or name/s) of the polygons.
+        processed : int, array_like, optional
+            the processed flag/s of the polygons.
+        text : string, array_like, optional
+            the text/s of the polygons.
+        id : int, array_like, optional
+            the id/s of the polygons.
+
+        Returns
+        -------
+        rows : int
+            the number of affected rows.
+        """
+        type = self._processesTypeNameField(type, ["TYPE_Polygon"])
+        image = self._processImagesField(image, frame, filename, layer)
+
+        query = self.table_polygon.delete()
+
+        if image is None and (frame is not None or filename is not None):
+            images = self.table_image.select(self.table_image.id)
+            images = addFilter(images, frame, self.table_image.sort_index)
+            images = addFilter(images, filename, self.table_image.filename)
+            query = query.where(self.table_ellipse.image.in_(images))
+        else:
+            query = addFilter(query, image, self.table_ellipse.image)
+
+        query = addFilter(query, id, self.table_polygon.id)
+        query = addFilter(query, type, self.table_polygon.type)
+        query = addFilter(query, processed, self.table_polygon.processed)
+        query = addFilter(query, text, self.table_polygon.text)
 
         return query.execute()
 
