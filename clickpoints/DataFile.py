@@ -482,6 +482,9 @@ class DataFile:
                 # image and path in combination have to be unique
                 indexes = ((('filename', 'path', 'frame'), True),)
 
+            def __array__(self):
+                return self.get_data()
+
             def get_data(self):
                 # if we have a buffer
                 if self.database_class._buffer is not None:
@@ -821,7 +824,6 @@ class DataFile:
                 return np.array(self.database_class.db.execute_sql(
                     "SELECT m.x - IFNULL(o.x, 0), m.y - IFNULL(o.y, 0) FROM marker m LEFT JOIN image i ON m.image_id == i.id LEFT JOIN offset o ON i.id == o.image_id WHERE m.id == ?",
                     [self.id]).fetchone())
-
 
             def pos(self):
                 return np.array([self.x, self.y])
@@ -1229,6 +1231,9 @@ class DataFile:
             style = peewee.CharField(null=True)
             text = peewee.CharField(null=True)
 
+            def __array__(self):
+                return self.points
+
             @property
             def points(self):
                 if getattr(self, "cached_points", None) is None:
@@ -1337,6 +1342,9 @@ class DataFile:
         class Mask(BaseModel):
             image = peewee.ForeignKeyField(Image, backref="masks", on_delete='CASCADE')
             data = ImageField()
+            
+            def __array__(self):
+                return self.data
 
             def __str__(self):
                 return "MaskObject id%s: image=%s, data=%s" % (self.id, self.image, self.data)
