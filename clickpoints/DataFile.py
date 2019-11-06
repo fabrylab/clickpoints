@@ -270,6 +270,69 @@ def GetCommandLineArgs():
     return args.start_frame, args.database, args.port
 
 
+def getLine(image, line, width=None):
+    # get the start and end position of the line
+    line = np.array(line)
+    x1, y1 = line[0]
+    x2, y2 = line[1]
+
+    # the width and height of the line
+    w = x2 - x1
+    h = y2 - y1
+    # the length
+    length = np.sqrt(w ** 2 + h ** 2)
+    # and the normed normal vector
+    w2 = h / length
+    h2 = -w / length
+
+    # apply an optional offset if the image is a ClickPoints image with an offset
+    offset = getattr(image, "offset", None)
+    if offset is not None:
+        offx, offy = offset.x, offset.y
+    else:
+        offx, offy = 0, 0
+    x1 -= offx
+    y1 -= offy
+
+    # get the image data (if the image is a ClickPoints image, if not it is a numpy array)
+    data = getattr(image, "data", None)
+    image = data if data is not None else image
+
+    # width None is a line with width of 1 and the result is returned as a 1D array
+    if width is None:
+        width = 1
+        return_1d = True
+    else:
+        return_1d = False
+
+    datas = []
+    # iterate over the different image slices to get the width of the cut
+    for j in np.arange(0, width) - width / 2. + 0.5:
+        data = []
+        # iterate over all pixels of the length
+        for i in np.linspace(0, 1, np.ceil(length)):
+            # get the position along the line
+            x = x1 + w * i + w2 * j
+            y = y1 + h * i + h2 * j
+            # get the rounding percentage
+            xp = x - np.floor(x)
+            yp = y - np.floor(y)
+            x, y = int(x), int(y)
+            # and interpolate the 4 surrounding pixels according to the rounding percentage
+            v = np.array([[1 - yp, yp]]).T @ np.array([[1 - xp, xp]])
+            # for multi channel images (color images)
+            if len(image.shape) == 3:
+                data.append(np.sum(image[y:y + 2, x:x + 2, :] * v[:, :, None], axis=(0, 1),
+                                   dtype=image.dtype))
+            # and for single channel images
+            else:
+                data.append(np.sum(image[y:y + 2, x:x + 2] * v, dtype=image.dtype))
+        datas.append(data)
+
+    if return_1d:
+        return np.array(datas[0])
+    return np.array(datas)
+
 class DataFile:
     """
     The DataFile class provides access to the .cdb file format in which ClickPoints stores the data for a project.
@@ -797,7 +860,6 @@ class DataFile:
                 self.type = new_type
                 return self.save()
 
-
         class Line(BaseModel):
             image = peewee.ForeignKeyField(Image, backref="lines", on_delete='CASCADE')
             x1 = peewee.FloatField()
@@ -861,6 +923,12 @@ class DataFile:
 
             def angle(self):
                 return np.arctan2(self.y1 - self.y2, self.x1 - self.x2)
+
+            def cropImage(self, image=None, width=None):
+                # if no image is given take the image of the line
+                if image is None:
+                    image = self.image
+                return getLine(image, self, width)
 
             def __str__(self):
                 return "LineObject id%s:\timage=%s\tx1=%s\ty1=%s\tx2=%s\ty2=%s\ttype=%s\tprocessed=%s\tstyle=%s\ttext=%s" \
