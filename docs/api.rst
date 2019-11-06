@@ -235,6 +235,16 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
             Parameters:
                  - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this line. It has to be of mode TYPE_Line.
 
+        .. py:function:: cropImage(image=None, width=None)
+
+            Crop a line of the given image provided by the line. If a width is given, a two dimensional region is cropped
+            from the image, if not a one dimensional array is returned
+
+            Parameters:
+                - **image** *(ndarray, * :py:class:`Image` *)* - the image as a database entry or a numpy array.
+                - **width** *(int, optional)* - the width of the 2D line to crop from the image.
+
+
 .. py:class:: Rectangle()
 
     A rectangle.
