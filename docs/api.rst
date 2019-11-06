@@ -27,7 +27,7 @@ and ``delete`` (remove entries) function is provided. Functions with a plural na
 and all arguments can be provided as single values or arrays if multiple entries should be affected.
 
 The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class:`Image`, :py:class:`Offset`, :py:class:`Track`, :py:class:`MarkerType`,
-:py:class:`Marker`, :py:class:`Line`, :py:class:`Rectangle`, :py:class:`Ellipse`, :py:class:`Mask`, :py:class:`MaskType`, :py:class:`Annotation`,
+:py:class:`Marker`, :py:class:`Line`, :py:class:`Rectangle`, :py:class:`Ellipse`, :py:class:`Polygon`, :py:class:`Mask`, :py:class:`MaskType`, :py:class:`Annotation`,
 :py:class:`Tag`, :py:class:`TagAssociation`.
 
 .. py:class:: Meta()
@@ -292,7 +292,7 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
 
     An ellipse.
 
-    See also: :py:meth:`~.DataFile.getEllipse`, :py:meth:`~.DataFile.getEllipses`, :py:meth:`~.DataFile.setRectangleEllipse`,
+    See also: :py:meth:`~.DataFile.getEllipse`, :py:meth:`~.DataFile.getEllipses`, :py:meth:`~.DataFile.setEllipse`,
     :py:meth:`~.DataFile.setEllipses`, :py:meth:`~.DataFile.deleteEllipses`.
 
     Attributes:
@@ -303,9 +303,9 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
         - **height** *(float)* - the height of the ellipse.
         - **angle** *(float)* - the angle of the ellipse.
         - **type** *(* :py:class:`MarkerType` *)* - the marker type.
-        - **processed** *(bool)* - a flag that is set to 0 if the ellipse is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this line.
+        - **processed** *(bool)* - a flag that is set to 0 if the ellipse is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this ellipse.
         - **style** *(str)* - the style definition of the ellipse.
-        - **text** *(str)* - an additional text associated with the ellipse. It is displayed next to the rectangle in ClickPoints.
+        - **text** *(str)* - an additional text associated with the ellipse. It is displayed next to the ellipse in ClickPoints.
         - **center** *(array)* - an array containing the coordinates of the center of the ellipse: [x, y].
         - **area** *(float)* - the area of the ellipse
 
@@ -316,6 +316,33 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
 
             Parameters:
                  - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this ellipse. It has to be of mode TYPE_Ellipse.
+
+
+.. py:class:: Polygon()
+
+    A polygon.
+
+    See also: :py:meth:`~.DataFile.getPolygon`, :py:meth:`~.DataFile.getPolygons`, :py:meth:`~.DataFile.setPolygon`,
+    :py:meth:`~.DataFile.deletePolygons`.
+
+    Attributes:
+        - **image** *(* :py:class:`Image` *)* - the image entry associated with this polygon.
+        - **points** *(array)* - the points of the vertices of the polygon.
+        - **type** *(* :py:class:`MarkerType` *)* - the marker type.
+        - **processed** *(bool)* - a flag that is set to 0 if the polygon is manually moved in ClickPoints, it can be set from an add-on if the add-on has already processed this polygon.
+        - **style** *(str)* - the style definition of the polygon.
+        - **text** *(str)* - an additional text associated with the polygon. It is displayed next to the polygon in ClickPoints.
+        - **center** *(array)* - an array containing the coordinates of the center of the polygon: [x, y].
+        - **area** *(float)* - the area of the polygon.
+        - **perimeter** *(float)* - the perimeter of the polygon.
+
+    Methods:
+        .. py:function:: changeType(new_type)
+
+            Change the type of the polygon.
+
+            Parameters:
+                 - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this polygon. It has to be of mode TYPE_Polygon.
 
 
 .. py:class:: Mask()
