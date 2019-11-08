@@ -1,0 +1,30 @@
+syntax: glob
+*.pyc
+*.db
+*.py.orig
+*.py~
+*/_*
+clickpoints.egg-info*
+clickpoints/ClickPoints.bat
+.cache/*
+*.cdb
+.coverage
+.idea/*
+# Python egg metadata, regenerated from source files by setuptools.
+
+build/*
+dist/*
+*/.ipynb_checkpoints/*
+clickpoints.sh
+.eggs/*
+development/nsis_conda/ClickPoints.exe
+syntax: regexp
+database/sql.cfg
+^.idea/.*
+.directory
+lastnotified.log
+^ClickPoints$
+^ClickPoints.sh
+^ClickPoints.bat
+^database/files.txt
+docs\/examples\/.*\.(?!ipynb)
