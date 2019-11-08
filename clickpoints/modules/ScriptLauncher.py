@@ -91,6 +91,28 @@ def check_packages_installed(package_name):
     return True
 
 
+def get_clickpoints_addons():
+    import sys
+    addons = []
+    for p in sys.path:
+        try:
+            for path in os.listdir(p):
+                path = os.path.join(p, path)
+                if os.path.isdir(path):
+                    addon_file = os.path.join(path, "__clickpoints_addon__.txt")
+                    if os.path.exists(addon_file):
+                        with open(addon_file) as fp:
+                            for line in fp:
+                                line = line.strip()
+                                if line == "":
+                                    continue
+                                line = os.path.join(path, line)
+                                addons.append(line)
+        except FileNotFoundError:
+            pass
+    return addons
+
+
 # implement the fallback keyword for the ConfigParser in Python 2.7
 def wrap_get(function):
     def wrapper(section, name, raw=True, fallback=None):
@@ -413,6 +435,7 @@ class ScriptLauncher(QtCore.QObject):
 
     def loadScripts(self):
         scripts = glob.glob(os.path.join(os.environ["CLICKPOINTS_ADDON"], "*", '*.txt'))
+        scripts.extend(get_clickpoints_addons())
         loaded_scripts = []
         for filename in scripts:
             try:
