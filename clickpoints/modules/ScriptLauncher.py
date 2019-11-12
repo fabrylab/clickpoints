@@ -106,7 +106,9 @@ def get_clickpoints_addons():
                                 line = line.strip()
                                 if line == "":
                                     continue
-                                line = os.path.join(path, line)
+                                # if the path is not an absolute path, define it relative to the path of the .txt file
+                                if not os.path.isabs(line):
+                                    line = os.path.join(path, line)
                                 addons.append(line)
         except FileNotFoundError:
             pass

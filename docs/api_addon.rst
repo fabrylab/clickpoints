@@ -10,6 +10,18 @@ ClickPoints allows to easily write add-on scripts.
 The add-on consists of at least two files. A meta data file with ``.txt`` ending which contains basic information on the add-on and a script file
 providing an overloaded class of ``clickpoints.Addon`` as shown above.
 
+File Location
+-------------
+The add-on files can be located in the ClickPoints add-on folder (``/path-to-clickpoints/clickpoints/addons/``) or in an
+externally folder and be imported manually on each use.
+
+Furthermore, ClickPoints offers a way for python packages, to define ClickPoints addons. Therefore, place a file called
+``__clickpoints_addon__.txt`` in the main folder of the package (usually the child folder of the folder where the setup.py
+is located). The ``__clickpoints_addon__.txt`` file can contain the path to the meta data file (ending in ``.txt``) of the
+add-on. The paths are defined relative to the folder that contains the ``__clickpoints_addon__.txt`` file. A package can
+define multiple clickpoints add-ons, therefore, each line in ``__clickpoints_addon__.txt`` defines the relative path to an
+add-on.
+
 Meta Data File
 --------------
 
