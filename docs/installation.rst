@@ -40,10 +40,10 @@ Developer Version
 ~~~~~~~~~~~~~~~~~
 
 If you want to have ClickPoints installed from the repository and be able to update to the newest changesets, you can
-follow this guide. First of all you need to have mercurial installed (`Mercurial <https://www.mercurial-scm.org/>`_).
+follow this guide. First of all you need to have git installed (`Git <https://git-scm.com/>`_ or directly a git client e.g. `GitHub Desktop<https://desktop.github.com/>`_).
 Then you can open a command line in the folder where you want to install ClickPoints (e.g. C:\Software) and run the following command:
 
-    ``hg clone https://bitbucket.org/fabry_biophysics/clickpoints``
+    ``git clone https://github.com/fabrylab/clickpoints.git``
 
 To install the package with all dependencies, go to the folder where ClickPoints has been downloaded (e.g. C:\Software\clickpoints) and execute:
 

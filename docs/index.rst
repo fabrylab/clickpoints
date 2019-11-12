@@ -31,7 +31,7 @@ Note
 ----
 
 If you encounter any bugs or unexpected behaviour, you are encouraged to report a bug in our
-Bitbucket `bugtracker <https://bitbucket.org/fabry_biophysics/clickpoints/issues?status=new&status=open>`_.
+Bitbucket `bugtracker <https://github.com/fabrylab/clickpoints/issues>`_.
 
 Citing ClickPoints
 ------------------
