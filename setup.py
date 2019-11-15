@@ -23,7 +23,7 @@ from setuptools import setup
 
 
 setup(name='clickpoints',
-      version="1.8.4",
+      version="1.9.0",
       description='Scientific toolbox for manual and automatic image evaluation.',
       long_description=open('README.rst').read(),
       url='https://bitbucket.org/fabry_biophysics/clickpoints',
