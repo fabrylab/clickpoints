@@ -110,7 +110,7 @@ def get_clickpoints_addons():
                                 if not os.path.isabs(line):
                                     line = os.path.join(path, line)
                                 addons.append(line)
-        except FileNotFoundError:
+        except (FileNotFoundError, NotADirectoryError):
             pass
     return addons
 
