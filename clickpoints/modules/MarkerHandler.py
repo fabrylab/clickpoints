@@ -2349,7 +2349,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
             self.CheckPositiveWidthHeight()
             self.updateDisplay()
         if grabber == self.g1:
-            dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g2.x(), self.g2.y()]), self.data.pos(), self.data.angle)
+            dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g2.x(), self.g2.y()]), self.data.center, self.data.angle)
             self.data.angle = angle
             self.data.width = dist
             self.data.x, self.data.y = center
@@ -2358,7 +2358,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
             self.updateDisplay()
         if grabber == self.g2:
             dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g1.x(), self.g1.y()]),
-                                          self.data.pos(), self.data.angle)
+                                          self.data.center, self.data.angle)
             self.data.angle = angle + 180
             self.data.width = dist
             self.data.x, self.data.y = center
@@ -2367,7 +2367,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
             self.updateDisplay()
         if grabber == self.g3:
             dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g4.x(), self.g4.y()]),
-                                          self.data.pos(), self.data.angle)
+                                          self.data.center, self.data.angle)
             self.data.angle = angle - 90
             self.data.height = dist
             self.data.x, self.data.y = center
@@ -2376,7 +2376,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
             self.updateDisplay()
         if grabber == self.g4:
             dist, center, angle = process(np.array([pos.x(), pos.y()]), np.array([self.g3.x(), self.g3.y()]),
-                                          self.data.pos(), self.data.angle)
+                                          self.data.center, self.data.angle)
             self.data.angle = angle + 90
             self.data.height = dist
             self.data.x, self.data.y = center
