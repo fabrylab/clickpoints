@@ -98,11 +98,9 @@ RelaceVersion("docs/conf.py", current_version, new_version)
 RelaceVersion("clickpoints/__init__.py", current_version, new_version)
 
 if options.release:
-    # Commit changes to ClickPoints
-    os.system("hg commit -m \"set version to %s\"" % new_version)
-    os.system("hg tag \"v%s\"" % new_version)
-
-    # Push everything
-    os.system("hg push")
+    # commit changes
+    os.system("git add setup.py docs/conf.py clickpoints/__init__.py meta.yaml")
+    os.system("git commit -m \"set version to v%s\"" % new_version)
+    os.system("git tag \"v%s\"" % new_version)
 
 print("MakeRelease completed!")

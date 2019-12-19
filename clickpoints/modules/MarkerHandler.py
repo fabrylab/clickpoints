@@ -1513,6 +1513,7 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
             self.setBrush(QtGui.QBrush(color))
         else:
             self.setBrush(QtGui.QBrush(0))
+            self.setPen(QtGui.QPen(color))
             pen = self.pen()
             pen.setColor(color)
             pen.setCosmetic(True)

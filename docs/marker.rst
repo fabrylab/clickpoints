@@ -134,7 +134,7 @@ The styles use the JSON format for data storage. The following fields can be use
 -  **Marker Shape** -  ``"shape": "cross"``
       Defines the shape of the marker. All shapes can be converted to outlines by appending "-o" to the name.
 
-      *values:* ``cross`` (default), ``circle``, ``ring``, ``rect``
+      *values:* ``cross`` (default), ``circle``, ``ring``, ``rect``, ``cross-o``, ``circle-o``, ``ring-o``, ``rect-o``
 
 -  **Marker Line Width** - ``"line-width": 1``
       Defines the line width of the markers symbol (e.g. width of the circle). Ignored if a filled symbol (e.g. the
