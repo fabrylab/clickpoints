@@ -262,6 +262,10 @@ class MySlider(QtWidgets.QGraphicsRectItem):
     def mouseReleaseEvent(self, event):
         self.dragged = False
 
+    def setText(self, text):
+        self.name = text
+        self.text.setText(self.name + ": " + self.format % self.value)
+
 class BoxGrabber(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
@@ -339,6 +343,9 @@ class TextButton(QtWidgets.QGraphicsRectItem):
 
     def mouseReleaseEvent(self, event):
         pass
+
+    def setText(self, text):
+        self.text.setText(text)
 
 
 class MyCommandButton(QtWidgets.QGraphicsRectItem):

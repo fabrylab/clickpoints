@@ -37,6 +37,8 @@ def BoundBy(value, min, max):
 
 
 def generateLUT(min, max, gamma, bins):
+    if bins is None:
+        return None
     if min >= max:
         min = max-1
     if min < 0:
@@ -59,11 +61,13 @@ class ImageDisplaySignal(QtCore.QObject):
 
 class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
     conversion = None
-    max_value = 256
+    max_value = None
+    percentile = [5, 95]
+    gamma = 1
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.setImage = self.setImageFirstTime
+        self.setImage = self.setImageContrastSpread#self.setImageFirstTime
 
     def setImage(self, image):
         pass
@@ -83,7 +87,30 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
     def setImageDirect(self, image):
         self.setPixmap(QtGui.QPixmap(array2qimage(image.astype(np.uint8))))
 
+    def getMaxValue(self, image):
+        if image.dtype == np.uint16:
+            if image.max() < 2**12:
+                self.max_value = 2**12
+            else:
+                self.max_value = 2**16
+        else:
+            self.max_value = 2**8
+
     def setImageLUT(self, image):
+        if self.max_value is None:
+            self.getMaxValue(image)
+
+        if self.conversion is None:
+            self.setPixmap(QtGui.QPixmap(array2qimage(image.astype(np.uint8))))
+        else:
+            self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
+
+    def setImageContrastSpread(self, image):
+        if self.max_value is None:
+            self.getMaxValue(image)
+
+        self.min, self.max = np.percentile(image, self.percentile).astype(int)
+        self.conversion = generateLUT(self.min, self.max, self.gamma, self.max_value)
         self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
 
     def setConversion(self, conversion):
@@ -236,35 +263,38 @@ class BigImageDisplay:
         self.gamma = 1
         self.Change()
 
-    def Change(self, gamma=None, min_brightness=None, max_brightness=None):
+    def Change(self, gamma=None, min_brightness=None, max_brightness=None, auto_contrast=None):
         if self.hist is None and isinstance(self.image, np.ndarray):
             self.hist = np.histogram(self.image.flatten(), bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
-        # update gamma if set
-        if gamma is not None:
-            if gamma > 1:
-                gamma = 1. / (1 - (gamma - 1) + 0.00001)
-            self.gamma = gamma
-        # update min brightness if set
-        if min_brightness is not None:
-            self.min = int(min_brightness)
-        # update max brightness if set
-        if max_brightness is not None:
-            self.max = int(max_brightness)
-        elif self.max is None:
-            self.max = self.image_pixMapItem.max_value
-        # ensure that min is smaller than max
-        if self.min >= self.max:
-            if self.max == 0:
-                self.max = self.min + 1
-            else:
-                self.min = self.max-1
 
-        # calculate conversion look up table
-        self.conversion = generateLUT(self.min, self.max, self.gamma, self.image_pixMapItem.max_value)
+        def get(index, default):
+            if self.config.contrast is None:
+                return default
+            if self.window.current_layer.id in self.config.contrast:
+                try:
+                    value = self.config.contrast[self.window.current_layer.id][index]
+                except IndexError:
+                    value = None
+                if value is None:
+                    return default
+                return value
+            return default
+
+        if self.config.auto_contrast:
+            self.image_pixMapItem.percentile = [get(4, 5), get(3, 95)]
+            self.image_pixMapItem.gamma = get(0, 1)
+            self.image_pixMapItem.setImage = self.image_pixMapItem.setImageContrastSpread
+            if self.image is not None:
+                self.image_pixMapItem.setImage(self.image)
+            self.conversion = self.image_pixMapItem.conversion
+        else:
+            self.image_pixMapItem.gamma = get(0, 1)
+            self.conversion = generateLUT(get(2, 0), get(1, self.image_pixMapItem.max_value), get(0, 1), self.image_pixMapItem.max_value)
+            self.image_pixMapItem.conversion = self.conversion
+            self.image_pixMapItem.setImage = self.image_pixMapItem.setImageLUT
+            if self.image is not None:
+                self.image_pixMapItem.setImage(self.image)
 
         if not isinstance(self.image, np.ndarray):  # is slide
             self.updateSlideView()
             return
-        # apply changes
-        self.image_pixMapItem.setConversion(self.conversion)
-        self.image_pixMapItem.setImage(self.image)

@@ -1500,11 +1500,7 @@ class DataFile:
 
         self._last_category = "Contrast Adjust"
         self._AddOption(key="contrast_interface_hidden", default=True, value_type="bool", hidden=True)
-        self._AddOption(key="contrast_gamma", default=1.0, value_type="float", hidden=True)
-        self._AddOption(key="contrast_max", default=255, value_type="float", hidden=True)
-        self._AddOption(key="contrast_min", default=0, value_type="float", hidden=True)
-
-        self._AddOption(key="contrast", default={}, value_type="dict", hidden=True)
+        self._AddOption(key="contrast", default=None, value_type="dict", hidden=True)
 
         self._last_category = "Marker"
         self._AddOption(key="types", default={0: ["marker", [255, 0, 0], self.TYPE_Normal]}, value_type="dict", hidden=True)
@@ -1678,6 +1674,8 @@ class DataFile:
     def getOption(self, key):
         option = self._options_by_key[key]
         if option.value is None:
+            if isinstance(option.default, (dict, list)):
+                return option.default.copy()
             return option.default
         return option.value
 

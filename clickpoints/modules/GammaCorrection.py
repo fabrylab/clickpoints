@@ -22,6 +22,7 @@
 from __future__ import division, print_function
 
 import os
+import numpy as np
 
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
@@ -35,6 +36,10 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
     schedule_update = False
 
     initialized = False
+
+    auto_contrast = False
+
+    max_value = None
 
     def __init__(self, parent_hud, image_display, window):
         QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
@@ -74,32 +79,75 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.current_layer = 0
 
     def initSliders(self):
+        y_off = 15
+        self.button_autocontrast = TextButton(self, 100, "auto contr. (off)", font=self.window.mono_font, scale=self.window.scale_factor)
+        self.button_autocontrast.setPos(3, 10)
+        self.button_autocontrast.clicked.connect(self.toogleAutocontrast)
+
         functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
         self.max_value = self.image.image_pixMapItem.max_value
-        min_max = [[0, 2], [0, self.max_value], [0, self.max_value]]
-        start = [1, self.max_value, 0]
-        formats = [" %.2f", "    %3d", "    %3d"]
-        for i, name in enumerate(["Gamma", "Max", "Min"]):
+        min_max = [[0, 2], [0, 100], [0, 100]]
+        start = [1, 95, 5]
+        formats = [" %.2f", "%3d%%", "%3d%%"]
+        names = ["Gamma", "Max P.", "Min P."]
+
+        for i, name in enumerate(names):
             slider = MySlider(self, name, start_value=start[i], max_value=min_max[i][1], min_value=min_max[i][0],
                               font=self.window.mono_font, scale=self.window.scale_factor)
             slider.format = formats[i]
-            slider.setPos(5, 40 + i * 30)
+            slider.setPos(5, y_off + 40 + i * 30)
             slider.setValue(start[i])
             slider.valueChanged = functions[i]
             self.sliders.update({name: slider})
 
         self.button_update = TextButton(self, 50, "update", font=self.window.mono_font, scale=self.window.scale_factor)
-        self.button_update.setPos(3, 40 + 3 * 30 - 20)
+        self.button_update.setPos(3, y_off + 40 + 3 * 30 - 20)
         self.button_update.clicked.connect(self.updateROI)
         self.button_reset = TextButton(self, 50, "reset", font=self.window.mono_font, scale=self.window.scale_factor)
-        self.button_reset.setPos(56, 40 + 3 * 30 - 20)
+        self.button_reset.setPos(56, y_off + 40 + 3 * 30 - 20)
         self.button_reset.clicked.connect(self.reset)
 
-        self.setRect(QtCore.QRectF(0, 0, 110, 110 + 18))
+        self.setRect(QtCore.QRectF(0, 0, 110, y_off + 110 + 18))
         BoxGrabber(self)
         self.dragged = False
 
         self.ToggleInterfaceEvent(hidden=True)
+
+        self.updateButtons()
+
+    def toogleAutocontrast(self):
+        self.config.auto_contrast = not self.config.auto_contrast
+        self.updateButtons()
+
+    def updateButtons(self):
+        if self.max_value is None:
+            return
+
+        def getGamma():
+            value = self.getConfigValue(0, 1)
+            if value > 1:
+                return 1/value - 2.00001
+            return value
+        if self.config.auto_contrast is True:
+            self.button_autocontrast.setText("auto contr. (on)")
+            min_max = [[0, 2], [0, 100], [0, 100]]
+            start = [getGamma(), self.getConfigValue(3, 95), self.getConfigValue(4, 5)]
+            formats = [" %.2f", "%3d%%", "%3d%%"]
+            names = ["Gamma", "Max P.", "Min P."]
+        else:
+            max_value = self.max_value
+            self.button_autocontrast.setText("auto contr. (off)")
+            min_max = [[0, 2], [0, max_value], [0, max_value]]
+            start = [getGamma(), self.getConfigValue(1, max_value), self.getConfigValue(2, 0)]
+            formats = [" %.2f", "    %3d", "    %3d"]
+            names = ["Gamma", "Max", "Min"]
+
+        for i, slider in enumerate(self.sliders.values()):
+            slider.format = formats[i]
+            slider.setText(names[i])
+            slider.minValue = min_max[i][0]
+            slider.maxValue = min_max[i][1]
+            slider.setValue(start[i])
 
     def closeDataFile(self):
         self.data_file = None
@@ -109,21 +157,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
-        # if new_database:
-        #     values = self.config.contrast[self.current_layer]
-        #     for i, name in enumerate(self.sliders):
-        #         self.sliders[name].setValue(values[i])
-        #     self.image.Change(gamma=values[0])
-        #     self.image.Change(max_brightness=values[1])
-        #     self.image.Change(min_brightness=values[2])
-
         self.ToggleInterfaceEvent(hidden=self.config.contrast_interface_hidden)
-        # if self.config.contrast_gamma != 1 or self.config.contrast_max != 255 or self.config.contrast_min != 0:
-        #     self.schedule_update = True
-        if self.current_layer in self.config.contrast:
-            if self.config.contrast[self.current_layer][0] != 1. or self.config.contrast[self.current_layer][1] != 255 or \
-                        self.config.contrast[self.current_layer][2] != 0:
-                self.schedule_update = True
+        self.schedule_update = True
 
     def updateHist(self, hist):
         if hist is None:
@@ -145,90 +180,73 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             convpath.lineTo(float(i) * w + 5, -float(v) * h)
         self.conv.setPath(convpath)
 
+    def setConfigValue(self, index, value):
+        if self.config.contrast is None:
+            self.config.contrast = {}
+        if self.current_layer not in self.config.contrast:
+            self.config.contrast[self.current_layer] = [None]*5
+        if len(self.config.contrast[self.current_layer]) < 5:
+            self.config.contrast[self.current_layer] = [None] * 5
+        self.config.contrast[self.current_layer][index] = value
+        # to trigger the saving of the option
+        self.config.contrast = self.config.contrast
+
+    def getConfigValue(self, index, default):
+        if self.config.contrast is None:
+            return default
+        if self.current_layer in self.config.contrast:
+            try:
+                value = self.config.contrast[self.current_layer][index]
+            except IndexError:
+                value = None
+            if value is None:
+                return default
+            return value
+        return default
+
     def updateGamma(self, value):
-        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-        update_hist = self.image.preview_slice is None
-        self.image.Change(gamma=value)
+        #x * (1 - (value - 1) + 0.00001) = 1.
+        #(1 - (value - 1) + 0.00001) = 1./x
+        #value = 1/x - 2.00001
+        if value > 1:
+            self.setConfigValue(0, 1. / (1 - (value - 1) + 0.00001))
+        else:
+            self.setConfigValue(0, value)
+
+        self.image.Change()
+
         self.updateConv()
-        if update_hist:
-            self.updateHist(self.image.hist)
-        if self.config:
-            # self.config.contrast_gamma = value
-            contrast_old = dict(self.config.contrast)
-            if self.current_layer in contrast_old:
-                old_value = contrast_old[self.current_layer]
-                old_value[0] = value
-                contrast_old.update({self.current_layer: old_value})
-                self.config.contrast = contrast_old
-            else:
-                contrast_old.update({self.current_layer: [value, self.max_value, 0]})
-                self.config.contrast = contrast_old
-        QtWidgets.QApplication.restoreOverrideCursor()
+        self.updateHist(self.image.hist)
 
     def updateBrightnes(self, value):
-        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-        update_hist = self.image.preview_slice is None
-        self.image.Change(max_brightness=value)
+        if self.config.auto_contrast is True:
+            self.setConfigValue(3, int(value))
+        else:
+            self.setConfigValue(1, int(value))
+
+        self.image.Change()
+
         self.updateConv()
-        if update_hist:
-            self.updateHist(self.image.hist)
-        if self.config:
-            # self.config.contrast_max = value
-            contrast_old = dict(self.config.contrast)
-            if self.current_layer in contrast_old:
-                old_value = contrast_old[self.current_layer]
-                old_value[1] = value
-                contrast_old.update({self.current_layer: old_value})
-                self.config.contrast = contrast_old
-            else:
-                contrast_old.update({self.current_layer: [1.0, value, 0]})
-                self.config.contrast = contrast_old
-        QtWidgets.QApplication.restoreOverrideCursor()
+        self.updateHist(self.image.hist)
 
     def updateContrast(self, value):
-        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        if self.config.auto_contrast is True:
+            self.setConfigValue(4, int(value))
+        else:
+            self.setConfigValue(2, int(value))
+
+        self.image.Change()
+
+        self.updateConv()
+        self.updateHist(self.image.hist)
+
+    def setActiveLayer(self, new_index):
         update_hist = self.image.preview_slice is None
-        self.image.Change(min_brightness=value)
+        self.updateButtons()
+        self.image.Change()
         self.updateConv()
         if update_hist:
             self.updateHist(self.image.hist)
-        if self.config:
-            # self.config.contrast_min = value
-            contrast_old = dict(self.config.contrast)
-            if self.current_layer in contrast_old:
-                old_value = contrast_old[self.current_layer]
-                old_value[2] = value
-                contrast_old.update({self.current_layer: old_value})
-                self.config.contrast = contrast_old
-            else:
-                contrast_old.update({self.current_layer: [1.0, self.max_value, value]})
-                self.config.contrast = contrast_old
-
-        QtWidgets.QApplication.restoreOverrideCursor()
-
-    def setActiveLayer(self, new_index):
-        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-        update_hist = self.image.preview_slice is None
-        if new_index in self.config.contrast:
-            values = self.config.contrast[new_index]
-            for i, name in enumerate(self.sliders):
-                self.sliders[name].setValue(values[i])
-            self.image.Change(min_brightness=values[2], max_brightness=values[1], gamma=values[0])
-            self.updateConv()
-            if update_hist:
-                self.updateHist(self.image.hist)
-        else:
-            if len(self.config.contrast.keys()) == 0:
-                values = [1, self.image.image_pixMapItem.max_value, 0]
-            else:
-                values = self.config.contrast[list(self.config.contrast.keys())[0]]
-            for i, name in enumerate(self.sliders):
-                self.sliders[name].setValue(values[i])
-            self.image.Change(min_brightness=values[2], max_brightness=values[1], gamma=values[0])
-            self.updateConv()
-            if update_hist:
-                self.updateHist(self.image.hist)
-        QtWidgets.QApplication.restoreOverrideCursor()
 
     def imageLoadedEvent(self, filename="", frame_number=0):
         if not self.initialized:
@@ -237,12 +255,14 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         if self.image.preview_rect is not None:
             self.updateHist(self.image.hist)
         if self.schedule_update:
-            values = self.config.contrast[self.current_layer]
-            for i, name in enumerate(self.sliders):
-                self.sliders[name].setValue(values[i])
-            # self.sliders["Gamma"].setValue(self.config.contrast_gamma)
-            # self.sliders["Max"].setValue(self.config.contrast_max)
-            # self.sliders["Min"].setValue(self.config.contrast_min)
+            self.updateButtons()
+            if 0:
+                values = self.config.contrast[self.current_layer]
+                for i, name in enumerate(self.sliders):
+                    self.sliders[name].setValue(values[i])
+                # self.sliders["Gamma"].setValue(self.config.contrast_gamma)
+                # self.sliders["Max"].setValue(self.config.contrast_max)
+                # self.sliders["Min"].setValue(self.config.contrast_min)
             self.schedule_update = False
 
     def mousePressEvent(self, event):
@@ -251,8 +271,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         pass
 
     def reset(self):
-        for slider in self.sliders.values():
-            slider.reset()
+        self.config.contrast[self.current_layer] = [None]*5
+        self.updateButtons()
         self.image.ResetPreview()
         self.hist.setPath(QtGui.QPainterPath())
         self.conv.setPath(QtGui.QPainterPath())
