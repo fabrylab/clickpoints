@@ -129,7 +129,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         if hist is None:
             return
         histpath = QtGui.QPainterPath()
-        w = 100. / self.max_value
+        w = 100. / len(hist[0])
         h = 98./max(hist[0])
         for i, v in enumerate(hist[0]):
             histpath.addRect(i * w + 5, 0, w, -v * h)
