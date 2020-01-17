@@ -88,7 +88,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(videoWidget)
         Vlayout = QtWidgets.QVBoxLayout(videoWidget)
 
-        self.leAName = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename), "Choose Video - ClickPoints", "Videos (*.avi)", lambda name: self.checkExtension(name, ".avi"))
+        self.leAName = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename), "Choose Video - ClickPoints", "Videos (*.mp4 *.mpeg *.avi)", lambda name: self.checkExtension(name, ".mp4"))
         self.leCodec = QtShortCuts.QInputString(Vlayout, "Codec:", options.video_codec, stretch=True)
         self.sbQuality = QtShortCuts.QInputNumber(Vlayout, 'Quality (0 lowest, 10 highest):', options.video_quality, min=0, max=10, float=False, stretch=True)
 

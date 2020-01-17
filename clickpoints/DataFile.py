@@ -1578,7 +1578,7 @@ class DataFile:
                                 "%6f for nanoseconds")
 
         self._last_category = "Video Exporter"
-        self._AddOption(key="export_video_filename", default="export/export.avi", value_type="string", hidden=True)
+        self._AddOption(key="export_video_filename", default="export/export.mp4", value_type="string", hidden=True)
         self._AddOption(key="export_image_filename", default="export/images%d.jpg", value_type="string", hidden=True)
         self._AddOption(key="export_single_image_filename", default="export/images%d.jpg", value_type="string", hidden=True)
         self._AddOption(key="export_gif_filename", default="export/export.gif", value_type="string", hidden=True)
