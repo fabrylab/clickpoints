@@ -24,6 +24,7 @@ import os
 
 from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
+import datetime
 
 import imageio
 import numpy as np
@@ -127,12 +128,20 @@ class VideoExporterDialog(QtWidgets.QWidget):
         """ Time """
         timeWidget = QtWidgets.QGroupBox("Time")
         self.layout.addWidget(timeWidget)
-        Vlayout = QtWidgets.QVBoxLayout(timeWidget)
+        Hlayout = QtWidgets.QHBoxLayout(timeWidget)
+        Vlayout = QtWidgets.QVBoxLayout()
+        Hlayout.addLayout(Vlayout)
 
         self.cbTime = QtShortCuts.QInputBool(Vlayout, 'Display time:', options.export_display_time, stretch=True)
         self.cbTimeZero = QtShortCuts.QInputBool(Vlayout, 'Start from zero:', options.export_time_from_zero, stretch=True)
         self.cbTimeFontSize = QtShortCuts.QInputNumber(Vlayout, 'Font size:', options.export_time_font_size, float=False, stretch=True)
         self.cbTimeColor = QtShortCuts.QInputColor(Vlayout, "Color:", options.export_time_font_color, stretch=True)
+
+        Vlayout = QtWidgets.QVBoxLayout()
+        Hlayout.addLayout(Vlayout)
+
+        self.cbCustomTime = QtShortCuts.QInputBool(Vlayout, 'Custom time:', options.export_custom_time)
+        self.cbCustomTimeDelta = QtShortCuts.QInputNumber(Vlayout, 'Time between two frames (s):', options.export_custom_time_delta)
 
         Vlayout.addStretch()
 
@@ -207,6 +216,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
         options.export_time_font_color = self.cbTimeColor.value()
         options.export_image_scale = self.cbImageScaleSize.value()
         options.export_marker_scale = self.cbMarkerScaleSize.value()
+        options.export_custom_time = self.cbCustomTime.value()
+        options.export_custom_time_delta = self.cbCustomTimeDelta.value()
 
         # get the marker handler for marker drawing
         marker_handler = self.window.GetModule("MarkerHandler")
@@ -256,6 +267,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
             self.time_drawing.x = 15
             self.time_drawing.y = 10
             self.time_drawing.color = tuple(HTMLColorToRGB(options.export_time_font_color))
+            if options.export_custom_time:
+                self.custom_time = 0
 
         # initialize progress bar
         self.progressbar.setMinimum(start)
@@ -355,15 +368,20 @@ class VideoExporterDialog(QtWidgets.QWidget):
                                options.export_marker_scale, options.export_image_scale, options.rotation)
             # draw timestamp
             if self.time_drawing is not None:
-                time = self.window.data_file.image.timestamp
-                if time is not None:
-                    if frame == start and options.export_time_from_zero:
-                        self.time_drawing.start = time
-                    if self.time_drawing.start is not None:
-                        text = str(time-self.time_drawing.start).split('.', 2)[0]
-                    else:
-                        text = time.strftime("%Y-%m-%d %H:%M:%S")
+                if options.export_custom_time:
+                    text = str(datetime.timedelta(seconds=self.custom_time))
                     draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
+                    self.custom_time += options.export_custom_time_delta
+                else:
+                    time = self.window.data_file.image.timestamp
+                    if time is not None:
+                        if frame == start and options.export_time_from_zero:
+                            self.time_drawing.start = time
+                        if self.time_drawing.start is not None:
+                            text = str(time-self.time_drawing.start).split('.', 2)[0]
+                        else:
+                            text = time.strftime("%Y-%m-%d %H:%M:%S")
+                        draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
             # add to video ...
             if svg:
                 dwg.save()
