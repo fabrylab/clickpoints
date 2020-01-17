@@ -331,7 +331,7 @@ def getLine(image, line, width=None):
 
     if return_1d:
         return np.array(datas[0])
-    return np.array(datas)
+    return np.array(datas)[::-1, :]
 
 class DataFile:
     """

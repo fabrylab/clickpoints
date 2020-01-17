@@ -224,7 +224,7 @@ class Addon(clickpoints.Addon):
 
         if self.mirror:
             return np.array(datas)[:, ::-1]
-        return np.array(datas)
+        return np.array(datas)[::-1, :]
 
     def updatePlot(self):
         if self.selected is None:
