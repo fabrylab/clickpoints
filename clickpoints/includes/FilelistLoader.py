@@ -95,7 +95,7 @@ vidformats = [fmt if fmt[0] == "." else "."+fmt for fmt in vidformats]
 
 formats = tuple(imgformats+vidformats)
 imgformats = tuple(imgformats)
-specialformats = ['.gif']+[".vms"]   # potential animated gif = video or gif = image
+specialformats = ['.gif']+[".vms"]+[".tif", ".tiff"]   # potential animated gif = video or gif = image
 
 
 class FolderEditor(QtWidgets.QWidget):
