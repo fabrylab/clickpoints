@@ -375,7 +375,11 @@ class DataFileExtended(DataFile):
                 if timestamp is not None:
                     timestamps = date_linspace(timestamp, timestamp2, frames)
                 else:
-                    timestamps = itertools.repeat(None)
+                    # if the file extension is a *.tiff (multipage tiff, frames > 1) check for meta info in the page description
+                    if extension in [".tif", ".tiff"]:
+                        timestamps = self.getTimeStampTiffMultipage(full_path)
+                    else:
+                        timestamps = itertools.repeat(None)
             # if not one is enough
             else:
                 timestamp,_ = self.getTimeStamp(full_path)
@@ -722,6 +726,41 @@ class DataFileExtended(DataFile):
             return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
         except (AttributeError, ValueError, KeyError):
             return None
+
+    def getTimeStampTiffMultipage(self,full_path):
+        """
+        Opens a tifffile TiffFile (reader) object to access page description.
+        Checks json encoded page desciption for the "timestamp" key and and generates
+        a python datetime object for each page (image in the stack).
+
+        # expect ISO 8601 format /  RFC 3339 timestamps
+        # 2008-09-03T20:56:35.450686Z   # RFC 3339 format
+        # 2008-09-03T20:56:35.450686    # ISO 8601 extended format
+        # 20080903T205635.450686        # ISO 8601 basic format
+        # 20080903                      # ISO 8601 basic date
+        # 2008-09-03 20:56:35.450686    # ISO 8601 with omited 'T'
+        # 2008-09-03 20:56:35           # in variable granularity
+
+        :param full_path: path to multipage Tiff file (str)
+        :return: list of datetime objects
+        """
+
+        import tifffile
+        import json
+        import dateutil.parser
+        reader = tifffile.TiffFile(full_path)
+
+        ts = []  # timestamp per page (image in the stack)
+        for i, page in enumerate(reader.pages):
+            try:
+                # might fail due to missing meta data, missing key or invalid timestamp format
+                ts.append(dateutil.parser.isoparse((json.loads(page.image_description)['timestamp'])))
+            except Exception as e:
+                print(e)
+                print("ts extraction failed for file %s frame %d" % (full_path, i))
+                ts.append(None)
+
+        return ts
 
     def get_meta(self, file):
         import tifffile
