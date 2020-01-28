@@ -774,7 +774,7 @@ class DataFileExtended(DataFile):
                     return self.getTimeStampQuick(file)
                 try:
                     t = tif.shaped_metadata[0]["Time"]
-                except KeyError:
+                except (KeyError, IndexError):
                     return None
                 try:
                     return datetime.strptime(t, '%Y%m%d-%H%M%S')

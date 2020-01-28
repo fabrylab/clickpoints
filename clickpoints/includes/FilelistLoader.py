@@ -417,29 +417,21 @@ def getFrameNumber(file, extension):
     if extension.lower() in imgformats and  extension.lower() not in specialformats:
         frames = 1
     else:
-        # for videos, we have to open them and get the length
-        # try forcing AVBin as its faster than ffmpeg
+        # for other formats let imagio choose a reader
         try:
-            reader = imageio.get_reader(file, format='ffmpeg')
-            print("Reader frames", reader.count_frames())
-            if reader.count_frames() <= 1:
-                raise IOError()
-        except (IOError):
-            # for other formats let imagio choose a reader
+            reader = imageio.get_reader(file)
+        except IOError:
+            print("ERROR: can't read file", file)
+            return 0
+        except ValueError:
             try:
-                reader = imageio.get_reader(file)
+                import openslide
+                reader = openslide.OpenSlide(file)
+                reader.close()
+                return 1
             except IOError:
                 print("ERROR: can't read file", file)
                 return 0
-            except ValueError:
-                try:
-                    import openslide
-                    reader = openslide.OpenSlide(file)
-                    reader.close()
-                    return 1
-                except IOError:
-                    print("ERROR: can't read file", file)
-                    return 0
         frames = reader.get_length()
         # for imagio ffmpeg > 2.5.0, check if frames might be inf
         if not isinstance(frames,int):
