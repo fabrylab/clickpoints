@@ -754,7 +754,7 @@ class DataFileExtended(DataFile):
         for i, page in enumerate(reader.pages):
             try:
                 # might fail due to missing meta data, missing key or invalid timestamp format
-                ts.append(dateutil.parser.isoparse((json.loads(page.image_description)['timestamp'])))
+                ts.append(dateutil.parser.isoparse((json.loads(page.description)['timestamp'])))
             except Exception as e:
                 print(e)
                 print("ts extraction failed for file %s frame %d" % (full_path, i))
