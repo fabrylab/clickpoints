@@ -264,6 +264,10 @@ class BigImageDisplay:
         self.Change()
 
     def Change(self, gamma=None, min_brightness=None, max_brightness=None, auto_contrast=None):
+        if not isinstance(self.image, np.ndarray):  # is slide
+            self.updateSlideView()
+            return
+
         if self.hist is None and isinstance(self.image, np.ndarray):
             self.hist = np.histogram(self.image.flatten(), bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
 
@@ -295,6 +299,4 @@ class BigImageDisplay:
             if self.image is not None:
                 self.image_pixMapItem.setImage(self.image)
 
-        if not isinstance(self.image, np.ndarray):  # is slide
-            self.updateSlideView()
-            return
+

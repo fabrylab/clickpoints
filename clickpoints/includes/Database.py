@@ -44,6 +44,18 @@ try:
     print("openslide", openslide.__version__)
 except ImportError:
     openslide_loaded = False
+    print("no openslide found")
+    from .slide import myslide
+
+    class lowlevel:
+        OpenSlideUnsupportedFormatError = IOError
+
+    class openslide:
+        OpenSlide = myslide
+        lowlevel = lowlevel
+
+
+    openslide_loaded = True
 
 from ..DataFile import DataFile
 import re
@@ -478,7 +490,7 @@ class DataFileExtended(DataFile):
         # if we don't have a reader, create a new one
         if self.reader is None:
             if openslide_loaded:
-                import openslide
+                #import openslide
                 try:
                     self.reader = openslide.OpenSlide(filename)
                     self.reader.filename = filename

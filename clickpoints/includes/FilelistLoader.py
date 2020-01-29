@@ -37,6 +37,28 @@ try:
 except ImportError:
     natsorted = sorted
 
+try:
+    import openslide
+
+    openslide_loaded = True
+    print("openslide", openslide.__version__)
+except ImportError:
+    openslide_loaded = False
+    print("no openslide found")
+    from .slide import myslide
+
+
+    class lowlevel:
+        OpenSlideUnsupportedFormatError = IOError
+
+
+    class openslide:
+        OpenSlide = myslide
+        lowlevel = lowlevel
+
+
+    openslide_loaded = True
+
 import imageio
 print("Using ImageIO", imageio.__version__)
 
@@ -414,27 +436,24 @@ def GetFilesInDirectory(root):
 
 def getFrameNumber(file, extension):
     # for image we are already done, they only contain one frame
-    if extension.lower() in imgformats and  extension.lower() not in specialformats:
+    if extension.lower() in imgformats and extension.lower() not in specialformats:
         frames = 1
     else:
         # for other formats let imagio choose a reader
         try:
-            reader = imageio.get_reader(file)
+            reader = openslide.OpenSlide(file)
+            reader.close()
+            return 1
         except IOError:
+            pass
+        try:
+            reader = imageio.get_reader(file)
+        except (IOError, ValueError):
             print("ERROR: can't read file", file)
             return 0
-        except ValueError:
-            try:
-                import openslide
-                reader = openslide.OpenSlide(file)
-                reader.close()
-                return 1
-            except IOError:
-                print("ERROR: can't read file", file)
-                return 0
         frames = reader.get_length()
         # for imagio ffmpeg > 2.5.0, check if frames might be inf
-        if not isinstance(frames,int):
+        if not isinstance(frames, int):
             frames = reader.count_frames()
         reader.close()
     # return the number of frames
