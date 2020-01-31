@@ -450,7 +450,12 @@ class myslide():
     last_level = None
 
     def __init__(self, filename):
-        self.tif = tifffile.TiffFile(filename)
+        if not (filename.endswith(".tif") or filename.endswith(".tiff")):
+            raise IOError
+        try:
+            self.tif = tifffile.TiffFile(filename)
+        except tifffile.tifffile.TiffFileError:
+            raise IOError
         self.level_count = len(self.tif.pages)
         self.level_dimensions = []
         for page in self.tif.pages:
