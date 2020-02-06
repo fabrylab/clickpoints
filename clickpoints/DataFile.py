@@ -1589,6 +1589,8 @@ class DataFile:
         self._AddOption(key="export_time_from_zero", default=True, value_type="bool", hidden=True)
         self._AddOption(key="export_time_font_size", default=50, value_type="int", hidden=True)
         self._AddOption(key="export_time_font_color", default="#FFFFFF", value_type="string", hidden=True)
+        self._AddOption(key="export_time_format", default="%Y-%m-%d %H:%M:%S", value_type="string", hidden=True)
+        self._AddOption(key="export_timedelta_format", default="%H:%M:%S", value_type="string", hidden=True)
 
         self._AddOption(key="export_custom_time", default=False, value_type="bool", hidden=True)
         self._AddOption(key="export_custom_time_delta", default=1.0, value_type="float", hidden=True)

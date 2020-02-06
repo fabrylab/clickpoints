@@ -49,6 +49,54 @@ def MakePathRelative(abs_path):
     return path
 
 
+def formatTimedelta(t: datetime.timedelta, fmt: str):
+    seconds = t.seconds
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    parts = {"d": t.days, "H": hours, "M": minutes, "S": seconds,
+             "s": t.seconds, "m": t.microseconds // 1000, "f": t.microseconds}
+
+    max_level = None
+    if fmt.find("%d") != -1:
+        max_level = "d"
+    elif fmt.find("%H") != -1:
+        max_level = "H"
+    elif fmt.find("%M") != -1:
+        max_level = "M"
+    elif fmt.find("%S") != -1:
+        max_level = "S"
+    elif fmt.find("%m") != -1:
+        max_level = "m"
+    elif fmt.find("%f") != -1:
+        max_level = "f"
+
+    fmt = fmt.replace("%d", str(parts["d"]))
+    if max_level == "H":
+        fmt = fmt.replace("%H", "%d" % (parts["H"] + parts["d"]*24))
+    else:
+        fmt = fmt.replace("%H", "%2d" % parts["H"])
+    if max_level == "M":
+        fmt = fmt.replace("%M", "%2d" % (parts["M"] + parts["H"]*60 + parts["d"]*60*24))
+    else:
+        fmt = fmt.replace("%M", "%02d" % parts["M"])
+
+    if max_level == "S":
+        fmt = fmt.replace("%S", "%d" % parts["s"])
+    else:
+        fmt = fmt.replace("%S", "%02d" % parts["S"])
+
+    if max_level == "m":
+        fmt = fmt.replace("%m", "%3d" % (parts["m"] + parts["s"]*1000))
+    else:
+        fmt = fmt.replace("%m", "%03d" % parts["m"])
+    if max_level == "f":
+        fmt = fmt.replace("%f", "%6d" % (parts["f"] + parts["s"]*1000*1000))
+    else:
+        fmt = fmt.replace("%f", "%06d" % parts["f"])
+    return fmt
+
+
 class VideoExporterDialog(QtWidgets.QWidget):
     def __init__(self, parent, window, data_file, config, modules):
         QtWidgets.QWidget.__init__(self)
@@ -136,6 +184,17 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.cbTimeZero = QtShortCuts.QInputBool(Vlayout, 'Start from zero:', options.export_time_from_zero, stretch=True)
         self.cbTimeFontSize = QtShortCuts.QInputNumber(Vlayout, 'Font size:', options.export_time_font_size, float=False, stretch=True)
         self.cbTimeColor = QtShortCuts.QInputColor(Vlayout, "Color:", options.export_time_font_color, stretch=True)
+        self.cbTimeFormat = QtShortCuts.QInputString(Vlayout, "Format:", options.export_time_format, stretch=True)
+        self.cbTimeDeltaFormat = QtShortCuts.QInputString(Vlayout, "Format:", options.export_timedelta_format, stretch=True)
+        def updateTimeFormat(self):
+            if self.cbTimeZero.value():
+                self.cbTimeDeltaFormat.show()
+                self.cbTimeFormat.hide()
+            else:
+                self.cbTimeDeltaFormat.hide()
+                self.cbTimeFormat.show()
+        self.cbTimeZero.checkbox.stateChanged.connect(lambda x, self=self: updateTimeFormat(self))
+        updateTimeFormat(self)
 
         Vlayout = QtWidgets.QVBoxLayout()
         Hlayout.addLayout(Vlayout)
@@ -218,6 +277,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
         options.export_marker_scale = self.cbMarkerScaleSize.value()
         options.export_custom_time = self.cbCustomTime.value()
         options.export_custom_time_delta = self.cbCustomTimeDelta.value()
+        options.export_time_format = self.cbTimeFormat.value()
+        options.export_timedelta_format = self.cbTimeDeltaFormat.value()
 
         # get the marker handler for marker drawing
         marker_handler = self.window.GetModule("MarkerHandler")
@@ -378,9 +439,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
                         if frame == start and options.export_time_from_zero:
                             self.time_drawing.start = time
                         if self.time_drawing.start is not None:
-                            text = str(time-self.time_drawing.start).split('.', 2)[0]
+                            text = formatTimedelta(time-self.time_drawing.start, options.export_timedelta_format)
                         else:
-                            text = time.strftime("%Y-%m-%d %H:%M:%S")
+                            text = time.strftime(options.export_time_format)
                         draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
             # add to video ...
             if svg:

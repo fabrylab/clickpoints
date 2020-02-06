@@ -28,3 +28,5 @@ lastnotified.log
 ^ClickPoints.bat
 ^database/files.txt
 docs\/examples\/.*\.(?!ipynb)
+build/
+*.dll
