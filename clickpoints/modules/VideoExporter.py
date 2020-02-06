@@ -50,12 +50,16 @@ def MakePathRelative(abs_path):
 
 
 def formatTimedelta(t: datetime.timedelta, fmt: str):
+    sign = 1
+    if t.total_seconds() < 0:
+        sign = -1
+        t = -t
     seconds = t.seconds
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     seconds = seconds % 60
     parts = {"d": t.days, "H": hours, "M": minutes, "S": seconds,
-             "s": t.seconds, "m": t.microseconds // 1000, "f": t.microseconds}
+             "s": t.total_seconds(), "m": t.microseconds // 1000, "f": t.microseconds}
 
     max_level = None
     if fmt.find("%d") != -1:
@@ -94,6 +98,14 @@ def formatTimedelta(t: datetime.timedelta, fmt: str):
         fmt = fmt.replace("%f", "%6d" % (parts["f"] + parts["s"]*1000*1000))
     else:
         fmt = fmt.replace("%f", "%06d" % parts["f"])
+    if sign == -1:
+        for i in range(len(fmt)):
+            if fmt[i] != " ":
+                break
+        if i == 0:
+            fmt = "-"+fmt
+        else:
+            fmt = fmt[:i-1]+"-"+fmt[i:]
     return fmt
 
 
