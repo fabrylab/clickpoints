@@ -2,7 +2,7 @@
 
 |ClickPoints|
 
-.. |ClickPoints| image:: https://bitbucket.org/repo/a4axLL/images/3919025919-Logo.png
+.. |ClickPoints| image:: https://github.com/fabrylab/clickpoints/blob/master/docs/images/Logo.png
 
 |DOC|_  |Python36| |License|_ |DOI|_
 
