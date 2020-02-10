@@ -4,19 +4,6 @@ Installation
 ClickPoints can be installed in different ways, you can choose the one which is the most comfortable for you and the
 operating system you are using.
 
-Windows Installer
-~~~~~~~~~~~~~~~~~
-
-If you have no Python installation and just want to get started, our installer is the best option for you. Just download
-and execute the following installer:
-
-`Download: ClickPoints Installer <https://bitbucket.org/fabry_biophysics/clickpoints/downloads/ClickPoints.exe>`_
-
-This will install the miniconda environment, if it is not already installed and download the clickpoints conda package.
-
-.. note::
-    ClickPoints will be by default installed in a new conda environment called `_app_own_environment_clickpoints`.
-
 Python Packages
 ~~~~~~~~~~~~~~~
 
