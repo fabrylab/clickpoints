@@ -62,7 +62,7 @@ class ImageDisplaySignal(QtCore.QObject):
 class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
     conversion = None
     max_value = None
-    percentile = [5, 95]
+    percentile = [1, 99]
     gamma = 1
 
     def __init__(self, *args):
@@ -88,7 +88,7 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
         self.setPixmap(QtGui.QPixmap(array2qimage(image.astype(np.uint8))))
 
     def getMaxValue(self, image):
-        if image.dtype == np.uint16:
+        if image.dtype.itemsize == 2:
             if image.max() < 2**12:
                 self.max_value = 2**12
             else:
@@ -126,6 +126,7 @@ class BigImageDisplay:
     data_file = None
     config = None
     thread = None
+    slice_zoom_image = None
 
     def __init__(self, origin, window):
         self.origin = origin
@@ -224,8 +225,13 @@ class BigImageDisplay:
             dimensions_downsampled = (np.array(preview_rect[2:4]) - np.array(preview_rect[:2])) / downsample
             data = np.asarray(self.image.read_region(preview_rect[0:2], level, dimensions_downsampled.astype("int")))
             self.slice_zoom_image = data
-            if self.conversion is not None:
-                self.slice_zoom_image = self.conversion[self.slice_zoom_image[:, :, :3]]
+            self.hist = np.histogram(self.slice_zoom_image.flatten(),
+                                     bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
+            if self.config.auto_contrast:
+                self.image_pixMapItem.min, self.image_pixMapItem.max = np.percentile(self.slice_zoom_image, self.image_pixMapItem.percentile).astype(int)
+                self.image_pixMapItem.conversion = generateLUT(self.image_pixMapItem.min, self.image_pixMapItem.max, self.image_pixMapItem.gamma, self.image_pixMapItem.max_value)
+            if self.image_pixMapItem.conversion is not None:
+                self.slice_zoom_image = self.image_pixMapItem.conversion[self.slice_zoom_image[:, :, :3]]
             self.slice_zoom_pixmap.setPixmap(QtGui.QPixmap(array2qimage(self.slice_zoom_image)))
             self.slice_zoom_pixmap.setOffset(*(np.array(preview_rect[0:2]) / downsample))
             self.slice_zoom_pixmap.setScale(downsample)
@@ -264,13 +270,6 @@ class BigImageDisplay:
         self.Change()
 
     def Change(self, gamma=None, min_brightness=None, max_brightness=None, auto_contrast=None):
-        if not isinstance(self.image, np.ndarray):  # is slide
-            self.updateSlideView()
-            return
-
-        if self.hist is None and isinstance(self.image, np.ndarray):
-            self.hist = np.histogram(self.image.flatten(), bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
-
         def get(index, default):
             if self.config.contrast is None:
                 return default
@@ -284,8 +283,23 @@ class BigImageDisplay:
                 return value
             return default
 
+        if not isinstance(self.image, np.ndarray):  # is slide
+            if self.config.auto_contrast:
+                self.image_pixMapItem.percentile = [get(4, 1), get(3, 99)]
+            else:
+                self.image_pixMapItem.conversion = generateLUT(get(2, 0), get(1, self.image_pixMapItem.max_value),
+                                                               get(0, 1), self.image_pixMapItem.max_value)
+            self.conversion = self.image_pixMapItem.conversion
+            self.image_pixMapItem.gamma = get(0, 1)
+            # if self.hist is None:
+            self.updateSlideView()
+            return
+
+        if self.hist is None and isinstance(self.image, np.ndarray):
+            self.hist = np.histogram(self.image.flatten(), bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
+
         if self.config.auto_contrast:
-            self.image_pixMapItem.percentile = [get(4, 5), get(3, 95)]
+            self.image_pixMapItem.percentile = [get(4, 1), get(3, 99)]
             self.image_pixMapItem.gamma = get(0, 1)
             self.image_pixMapItem.setImage = self.image_pixMapItem.setImageContrastSpread
             if self.image is not None:

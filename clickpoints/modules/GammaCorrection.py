@@ -87,7 +87,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         functions = [self.updateGamma, self.updateBrightnes, self.updateContrast]
         self.max_value = self.image.image_pixMapItem.max_value
         min_max = [[0, 2], [0, 100], [0, 100]]
-        start = [1, 95, 5]
+        start = [1, 99, 1]
         formats = [" %.2f", "%3d%%", "%3d%%"]
         names = ["Gamma", "Max P.", "Min P."]
 
@@ -131,7 +131,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         if self.config.auto_contrast is True:
             self.button_autocontrast.setText("auto contr. (on)")
             min_max = [[0, 2], [0, 100], [0, 100]]
-            start = [getGamma(), self.getConfigValue(3, 95), self.getConfigValue(4, 5)]
+            start = [getGamma(), self.getConfigValue(3, 99), self.getConfigValue(4, 1)]
             formats = [" %.2f", "%3d%%", "%3d%%"]
             names = ["Gamma", "Max P.", "Min P."]
         else:
@@ -171,12 +171,12 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.hist.setPath(histpath)
 
     def updateConv(self):
-        if self.image.conversion is None:
+        if self.image.image_pixMapItem.conversion is None:
             return
         convpath = QtGui.QPainterPath()
-        w = 100. / len(self.image.conversion)
+        w = 100. / len(self.image.image_pixMapItem.conversion)
         h = 98./255
-        for i, v in enumerate(self.image.conversion):
+        for i, v in enumerate(self.image.image_pixMapItem.conversion):
             convpath.lineTo(float(i) * w + 5, -float(v) * h)
         self.conv.setPath(convpath)
 

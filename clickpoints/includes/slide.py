@@ -474,9 +474,6 @@ class myslide():
         x = x // down
         y = y // down
         crop = self.tif.pages[level].asarray(loc=(x, y), size=(w, h))
-        # TODO fix handling 16bit slides downstrem
-        if crop.dtype == np.uint16:
-            crop = (crop >> 8).astype(np.uint8)
         return crop
 
     def get_best_level_for_downsample(self, downsample):
