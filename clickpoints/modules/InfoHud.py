@@ -19,15 +19,18 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
 
-from qtpy import QtCore, QtGui, QtWidgets
-
-from includes.Tools import BoxGrabber
+import json
+import os
+import re
+from typing import Any
 
 from PIL import Image
 from PIL.ExifTags import TAGS
-import os, re, json
+from qtpy import QtCore, QtGui, QtWidgets
+
+from clickpoints.includes.Database import DataFileExtended
+from clickpoints.includes.Tools import BoxGrabber
 
 try:
     import tifffile
@@ -40,10 +43,10 @@ import string
 
 
 class PartialFormatter(string.Formatter):
-    def __init__(self, missing='~', bad_fmt='!!'):
+    def __init__(self, missing: str = '~', bad_fmt: str = '!!'):
         self.missing, self.bad_fmt = missing, bad_fmt
 
-    def get_field(self, field_name, args, kwargs):
+    def get_field(self, field_name: str, args: list, kwargs: dict) -> Any:
         # Handle a key not found
         try:
             val = super(PartialFormatter, self).get_field(field_name, args, kwargs)
@@ -52,9 +55,9 @@ class PartialFormatter(string.Formatter):
             val = None, field_name
         return val
 
-    def format_field(self, value, spec):
+    def format_field(self, value: str, spec: str) -> str:
         # handle an invalid format
-        if value == None: return self.missing
+        if value is None: return self.missing
         try:
             return super(PartialFormatter, self).format_field(value, spec)
         except ValueError:
@@ -64,7 +67,7 @@ class PartialFormatter(string.Formatter):
                 raise
 
 
-def get_exif(file):
+def get_exif(file: str) -> dict:
     if not file.lower().endswith((".jpg", ".jpeg")):
         return {}
     ret = {}
@@ -77,7 +80,7 @@ def get_exif(file):
     return ret
 
 
-def get_meta(file):
+def get_meta(file: str) -> dict:
     if not file.lower().endswith((".tif", ".tiff")):
         return {}
     if not tifffile_loaded:
@@ -94,7 +97,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
     data_file = None
     config = None
 
-    def __init__(self, parent_hud, window):
+    def __init__(self, parent_hud: QtWidgets.QGraphicsPathItem, window: "ClickPointsWindow") -> None:
         QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
 
         self.window = window
@@ -121,14 +124,14 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
 
         self.closeDataFile()
 
-    def closeDataFile(self):
+    def closeDataFile(self) -> None:
         self.data_file = None
         self.config = None
 
         self.setVisible(False)
         self.hidden = True
 
-    def updateDataFile(self, data_file, new_database):
+    def updateDataFile(self, data_file: DataFileExtended, new_database: bool) -> None:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
@@ -137,8 +140,9 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             self.hidden = False
             self.ToggleInterfaceEvent(self.hidden)
 
-    def imageLoadedEvent(self, filename="", frame_number=0):
-        if not self.data_file.getOption("info_hud_string") == "@script" and self.data_file.getOption("info_hud_string").strip():
+    def imageLoadedEvent(self, filename: str = "", frame_number: int = 0) -> None:
+        if not self.data_file.getOption("info_hud_string") == "@script" and self.data_file.getOption(
+                "info_hud_string").strip():
             image = self.window.data_file.image
             file = os.path.join(image.path.path, image.filename)
             regex = re.match(self.data_file.getOption("filename_data_regex"), file)
@@ -156,13 +160,13 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
             rect.setHeight(rect.height() + 10)
             self.setRect(rect)
 
-    def optionsChanged(self, key):
+    def optionsChanged(self, key) -> None:
         if not self.hidden and self.data_file.getOption("info_hud_string") == "":
             self.ToggleInterfaceEvent()
         elif self.hidden and self.data_file.getOption("info_hud_string") != "":
             self.ToggleInterfaceEvent()
 
-    def ToggleInterfaceEvent(self, hidden=None):
+    def ToggleInterfaceEvent(self, hidden: bool = None) -> None:
         if hidden is None:
             # invert hidden status
             self.hidden = not self.hidden
@@ -174,7 +178,7 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
         if self.config is not None:
             self.config.infohud_interface_hidden = self.hidden
 
-    def updateHUD(self, info_string):
+    def updateHUD(self, info_string: str) -> None:
         fmt = PartialFormatter()
         self.text.setText(fmt.format(info_string))
         rect = self.text.boundingRect()
@@ -183,5 +187,5 @@ class InfoHud(QtWidgets.QGraphicsRectItem):
         self.setRect(rect)
 
     @staticmethod
-    def file():
+    def file() -> str:
         return __file__
