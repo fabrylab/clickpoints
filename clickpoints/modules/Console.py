@@ -19,40 +19,41 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
-
-from qtpy import QtCore, QtGui, QtWidgets
-import qtawesome as qta
-
 import sys
 from collections import deque
-
-
 # An object that replaces the stdout or stderr stream and emits signals with the text
+from io import TextIOWrapper
+
+import qtawesome as qta
+from qtpy import QtCore, QtGui, QtWidgets
+
+
 class WriteStream(QtCore.QObject):
     written = QtCore.Signal(str)
 
-    def __init__(self, out):
+    def __init__(self, out: TextIOWrapper) -> None:
         QtCore.QObject.__init__(self)
         self.out = out
 
-    def write(self, text):
+    def write(self, text: str) -> None:
         self.written.emit(text)
         self.out.write(text)
 
     def flush(self):
         pass
 
+
 writerStdOut = WriteStream(sys.stdout)
 sys.stdout = writerStdOut
 writerStdErr = WriteStream(sys.stderr)
 sys.stderr = writerStdErr
 
+
 class Console(QtWidgets.QTextEdit):
     update_normal = QtCore.Signal(str)
     update_error = QtCore.Signal(str)
 
-    def __init__(self, window):
+    def __init__(self, window: "ClickPointsWindow") -> None:
         QtWidgets.QTextEdit.__init__(self)
         self.window = window
         self.setHidden(True)
@@ -89,7 +90,7 @@ class Console(QtWidgets.QTextEdit):
         writerStdOut.written.connect(self.add_text)
         writerStdErr.written.connect(self.add_textE)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         # @key ---- Modules ----
         # @key Q: open the console
         if event.key() == QtCore.Qt.Key_Q and not event.modifiers() & QtCore.Qt.ControlModifier:
@@ -106,26 +107,27 @@ class Console(QtWidgets.QTextEdit):
             self.setVisible(True)
 
     def log(self, *args, **kwargs):
-        text = " ".join([str(arg) for arg in args])+kwargs.get("end", "\n")
+        text = " ".join([str(arg) for arg in args]) + kwargs.get("end", "\n")
         self.update_normal.emit(text)
 
-    def add_textE(self, text, clear=False):
-        self.text_deque.append("<span style='color: #ff6b68'>"+text.replace("\n", "<br/>").strip().replace(" ", "&nbsp;")+"</span>")
+    def add_textE(self, text: str, clear: bool = False) -> None:
+        self.text_deque.append(
+            "<span style='color: #ff6b68'>" + text.replace("\n", "<br/>").strip().replace(" ", "&nbsp;") + "</span>")
         self.update_display()
 
-    def add_text(self, text, clear=False):
+    def add_text(self, text: str, clear: bool = False) -> None:
         self.text_deque.append(
             "<span style='color: #c0c0c0'>" + text.replace("\n", "<br/>").strip().replace(" ", "&nbsp;") + "</span>")
         self.update_display()
 
-    def update_display(self):
+    def update_display(self) -> None:
         if not self.isHidden():
             self.setText("".join(self.text_deque))
             c = self.textCursor()
             c.movePosition(QtGui.QTextCursor.End)
             self.setTextCursor(c)
 
-    def closeEvent(self, QCloseEvent):
+    def closeEvent(self, QCloseEvent: QtGui.QCloseEvent) -> None:
         self.close()
 
     @staticmethod
