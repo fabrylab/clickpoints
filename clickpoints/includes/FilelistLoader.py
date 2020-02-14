@@ -19,19 +19,21 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function, unicode_literals
+import glob
 import os
 import sys
-import importlib
-import glob
 import time
 from datetime import datetime
+from typing import List
 
-from .Tools import BroadCastEvent2
-
-from qtpy import QtGui, QtCore, QtWidgets
+import imageio
 import qtawesome as qta
+from qtpy import QtWidgets
 
+from clickpoints.includes.Database import DataFileExtended
+from clickpoints.includes.Tools import BroadCastEvent2
+
+print("Using ImageIO", imageio.__version__)
 try:
     from natsort import natsorted
 except ImportError:
@@ -59,9 +61,6 @@ except ImportError:
 
     openslide_loaded = True
 
-import imageio
-print("Using ImageIO", imageio.__version__)
-
 # add plugins to imageIO if available
 plugin_searchpath = os.path.join(os.path.split(__file__)[0], '..', r'addons/imageio_plugin')
 sys.path.append(plugin_searchpath)
@@ -74,7 +73,7 @@ if os.path.exists(plugin_searchpath):
             print(os.path.sep.join([os.path.abspath(plugin_searchpath), plugin]))
             import importlib.util
 
-            spec = importlib.util.spec_from_file_location(plugin.replace(".py",""),
+            spec = importlib.util.spec_from_file_location(plugin.replace(".py", ""),
                                                           os.path.sep.join([os.path.abspath(plugin_searchpath), plugin])
                                                           )
             imageio_plugin = importlib.util.module_from_spec(spec)
@@ -82,7 +81,6 @@ if os.path.exists(plugin_searchpath):
             # importlib.import_module(os.path.sep.join([os.path.abspath(plugin_searchpath), plugin]))
             # print(os.path.abspath(plugin_searchpath))
             print('Adding %s' % plugin)
-
 
 # check for ffmpeg
 try:
@@ -102,26 +100,24 @@ except imageio.core.fetching.NeedDownloadError:
         print("try to download ffmpeg")
         imageio.plugins.ffmpeg.download()
 
-
 imgformats = []
 for format in imageio.formats:
     if 'i' in format.modes:
         imgformats.extend(format._extensions)
-imgformats = [fmt if fmt[0] == "." else "."+fmt for fmt in imgformats]
+imgformats = [fmt if fmt[0] == "." else "." + fmt for fmt in imgformats]
 vidformats = []
 for format in imageio.formats:
     if 'I' in format.modes:
         vidformats.extend(format._extensions)
-vidformats = [fmt if fmt[0] == "." else "."+fmt for fmt in vidformats]
+vidformats = [fmt if fmt[0] == "." else "." + fmt for fmt in vidformats]
 
-
-formats = tuple(imgformats+vidformats)
+formats = tuple(imgformats + vidformats)
 imgformats = tuple(imgformats)
-specialformats = ['.gif']+[".vms"]+[".tif", ".tiff"]   # potential animated gif = video or gif = image
+specialformats = ['.gif'] + [".vms"] + [".tif", ".tiff"]  # potential animated gif = video or gif = image
 
 
 class FolderEditor(QtWidgets.QWidget):
-    def __init__(self, window, data_file):
+    def __init__(self, window: "ClickPointsWindow", data_file: DataFileExtended) -> None:
         QtWidgets.QWidget.__init__(self)
         self.window = window
         self.data_file = data_file
@@ -171,7 +167,8 @@ class FolderEditor(QtWidgets.QWidget):
         horizontal_layout.addWidget(QtWidgets.QLabel("Filter:"))
 
         self.text_input_filter = QtWidgets.QLineEdit(self)
-        self.text_input_filter.setToolTip("Use any expression with an wildcard * to filter the files in the selected folder.")
+        self.text_input_filter.setToolTip(
+            "Use any expression with an wildcard * to filter the files in the selected folder.")
         horizontal_layout.addWidget(self.text_input_filter)
 
         """ """
@@ -183,7 +180,8 @@ class FolderEditor(QtWidgets.QWidget):
         self.checkbox_subfolders.setToolTip("Add all the subfolders of the selected folder, too.")
         horizontal_layout.addWidget(self.checkbox_subfolders)
         self.checkbox_natsort = QtWidgets.QCheckBox("natsort")
-        self.checkbox_natsort.setToolTip("Use natural sorting of filenames. This will sort numbers correctly (e.g. not 1 10 2 3). Takes more time to load.")
+        self.checkbox_natsort.setToolTip(
+            "Use natural sorting of filenames. This will sort numbers correctly (e.g. not 1 10 2 3). Takes more time to load.")
         horizontal_layout.addWidget(self.checkbox_natsort)
 
         self.pushbutton_load = QtWidgets.QPushButton('Load', self)
@@ -206,11 +204,11 @@ class FolderEditor(QtWidgets.QWidget):
         horizontal_layout.addWidget(self.pushbutton_Confirm)
 
         self.update_folder_list()
-        self.list.setCurrentRow(self.list.count()-1)
+        self.list.setCurrentRow(self.list.count() - 1)
 
-    def list_selected(self):
+    def list_selected(self) -> None:
         selections = self.list.selectedItems()
-        if len(selections) == 0 or self.list.currentRow() == self.list.count()-1:
+        if len(selections) == 0 or self.list.currentRow() == self.list.count() - 1:
             self.text_input.setText("")
             self.group_box.setTitle("Add Folder")
             self.pushbutton_folder.setHidden(False)
@@ -225,14 +223,15 @@ class FolderEditor(QtWidgets.QWidget):
             self.pushbutton_load.setText("Reload")
             self.pushbutton_delete.setHidden(False)
 
-    def update_folder_list(self):
+    def update_folder_list(self) -> None:
         self.list.clear()
         for path in self.data_file.table_path.select():
-            item = QtWidgets.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()), self.list)
+            item = QtWidgets.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()),
+                                             self.list)
             item.path_entry = path
         QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add folder", self.list)
 
-    def select_folder(self):
+    def select_folder(self) -> None:
         # ask for a directory path
         new_path = QtWidgets.QFileDialog.getExistingDirectory(None, "Select Folder", os.getcwd())
         # if we get one, set it
@@ -248,7 +247,7 @@ class FolderEditor(QtWidgets.QWidget):
             # display path
             self.text_input.setText(new_path)
 
-    def select_file(self):
+    def select_file(self) -> None:
         # ask for a file name
         new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Select File", os.getcwd())
         # if we got one, set it
@@ -264,7 +263,7 @@ class FolderEditor(QtWidgets.QWidget):
             # display path
             self.text_input.setText(new_path)
 
-    def add_folder(self):
+    def add_folder(self) -> None:
         self.data_file.resortSortIndex()
         selected_path = str(self.text_input.text())
         if selected_path == "":
@@ -273,7 +272,8 @@ class FolderEditor(QtWidgets.QWidget):
         layer_entry = self.data_file.getLayer("default", create=True)
         # if selected path is a directory, add it with the options
         if os.path.isdir(selected_path):
-            addPath(self.data_file, selected_path, str(self.text_input_filter.text()), layer_entry, self.checkbox_subfolders.isChecked(),
+            addPath(self.data_file, selected_path, str(self.text_input_filter.text()), layer_entry,
+                    self.checkbox_subfolders.isChecked(),
                     self.checkbox_natsort.isChecked())
         # if it is a path, set the filter to the filename to just import this file
         else:
@@ -284,14 +284,16 @@ class FolderEditor(QtWidgets.QWidget):
         self.window.ImagesAdded()
         self.window.GetModule("Timeline").LoadingFinishedEvent()
 
-    def remove_folder(self):
+    def remove_folder(self) -> None:
         path = self.list.selectedItems()[0].path_entry
         query = self.data_file.table_image.select().where(self.data_file.table_image.path == path)
         if query.count() == 0:
             path.delete_instance()
         else:
             reply = QtWidgets.QMessageBox.question(self, 'Delete Folder',
-                "Do you really want to remove folder %s with %d images?" % (path.path, query.count()), QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Cancel)
+                                                   "Do you really want to remove folder %s with %d images?" % (
+                                                   path.path, query.count()), QtWidgets.QMessageBox.Yes,
+                                                   QtWidgets.QMessageBox.Cancel)
             if reply == QtWidgets.QMessageBox.Yes:
                 self.data_file.table_image.delete().where(self.data_file.table_image.path == path).execute()
                 path.delete_instance()
@@ -306,7 +308,9 @@ class FolderEditor(QtWidgets.QWidget):
         self.window.ImagesAdded()
 
 
-def addPath(data_file, path, file_filter="", layer_entry=None, subdirectories=False, use_natsort=False, select_file=None, window=None):
+def addPath(data_file: DataFileExtended, path: str, file_filter: str = "", layer_entry: "Layer" = None,
+            subdirectories: bool = False, use_natsort: bool = False, select_file: str = None,
+            window: "ClickPointsWindow" = None):
     # if we should add subdirectories, add them or create a list with only one path
     if subdirectories:
         path_list = iter(sorted(GetSubdirectories(path)))
@@ -317,7 +321,7 @@ def addPath(data_file, path, file_filter="", layer_entry=None, subdirectories=Fa
         # get a layer for the paths
         layer_entry = data_file.getLayer("default", create=True)
 
-    #with data_file.db.atomic():
+    # with data_file.db.atomic():
     data = []
     while True:
         # iterate over all folders
@@ -350,13 +354,15 @@ def addPath(data_file, path, file_filter="", layer_entry=None, subdirectories=Fa
                         continue
                     # add the file to the database
                     try:
-                        data.extend(data_file.add_image(filename, extension, None, frames, path=path_entry, layer=layer_entry, full_path=os.path.join(path, filename), commit=False))
+                        data.extend(
+                            data_file.add_image(filename, extension, None, frames, path=path_entry, layer=layer_entry,
+                                                full_path=os.path.join(path, filename), commit=False))
                     except OSError as err:
                         print("ERROR:", err)
                     if len(data) > 100 or filename == select_file:
                         # split the data array in slices of 100
-                        for i in range(int(len(data)/100)+1):
-                            data_file.add_bulk(data[i*100:i*100+100])
+                        for i in range(int(len(data) / 100) + 1):
+                            data_file.add_bulk(data[i * 100:i * 100 + 100])
                         data = []
                         # if the file is the file which should be selected jump to that frame
                         if filename == select_file:
@@ -372,11 +378,11 @@ def addPath(data_file, path, file_filter="", layer_entry=None, subdirectories=Fa
         else:
             data_file.add_bulk(data)
             break
-    #data_file.start_adding_timestamps()
+    # data_file.start_adding_timestamps()
     BroadCastEvent2("ImagesAdded")
 
 
-def addList(data_file, path, list_filename):
+def addList(data_file: DataFileExtended, path: str, list_filename: list) -> None:
     with open(os.path.join(path, list_filename)) as fp:
         paths = {}
         data = []
@@ -406,10 +412,12 @@ def addList(data_file, path, list_filename):
                 extension = os.path.splitext(file_name)[1]
                 frames = getFrameNumber(line, extension)
                 # add the file to the database
-                data_new = data_file.add_image(file_name, extension, external_id, frames, path=paths[file_path],full_path=os.path.join(file_path,file_name), timestamp=timestamp, commit=False)
+                data_new = data_file.add_image(file_name, extension, external_id, frames, path=paths[file_path],
+                                               full_path=os.path.join(file_path, file_name), timestamp=timestamp,
+                                               commit=False)
                 data.extend(data_new)
 
-                if time.time()-start_time > 0.1:
+                if time.time() - start_time > 0.1:
                     break
             else:  # break if we have reached the end of the file
                 break
@@ -420,21 +428,21 @@ def addList(data_file, path, list_filename):
     BroadCastEvent2("ImagesAdded")
 
 
-def GetSubdirectories(directory):
+def GetSubdirectories(directory: str) -> List[str]:
     if directory == "":
         directory = "."
     # return all subdirectories
     return [x[0] for x in os.walk(directory)]
 
 
-def GetFilesInDirectory(root):
+def GetFilesInDirectory(root: str) -> List[str]:
     # return all file names which have and known file extension
     if root == "":
         root = "."
     return [filename for filename in next(os.walk(root))[2] if filename.lower().endswith(formats)]
 
 
-def getFrameNumber(file, extension):
+def getFrameNumber(file: str, extension: str) -> int:
     # for image we are already done, they only contain one frame
     if extension.lower() in imgformats and extension.lower() not in specialformats:
         frames = 1

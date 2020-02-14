@@ -19,22 +19,21 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
+import os
+import sys
+from typing import Any, List, Union, Optional
 
+import numpy as np
 import qtawesome as qta
 from qtpy import QtGui, QtCore, QtWidgets
 
-import numpy as np
-import os
-import sys
 
-
-def array2qimage(a):
+def array2qimage(a: np.ndarray) -> QtGui.QImage:
     # get the dimensions and color channels
     h, w, c = a.shape
     # get the number of bytes per line
     bytesPerLine = a.nbytes // h
-    if not all(np.diff(a.strides)>0):
+    if not all(np.diff(a.strides) > 0):
         a = a.data.tobytes()
     else:
         a = a.data
@@ -49,7 +48,7 @@ def array2qimage(a):
         return QtGui.QImage(a, w, h, bytesPerLine, QtGui.QImage.Format_RGBA8888)
 
 
-def disk(radius):
+def disk(radius: int) -> np.ndarray:
     disk_array = np.zeros((radius * 2 + 1, radius * 2 + 1))
     for x in range(radius * 2 + 1):
         for y in range(radius * 2 + 1):
@@ -58,18 +57,23 @@ def disk(radius):
     return disk_array
 
 
-def PosToArray(pos):
+def PosToArray(pos: QtCore.QPoint) -> np.ndarray:
     return np.array([pos.x(), pos.y()])
 
-def rotate_list(l,n):
+
+def rotate_list(l: list, n: list) -> list:
     return l[n:] + l[:n]
 
+
 broadcast_modules = []
-def SetBroadCastModules(modules):
+
+
+def SetBroadCastModules(modules: List[Any]) -> None:
     global broadcast_modules
     broadcast_modules = modules
 
-def BroadCastEvent(modules, function, *args, **kwargs):
+
+def BroadCastEvent(modules: List[Any], function: str, *args, **kwargs) -> None:
     global broadcast_modules
     for module in modules:
         if function in dir(module):
@@ -80,7 +84,8 @@ def BroadCastEvent(modules, function, *args, **kwargs):
         if "receiveBroadCastEvent" in dir(module):
             getattr(module, "receiveBroadCastEvent")(*args, **kwargs)
 
-def BroadCastEvent2(function, *args, **kwargs):
+
+def BroadCastEvent2(function: str, *args, **kwargs) -> None:
     global broadcast_modules
     for module in broadcast_modules:
         if function in dir(module):
@@ -91,7 +96,8 @@ def BroadCastEvent2(function, *args, **kwargs):
         if "receiveBroadCastEvent" in dir(module):
             getattr(module, "receiveBroadCastEvent")(*args, **kwargs)
 
-def HiddeableLayout(parent_layout, layout_class):
+
+def HiddeableLayout(parent_layout: QtWidgets.QLayout, layout_class: QtWidgets.QLayout) -> QtWidgets.QLayout:
     widget = QtWidgets.QWidget()
     parent_layout.addWidget(widget)
     new_layout = layout_class(widget)
@@ -102,8 +108,9 @@ def HiddeableLayout(parent_layout, layout_class):
     new_layout.isVisible = widget.isVisible
     return new_layout
 
+
 class HelpText(QtWidgets.QGraphicsRectItem):
-    def __init__(self, window, file, modules=[]):
+    def __init__(self, window: "ClickPointsWindow", file: str, modules: List[Any] = []) -> None:
         QtWidgets.QGraphicsRectItem.__init__(self, window.view.hud)
 
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -133,7 +140,7 @@ class HelpText(QtWidgets.QGraphicsRectItem):
         self.text = ""
         self.setVisible(False)
 
-    def ShowHelpText(self):
+    def ShowHelpText(self) -> None:
         if self.isVisible():
             self.setVisible(False)
         else:
@@ -142,7 +149,7 @@ class HelpText(QtWidgets.QGraphicsRectItem):
                 BoxGrabber(self)
             self.setVisible(True)
 
-    def LoadTexts(self):
+    def LoadTexts(self) -> None:
         for file_ in self.files:
             try:
                 self.UpdateText(file_)
@@ -150,10 +157,10 @@ class HelpText(QtWidgets.QGraphicsRectItem):
                 pass
         self.DisplayText()
 
-    def UpdateText(self, file):
+    def UpdateText(self, file: str) -> None:
         import re
         if file[-4:] == ".pyc":
-            file = file[:-4]+".py"
+            file = file[:-4] + ".py"
         if os.path.exists(file):
             with open(file) as fp:
                 for line in fp.readlines():
@@ -161,7 +168,7 @@ class HelpText(QtWidgets.QGraphicsRectItem):
                     if m:
                         self.text += m.groups()[0].replace(":", ":\t", 1) + "\n"
 
-    def DisplayText(self):
+    def DisplayText(self) -> None:
         self.help_text.setText(self.text[:-1])
         rect = self.help_text.boundingRect()
         rect.setX(-5)
@@ -169,16 +176,16 @@ class HelpText(QtWidgets.QGraphicsRectItem):
         rect.setHeight(rect.height() + 15)
         self.setRect(rect)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         pass
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
         pass
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         pass
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_F1:
             # @key F1: toggle help window
             self.ShowHelpText()
@@ -195,7 +202,8 @@ class MySpinBox(QtWidgets.QSpinBox):
 
 
 class MySlider(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent, name="", start_value=None, max_value=100, min_value=0, font=None, scale=1):
+    def __init__(self, parent: QtWidgets.QWidget, name: str = "", start_value: Optional[int] = None, max_value: int = 100,
+                 min_value: int = 0, font: Optional[QtGui.QFont] = None, scale: float = 1) -> None:
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
@@ -209,9 +217,9 @@ class MySlider(QtWidgets.QGraphicsRectItem):
 
         self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         if font is None:
-            font = QtGui.QFont("", 11/scale)
+            font = QtGui.QFont("", 11 / scale)
         else:
-            font.setPointSize(11/scale)
+            font.setPointSize(11 / scale)
         self.text.setFont(font)
         self.text.setPos(0, -23)
         self.text.setBrush(QtGui.QBrush(QtGui.QColor("white")))
@@ -234,11 +242,11 @@ class MySlider(QtWidgets.QGraphicsRectItem):
         self.start_value = self.value
         self.setValue(self.value)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         if event.button() == 1:
             self.dragged = True
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
         if self.dragged:
             pos = event.pos()
             x = pos.x()
@@ -246,28 +254,29 @@ class MySlider(QtWidgets.QGraphicsRectItem):
             if x > 100: x = 100
             self.setValue(x / 100. * self.maxValue + self.minValue)
 
-    def reset(self):
+    def reset(self) -> None:
         self.setValue(self.start_value, True)
 
-    def setValue(self, value, noCall=False):
+    def setValue(self, value: Union[float, int], noCall: bool = False) -> None:
         self.value = value
         self.text.setText(self.name + ": " + self.format % value)
         self.slideMarker.setPos((value - self.minValue) * 100 / self.maxValue, 0)
         if not noCall:
             self.valueChanged(value)
 
-    def valueChanged(self, value):
+    def valueChanged(self, value: int) -> None:
         pass
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         self.dragged = False
 
-    def setText(self, text):
+    def setText(self, text: str) -> None:
         self.name = text
         self.text.setText(self.name + ": " + self.format % self.value)
 
+
 class BoxGrabber(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent):
+    def __init__(self, parent: QtWidgets.QWidget) -> None:
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
@@ -290,39 +299,41 @@ class BoxGrabber(QtWidgets.QGraphicsRectItem):
         self.dragged = False
         self.drag_offset = None
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         if event.button() == 1:
             self.dragged = True
             self.drag_offset = self.parent.mapToParent(self.mapToParent(event.pos())) - self.parent.pos()
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
         if self.dragged:
             pos = self.parent.mapToParent(self.mapToParent(event.pos())) - self.drag_offset
             self.parent.setPos(pos.x(), pos.y())
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         self.dragged = False
 
 
 class TextButtonSignals(QtCore.QObject):
     clicked = QtCore.Signal()
 
+
 class TextButton(QtWidgets.QGraphicsRectItem):
-    def __init__(self, parent, width, text="", font=None, scale=1):
+    def __init__(self, parent: QtWidgets.QWidget, width: int, text: str = "", font: Optional[QtGui.QFont] = None,
+                 scale: float = 1) -> None:
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
 
         self.parent = parent
         self.setAcceptHoverEvents(True)
-        #self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
+        # self.setCursor(QCursor(QtCore.Qt.OpenHandCursor))
 
         self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         if font is None:
-            font = QtGui.QFont("", 11/scale)
+            font = QtGui.QFont("", 11 / scale)
         else:
-            font.setPointSize(11/scale)
+            font.setPointSize(11 / scale)
         self.text.setFont(font)
         self.text.setText(text)
-        self.text.setPos((width-self.text.boundingRect().width())/2+1, 0)
+        self.text.setPos((width - self.text.boundingRect().width()) / 2 + 1, 0)
         self.text.setBrush(QtGui.QBrush(QtGui.QColor("white")))
 
         self.setRect(QtCore.QRectF(0, 0, width, self.text.boundingRect().height()))
@@ -331,20 +342,20 @@ class TextButton(QtWidgets.QGraphicsRectItem):
         self.signals = TextButtonSignals()
         self.clicked = self.signals.clicked
 
-    def hoverEnterEvent(self, event):
+    def hoverEnterEvent(self, event) -> None:
         self.setBrush(QtGui.QBrush(QtGui.QColor(128, 128, 128, 128)))
 
-    def hoverLeaveEvent(self, event):
+    def hoverLeaveEvent(self, event) -> None:
         self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         if event.button() == 1:
             self.clicked.emit()
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         pass
 
-    def setText(self, text):
+    def setText(self, text: str) -> None:
         self.text.setText(text)
 
 
@@ -363,10 +374,10 @@ class MyCommandButton(QtWidgets.QGraphicsRectItem):
         self.setZValue(9)
 
         self.pixmap = QtWidgets.QGraphicsPixmapItem(self)
-        self.pixmap.setPixmap(icon.pixmap(16*scale))
+        self.pixmap.setPixmap(icon.pixmap(16 * scale))
 
-        self.setRect(-5*scale, -3*scale, 26*scale, 22*scale)
-        self.setPos(pos[0]*scale, pos[1]*scale)
+        self.setRect(-5 * scale, -3 * scale, 26 * scale, 22 * scale)
+        self.setPos(pos[0] * scale, pos[1] * scale)
 
         self.clicked = lambda: 0
 
@@ -384,7 +395,7 @@ class MyCommandButton(QtWidgets.QGraphicsRectItem):
 
     def hoverEnterEvent(self, event):
         if self.active is False:
-            self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128+128/2)))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128 + 128 / 2)))
 
     def hoverLeaveEvent(self, event):
         if self.active is False:
@@ -467,6 +478,7 @@ class MyToolGroup(QtWidgets.QGraphicsPathItem):
             self.selectTool(-1)
         return QtWidgets.QGraphicsPathItem.setVisible(self, visible)
 
+
 class MyTextButton(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent, font, scale=1):
         QtWidgets.QGraphicsRectItem.__init__(self, parent)
@@ -486,7 +498,7 @@ class MyTextButton(QtWidgets.QGraphicsRectItem):
         self.text = QtWidgets.QGraphicsSimpleTextItem(self)
         self.text.setFont(self.font)
         self.text.setZValue(10)
-        #self.updateText()
+        # self.updateText()
 
         # set the brush for the background color
         self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
@@ -508,8 +520,8 @@ class MyTextButton(QtWidgets.QGraphicsRectItem):
         self.text.setBrush(QtGui.QBrush(self.getColor()))
         # update rect to fit text
         rect = self.text.boundingRect()
-        rect.setX(-5*self.scale_factor)
-        rect.setWidth(rect.width() + 5*self.scale_factor)
+        rect.setX(-5 * self.scale_factor)
+        rect.setWidth(rect.width() + 5 * self.scale_factor)
         self.setRect(rect)
         x, y = self.getPos()
 
@@ -636,13 +648,16 @@ class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):
             return False
         return self.commandObject.sceneEventFilter(event)
 
+
 # enables .access on dicts
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
+
     def __getattr__(self, attr):
         return self.get(attr)
-    __setattr__= dict.__setitem__
-    __delattr__= dict.__delitem__
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
 
 def HTMLColorToRGB(colorstring):
@@ -651,7 +666,7 @@ def HTMLColorToRGB(colorstring):
     if colorstring[0] == '#': colorstring = colorstring[1:]
     if len(colorstring) != 6 and len(colorstring) != 8:
         raise ValueError("input #%s is not in #RRGGBB format" % colorstring)
-    return [int(colorstring[i*2:i*2+2], 16) for i in range(int(len(colorstring)/2))]
+    return [int(colorstring[i * 2:i * 2 + 2], 16) for i in range(int(len(colorstring) / 2))]
 
 
 def IconFromFile(filename, color=None):
@@ -706,7 +721,10 @@ class PrintHook:
         # pass the rest to the original output
         return self.origOut.__getattr__(name)
 
+
 global hook1, hook2
+
+
 def StartHooks(reset=False):
     global hook1, hook2
     if sys.platform[:3] == 'win':
@@ -715,6 +733,7 @@ def StartHooks(reset=False):
         storage_path = os.path.expanduser("~/.clickpoints/")
     hook1 = PrintHook(1, storage_path, None, reset)
     hook2 = PrintHook(0, storage_path, None, reset)
+
 
 def GetHooks():
     global hook1, hook2
