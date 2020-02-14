@@ -51,24 +51,32 @@ from .modules.InfoHud import InfoHud
 from .modules.Console import Console
 from .modules.OptionEditor import OptionEditor
 
+from PyQt5.QtCore import QPoint, QPointF
+from PyQt5.QtGui import QCloseEvent, QKeyEvent, QResizeEvent
+from PyQt5.QtWidgets import QApplication
+from clickpoints.includes.ConfigLoad import dotdict
+from clickpoints.modules.ChangeTracker import ChangeTracker
+from clickpoints.modules.MarkerHandler import MarkerHandler
+from clickpoints.modules.Timeline import Timeline
+from typing import Any, List, Union
 class AddVLine():
-    def __init__(self, window):
+    def __init__(self, window: "ClickPointsWindow") -> None:
         line = QtWidgets.QFrame()
         line.setFrameShape(QtWidgets.QFrame.VLine)
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
         window.layoutButtons.addWidget(line)
 
 class AddStrech():
-    def __init__(self, window):
+    def __init__(self, window: "ClickPointsWindow") -> None:
         window.layoutButtons.addStretch()
 
 used_modules = [ChangeTracker, AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, OptionEditor, Console]
 used_huds = ["", "", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", "", ""]
 
 
-def GetModuleInitArgs(mod):
+def GetModuleInitArgs(mod: Any) -> List[str]:
     import inspect
-    return inspect.getargspec(mod.__init__).args
+    return inspect.getfullargspec(mod.__init__).args
 
 
 class ClickPointsWindow(QtWidgets.QWidget):
@@ -83,7 +91,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
     signal_jumpTo = QtCore.Signal(int)
     signal_broadcast = QtCore.Signal(str, tuple)
 
-    def __init__(self, my_config, app, parent=None):
+    def __init__(self, my_config: dotdict, app: QApplication, parent: QtWidgets.QWidget = None) -> None:
         global config, storage_path
         config = my_config
 
@@ -202,17 +210,17 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         self.app.processEvents()
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
         # accept url lists (files by drag and drop)
         if event.mimeData().hasFormat("text/uri-list"):
             event.accept()
         else:
             event.ignore()
 
-    def dragMoveEvent(self, event):
+    def dragMoveEvent(self, event: QtGui.QDragMoveEvent):
         event.acceptProposedAction()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event: QtCore.QEvent):
         if self.load_thread is not None:
             self.load_thread.join()
         for url in event.mimeData().urls():
@@ -223,7 +231,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 url = url[len("file:"):]
             self.loadUrl(url, reset=True)
 
-    def loadUrl(self, url, reset=False):
+    def loadUrl(self, url: str, reset: bool = False) -> None:
         print("Loading url", url)
         if url == "":
             if self.data_file is None or reset:
@@ -291,13 +299,13 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 self.load_thread.start()
                 self.load_timer.start()
 
-    def loadObject(self,url):
+    def loadObject(self, url: str) -> None:
         #TODO: rebuild threaded version for glob, replace duplicated code above with this function
         """
         Loads objects of type directory, img or video file
         HACKED the non thread version as i couldnt get threaded to work ...
 
-        :param url (string): path to object
+        :param url: path to object
         :return:
         """
         if os.path.isdir(url):
@@ -333,7 +341,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         #     self.load_timer.start()
 
 
-    def reset(self, filename=""):
+    def reset(self, filename: str = "") -> None:
         if self.data_file is not None:
             # ask to save current data
             self.testForUnsaved()
@@ -349,7 +357,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         BroadCastEvent(self.modules, "updateDataFile", self.data_file, filename == "")
         self.GetModule("Timeline").ImagesAdded()
 
-    def LoadTimer(self):
+    def LoadTimer(self) -> None:
         if self.data_file.image is None and self.data_file.get_image_count() and self.first_frame is not None:
             self.JumpToFrame(self.first_frame)
             self.view.fitInView()
@@ -361,27 +369,27 @@ class ClickPointsWindow(QtWidgets.QWidget):
             BroadCastEvent(self.modules, "LoadingFinishedEvent")
             print("Loading finished in %.2fs " % (time.time()-self.loading_time))
 
-    def Folder(self):
+    def Folder(self) -> None:
         if not self.data_file:
             return
         self.folderEditor = FolderEditor(self, self.data_file)
         self.folderEditor.show()
 
-    def ImagesAdded(self):
+    def ImagesAdded(self) -> None:
         if self.data_file.image is None and self.data_file.get_image_count():
             self.JumpToFrame(0)
             self.view.fitInView()
 
-    def GetModule(self, name):
+    def GetModule(self, name: str) -> QtCore.QObject:
         module_names = [a.__class__.__name__ for a in self.modules]
         index = module_names.index(name)
         return self.modules[index]
 
-    def Save(self):
+    def Save(self) -> None:
         BroadCastEvent(self.modules, "save")
         #self.data_file.check_to_save()
 
-    def SaveDatabase(self, srcpath=None):
+    def SaveDatabase(self, srcpath=None) -> None:
         if not self.data_file:
             return
         if srcpath is None:
@@ -395,12 +403,12 @@ class ClickPointsWindow(QtWidgets.QWidget):
             BroadCastEvent(self.modules, "DatabaseSaved")
             self.JumpFrames(0)
 
-    def log(self, *args, **kwargs):
+    def log(self, *args, **kwargs) -> None:
         self.GetModule("Console").log(*args, **kwargs)
 
     """ jumping frames and displaying images """
 
-    def reloadImage(self, target_id=None, layer_id=None):
+    def reloadImage(self, target_id: int = None, layer_id: int = None) -> None:
         print("reloadImage")
         if target_id is None:
             target_id = self.target_frame
@@ -409,15 +417,15 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.data_file.buffer.remove_frame(target_id, layer_id)
         self.JumpFrames(0)
 
-    def JumpFrames(self, amount):
+    def JumpFrames(self, amount: int) -> None:
         # redirect to an absolute jump
         self.JumpToFrame(self.target_frame + amount)
 
     # jump absolute
-    def JumpToFrame(self, target_id, threaded=True):
+    def JumpToFrame(self, target_id: int, threaded: bool = True) -> None:
         asyncio.ensure_future(self.load_frame(target_id), loop=self.app.loop)
 
-    async def load_frame(self, target_id, layer_id=None):
+    async def load_frame(self, target_id: int, layer_id: None = None) -> None:
         # if no frame is loaded yet, do nothing
         if self.data_file.get_image_count() == 0:
             return
@@ -468,13 +476,13 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
         self.target_frame = target_id
 
-    def CenterOn(self, x, y):
+    def CenterOn(self, x: float, y: float) -> None:
         print("Center on: %d %d" % (x,y))
         self.view.centerOn(float(x),float(y))
 
     """ some Qt events which should be passed around """
 
-    def testForUnsaved(self):
+    def testForUnsaved(self) -> bool:
         if self.data_file is not None and not self.data_file.exists and self.data_file.made_changes:
             reply = QtWidgets.QMessageBox.question(self, 'Warning', 'This ClickPoints project has not been saved. '
                                                                     'All data will be lost.\nDo you want to save it?',
@@ -487,7 +495,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 self.SaveDatabase()
         return True
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent) -> None:
         if self.testForUnsaved() == -1:
             return event.ignore()
         # close the folder editor
@@ -501,23 +509,23 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # broadcast event to the modules
         BroadCastEvent(self.modules, "closeEvent", event)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: QResizeEvent) -> None:
         # broadcast event to the modules
         BroadCastEvent(self.modules, "resizeEvent", event)
 
-    def zoomEvent(self, scale, pos):
+    def zoomEvent(self, scale: float, pos: Union[QPoint, QPointF]) -> None:
         # broadcast event to the modules
         BroadCastEvent(self.modules, "zoomEvent", scale, pos)
 
-    def panEvent(self, xoff, yoff):
+    def panEvent(self, xoff: float, yoff: float) -> None:
         # broadcast event to the modules
         BroadCastEvent(self.modules, "panEvent", xoff, yoff)
 
-    def keyReleaseEvent(self, event):
+    def keyReleaseEvent(self, event: QKeyEvent) -> None:
         # broadcast event to the modules
         BroadCastEvent(self.modules, "keyReleaseEvent", event)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         # broadcast event to the modules
         BroadCastEvent(self.modules, "keyPressEvent", event)
 
