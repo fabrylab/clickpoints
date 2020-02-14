@@ -1,8 +1,35 @@
-import peewee
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# launch.py
+
+# Copyright (c) 2015-2016, Richard Gerum, Sebastian Richter
+#
+# This file is part of ClickPoints.
+#
+# ClickPoints is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# ClickPoints is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
+
 import re
-from qtpy import QtCore, QtWidgets, QtGui
+from typing import List, Tuple, Union
+
+import peewee
 import qtawesome as qta
-from includes.Tools import BroadCastEvent
+from peewee import SqliteDatabase
+from qtpy import QtWidgets, QtGui
+
+from clickpoints.includes.BigImageDisplay import BigImageDisplay
+from clickpoints.includes.Database import DataFileExtended
+from clickpoints.includes.Tools import BroadCastEvent
 
 
 class undo:
@@ -15,12 +42,12 @@ class undo:
 
     next_text = ""
 
-    def __init__(self, db, tables):
+    def __init__(self, db: SqliteDatabase, tables: List[str]) -> None:
         # store the database and the tables
         self.db = db
         self.tables = tables
 
-    def activate(self):
+    def activate(self) -> None:
         """
         Start up the undo/redo system
         """
@@ -38,7 +65,7 @@ class undo:
         # start the first undo interval
         self._start_interval()
 
-    def deactivate(self):
+    def deactivate(self) -> None:
         """
         Halt the undo/redo system and delete the undo/redo stacks
         """
@@ -67,7 +94,7 @@ class undo:
         # get the current index from the undo log
         self.frozen = self._get_last_index()
 
-    def unfreeze(self):
+    def unfreeze(self) -> None:
         """
         Begin accepting undo actions again.
         """
@@ -75,11 +102,11 @@ class undo:
         if self.frozen < 0:
             return
         # delete the recorded changes during the frozen period
-        self.db.execute_sql("DELETE FROM undolog WHERE seq > ?", (self.frozen, ))
+        self.db.execute_sql("DELETE FROM undolog WHERE seq > ?", (self.frozen,))
         # reset the frozen variable
         self.frozen = -1
 
-    def barrier(self, text=""):
+    def barrier(self, text: str = "") -> None:
         """
         Create an undo barrier right now.
         """
@@ -103,36 +130,36 @@ class undo:
         # refresh the gui
         self.refresh()
 
-    def __call__(self, text=""):
+    def __call__(self, text: str = "") -> "undo":
         self.next_text = text
         return self
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         """
         Enter an undo context where every changes is gathered into an undo interval
         """
         pass
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: None, exc_val: None, exc_tb: None) -> None:
         """
         Exit an undo context and an undo barrier
         """
         self.barrier(self.next_text)
         self.next_text = ""
 
-    def undo(self):
+    def undo(self) -> None:
         """
         Do a single step of undo
         """
         self._step(self.undo_stack, self.redo_stack)
 
-    def redo(self):
+    def redo(self) -> None:
         """
         Redo a single step
         """
         self._step(self.redo_stack, self.undo_stack)
 
-    def get_state(self):
+    def get_state(self) -> Union[Tuple[str, str], Tuple[str, None]]:
         """
         Get the text for the last undo and redo command, or None if it is not available
         """
@@ -158,7 +185,7 @@ class undo:
         """
         pass
 
-    def reload_all(self):
+    def reload_all(self) -> None:
         """
         Redraw everything based on the current database
 
@@ -175,7 +202,7 @@ class undo:
         """
         pass
 
-    def _create_triggers(self):
+    def _create_triggers(self) -> None:
         """
         Create change recording triggers for all tables listed
 
@@ -222,7 +249,7 @@ class undo:
             sql += "'INSERT INTO {tbl}(rowid"
             # add a set with the old values
             for x1, name, x2, x3, x4, x5 in collist:
-                sql += ","+name
+                sql += "," + name
             sql += ") VALUES('||old.rowid||'"
             for x1, name, x2, x3, x4, x5 in collist:
                 sql += ",'||quote(old.{name})||'".format(name=name)
@@ -230,7 +257,7 @@ class undo:
             # add the trigger
             self.db.execute_sql(sql.format(tbl=tbl))
 
-    def _drop_triggers(self):
+    def _drop_triggers(self) -> None:
         """
         Drop all of the triggers that _create_triggers created.
         """
@@ -250,13 +277,13 @@ class undo:
         except peewee.OperationalError:
             pass
 
-    def _start_interval(self):
+    def _start_interval(self) -> None:
         """
         Record the starting conditions of an undo interval
         """
-        self.first_log = self._get_last_index()+1
+        self.first_log = self._get_last_index() + 1
 
-    def _step(self, stack_source, stack_target):
+    def _step(self, stack_source: List[Tuple[int, int, str]], stack_target: List[Tuple[int, int, str]]) -> None:
         """
         Do a single step of undo or redo
 
@@ -267,13 +294,14 @@ class undo:
         begin, end, text = stack_source.pop(-1)
 
         # get the list of sql commands to revert the action
-        sql_list = self.db.execute_sql("SELECT sql FROM undolog WHERE seq>=? AND seq<=? ORDER BY seq DESC", (begin, end)).fetchall()
+        sql_list = self.db.execute_sql("SELECT sql FROM undolog WHERE seq>=? AND seq<=? ORDER BY seq DESC",
+                                       (begin, end)).fetchall()
 
         # delete these entries from the undo log
         self.db.execute_sql("DELETE FROM undolog WHERE seq>=? AND seq<=?", (begin, end))
 
         # find the new first entry
-        self.first_log = self._get_last_index()+1
+        self.first_log = self._get_last_index() + 1
 
         # execute all commands to revert the action
         with self.db.atomic():
@@ -294,7 +322,7 @@ class undo:
         # refresh the gui
         self.refresh()
 
-    def _get_last_index(self):
+    def _get_last_index(self) -> int:
         # get the index of the most recent entry to the undo log
         return self.db.execute_sql("SELECT coalesce(max(seq),0) FROM undolog").fetchone()[0]
 
@@ -305,7 +333,7 @@ class ChangeTracker:
 
     undo = None
 
-    def __init__(self, window, modules):
+    def __init__(self, window: "ClickPointsWindow", modules: List[BigImageDisplay]) -> None:
         # store some references
         self.window = window
         self.modules = modules
@@ -326,7 +354,7 @@ class ChangeTracker:
 
         self.closeDataFile()
 
-    def closeDataFile(self):
+    def closeDataFile(self) -> None:
         if self.undo is not None:
             self.undo.deactivate()
 
@@ -336,7 +364,7 @@ class ChangeTracker:
         self.button_undo.setDisabled(True)
         self.button_redo.setDisabled(True)
 
-    def updateDataFile(self, data_file, new_database):
+    def updateDataFile(self, data_file: DataFileExtended, new_database: bool) -> None:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
@@ -344,31 +372,31 @@ class ChangeTracker:
         self.undo.activate()
         self.undo.refresh = self.updateState
 
-    def do_undo(self):
+    def do_undo(self) -> None:
         if self.undo.get_state()[0] is not None:
             self.undo.undo()
             BroadCastEvent(self.modules, "imageLoadedEvent", "", 0)
 
-    def do_redo(self):
+    def do_redo(self) -> None:
         if self.undo.get_state()[1] is not None:
             self.undo.redo()
             BroadCastEvent(self.modules, "imageLoadedEvent", "", 0)
 
-    def updateState(self):
+    def updateState(self) -> None:
         undo, redo = self.undo.get_state()
         self.button_undo.setDisabled(undo is None)
         if undo is not None:
-            self.button_undo.setToolTip("undo: "+undo)
+            self.button_undo.setToolTip("undo: " + undo)
         else:
             self.button_undo.setToolTip(undo)
         self.button_redo.setDisabled(redo is None)
         if redo is not None:
-            self.button_redo.setToolTip("redo: "+redo)
+            self.button_redo.setToolTip("redo: " + redo)
         else:
             self.button_redo.setToolTip(redo)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> undo:
         return self.undo(*args, **kwargs)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self.closeDataFile()
