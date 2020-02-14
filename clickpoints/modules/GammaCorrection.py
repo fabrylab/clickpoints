@@ -19,16 +19,16 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
+from typing import Optional, Tuple, Union
 
-import os
-import numpy as np
-
-from qtpy import QtGui, QtCore, QtWidgets
-from qtpy.QtCore import Qt
 import qtawesome as qta
+from numpy import ndarray
+from qtpy import QtGui, QtCore, QtWidgets
 
-from includes.Tools import MySlider, BoxGrabber, TextButton
+from clickpoints.includes.BigImageDisplay import BigImageDisplay
+from clickpoints.includes.Database import DataFileExtended
+from clickpoints.includes.Tools import MySlider, BoxGrabber, TextButton
+
 
 class GammaCorrection(QtWidgets.QGraphicsRectItem):
     data_file = None
@@ -41,7 +41,8 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
 
     max_value = None
 
-    def __init__(self, parent_hud, image_display, window):
+    def __init__(self, parent_hud: QtWidgets.QGraphicsPathItem, image_display: BigImageDisplay,
+                 window: "ClickPointsWindow") -> None:
         QtWidgets.QGraphicsRectItem.__init__(self, parent_hud)
         self.window = window
 
@@ -51,7 +52,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.setScale(self.window.scale_factor)
 
         self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 128)))
-        self.setPos(-140*self.window.scale_factor, (-140-20)*self.window.scale_factor)
+        self.setPos(-140 * self.window.scale_factor, (-140 - 20) * self.window.scale_factor)
         self.setZValue(19)
 
         self.hist = QtWidgets.QGraphicsPathItem(self)
@@ -78,9 +79,10 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
 
         self.current_layer = 0
 
-    def initSliders(self):
+    def initSliders(self) -> None:
         y_off = 15
-        self.button_autocontrast = TextButton(self, 100, "auto contr. (off)", font=self.window.mono_font, scale=self.window.scale_factor)
+        self.button_autocontrast = TextButton(self, 100, "auto contr. (off)", font=self.window.mono_font,
+                                              scale=self.window.scale_factor)
         self.button_autocontrast.setPos(3, 10)
         self.button_autocontrast.clicked.connect(self.toogleAutocontrast)
 
@@ -119,15 +121,16 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.config.auto_contrast = not self.config.auto_contrast
         self.updateButtons()
 
-    def updateButtons(self):
+    def updateButtons(self) -> None:
         if self.max_value is None:
             return
 
         def getGamma():
             value = self.getConfigValue(0, 1)
             if value > 1:
-                return 1/value - 2.00001
+                return 1 / value - 2.00001
             return value
+
         if self.config.auto_contrast is True:
             self.button_autocontrast.setText("auto contr. (on)")
             min_max = [[0, 2], [0, 100], [0, 100]]
@@ -149,49 +152,49 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             slider.maxValue = min_max[i][1]
             slider.setValue(start[i])
 
-    def closeDataFile(self):
+    def closeDataFile(self) -> None:
         self.data_file = None
         self.config = None
 
-    def updateDataFile(self, data_file, new_database):
+    def updateDataFile(self, data_file: DataFileExtended, new_database: bool) -> None:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
         self.ToggleInterfaceEvent(hidden=self.config.contrast_interface_hidden)
         self.schedule_update = True
 
-    def updateHist(self, hist):
+    def updateHist(self, hist: Optional[Tuple[ndarray, ndarray]]) -> None:
         if hist is None:
             return
         histpath = QtGui.QPainterPath()
         w = 100. / len(hist[0])
-        h = 98./max(hist[0])
+        h = 98. / max(hist[0])
         for i, v in enumerate(hist[0]):
             histpath.addRect(i * w + 5, 0, w, -v * h)
         self.hist.setPath(histpath)
 
-    def updateConv(self):
+    def updateConv(self) -> None:
         if self.image.image_pixMapItem.conversion is None:
             return
         convpath = QtGui.QPainterPath()
         w = 100. / len(self.image.image_pixMapItem.conversion)
-        h = 98./255
+        h = 98. / 255
         for i, v in enumerate(self.image.image_pixMapItem.conversion):
             convpath.lineTo(float(i) * w + 5, -float(v) * h)
         self.conv.setPath(convpath)
 
-    def setConfigValue(self, index, value):
+    def setConfigValue(self, index: int, value: Union[float, int]) -> None:
         if self.config.contrast is None:
             self.config.contrast = {}
         if self.current_layer not in self.config.contrast:
-            self.config.contrast[self.current_layer] = [None]*5
+            self.config.contrast[self.current_layer] = [None] * 5
         if len(self.config.contrast[self.current_layer]) < 5:
             self.config.contrast[self.current_layer] = [None] * 5
         self.config.contrast[self.current_layer][index] = value
         # to trigger the saving of the option
         self.config.contrast = self.config.contrast
 
-    def getConfigValue(self, index, default):
+    def getConfigValue(self, index: int, default: int) -> Union[float, int]:
         if self.config.contrast is None:
             return default
         if self.current_layer in self.config.contrast:
@@ -204,10 +207,10 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             return value
         return default
 
-    def updateGamma(self, value):
-        #x * (1 - (value - 1) + 0.00001) = 1.
-        #(1 - (value - 1) + 0.00001) = 1./x
-        #value = 1/x - 2.00001
+    def updateGamma(self, value: float) -> None:
+        # x * (1 - (value - 1) + 0.00001) = 1.
+        # (1 - (value - 1) + 0.00001) = 1./x
+        # value = 1/x - 2.00001
         if value > 1:
             self.setConfigValue(0, 1. / (1 - (value - 1) + 0.00001))
         else:
@@ -218,7 +221,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.updateConv()
         self.updateHist(self.image.hist)
 
-    def updateBrightnes(self, value):
+    def updateBrightnes(self, value: int) -> None:
         if self.config.auto_contrast is True:
             self.setConfigValue(3, int(value))
         else:
@@ -229,7 +232,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.updateConv()
         self.updateHist(self.image.hist)
 
-    def updateContrast(self, value):
+    def updateContrast(self, value: int) -> None:
         if self.config.auto_contrast is True:
             self.setConfigValue(4, int(value))
         else:
@@ -240,7 +243,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.updateConv()
         self.updateHist(self.image.hist)
 
-    def setActiveLayer(self, new_index):
+    def setActiveLayer(self, new_index: int) -> None:
         update_hist = self.image.preview_slice is None
         self.updateButtons()
         self.image.Change()
@@ -248,7 +251,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         if update_hist:
             self.updateHist(self.image.hist)
 
-    def imageLoadedEvent(self, filename="", frame_number=0):
+    def imageLoadedEvent(self, filename: str = "", frame_number: int = 0) -> None:
         if not self.initialized:
             self.initialized = True
             self.initSliders()
@@ -265,33 +268,33 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
                 # self.sliders["Min"].setValue(self.config.contrast_min)
             self.schedule_update = False
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
         if event.button() == 2:
             self.reset()
         pass
 
     def reset(self):
-        self.config.contrast[self.current_layer] = [None]*5
+        self.config.contrast[self.current_layer] = [None] * 5
         self.updateButtons()
         self.image.ResetPreview()
         self.hist.setPath(QtGui.QPainterPath())
         self.conv.setPath(QtGui.QPainterPath())
 
     def updateROI(self):
-        #QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-        #self.image.PreviewRect()
+        # QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        # self.image.PreviewRect()
         self.image.Change()
         self.updateHist(self.image.hist)
         QtWidgets.QApplication.restoreOverrideCursor()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
 
         # @key ---- Gamma/Brightness Adjustment ---
-        if event.key() == Qt.Key_G:
+        if event.key() == QtCore.Qt.Key_G:
             # @key G: update rect
             self.updateROI()
 
-    def ToggleInterfaceEvent(self, event=None, hidden=None):
+    def ToggleInterfaceEvent(self, event: Optional[bool] = None, hidden: Optional[bool] = None) -> None:
         if hidden is None:
             self.hidden = not self.hidden
         else:
@@ -301,11 +304,10 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         self.setVisible(not self.hidden)
         self.button_brightness.setChecked(not self.hidden)
 
-    def LayerChangedEvent(self, layer):
+    def LayerChangedEvent(self, layer: int) -> None:
         self.current_layer = layer
         self.setActiveLayer(layer)
 
-
     @staticmethod
-    def file():
+    def file() -> str:
         return __file__
