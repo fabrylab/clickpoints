@@ -19,24 +19,25 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
-import os
-
-from qtpy import QtCore, QtGui, QtWidgets
-import qtawesome as qta
 import datetime
+import os
+import re
+from typing import Any, List
 
 import imageio
 import numpy as np
-import re
+import qtawesome as qta
 from PIL import ImageDraw, Image, ImageFont
+from qtpy import QtCore, QtGui, QtWidgets
 from scipy.ndimage import shift
 
-from includes.Tools import HTMLColorToRGB, BoundBy, BroadCastEvent
-from includes import QtShortCuts
+from clickpoints.DataFile import OptionAccess
+from clickpoints.includes import QtShortCuts
+from clickpoints.includes.Database import DataFileExtended
+from clickpoints.includes.Tools import HTMLColorToRGB, BoundBy, BroadCastEvent
 
 
-def MakePathRelative(abs_path):
+def MakePathRelative(abs_path: str) -> str:
     try:
         path = os.path.relpath(abs_path)
     except ValueError:
@@ -49,7 +50,7 @@ def MakePathRelative(abs_path):
     return path
 
 
-def formatTimedelta(t: datetime.timedelta, fmt: str):
+def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
     sign = 1
     if t.total_seconds() < 0:
         sign = -1
@@ -77,11 +78,11 @@ def formatTimedelta(t: datetime.timedelta, fmt: str):
 
     fmt = fmt.replace("%d", str(parts["d"]))
     if max_level == "H":
-        fmt = fmt.replace("%H", "%d" % (parts["H"] + parts["d"]*24))
+        fmt = fmt.replace("%H", "%d" % (parts["H"] + parts["d"] * 24))
     else:
         fmt = fmt.replace("%H", "%2d" % parts["H"])
     if max_level == "M":
-        fmt = fmt.replace("%M", "%2d" % (parts["M"] + parts["H"]*60 + parts["d"]*60*24))
+        fmt = fmt.replace("%M", "%2d" % (parts["M"] + parts["H"] * 60 + parts["d"] * 60 * 24))
     else:
         fmt = fmt.replace("%M", "%02d" % parts["M"])
 
@@ -91,11 +92,11 @@ def formatTimedelta(t: datetime.timedelta, fmt: str):
         fmt = fmt.replace("%S", "%02d" % parts["S"])
 
     if max_level == "m":
-        fmt = fmt.replace("%m", "%3d" % (parts["m"] + parts["s"]*1000))
+        fmt = fmt.replace("%m", "%3d" % (parts["m"] + parts["s"] * 1000))
     else:
         fmt = fmt.replace("%m", "%03d" % parts["m"])
     if max_level == "f":
-        fmt = fmt.replace("%f", "%6d" % (parts["f"] + parts["s"]*1000*1000))
+        fmt = fmt.replace("%f", "%6d" % (parts["f"] + parts["s"] * 1000 * 1000))
     else:
         fmt = fmt.replace("%f", "%06d" % parts["f"])
     if sign == -1:
@@ -103,14 +104,15 @@ def formatTimedelta(t: datetime.timedelta, fmt: str):
             if fmt[i] != " ":
                 break
         if i == 0:
-            fmt = "-"+fmt
+            fmt = "-" + fmt
         else:
-            fmt = fmt[:i-1]+"-"+fmt[i:]
+            fmt = fmt[:i - 1] + "-" + fmt[i:]
     return fmt
 
 
 class VideoExporterDialog(QtWidgets.QWidget):
-    def __init__(self, parent, window, data_file, config, modules):
+    def __init__(self, parent: "VideoExporter", window: "ClickPointsWindow", data_file: DataFileExtended,
+                 config: OptionAccess, modules: List[Any]) -> None:
         QtWidgets.QWidget.__init__(self)
         # default settings and parameters
         self.window = window
@@ -149,9 +151,12 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(videoWidget)
         Vlayout = QtWidgets.QVBoxLayout(videoWidget)
 
-        self.leAName = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename), "Choose Video - ClickPoints", "Videos (*.mp4 *.mpeg *.avi)", lambda name: self.checkExtension(name, ".mp4"))
+        self.leAName = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_video_filename),
+                                                  "Choose Video - ClickPoints", "Videos (*.mp4 *.mpeg *.avi)",
+                                                  lambda name: self.checkExtension(name, ".mp4"))
         self.leCodec = QtShortCuts.QInputString(Vlayout, "Codec:", options.video_codec, stretch=True)
-        self.sbQuality = QtShortCuts.QInputNumber(Vlayout, 'Quality (0 lowest, 10 highest):', options.video_quality, min=0, max=10, float=False, stretch=True)
+        self.sbQuality = QtShortCuts.QInputNumber(Vlayout, 'Quality (0 lowest, 10 highest):', options.video_quality,
+                                                  min=0, max=10, float=False, stretch=True)
 
         Vlayout.addStretch()
 
@@ -160,7 +165,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
-        self.leANameI = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_image_filename), "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif, *.svg)", self.CheckImageFilename)
+        self.leANameI = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_image_filename),
+                                                   "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif, *.svg)",
+                                                   self.CheckImageFilename)
         QtShortCuts.QInput(Vlayout, 'Image names have to contain %d as a placeholder for the image number.')
 
         Vlayout.addStretch()
@@ -170,7 +177,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(gifWidget)
         Vlayout = QtWidgets.QVBoxLayout(gifWidget)
 
-        self.leANameG = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_gif_filename), "Choose Gif - ClickPoints", "Animated Gifs (*.gif)", lambda name: self.checkExtension(name, ".gif"))
+        self.leANameG = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_gif_filename),
+                                                   "Choose Gif - ClickPoints", "Animated Gifs (*.gif)",
+                                                   lambda name: self.checkExtension(name, ".gif"))
 
         Vlayout.addStretch()
 
@@ -179,9 +188,12 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.StackedWidget.addWidget(imageWidget)
         Vlayout = QtWidgets.QVBoxLayout(imageWidget)
 
-        self.leANameIS = QtShortCuts.QInputFilename(Vlayout, 'Filename:', os.path.abspath(options.export_single_image_filename),
-                                           "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif *.svg)", lambda name: self.checkExtension(name, ".jpg"))
-        QtShortCuts.QInput(Vlayout, 'Single Image will only export the current frame. Optionally, a %d placeholder will be filled with the frame number')
+        self.leANameIS = QtShortCuts.QInputFilename(Vlayout, 'Filename:',
+                                                    os.path.abspath(options.export_single_image_filename),
+                                                    "Choose Image - ClickPoints", "Images (*.jpg *.png *.tif *.svg)",
+                                                    lambda name: self.checkExtension(name, ".jpg"))
+        QtShortCuts.QInput(Vlayout,
+                           'Single Image will only export the current frame. Optionally, a %d placeholder will be filled with the frame number')
 
         Vlayout.addStretch()
 
@@ -193,11 +205,15 @@ class VideoExporterDialog(QtWidgets.QWidget):
         Hlayout.addLayout(Vlayout)
 
         self.cbTime = QtShortCuts.QInputBool(Vlayout, 'Display time:', options.export_display_time, stretch=True)
-        self.cbTimeZero = QtShortCuts.QInputBool(Vlayout, 'Start from zero:', options.export_time_from_zero, stretch=True)
-        self.cbTimeFontSize = QtShortCuts.QInputNumber(Vlayout, 'Font size:', options.export_time_font_size, float=False, stretch=True)
+        self.cbTimeZero = QtShortCuts.QInputBool(Vlayout, 'Start from zero:', options.export_time_from_zero,
+                                                 stretch=True)
+        self.cbTimeFontSize = QtShortCuts.QInputNumber(Vlayout, 'Font size:', options.export_time_font_size,
+                                                       float=False, stretch=True)
         self.cbTimeColor = QtShortCuts.QInputColor(Vlayout, "Color:", options.export_time_font_color, stretch=True)
         self.cbTimeFormat = QtShortCuts.QInputString(Vlayout, "Format:", options.export_time_format, stretch=True)
-        self.cbTimeDeltaFormat = QtShortCuts.QInputString(Vlayout, "Format:", options.export_timedelta_format, stretch=True)
+        self.cbTimeDeltaFormat = QtShortCuts.QInputString(Vlayout, "Format:", options.export_timedelta_format,
+                                                          stretch=True)
+
         def updateTimeFormat(self):
             if self.cbTimeZero.value():
                 self.cbTimeDeltaFormat.show()
@@ -205,6 +221,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
             else:
                 self.cbTimeDeltaFormat.hide()
                 self.cbTimeFormat.show()
+
         self.cbTimeZero.checkbox.stateChanged.connect(lambda x, self=self: updateTimeFormat(self))
         updateTimeFormat(self)
 
@@ -212,7 +229,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
         Hlayout.addLayout(Vlayout)
 
         self.cbCustomTime = QtShortCuts.QInputBool(Vlayout, 'Custom time:', options.export_custom_time)
-        self.cbCustomTimeDelta = QtShortCuts.QInputNumber(Vlayout, 'Time between two frames (s):', options.export_custom_time_delta)
+        self.cbCustomTimeDelta = QtShortCuts.QInputNumber(Vlayout, 'Time between two frames (s):',
+                                                          options.export_custom_time_delta)
 
         Vlayout.addStretch()
 
@@ -221,8 +239,10 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.layout.addWidget(scaleWidget)
         Vlayout = QtWidgets.QVBoxLayout(scaleWidget)
 
-        self.cbImageScaleSize = QtShortCuts.QInputNumber(Vlayout, 'Image scale:', options.export_image_scale, float=True, stretch=True)
-        self.cbMarkerScaleSize = QtShortCuts.QInputNumber(Vlayout, 'Marker scale:', options.export_marker_scale, float=True, stretch=True)
+        self.cbImageScaleSize = QtShortCuts.QInputNumber(Vlayout, 'Image scale:', options.export_image_scale,
+                                                         float=True, stretch=True)
+        self.cbMarkerScaleSize = QtShortCuts.QInputNumber(Vlayout, 'Marker scale:', options.export_marker_scale,
+                                                          float=True, stretch=True)
 
         Vlayout.addStretch()
 
@@ -242,14 +262,14 @@ class VideoExporterDialog(QtWidgets.QWidget):
         Hlayout.addWidget(self.button_stop)
         self.layout.addLayout(Hlayout)
 
-    def checkExtension(self, name, ext):
+    def checkExtension(self, name: str, ext: str) -> str:
         # in some versions the Qt file dialog doesn't automatically add an extension
         basename, current_extension = os.path.splitext(name)
         if current_extension == "":
-            return name+ext
+            return name + ext
         return name
 
-    def CheckImageFilename(self, srcpath):
+    def CheckImageFilename(self, srcpath: str) -> str:
         # ensure that image filenames contain %d placeholder for the number
         match = re.match(r"%\s*\d*d", srcpath)
         # if not add one, between filename and extension
@@ -258,15 +278,15 @@ class VideoExporterDialog(QtWidgets.QWidget):
             basename, ext = os.path.splitext(name)
             basename_new = re.sub(r"\d+", "%04d", basename, count=1)
             if basename_new == basename:
-                basename_new = basename+"%04d"
-            srcpath = os.path.join(path, basename_new+ext)
+                basename_new = basename + "%04d"
+            srcpath = os.path.join(path, basename_new + ext)
         return self.checkExtension(srcpath, ".jpg")
 
-    def StopSaving(self):
+    def StopSaving(self) -> None:
         # schedule an abortion of the export
         self.abort = True
 
-    def SaveImage(self):
+    def SaveImage(self) -> None:
         # hide the start button and display the abort button
         self.abort = False
         self.button_start.setHidden(True)
@@ -307,7 +327,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
         svg = False
         if self.cbType.currentIndex() == 0:  # video
             path = str(self.leAName.value())
-            writer_params = dict(format="avi", mode="I", fps=timeline.fps, codec=options.video_codec, quality=options.video_quality)
+            writer_params = dict(format="avi", mode="I", fps=timeline.fps, codec=options.video_codec,
+                                 quality=options.video_quality)
         elif self.cbType.currentIndex() == 1:  # image
             path = str(self.leANameI.value())
             if path.endswith(".svg"):
@@ -330,12 +351,16 @@ class VideoExporterDialog(QtWidgets.QWidget):
         # get timestamp draw parameter
         self.time_drawing = None
         if options.export_display_time:
-            class TimeDrawing: pass
+            class TimeDrawing:
+                pass
+
             self.time_drawing = TimeDrawing()
             try:
                 self.time_drawing.font = ImageFont.truetype("arial.ttf", options.export_time_font_size)
             except IOError:
-                self.time_drawing.font = ImageFont.truetype(os.path.join(os.environ["CLICKPOINTS_ICON"], "FantasqueSansMono-Regular.ttf"), self.cbTimeFontSize.value())
+                self.time_drawing.font = ImageFont.truetype(
+                    os.path.join(os.environ["CLICKPOINTS_ICON"], "FantasqueSansMono-Regular.ttf"),
+                    self.cbTimeFontSize.value())
             self.time_drawing.start = None
             self.time_drawing.x = 15
             self.time_drawing.y = 10
@@ -350,19 +375,20 @@ class VideoExporterDialog(QtWidgets.QWidget):
         # determine export rect
         image = self.window.ImageDisplay.image
         offset = self.window.ImageDisplay.last_offset
-        start_x, start_y, end_x, end_y = np.array(self.window.view.GetExtend(True)).astype("int") + np.hstack((offset, offset)).astype("int")
+        start_x, start_y, end_x, end_y = np.array(self.window.view.GetExtend(True)).astype("int") + np.hstack(
+            (offset, offset)).astype("int")
         # constrain start points
         start_x = BoundBy(start_x, 0, image.shape[1])
         start_y = BoundBy(start_y, 0, image.shape[0])
         # constrain end points
-        end_x = BoundBy(end_x, start_x+1, image.shape[1])
-        end_y = BoundBy(end_y, start_y+1, image.shape[0])
-        if (end_y-start_y) % 2 != 0: end_y -= 1
-        if (end_x-start_x) % 2 != 0: end_x -= 1
-        self.preview_slice = np.zeros((end_y-start_y, end_x-start_x, 3), self.window.ImageDisplay.image.dtype)
+        end_x = BoundBy(end_x, start_x + 1, image.shape[1])
+        end_y = BoundBy(end_y, start_y + 1, image.shape[0])
+        if (end_y - start_y) % 2 != 0: end_y -= 1
+        if (end_x - start_x) % 2 != 0: end_x -= 1
+        self.preview_slice = np.zeros((end_y - start_y, end_x - start_x, 3), self.window.ImageDisplay.image.dtype)
 
         # iterate over frames
-        iter_range = range(start, end+1, skip)
+        iter_range = range(start, end + 1, skip)
         if self.cbType.currentIndex() == 3:
             iter_range = [self.window.target_frame]
         for frame in iter_range:
@@ -378,22 +404,25 @@ class VideoExporterDialog(QtWidgets.QWidget):
             offset_float = offset - offset_int
 
             # calculate new slices
-            start_x2 = start_x-offset_int[0]
-            start_y2 = start_y-offset_int[1]
-            end_x2 = end_x-offset_int[0]
-            end_y2 = end_y-offset_int[1]
+            start_x2 = start_x - offset_int[0]
+            start_y2 = start_y - offset_int[1]
+            end_x2 = end_x - offset_int[0]
+            end_y2 = end_y - offset_int[1]
             # adapt new slices to fit in image
             start_x3 = BoundBy(start_x2, 0, image.shape[1])
             start_y3 = BoundBy(start_y2, 0, image.shape[0])
-            end_x3 = BoundBy(end_x2, start_x3+1, image.shape[1])
-            end_y3 = BoundBy(end_y2, start_y3+1, image.shape[0])
+            end_x3 = BoundBy(end_x2, start_x3 + 1, image.shape[1])
+            end_y3 = BoundBy(end_y2, start_y3 + 1, image.shape[0])
 
             # extract cropped image
-            self.preview_slice = np.zeros((end_y-start_y, end_x-start_x, 3), self.window.ImageDisplay.image.dtype)
-            self.preview_slice[start_y3-start_y2:self.preview_slice.shape[0]+(end_y3-end_y2), start_x3-start_x2:self.preview_slice.shape[1]+(end_x3-end_x2), :] = image[start_y3:end_y3, start_x3:end_x3, :3]
+            self.preview_slice = np.zeros((end_y - start_y, end_x - start_x, 3), self.window.ImageDisplay.image.dtype)
+            self.preview_slice[start_y3 - start_y2:self.preview_slice.shape[0] + (end_y3 - end_y2),
+            start_x3 - start_x2:self.preview_slice.shape[1] + (end_x3 - end_x2), :] = image[start_y3:end_y3,
+                                                                                      start_x3:end_x3, :3]
 
             # draw mask on the image
-            BroadCastEvent(self.window.modules, "drawToImage0", self.preview_slice, slice(start_y3, end_y3), slice(start_x3, end_x3))
+            BroadCastEvent(self.window.modules, "drawToImage0", self.preview_slice, slice(start_y3, end_y3),
+                           slice(start_x3, end_x3))
 
             # apply the subpixel decimal shift
             if offset_float[0] or offset_float[1]:
@@ -406,17 +435,20 @@ class VideoExporterDialog(QtWidgets.QWidget):
             # convert image to PIL draw object
             pil_image = Image.fromarray(self.preview_slice)
             if options.export_image_scale != 1:
-                shape = np.array([self.preview_slice.shape[1], self.preview_slice.shape[0]])*options.export_image_scale
+                shape = np.array(
+                    [self.preview_slice.shape[1], self.preview_slice.shape[0]]) * options.export_image_scale
                 pil_image = pil_image.resize(shape.astype(int), Image.ANTIALIAS)
             draw = ImageDraw.Draw(pil_image)
             draw.pil_image = pil_image
             # init svg
             if svg:
                 import svgwrite
-                dwg = svgwrite.Drawing(path % (frame-start), profile='full', size=(self.preview_slice.shape[1], self.preview_slice.shape[0]))
+                dwg = svgwrite.Drawing(path % (frame - start), profile='full',
+                                       size=(self.preview_slice.shape[1], self.preview_slice.shape[0]))
 
             # draw marker on the image
-            BroadCastEvent(self.window.modules, "drawToImage", draw, start_x-offset[0], start_y-offset[1], options.export_marker_scale, options.export_image_scale, options.rotation)
+            BroadCastEvent(self.window.modules, "drawToImage", draw, start_x - offset[0], start_y - offset[1],
+                           options.export_marker_scale, options.export_image_scale, options.rotation)
             if svg:
                 BroadCastEvent(self.window.modules, "drawToImageSvg", dwg, start_x - offset[0], start_y - offset[1],
                                options.export_marker_scale, options.export_image_scale, options.rotation)
@@ -435,7 +467,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
                 draw.pil_image = pil_image
             # draw marker on the image
             BroadCastEvent(self.window.modules, "drawToImage2", draw, start_x - offset[0], start_y - offset[1],
-                               options.export_marker_scale, options.export_image_scale, options.rotation)
+                           options.export_marker_scale, options.export_image_scale, options.rotation)
             if svg:
                 BroadCastEvent(self.window.modules, "drawToImage2Svg", dwg, start_x - offset[0], start_y - offset[1],
                                options.export_marker_scale, options.export_image_scale, options.rotation)
@@ -443,7 +475,8 @@ class VideoExporterDialog(QtWidgets.QWidget):
             if self.time_drawing is not None:
                 if options.export_custom_time:
                     text = str(datetime.timedelta(seconds=self.custom_time))
-                    draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
+                    draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color,
+                              font=self.time_drawing.font)
                     self.custom_time += options.export_custom_time_delta
                 else:
                     time = self.window.data_file.image.timestamp
@@ -451,10 +484,11 @@ class VideoExporterDialog(QtWidgets.QWidget):
                         if frame == start and options.export_time_from_zero:
                             self.time_drawing.start = time
                         if self.time_drawing.start is not None:
-                            text = formatTimedelta(time-self.time_drawing.start, options.export_timedelta_format)
+                            text = formatTimedelta(time - self.time_drawing.start, options.export_timedelta_format)
                         else:
                             text = time.strftime(options.export_time_format)
-                        draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color, font=self.time_drawing.font)
+                        draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color,
+                                  font=self.time_drawing.font)
             # add to video ...
             if svg:
                 dwg.save()
@@ -465,7 +499,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
                     writer.append_data(np.array(pil_image))
                 # ... or save image ...
                 elif self.cbType.currentIndex() == 1:
-                    pil_image.save(path % (frame-start))
+                    pil_image.save(path % (frame - start))
                 elif self.cbType.currentIndex() == 3:
                     try:
                         pil_image.save(path % frame)
@@ -491,16 +525,17 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.button_start.setHidden(False)
         self.button_stop.setHidden(True)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Escape:
             self.parent.ExporterWindow = None
             self.close()
+
 
 class VideoExporter:
     data_file = None
     config = None
 
-    def __init__(self, window, modules, config=None):
+    def __init__(self, window: "ClickPointsWindow", modules: List[QtCore.QObject], config: None = None) -> None:
         # default settings and parameters
         self.window = window
         self.modules = modules
@@ -512,18 +547,18 @@ class VideoExporter:
         self.button.clicked.connect(self.showDialog)
         window.layoutButtons.addWidget(self.button)
 
-    def closeDataFile(self):
+    def closeDataFile(self) -> None:
         self.data_file = None
         self.config = None
 
         if self.ExporterWindow:
             self.ExporterWindow.close()
 
-    def updateDataFile(self, data_file, new_database):
+    def updateDataFile(self, data_file: DataFileExtended, new_database: bool) -> None:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
-    def showDialog(self):
+    def showDialog(self) -> None:
         if self.ExporterWindow:
             self.ExporterWindow.raise_()
             self.ExporterWindow.show()
@@ -531,16 +566,16 @@ class VideoExporter:
             self.ExporterWindow = VideoExporterDialog(self, self.window, self.data_file, self.config, self.modules)
             self.ExporterWindow.show()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
 
         # @key Z: Export Video
         if event.key() == QtCore.Qt.Key_Z:
             self.showDialog()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         if self.ExporterWindow:
             self.ExporterWindow.close()
 
     @staticmethod
-    def file():
+    def file() -> str:
         return __file__
