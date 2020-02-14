@@ -19,13 +19,14 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function, unicode_literals
-import sys
-import os
 import ast
+import os
+import sys
+from datetime import datetime
+from typing import Union
 
 
-def isstring(object):
+def isstring(object: str) -> bool:
     PY3 = sys.version_info[0] == 3
 
     if PY3:
@@ -37,14 +38,18 @@ def isstring(object):
 # enables .access on dicts
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
-    def __getattr__(self, attr):
+
+    def __getattr__(self, attr: str) -> Union[datetime, str, int]:
         return self.get(attr)
+
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
+
 class ExceptionPathDoesntExist(Exception): pass
 
-def LoadConfig(*args, srcpath="", just_load=False):
+
+def LoadConfig(*args, srcpath="", just_load=False) -> dotdict:
     """ Determine the input path """
 
     if len(args) == 0:
@@ -66,7 +71,7 @@ def LoadConfig(*args, srcpath="", just_load=False):
                         srcpath = value
                     else:
                         sys.tracebacklimit = 0
-                        raise ExceptionPathDoesntExist("ERROR: path "+value+" does not exist.")
+                        raise ExceptionPathDoesntExist("ERROR: path " + value + " does not exist.")
 
         if srcpath == "" and len(args) > 1 and args[1][0] != "-":
             srcpath = args[1]
@@ -78,7 +83,7 @@ def LoadConfig(*args, srcpath="", just_load=False):
             if os.path.isdir(srcpath):
                 # append / or \ to mark as DIR
                 srcpath = os.path.abspath(srcpath)
-                srcpath = srcpath+os.sep
+                srcpath = srcpath + os.sep
 
                 basepath = srcpath
                 path = srcpath

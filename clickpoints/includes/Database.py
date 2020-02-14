@@ -19,27 +19,31 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 # You should have received a copy of the GNU General Public License
 
-from __future__ import division, print_function
-import os
-import sys
-import glob
-import importlib
 import itertools
-import subprocess
 import math
+import os
+import re
+import time
 from datetime import datetime, timedelta, MINYEAR
-import peewee
-try:
-    from StringIO import StringIO  # python 2
-except ImportError:
-    from io import StringIO  # python 3
+from io import StringIO
+from typing import List, Optional, Tuple, Union, Sequence
+
+import PIL
 import imageio
-from threading import Thread
-from qtpy import QtCore
 import numpy as np
-import platform
+import peewee
+from qtpy import QtCore
+from qtpy import QtGui
+
+from clickpoints.DataFile import DataFile
+from clickpoints.includes.ConfigLoad import dotdict
+
+# remove decompression bomb warning which is now an exception
+PIL.Image.MAX_IMAGE_PIXELS = None
+
 try:
     import openslide
+
     openslide_loaded = True
     print("openslide", openslide.__version__)
 except ImportError:
@@ -47,8 +51,10 @@ except ImportError:
     print("no openslide found")
     from .slide import myslide
 
+
     class lowlevel:
         OpenSlideUnsupportedFormatError = IOError
+
 
     class openslide:
         OpenSlide = myslide
@@ -57,19 +63,13 @@ except ImportError:
 
     openslide_loaded = True
 
-from ..DataFile import DataFile
-import re
-
-# remove decompression bomb warning which is now an exception
-import PIL
-PIL.Image.MAX_IMAGE_PIXELS = None
 
 class PseudoSlide:
     min_break_width = 1052
 
     def __init__(self, image):
         self.image = image
-        self.level_count = int(np.ceil(math.log(max(image.shape)/self.min_break_width, 2)))
+        self.level_count = int(np.ceil(math.log(max(image.shape) / self.min_break_width, 2)))
 
         self.dimensions = (image.shape[1], image.shape[0])
         self.ndim = len(image.shape)
@@ -78,21 +78,22 @@ class PseudoSlide:
         self.level_dimensions = []
         self.level_downsamples = []
         for i in range(self.level_count):
-            downsample = 1<<i
-            self.level_dimensions.append((int(np.ceil(self.dimensions[0]/downsample)), int(np.ceil(self.dimensions[1]/downsample))))
+            downsample = 1 << i
+            self.level_dimensions.append(
+                (int(np.ceil(self.dimensions[0] / downsample)), int(np.ceil(self.dimensions[1] / downsample))))
             self.level_downsamples.append(downsample)
 
-    def get_best_level_for_downsample(self, downsample):
+    def get_best_level_for_downsample(self, downsample: int) -> int:
         best = 0
         for index, i in enumerate(self.level_downsamples):
             if i < downsample:
                 best = index
         return best
 
-    def read_region(self, location, level, size):
+    def read_region(self, location: Sequence, level: int, size: Sequence):
         downsample = self.level_downsamples[level]
-        end_x = location[0] + size[0]*downsample
-        end_y = location[1] + size[1]*downsample
+        end_x = location[0] + size[0] * downsample
+        end_y = location[1] + size[1] * downsample
         im = self.image[location[1]:end_y:downsample, location[0]:end_x:downsample]
         return np.array(im)
 
@@ -100,8 +101,7 @@ class PseudoSlide:
         return self.image.__getitem__(item)
 
 
-
-def max_sql_variables():
+def max_sql_variables() -> int:
     """Get the maximum number of arguments allowed in a query by the current
     sqlite3 implementation. Based on `this question
     `_
@@ -134,11 +134,11 @@ def max_sql_variables():
     db.close()
     return low
 
+
 SQLITE_MAX_VARIABLE_NUMBER = max_sql_variables()
 
 
-def SQLMemoryDBFromFile(filename, *args, **kwargs):
-
+def SQLMemoryDBFromFile(filename: str, *args, **kwargs):
     db_file = peewee.SqliteDatabase(filename, *args, **kwargs)
 
     db_file.connect()
@@ -153,7 +153,8 @@ def SQLMemoryDBFromFile(filename, *args, **kwargs):
     db_memory.connection().commit()
     return db_memory
 
-def SaveDB(db_memory, filename):
+
+def SaveDB(db_memory, filename: str):
     if os.path.exists(filename):
         os.remove(filename)
     db_file = peewee.SqliteDatabase(filename)
@@ -186,20 +187,21 @@ def SaveDB(db_memory, filename):
 
 def timedelta_div(self, other):
     if isinstance(other, (int, float)):
-        return timedelta(seconds=self.total_seconds()/other)
+        return timedelta(seconds=self.total_seconds() / other)
     else:
         return NotImplemented
 
 
 def date_linspace(start_date, end_date, frames):
-    delta = timedelta_div(end_date-start_date, frames)
+    delta = timedelta_div(end_date - start_date, frames)
     for n in range(frames):
         yield start_date
         start_date = start_date + delta
 
 
 class DataFileExtended(DataFile):
-    def __init__(self, database_filename=None, config=None, storage_path=None):
+    def __init__(self, database_filename: Optional[str] = None, config: Optional[dotdict] = None,
+                 storage_path: Optional[str] = None) -> None:
         self.exists = os.path.exists(database_filename)
         self._config = config
         self.temporary_db = None
@@ -235,7 +237,7 @@ class DataFileExtended(DataFile):
                 database_filename = os.path.join(storage_path, "tmp%d_%d.cdb" % (os.getpid(), index2))
                 index2 += 1
             self.temporary_db = database_filename
-            #self.db = peewee.SqliteDatabase(":memory:")
+            # self.db = peewee.SqliteDatabase(":memory:")
 
         DataFile.__init__(self, database_filename, mode='r+')
 
@@ -257,7 +259,8 @@ class DataFileExtended(DataFile):
         self.made_changes = False
 
         # image data loading buffer and thread
-        self.buffer = FrameBuffer(self.getOption("buffer_size"), self.getOption("buffer_memory"), self.getOption("buffer_mode"))
+        self.buffer = FrameBuffer(self.getOption("buffer_size"), self.getOption("buffer_memory"),
+                                  self.getOption("buffer_mode"))
         self._buffer = self.buffer
         self.thread = None
 
@@ -267,24 +270,26 @@ class DataFileExtended(DataFile):
         # signals to notify others when a frame is loaded
         class DataFileSignals(QtCore.QObject):
             loaded = QtCore.Signal(int, int, int)
+
         self.signals = DataFileSignals()
 
-    def optionsChanged(self, key=None):
-        self.buffer.setBufferCount(self.getOption("buffer_size"), self.getOption("buffer_memory"), self.getOption("buffer_mode"))
+    def optionsChanged(self, key: None = None) -> None:
+        self.buffer.setBufferCount(self.getOption("buffer_size"), self.getOption("buffer_memory"),
+                                   self.getOption("buffer_mode"))
 
-    def setChangesMade(self):
+    def setChangesMade(self) -> None:
         self.made_changes = True
 
-    def start_adding_timestamps(self):
+    def start_adding_timestamps(self) -> None:
         if self.timestamp_thread:
             return
-        #self.timestamp_thread = Thread(target=self.add_timestamps, args=())
-        #self.timestamp_thread.start()
+        # self.timestamp_thread = Thread(target=self.add_timestamps, args=())
+        # self.timestamp_thread.start()
         self.add_timestamps()
 
-    def add_timestamps(self):
+    def add_timestamps(self) -> None:
         while True:
-            next_frame = self.last_added_timestamp+1
+            next_frame = self.last_added_timestamp + 1
             try:
                 image = self.table_image.get(sort_index=next_frame)
             except peewee.DoesNotExist:
@@ -295,12 +300,12 @@ class DataFileExtended(DataFile):
                 image.save()
             self.last_added_timestamp += 1
 
-    def getFilename(self):
+    def getFilename(self) -> str:
         if not self.exists:
             return "unsaved project"
         return os.path.basename(self._database_filename)
 
-    def save_database(self, file=None):
+    def save_database(self, file: str = None) -> None:
         # ensure that the file ends in .cdb
         if not file.lower().endswith(".cdb"):
             file += ".cdb"
@@ -353,7 +358,7 @@ class DataFileExtended(DataFile):
             # change the directory to the new database
             os.chdir(new_directory)
 
-    def add_path(self, path):
+    def add_path(self, path: str) -> str:
         if self._database_filename and not self.temporary_db:
             try:
                 path = os.path.relpath(path, os.path.dirname(self._database_filename))
@@ -378,7 +383,9 @@ class DataFileExtended(DataFile):
                     break
         return path
 
-    def add_image(self, filename, extension, external_id, frames, path, full_path=None, timestamp=None, layer=1, commit=True):
+    def add_image(self, filename: str, extension: str, external_id: Optional[int], frames: int, path: str,
+                  full_path: str = None, timestamp: datetime = None, layer: int = 1,
+                  commit: bool = True):
         # if no timestamp is supplied quickly get one from the filename
         if timestamp is None:
             # do we have a video? then we need two timestamps
@@ -394,19 +401,20 @@ class DataFileExtended(DataFile):
                         timestamps = itertools.repeat(None)
             # if not one is enough
             else:
-                timestamp,_ = self.getTimeStamp(full_path)
+                timestamp, _ = self.getTimeStamp(full_path)
                 timestamps = itertools.repeat(timestamp)
         else:  # create an iterator from the timestamp
             timestamps = itertools.repeat(timestamp)
         # add an entry for every frame in the image container
         # prepare a list of dictionaries for a bulk insert
         data = []
-        entry = dict(filename=filename, ext=extension, external_id=external_id, timestamp=timestamp, path=path.id, layer_id=layer)
+        entry = dict(filename=filename, ext=extension, external_id=external_id, timestamp=timestamp, path=path.id,
+                     layer_id=layer)
         for i, time in zip(range(frames), timestamps):
             current_entry = entry.copy()
             current_entry["frame"] = i
             current_entry["timestamp"] = time
-            current_entry["sort_index"] = self.next_sort_index+i
+            current_entry["sort_index"] = self.next_sort_index + i
             data.append(current_entry)
 
         if commit is True:
@@ -415,7 +423,7 @@ class DataFileExtended(DataFile):
         if commit is False:
             return data
 
-    def add_bulk(self, data):
+    def add_bulk(self, data: list) -> None:
         if len(data) == 0:
             return
         # try to perform the bulk insert
@@ -431,14 +439,17 @@ class DataFileExtended(DataFile):
         if self.image_count is not None:
             self.image_count += len(data)
 
-    def reset_buffer(self):
+    def reset_buffer(self) -> None:
         self.buffer.reset()
 
-    def resortSortIndex(self):
-        self.db.execute_sql("DELETE FROM path WHERE (SELECT COUNT(image.id) FROM image WHERE image.path_id = path.id) = 0")
-        self.db.execute_sql("CREATE TEMPORARY TABLE NewIDs (sort_index INTEGER PRIMARY KEY AUTOINCREMENT, id INT UNSIGNED)")
+    def resortSortIndex(self) -> None:
+        self.db.execute_sql(
+            "DELETE FROM path WHERE (SELECT COUNT(image.id) FROM image WHERE image.path_id = path.id) = 0")
+        self.db.execute_sql(
+            "CREATE TEMPORARY TABLE NewIDs (sort_index INTEGER PRIMARY KEY AUTOINCREMENT, id INT UNSIGNED)")
         self.db.execute_sql("INSERT INTO NewIDs (id) SELECT id FROM image ORDER BY filename ASC")
-        self.db.execute_sql("UPDATE image SET sort_index = (SELECT sort_index FROM NewIDs WHERE image.id = NewIDs.id)-1")
+        self.db.execute_sql(
+            "UPDATE image SET sort_index = (SELECT sort_index FROM NewIDs WHERE image.id = NewIDs.id)-1")
         self.db.execute_sql("DROP TABLE NewIDs")
 
         try:
@@ -448,16 +459,16 @@ class DataFileExtended(DataFile):
             self.image = None
         self.next_sort_index = self.image_count
 
-    def get_image_count(self):
+    def get_image_count(self) -> int:
         if self.image_count is None:
             try:
-                self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0]+1
+                self.image_count = self.db.execute_sql("SELECT MAX(sort_index) FROM image LIMIT 1;").fetchone()[0] + 1
             except TypeError:
                 self.image_count = 0
         # return the total count of images in the database
         return self.image_count
 
-    def get_current_image(self):
+    def get_current_image(self) -> Optional[int]:
         # return the current image index
         return self.current_image_index
 
@@ -465,7 +476,7 @@ class DataFileExtended(DataFile):
         # return the current image index
         return self.current_layer
 
-    async def load_frame_async(self, image, index, layer):
+    async def load_frame_async(self, image: "Image", index: id, layer: id) -> np.ndarray:
         # check if frame is already buffered then we don't need to load it
         frame = self.buffer.get_frame(index, layer)
         if frame is not None:
@@ -477,10 +488,12 @@ class DataFileExtended(DataFile):
         frame = await self.buffer_frame_async(image, filename, slots, slot_index, index, layer=layer)
         return frame
 
-    async def buffer_frame_async(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
+    async def buffer_frame_async(self, image: "Image", filename: str, slots: list, slot_index: int, index: int,
+                                 layer: int = 1, signal: bool = True, threaded: bool = True):
         return self.buffer_frame(image, filename, slots, slot_index, index, layer, signal, threaded)
 
-    def buffer_frame(self, image, filename, slots, slot_index, index, layer=1, signal=True, threaded=True):
+    def buffer_frame(self, image: "Image", filename: str, slots: list, slot_index: int, index: int, layer: int = 1,
+                     signal: bool = True, threaded: bool = True):
         # if we have already a reader...
         if self.reader is not None:
             # ... check if it is the right one, if not delete it
@@ -490,7 +503,7 @@ class DataFileExtended(DataFile):
         # if we don't have a reader, create a new one
         if self.reader is None:
             if openslide_loaded:
-                #import openslide
+                # import openslide
                 try:
                     self.reader = openslide.OpenSlide(filename)
                     self.reader.filename = filename
@@ -542,7 +555,7 @@ class DataFileExtended(DataFile):
 
         return image_data
 
-    def get_image_data(self, index=None, layer=None):
+    def get_image_data(self, index: int = None, layer: int = None) -> int:
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             if self.reader is not None and self.reader.is_slide:
                 return self.reader
@@ -563,7 +576,7 @@ class DataFileExtended(DataFile):
             return self.reader
         return self.buffer.get_frame(index, layer)
 
-    def get_image(self, index=None, layer=None):
+    def get_image(self, index: int = None, layer: int = None) -> None:
         if index is None or layer is None or (index == self.current_image_index and layer == self.current_layer):
             return self.image
         try:
@@ -572,15 +585,15 @@ class DataFileExtended(DataFile):
             return None
         return image
 
-    def set_image(self, index, layer):
+    def set_image(self, index: int, layer: int) -> None:
         # the the current image number and retrieve its information from the database
         self.image = self.table_image.get(sort_index=index, layer_id=layer)
         self.timestamp = self.image.timestamp
         self.current_image_index = index
         self.current_layer = self.image.layer
-        self.current_reference_image = self.table_image.get(sort_index=index, layer_id = self.current_layer.base_layer)
+        self.current_reference_image = self.table_image.get(sort_index=index, layer_id=self.current_layer.base_layer)
 
-    def get_offset(self, image=None):
+    def get_offset(self, image: None = None) -> List[int]:
         # if no image is specified, use the current one
         if image is None:
             image = self.image
@@ -591,7 +604,7 @@ class DataFileExtended(DataFile):
         except peewee.DoesNotExist:
             return [0, 0]
 
-    def closeEvent(self, QCloseEvent):
+    def closeEvent(self, QCloseEvent: QtGui.QCloseEvent) -> None:
         # join the thread on closing
         if self.thread:
             self.thread.join()
@@ -605,8 +618,7 @@ class DataFileExtended(DataFile):
             self.temporary_db = None
         pass
 
-    def initTimeStampRegEx(self):
-        import json
+    def initTimeStampRegEx(self) -> None:
 
         # extract and compile regexp for timestamp and timestamp2 lists
         import ast
@@ -648,7 +660,7 @@ class DataFileExtended(DataFile):
 
             self.reg_timestamp2.append(re.compile(regex))
 
-    def getTimeStampQuick(self, file):
+    def getTimeStampQuick(self, file: str) -> None:
         path, file = os.path.split(file)
         for regex in self.reg_timestamp:
             match = regex.match(file)
@@ -662,14 +674,14 @@ class DataFileExtended(DataFile):
 
                 # reassemble datetime object
                 dt = datetime(int(d.get("Y", MINYEAR)), int(d.get("m", 1)), int(d.get("d", 1)),
-                                       int(d.get("H", 0)), int(d.get("M", 0)), int(d.get("S", 0)))
+                              int(d.get("H", 0)), int(d.get("M", 0)), int(d.get("S", 0)))
                 # handle sub second timestamps
                 if "f" in d:
                     dt = dt.replace(microsecond=int(d["f"]) * 10 ** (6 - len(d["f"])))
                 return dt
         return None
 
-    def getTimeStampsQuick(self,file):
+    def getTimeStampsQuick(self, file: str) -> Union[Tuple[datetime, datetime], Tuple[None, None]]:
         path, file = os.path.split(file)
         for regex in self.reg_timestamp2:
             match = regex.match(file)
@@ -695,28 +707,28 @@ class DataFileExtended(DataFile):
                         d["Y2"] = int(d["y2"]) + 2000
 
                 dt2 = datetime(int(d.get("Y2", MINYEAR)), int(d.get("m2", 1)), int(d.get("d2", 1)),
-                              int(d.get("H2", 0)), int(d.get("M2", 0)), int(d.get("S2", 0)))
+                               int(d.get("H2", 0)), int(d.get("M2", 0)), int(d.get("S2", 0)))
                 if "f2" in d:
                     dt2 = dt2.replace(microsecond=int(d["f"]) * 10 ** (6 - len(d["f2"])))
 
                 return dt, dt2
         return None, None
 
-    def getTimeStamp(self, file):
+    def getTimeStamp(self, file: str) -> Union[Tuple[datetime, datetime], Tuple[None, None]]:
         _, extension = os.path.splitext(file)
         if extension.lower() == ".tif" or extension.lower() == ".tiff":
             dt = self.get_meta(file)
             return dt, dt
 
         # try for timestamps2
-        t1,t2 = self.getTimeStampsQuick(file)
-        if not any(elem is None for elem in [t1,t2]):
-            return t1,t2
+        t1, t2 = self.getTimeStampsQuick(file)
+        if not any(elem is None for elem in [t1, t2]):
+            return t1, t2
 
         # try for timestamp
         t1 = self.getTimeStampQuick(file)
         if t1 is not None:
-            return t1,t1
+            return t1, t1
 
         if extension.lower() == ".jpg":
             dt = self.getExifTime(file)
@@ -725,7 +737,7 @@ class DataFileExtended(DataFile):
             print("no time", extension)
         return None, None
 
-    def getExifTime(self, path):
+    def getExifTime(self, path: str) -> None:
         from PIL import Image
         import PIL
         img = Image.open(path)
@@ -734,12 +746,12 @@ class DataFileExtended(DataFile):
                 PIL.ExifTags.TAGS[k]: v
                 for k, v in img._getexif().items()
                 if k in PIL.ExifTags.TAGS
-                }
+            }
             return datetime.strptime(exif["DateTime"], '%Y:%m:%d %H:%M:%S')
         except (AttributeError, ValueError, KeyError):
             return None
 
-    def getTimeStampTiffMultipage(self,full_path):
+    def getTimeStampTiffMultipage(self, full_path: str) -> list:
         """
         Opens a tifffile TiffFile (reader) object to access page description.
         Checks json encoded page desciption for the "timestamp" key and and generates
@@ -774,7 +786,7 @@ class DataFileExtended(DataFile):
 
         return ts
 
-    def get_meta(self, file):
+    def get_meta(self, file: str) -> Optional[datetime]:
         import tifffile
         import json
         from distutils.version import LooseVersion
@@ -825,46 +837,46 @@ class FrameBuffer:
     indices = None
     last_index = 0
 
-    def __init__(self, buffer_count, buffer_memory, buffer_mode):
+    def __init__(self, buffer_count: int, buffer_memory: int, buffer_mode: int) -> None:
         self.buffer_count = buffer_count
         self.buffer_memory = buffer_memory
         self.buffer_mode = buffer_mode
         self.reset()
 
-    def setBufferCount(self, buffer_count, buffer_memory, buffer_mode):
+    def setBufferCount(self, buffer_count: int, buffer_memory: int, buffer_mode: int) -> None:
         if self.buffer_mode != buffer_mode \
-              or (self.buffer_mode == 1 and self.buffer_count != buffer_count)\
-              or (self.buffer_mode == 2 and self.buffer_memory != buffer_memory):
+                or (self.buffer_mode == 1 and self.buffer_count != buffer_count) \
+                or (self.buffer_mode == 2 and self.buffer_memory != buffer_memory):
             self.buffer_count = buffer_count
             self.buffer_memory = buffer_memory
             self.buffer_mode = buffer_mode
             self.reset()
 
-    def reset(self):
+    def reset(self) -> None:
         self.slots = []
         self.indices = []
         self.last_index = -1
 
-    def add_frame(self, number, layer_id, image):
+    def add_frame(self, number: id, layer_id: id, image) -> None:
         if not isinstance(layer_id, int):
             layer_id = layer_id.id
         self.slots[self.last_index] = image
         self.indices[self.last_index] = (number, layer_id)
-        self.last_index = (self.last_index+1) % len(self.slots)
+        self.last_index = (self.last_index + 1) % len(self.slots)
 
-    def getMemoryUsage(self):
+    def getMemoryUsage(self) -> int:
         return np.sum([im.nbytes for im in self.slots if isinstance(im, np.ndarray)])
 
-    def getMemoryOfSlot(self, index):
+    def getMemoryOfSlot(self, index: int) -> int:
         try:
             return self.slots[index].nbytes if self.slots[index] is not None else 0
         except IndexError:
             return 0
 
-    def getImageCount(self):
+    def getImageCount(self) -> int:
         return np.sum([1 for index in self.indices if index is not None])
 
-    def prepare_slot(self, number, layer_id):
+    def prepare_slot(self, number: int, layer_id: int) -> None:
         if not isinstance(layer_id, int):
             layer_id = layer_id.id
         if self.get_slot_index(number, layer_id) is not None:
@@ -892,7 +904,7 @@ class FrameBuffer:
             self.slots[index] = None
         return self.slots, index
 
-    def get_slot_index(self, number, layer_id):
+    def get_slot_index(self, number: int, layer_id: int) -> None:
         if not isinstance(layer_id, int):
             layer_id = layer_id.id
         try:
@@ -900,7 +912,7 @@ class FrameBuffer:
         except ValueError:
             return None
 
-    def get_frame(self, number, layer_id):
+    def get_frame(self, number: id, layer_id: id) -> None:
         if not isinstance(layer_id, int):
             layer_id = layer_id.id
         try:
@@ -909,7 +921,7 @@ class FrameBuffer:
         except ValueError:
             return None
 
-    def remove_frame(self, number, layer_id):
+    def remove_frame(self, number: id, layer_id: id) -> None:
         if not isinstance(layer_id, int):
             layer_id = layer_id.id
         try:
@@ -918,4 +930,3 @@ class FrameBuffer:
             self.slots[index] = None
         except ValueError:
             return None
-

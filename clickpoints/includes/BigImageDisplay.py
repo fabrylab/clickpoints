@@ -19,9 +19,14 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
-from qtpy import QtGui, QtCore, QtWidgets
+from typing import List
+
 import numpy as np
+from numpy import int32, ndarray
+from qtpy import QtGui, QtCore, QtWidgets
+
+from clickpoints.includes.Database import DataFileExtended
+from clickpoints.includes.Tools import GraphicsItemEventFilter
 from clickpoints.includes.Tools import array2qimage
 
 
@@ -36,17 +41,17 @@ def BoundBy(value, min, max):
     return value
 
 
-def generateLUT(min, max, gamma, bins):
+def generateLUT(min: int32, max: int32, gamma: float, bins: int) -> ndarray:
     if bins is None:
         return None
     if min >= max:
-        min = max-1
+        min = max - 1
     if min < 0:
         min = 0
     if max >= bins:
-        max = bins-1
+        max = bins - 1
     if max <= min:
-        max = min+1
+        max = min + 1
     dynamic_range = max - min
     conversion = np.arange(0, int(bins), dtype=np.uint8)
     conversion[:min] = 0
@@ -65,38 +70,38 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
     percentile = [1, 99]
     gamma = 1
 
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         super().__init__(*args)
-        self.setImage = self.setImageContrastSpread#self.setImageFirstTime
+        self.setImage = self.setImageContrastSpread  # self.setImageFirstTime
 
-    def setImage(self, image):
+    def setImage(self, image: np.ndarray) -> None:
         pass
 
-    def setImageFirstTime(self, image):
+    def setImageFirstTime(self, image: np.ndarray) -> None:
         # set image called for the first time, therefore, we set a conversion if none is set
         if image.dtype == np.uint16:
-            if image.max() < 2**12:
-                self.max_value = 2**12
+            if image.max() < 2 ** 12:
+                self.max_value = 2 ** 12
             else:
-                self.max_value = 2**16
-            self.setConversion(generateLUT(0, self.max_value, 1, 2**16))
+                self.max_value = 2 ** 16
+            self.setConversion(generateLUT(0, self.max_value, 1, 2 ** 16))
         else:
             self.setImage = self.setImageDirect
         self.setImage(image)
 
-    def setImageDirect(self, image):
+    def setImageDirect(self, image: np.ndarray) -> None:
         self.setPixmap(QtGui.QPixmap(array2qimage(image.astype(np.uint8))))
 
-    def getMaxValue(self, image):
+    def getMaxValue(self, image: np.ndarray) -> None:
         if image.dtype.itemsize == 2:
-            if image.max() < 2**12:
-                self.max_value = 2**12
+            if image.max() < 2 ** 12:
+                self.max_value = 2 ** 12
             else:
-                self.max_value = 2**16
+                self.max_value = 2 ** 16
         else:
-            self.max_value = 2**8
+            self.max_value = 2 ** 8
 
-    def setImageLUT(self, image):
+    def setImageLUT(self, image: np.ndarray) -> None:
         if self.max_value is None:
             self.getMaxValue(image)
 
@@ -105,7 +110,7 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
         else:
             self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
 
-    def setImageContrastSpread(self, image):
+    def setImageContrastSpread(self, image: np.ndarray) -> None:
         if self.max_value is None:
             self.getMaxValue(image)
 
@@ -113,13 +118,12 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
         self.conversion = generateLUT(self.min, self.max, self.gamma, self.max_value)
         self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
 
-    def setConversion(self, conversion):
+    def setConversion(self, conversion: np.ndarray) -> None:
         self.conversion = conversion
         if isinstance(conversion, np.ndarray):
             self.setImage = self.setImageLUT
         else:
             self.setImage = self.setImageDirect
-
 
 
 class BigImageDisplay:
@@ -128,7 +132,7 @@ class BigImageDisplay:
     thread = None
     slice_zoom_image = None
 
-    def __init__(self, origin, window):
+    def __init__(self, origin: QtWidgets.QGraphicsPixmapItem, window: "ClickPointsWindow") -> None:
         self.origin = origin
         self.window = window
 
@@ -163,10 +167,10 @@ class BigImageDisplay:
         self.last_offset = np.array([0, 0])
         self.new_offset = np.array([0, 0])
 
-    def setCursor(self, cursor):
+    def setCursor(self, cursor: QtGui.QCursor) -> None:
         self.image_pixMapItem.setCursor(cursor)
 
-    def unsetCursor(self):
+    def unsetCursor(self) -> None:
         self.image_pixMapItem.unsetCursor()
 
     def closeDataFile(self):
@@ -175,19 +179,19 @@ class BigImageDisplay:
         self.data_file = None
         self.config = None
 
-    def updateDataFile(self, data_file, new_database):
+    def updateDataFile(self, data_file: DataFileExtended, new_database: bool) -> None:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
-    def AddEventFilter(self, event_filter):
+    def AddEventFilter(self, event_filter: GraphicsItemEventFilter) -> None:
         # add a new event filter to the pixmaps
         self.eventFilters.append(event_filter)
-        #for pixmap in self.pixMapItems:
+        # for pixmap in self.pixMapItems:
         #    pixmap.installSceneEventFilter(event_filter)
         self.background_rect.setAcceptHoverEvents(True)
         self.background_rect.installSceneEventFilter(event_filter)
 
-    async def SetImage_async(self, image, offset):
+    async def SetImage_async(self, image: np.ndarray, offset: List[int]) -> None:
         self.background_rect.setRect(0, 0, image.shape[1], image.shape[0])
         # if image doesn't have a dimension for color channels, add one
         if len(image.shape) == 2:
@@ -209,7 +213,7 @@ class BigImageDisplay:
             self.image_pixMapItem.setScale(1)
             self.slice_zoom_pixmap.setVisible(False)
 
-    def updateSlideView(self):
+    def updateSlideView(self) -> None:
         if self.image is not None and not isinstance(self.image, np.ndarray):  # is slide
             preview_rect = np.array(self.window.view.GetExtend(True)).astype("int") + np.array([0, 0, 1, 1])
             for i in [0, 1]:
@@ -228,8 +232,12 @@ class BigImageDisplay:
             self.hist = np.histogram(self.slice_zoom_image.flatten(),
                                      bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
             if self.config.auto_contrast:
-                self.image_pixMapItem.min, self.image_pixMapItem.max = np.percentile(self.slice_zoom_image, self.image_pixMapItem.percentile).astype(int)
-                self.image_pixMapItem.conversion = generateLUT(self.image_pixMapItem.min, self.image_pixMapItem.max, self.image_pixMapItem.gamma, self.image_pixMapItem.max_value)
+                self.image_pixMapItem.min, self.image_pixMapItem.max = np.percentile(self.slice_zoom_image,
+                                                                                     self.image_pixMapItem.percentile).astype(
+                    int)
+                self.image_pixMapItem.conversion = generateLUT(self.image_pixMapItem.min, self.image_pixMapItem.max,
+                                                               self.image_pixMapItem.gamma,
+                                                               self.image_pixMapItem.max_value)
             if self.image_pixMapItem.conversion is not None:
                 self.slice_zoom_image = self.image_pixMapItem.conversion[self.slice_zoom_image[:, :, :3]]
             self.slice_zoom_pixmap.setPixmap(QtGui.QPixmap(array2qimage(self.slice_zoom_image)))
@@ -237,7 +245,7 @@ class BigImageDisplay:
             self.slice_zoom_pixmap.setScale(downsample)
             self.slice_zoom_pixmap.show()
 
-    def GetImageRect(self, rect, use_max_image_size=False):
+    def GetImageRect(self, rect: list, use_max_image_size: bool = False) -> np.ndarray:
         if not isinstance(self.image, np.ndarray):
             return self.slice_zoom_image, 0, 0
         # extract start and end points from rect
@@ -246,30 +254,30 @@ class BigImageDisplay:
         start_x = BoundBy(start_x, 0, self.image.shape[1])
         start_y = BoundBy(start_y, 0, self.image.shape[0])
         # constrain end points
-        end_x = BoundBy(end_x, start_x+1, self.image.shape[1])
-        end_y = BoundBy(end_y, start_y+1, self.image.shape[0])
+        end_x = BoundBy(end_x, start_x + 1, self.image.shape[1])
+        end_y = BoundBy(end_y, start_y + 1, self.image.shape[0])
         if use_max_image_size:
-            end_x = BoundBy(end_x, start_x+1, start_x + self.config.max_image_size)
-            end_y = BoundBy(end_y, start_y+1, start_y + self.config.max_image_size)
+            end_x = BoundBy(end_x, start_x + 1, start_x + self.config.max_image_size)
+            end_y = BoundBy(end_y, start_y + 1, start_y + self.config.max_image_size)
         # return image rect
         return self.image[int(start_y):int(end_y), int(start_x):int(end_x), :], int(start_x), int(start_y)
 
-    def UpdatePreviewImage(self):
+    def UpdatePreviewImage(self) -> None:
         # get the gamma correction rect minus the display offsets
-        rect = self.preview_rect-np.hstack((self.last_offset, self.last_offset))
+        rect = self.preview_rect - np.hstack((self.last_offset, self.last_offset))
         # extract the image rect
         self.preview_slice, start_x, start_y = self.GetImageRect(rect, use_max_image_size=True)
 
         # calculate histogram over image patch
-        #self.hist = np.histogram(self.preview_slice.flatten(), bins=np.linspace(0, 2**12, 255), density=True)
+        # self.hist = np.histogram(self.preview_slice.flatten(), bins=np.linspace(0, 2**12, 255), density=True)
 
-    def ResetPreview(self):
+    def ResetPreview(self) -> None:
         self.min = 0
         self.max = self.image_pixMapItem.max_value
         self.gamma = 1
         self.Change()
 
-    def Change(self, gamma=None, min_brightness=None, max_brightness=None, auto_contrast=None):
+    def Change(self) -> None:
         def get(index, default):
             if self.config.contrast is None:
                 return default
@@ -296,7 +304,8 @@ class BigImageDisplay:
             return
 
         if self.hist is None and isinstance(self.image, np.ndarray):
-            self.hist = np.histogram(self.image.flatten(), bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
+            self.hist = np.histogram(self.image.flatten(), bins=np.linspace(0, self.image_pixMapItem.max_value, 256),
+                                     density=True)
 
         if self.config.auto_contrast:
             self.image_pixMapItem.percentile = [get(4, 1), get(3, 99)]
@@ -307,10 +316,9 @@ class BigImageDisplay:
             self.conversion = self.image_pixMapItem.conversion
         else:
             self.image_pixMapItem.gamma = get(0, 1)
-            self.conversion = generateLUT(get(2, 0), get(1, self.image_pixMapItem.max_value), get(0, 1), self.image_pixMapItem.max_value)
+            self.conversion = generateLUT(get(2, 0), get(1, self.image_pixMapItem.max_value), get(0, 1),
+                                          self.image_pixMapItem.max_value)
             self.image_pixMapItem.conversion = self.conversion
             self.image_pixMapItem.setImage = self.image_pixMapItem.setImageLUT
             if self.image is not None:
                 self.image_pixMapItem.setImage(self.image)
-
-
