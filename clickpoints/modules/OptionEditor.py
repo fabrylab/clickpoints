@@ -19,28 +19,27 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function, unicode_literals
+import json
 import os
-import glob
-import time
-from datetime import datetime
-
-from includes import BroadCastEvent2
-
-from qtpy import QtGui, QtCore, QtWidgets
-import qtawesome as qta
-from includes import QtShortCuts
-from includes import BroadCastEvent
-from includes import LoadConfig
+import subprocess
 from distutils.version import LooseVersion
 from threading import Thread
-import subprocess
-import json
+from typing import Any, List, Union, IO
+
 import natsort
+import qtawesome as qta
+from qtpy import QtGui, QtCore, QtWidgets
+
+from clickpoints.DataFile import Option
+from clickpoints.includes import BroadCastEvent
+from clickpoints.includes import LoadConfig
+from clickpoints.includes import QtShortCuts
+from clickpoints.includes.Database import DataFileExtended
 
 repo_path = "\"" + os.path.join(os.path.dirname(__file__), "..", "..") + "\""
 
-def getNewestVersion():
+
+def getNewestVersion() -> LooseVersion:
     result = os.popen("conda search -c rgerum -f clickpoints --json").read()
     result = json.loads(result)
     try:
@@ -49,41 +48,46 @@ def getNewestVersion():
         return None
     return LooseVersion(version)
 
-def getCurrentVersion():
+
+def getCurrentVersion() -> LooseVersion:
     import clickpoints
     return LooseVersion(clickpoints.__version__)
 
-def getCurrentVersionHG():
+
+def getCurrentVersionHG() -> None:
     global repo_path
     try:
-        result = subprocess.check_output("hg id -n -R "+repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
+        result = subprocess.check_output("hg id -n -R " + repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
     return result
 
-def getNewestVersionHG():
+
+def getNewestVersionHG() -> str:
     global repo_path
     try:
-        result = subprocess.check_output("hg pull -R "+repo_path, stderr=subprocess.STDOUT)
-        result = subprocess.check_output("hg log -l 1 --template \"{rev}\" -R "+repo_path, stderr=subprocess.STDOUT).decode("utf-8").strip()
+        result = subprocess.check_output("hg pull -R " + repo_path, stderr=subprocess.STDOUT)
+        result = subprocess.check_output("hg log -l 1 --template \"{rev}\" -R " + repo_path,
+                                         stderr=subprocess.STDOUT).decode("utf-8").strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
     return result
 
-def PrittyPrintSize(bytes):
+
+def PrittyPrintSize(bytes: int) -> str:
     if bytes > 1e9:
-        return "%.1f GB" % ( bytes / 1e8)
+        return "%.1f GB" % (bytes / 1e8)
     if bytes > 1e6:
-        return "%.1f MB" % ( bytes / 1e6)
+        return "%.1f MB" % (bytes / 1e6)
     if bytes > 1e3:
-        return "%.1f kB" % ( bytes / 1e3)
+        return "%.1f kB" % (bytes / 1e3)
     return "%d bytes" % (bytes)
 
 
 class VersionDisplay(QtWidgets.QWidget):
     version_changed = QtCore.Signal()
 
-    def __init__(self, parent, layout, window):
+    def __init__(self, parent: "OptionEditorWindow", layout: QtWidgets.QVBoxLayout, window: "ClickPointsWindow") -> None:
         QtWidgets.QWidget.__init__(self, parent)
         self.clickpoints_main_window = window
         layout.addWidget(self)
@@ -116,7 +120,7 @@ class VersionDisplay(QtWidgets.QWidget):
         self.newestet_version_hg = getNewestVersionHG()
         self.version_changed.emit()
 
-    def updateVersionDisplay(self):
+    def updateVersionDisplay(self) -> None:
         text = "v" + self.current_version.vstring
         if self.current_version_hg:
             text += " (rev %s)" % self.current_version_hg
@@ -151,7 +155,7 @@ class VersionDisplay(QtWidgets.QWidget):
             subprocess.Popen(["hg", "update", self.newestet_version_hg, "-R", repo_path[1:-1]])
 
 
-def getOptionInputWidget(option, layout, **kwargs):
+def getOptionInputWidget(option: Option, layout: QtWidgets.QVBoxLayout, **kwargs) -> QtWidgets.QWidget:
     value = option.value if option.value is not None else option.default
     if option.value_type == "int":
         if option.value_count > 1:
@@ -184,7 +188,7 @@ def getOptionInputWidget(option, layout, **kwargs):
 
 class OptionEditorWindow(QtWidgets.QWidget):
 
-    def __init__(self, window, data_file):
+    def __init__(self, window: "ClickPointsWindow", data_file: DataFileExtended) -> None:
         QtWidgets.QWidget.__init__(self)
         self.window = window
         self.data_file = data_file
@@ -265,15 +269,15 @@ class OptionEditorWindow(QtWidgets.QWidget):
         self.edits_by_name["buffer_size"].setDisabled(options.buffer_mode != 1)
         self.edits_by_name["buffer_memory"].setDisabled(options.buffer_mode != 2)
 
-    def updateEditField(self, edit, value, option):
+    def updateEditField(self, edit: QtWidgets.QWidget, value: Any, option: Option) -> None:
         print(option.value_type, value, edit)
         edit.setValue(value)
         edit.current_value = value
 
-    def list_selected(self):
+    def list_selected(self) -> None:
         pass
 
-    def Import(self):
+    def Import(self) -> None:
         config_path = QtWidgets.QFileDialog.getOpenFileName(self, "Import config - ClickPoints",
                                                             os.path.join(os.getcwd(), "ConfigClickPoints.txt"),
                                                             "ClickPoints Config *.txt")
@@ -306,8 +310,10 @@ class OptionEditorWindow(QtWidgets.QWidget):
         BroadCastEvent(self.window.modules, "optionsChanged", None)
         self.window.JumpFrames(0)
 
-    def Export(self):
-        export_path = QtWidgets.QFileDialog.getSaveFileName(self, "Export config - ClickPoints", os.path.join(os.getcwd(), "ConfigClickPoints.txt"), "ClickPoints Config *.txt")
+    def Export(self) -> None:
+        export_path = QtWidgets.QFileDialog.getSaveFileName(self, "Export config - ClickPoints",
+                                                            os.path.join(os.getcwd(), "ConfigClickPoints.txt"),
+                                                            "ClickPoints Config *.txt")
         if isinstance(export_path, tuple):
             export_path = export_path[0]
         else:
@@ -337,15 +343,17 @@ class OptionEditorWindow(QtWidgets.QWidget):
                         fp.write("%s = %s\n" % (option.key, option.value))
                 fp.write("\n")
 
-    def ExportMarkerTypes(self, fp):
+    def ExportMarkerTypes(self, fp: IO) -> None:
         types = []
-        modes = {0: "TYPE_Normal", 1: "TYPE_Rect", 2: "TYPE_Line", 4: "TYPE_Track"}
+        modes = {0: "TYPE_Normal", 1: "TYPE_Rect", 2: "TYPE_Line", 4: "TYPE_Track", 8: "TYPE_Ellipse", 16: "TYPE_Polygon"}
         for index, type in enumerate(self.data_file.getMarkerTypes()):
             color = type.getColorRGB()
-            types.append("%d: [\"%s\", [%d, %d, %d], %s, '%s', '%s']" % (index, type.name, color[0], color[1], color[2], modes[type.mode], type.style if type.style is not None else "", type.text if type.text is not None else ""))
+            types.append("%d: [\"%s\", [%d, %d, %d], %s, '%s', '%s']" % (
+            index, type.name, color[0], color[1], color[2], modes[type.mode],
+            type.style if type.style is not None else "", type.text if type.text is not None else ""))
         fp.write("types = {%s}\n" % ",\n         ".join(types))
 
-    def ExportMaskTypes(self, fp):
+    def ExportMaskTypes(self, fp: IO) -> None:
         types = []
         for type in self.data_file.getMaskTypes():
             color = type.getColorRGB()
@@ -366,11 +374,11 @@ class OptionEditorWindow(QtWidgets.QWidget):
         field.error.setText(error)
         field.error.show()
 
-    def ChangeFinished(self, field, option):
+    def ChangeFinished(self, field: QtWidgets.QWidget, option: Option) -> None:
         if field.error is not None:
             field.error.hide()
 
-    def Changed(self, field, value, option):
+    def Changed(self, field: QtWidgets.QWidget, value: str, option: Option) -> None:
         if field.error is not None:
             field.error.hide()
         field.has_error = False
@@ -389,12 +397,14 @@ class OptionEditorWindow(QtWidgets.QWidget):
                         try:
                             int(v)
                         except ValueError:
-                            self.ShowFieldError(field, "Only <b>integer</b> values are allowed.<br/>'%s' can't be parsed as an int." % v.strip())
+                            self.ShowFieldError(field,
+                                                "Only <b>integer</b> values are allowed.<br/>'%s' can't be parsed as an int." % v.strip())
                     field.has_error = True
                     return
                 if len(value) != option.value_count:
                     field.setStyleSheet("background-color: #FDD;")
-                    self.ShowFieldError(field, "The field needs <b>%d integers</b>,<br/>but %d are provided." % (option.value_count, len(value)))
+                    self.ShowFieldError(field, "The field needs <b>%d integers</b>,<br/>but %d are provided." % (
+                    option.value_count, len(value)))
                     field.has_error = True
                     return
                 else:
@@ -408,14 +418,16 @@ class OptionEditorWindow(QtWidgets.QWidget):
         if option.value_type == "bool":
             value = bool(value)
         if option.key == "buffer_size":
-            self.ShowFieldError(field, "Estimated memory usage:<br/>%s" % PrittyPrintSize(value*self.window.im.nbytes), width=140, normal_msg=True)
+            self.ShowFieldError(field,
+                                "Estimated memory usage:<br/>%s" % PrittyPrintSize(value * self.window.im.nbytes),
+                                width=140, normal_msg=True)
         if option.key == "buffer_mode":
             self.edits_by_name["buffer_size"].setDisabled(value != 1)
             self.edits_by_name["buffer_memory"].setDisabled(value != 2)
         field.current_value = value
         self.button_apply.setDisabled(False)
 
-    def Apply(self):
+    def Apply(self) -> bool:
         for edit in self.edits:
             if edit.has_error:
                 QtWidgets.QMessageBox.critical(self, 'Error',
@@ -431,18 +443,19 @@ class OptionEditorWindow(QtWidgets.QWidget):
         self.window.JumpFrames(0)
         return True
 
-    def Ok(self):
+    def Ok(self) -> None:
         if self.Apply():
             self.close()
 
-    def Cancel(self):
+    def Cancel(self) -> None:
         self.close()
+
 
 class OptionEditor:
     data_file = None
     config = None
 
-    def __init__(self, window, modules, config=None):
+    def __init__(self, window: "ClickPointsWindow", modules: List[Any], config: None = None) -> None:
         # default settings and parameters
         self.window = window
         self.modules = modules
@@ -454,28 +467,28 @@ class OptionEditor:
         self.button.clicked.connect(self.showDialog)
         window.layoutButtons.addWidget(self.button)
 
-    def closeDataFile(self):
+    def closeDataFile(self) -> None:
         self.data_file = None
         self.config = None
 
         if self.OptionsWindow:
             self.OptionsWindow.close()
 
-    def updateDataFile(self, data_file, new_database):
+    def updateDataFile(self, data_file: DataFileExtended, new_database: bool) -> None:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
-    def showDialog(self):
+    def showDialog(self) -> None:
         if self.OptionsWindow is not None:
             self.OptionsWindow.close()
             self.OptionsWindow = None
         self.OptionsWindow = OptionEditorWindow(self.window, self.data_file)
         self.OptionsWindow.show()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         if self.OptionsWindow:
             self.OptionsWindow.close()
 
     @staticmethod
-    def file():
+    def file() -> str:
         return __file__
