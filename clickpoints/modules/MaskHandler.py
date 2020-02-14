@@ -19,25 +19,31 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
-
 import os
+from typing import Any, List, Optional
+
 import imageio
-import includes.ImageQt_Stride as ImageQt
 import numpy as np
 import peewee
 import qtawesome as qta
 from PIL import Image, ImageDraw
-from includes import QtShortCuts
-from includes.QtShortCuts import GetColorByIndex
-from includes.Tools import GraphicsItemEventFilter, BroadCastEvent, HTMLColorToRGB, IconFromFile, MyTextButtonGroup, \
-    MyToolGroup, array2qimage
+from numpy import ndarray
+from peewee import ModelSelect
 from qtpy import QtGui, QtCore, QtWidgets
 from skimage import measure
 
+import clickpoints.includes.ImageQt_Stride as ImageQt
+from clickpoints.includes import QtShortCuts
+from clickpoints.includes.BigImageDisplay import BigImageDisplay
+from clickpoints.includes.Database import DataFileExtended
+from clickpoints.includes.QtShortCuts import GetColorByIndex
+from clickpoints.includes.Tools import GraphicsItemEventFilter, BroadCastEvent, HTMLColorToRGB, IconFromFile, \
+    MyTextButtonGroup, \
+    MyToolGroup, array2qimage
+
 
 class MaskFile:
-    def __init__(self, datafile):
+    def __init__(self, datafile: DataFileExtended) -> None:
         self.data_file = datafile
 
         self.table_masktype = self.data_file.table_masktype
@@ -45,7 +51,7 @@ class MaskFile:
 
         self.mask_path = None
 
-    def set_type(self, id, name, rgb_tuple, index):
+    def set_type(self, id: id, name: str, rgb_tuple: tuple, index: int) -> "MarkerType":
         try:
             type = self.table_masktype.get(self.table_masktype.id == id)
         except peewee.DoesNotExist:
@@ -53,20 +59,20 @@ class MaskFile:
             type.save(force_insert=True)
         return type
 
-    def get_mask_type_list(self):
+    def get_mask_type_list(self) -> ModelSelect:
         return self.table_masktype.select()
 
     def add_mask(self, **kwargs):
         kwargs.update(dict(image=self.data_file.current_reference_image))
         return self.table_mask(**kwargs)
 
-    def get_mask(self):
+    def get_mask(self) -> None:
         try:
             return self.table_mask.get(self.table_mask.image == self.data_file.current_reference_image)
         except peewee.DoesNotExist:
             return None
 
-    def get_mask_frames(self):
+    def get_mask_frames(self) -> ModelSelect:
         # query all sort_indices which have a mask
         return (self.data_file.table_image.select(self.data_file.table_image.sort_index)
                 .join(self.table_mask)
@@ -74,7 +80,7 @@ class MaskFile:
 
 
 class BigPaintableImageDisplay:
-    def __init__(self, origin, max_image_size=2 ** 12):
+    def __init__(self, origin: QtWidgets.QGraphicsPixmapItem, max_image_size: int = 2 ** 12) -> None:
         self.number_of_imagesX = 0
         self.number_of_imagesY = 0
         self.pixMapItems = []
@@ -88,14 +94,14 @@ class BigPaintableImageDisplay:
         self.opacity = 0
         self.colormap = [QtGui.QColor(255, 0, 255).rgba() for i in range(256)]
 
-    def UpdateColormap(self, types):
+    def UpdateColormap(self, types: ModelSelect) -> None:
         self.colormap = [QtGui.QColor(255, 0, 255, 0).rgba() for i in range(256)]
         for drawtype in types:
             self.colormap[drawtype.index] = QtGui.QColor(*HTMLColorToRGB(drawtype.color)).rgb()
         self.colormap[0] = QtGui.QColor(0, 0, 0, 0).rgba()
         self.UpdateImage()
 
-    def UpdatePixmapCount(self):
+    def UpdatePixmapCount(self) -> None:
         # Create new subimages if needed
         for i in range(len(self.pixMapItems), self.number_of_imagesX * self.number_of_imagesY):
             self.images.append(None)
@@ -114,7 +120,7 @@ class BigPaintableImageDisplay:
             self.pixMapItems[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
             self.pixMapItems[i].setOffset(0, 0)
 
-    def SetImage(self, image):
+    def SetImage(self, image: Image) -> None:
         self.number_of_imagesX = int(np.ceil(image.size[0] / self.max_image_size))
         self.number_of_imagesY = int(np.ceil(image.size[1] / self.max_image_size))
         self.UpdatePixmapCount()
@@ -133,7 +139,7 @@ class BigPaintableImageDisplay:
                 self.pixMapItems[i].setOffset(start_x, start_y)
         self.UpdateImage()
 
-    def UpdateImage(self):
+    def UpdateImage(self) -> None:
         for i in range(self.number_of_imagesY * self.number_of_imagesX):
             self.qimages[i] = ImageQt.ImageQt(self.images[i])
             qimage = QtGui.QImage(self.qimages[i])
@@ -141,7 +147,7 @@ class BigPaintableImageDisplay:
             pixmap = QtGui.QPixmap(qimage)
             self.pixMapItems[i].setPixmap(pixmap)
 
-    def DrawLine(self, x1, x2, y1, y2, size, line_type):
+    def DrawLine(self, x1: float, x2: float, y1: float, y2: float, size: int, line_type: int) -> None:
         if line_type == 0:
             color = 0
         else:
@@ -165,7 +171,7 @@ class BigPaintableImageDisplay:
         draw.line((x1, y1, x2, y2), fill=color, width=size + 1)
         draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=color)
 
-    def Fill(self, x, y, line_type):
+    def Fill(self, x: float, y: float, line_type: int) -> bool:
         if line_type == 0:
             color = 0
         else:
@@ -184,21 +190,21 @@ class BigPaintableImageDisplay:
         self.SetImage(Image.fromarray(pix))
         return True
 
-    def GetColor(self, x1, y1):
+    def GetColor(self, x1: float, y1: float) -> int:
         if 0 < x1 < self.full_image.size[0] and 0 < y1 < self.full_image.size[1]:
             return self.full_image.getpixel((x1, y1))
         return None
 
-    def setOpacity(self, opacity):
+    def setOpacity(self, opacity: float) -> None:
         self.opacity = opacity
         for pixmap in self.pixMapItems:
             pixmap.setOpacity(opacity)
 
-    def setVisible(self, visible):
+    def setVisible(self, visible: bool) -> None:
         for pixmap in self.pixMapItems:
             pixmap.setVisible(visible)
 
-    def save(self, filename):
+    def save(self, filename: str) -> None:
         lut = np.zeros(3 * 256, np.uint8)
         for draw_type in self.config.draw_types:
             index = draw_type[0]
@@ -216,7 +222,7 @@ class MaskEditor(QtWidgets.QWidget):
     data = None
     prevent_recursion = False
 
-    def __init__(self, mask_handler, data_file):
+    def __init__(self, mask_handler: "MaskHandler", data_file: MaskFile) -> None:
         QtWidgets.QWidget.__init__(self)
 
         # store handle to database
@@ -293,7 +299,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.pushbutton_Exit.pressed.connect(self.close)
         horizontal_layout.addWidget(self.pushbutton_Exit)
 
-    def setMaskType(self, data):
+    def setMaskType(self, data: "MarkerType") -> None:
         # check flag to prevent recursion
         if self.prevent_recursion:
             return
@@ -320,7 +326,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.typeWidget.name.setValue(self.data.name)
         self.typeWidget.color.setValue(self.data.color)
 
-    def saveMaskType(self):
+    def saveMaskType(self) -> None:
         # if a new type should be added create it
         new_type = self.data.index is None
         if new_type:
@@ -373,7 +379,7 @@ class MaskEditor(QtWidgets.QWidget):
         # set the database changed flag
         self.data_file.data_file.setChangesMade()
 
-    def removeMarker(self):
+    def removeMarker(self) -> None:
         # get the tree view item (don't delete it right away because this changes the selection)
         index = self.data.id
         item = self.mask_type_modelitems[index]
@@ -391,7 +397,7 @@ class MaskEditor(QtWidgets.QWidget):
         # update display
         self.mask_handler.maskTypeChooser.updateButtons(self.mask_handler.mask_file)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         # close the window with esc
         if event.key() == QtCore.Qt.Key_Escape:
             self.mask_handler.marker_edit_window = None
@@ -405,15 +411,15 @@ class MaskTypeChooser(MyTextButtonGroup):
     tool = None
     active_draw_type = None
 
-    def __init__(self, mask_handler, parent_hud):
+    def __init__(self, mask_handler: "MaskHandler", parent_hud: QtWidgets.QGraphicsPathItem) -> None:
         MyTextButtonGroup.__init__(self, parent_hud, mask_handler.window.mono_font, mask_handler.window.scale_factor)
         # store the mask handler
         self.mask_handler = mask_handler
 
-    def getAlign(self):
+    def getAlign(self) -> QtCore.Qt.AlignmentFlag:
         return QtCore.Qt.AlignRight
 
-    def toolSelected(self, tool):
+    def toolSelected(self, tool: Optional["MaskTool"]) -> None:
         # store the tool
         self.tool = tool
         # set to active if the present tool draws colors
@@ -422,7 +428,7 @@ class MaskTypeChooser(MyTextButtonGroup):
         else:
             self.setInatice()
 
-    def updateButtons(self, mask_file):
+    def updateButtons(self, mask_file: MaskFile) -> None:
         # get all mask types
         self.types = mask_file.get_mask_type_list()
         # gather the properties of the mask types
@@ -437,7 +443,7 @@ class MaskTypeChooser(MyTextButtonGroup):
         # update the colormap of the displayed mask
         self.mask_handler.MaskDisplay.UpdateColormap(self.types)
 
-    def buttonPressEvent(self, event, index):
+    def buttonPressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent, index: int) -> None:
         # right mouse button opens the mask menu
         if event.button() == QtCore.Qt.RightButton or index >= len(self.types):
             # open the menu if it is not open already
@@ -453,19 +459,19 @@ class MaskTypeChooser(MyTextButtonGroup):
             # select this mask type
             self.selectType(index)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         numberkey = event.key() - 49
 
         if 0 <= numberkey < len(self.types) and event.modifiers() != QtCore.Qt.KeypadModifier:
             # @key 0-9: change brush type
             self.selectType(numberkey)
 
-    def selectType(self, index):
+    def selectType(self, index: int) -> None:
         self.setActiveDrawType(index)
         if self.tool is None or not self.tool.isColorTool():
             self.mask_handler.tool_group.selectTool(0)
 
-    def setActiveDrawType(self, new_index):
+    def setActiveDrawType(self, new_index: int) -> None:
         # only allow valid types
         if new_index >= len(self.types):
             return
@@ -485,14 +491,14 @@ class MaskTypeChooser(MyTextButtonGroup):
 class MaskTool:
     button = None
 
-    def __init__(self, parent, scene_parent, image_display):
+    def __init__(self, parent: "MaskHandler", scene_parent: "MaskToolGroup", image_display: BigImageDisplay) -> None:
         self.parent = parent
         self.scene_parent = scene_parent
         # event filter to grab mouse click and move events
         self.scene_event_filter = GraphicsItemEventFilter(scene_parent, self)
         image_display.AddEventFilter(self.scene_event_filter)
 
-    def setActive(self):
+    def setActive(self) -> None:
         # activate the scene event filter (to receive mouse events)
         self.scene_event_filter.active = True
         # set the cursor
@@ -501,7 +507,7 @@ class MaskTool:
 
         self.parent.UpdateDrawCursorDisplay()
 
-    def setInactive(self):
+    def setInactive(self) -> None:
         # deactivate the scene event filter
         self.scene_event_filter.active = False
         # reset the cursor
@@ -515,13 +521,13 @@ class MaskTool:
                 with self.parent.window.changeTracker("apply draw in mask"):
                     self.parent.save()
 
-    def isColorTool(self):
+    def isColorTool(self) -> bool:
         return False
 
-    def getIconName(self):
+    def getIconName(self) -> None:
         return None
 
-    def getIcon(self, color=None):
+    def getIcon(self, color: Optional[QtGui.QColor] = None) -> QtGui.QIcon:
         cursor_name = self.getIconName()
         if cursor_name.startswith("fa."):
             icon = qta.icon(cursor_name, color=color)
@@ -529,11 +535,11 @@ class MaskTool:
             icon = IconFromFile(cursor_name, color=color)
         return icon
 
-    def unsetCursor(self):
+    def unsetCursor(self) -> None:
         # if no cursor is given, hide the cursor
         self.parent.ImageDisplay.unsetCursor()
 
-    def setCursor(self):
+    def setCursor(self) -> None:
         icon = self.getIcon(color=QtGui.QColor(255, 255, 255))
         # convert icon to numpy array
         buffer = icon.pixmap(16, 16).toImage().constBits()
@@ -551,7 +557,7 @@ class MaskTool:
         # and the the cursor as the active one
         self.parent.ImageDisplay.setCursor(cursor)
 
-    def sceneEventFilter(self, event):
+    def sceneEventFilter(self, event: QtCore.QEvent) -> None:
         if event.type() == QtCore.QEvent.GraphicsSceneWheel:
             try:  # PyQt 5
                 angle = event.angleDelta().y()
@@ -572,16 +578,16 @@ class BrushTool(MaskTool):
     last_x = 0
     last_y = 0
 
-    def getIconName(self):
+    def getIconName(self) -> str:
         return "fa.paint-brush"
 
-    def getTooltip(self):
+    def getTooltip(self) -> str:
         return "paint mask color <b>P</b>"
 
-    def isColorTool(self):
+    def isColorTool(self) -> bool:
         return True
 
-    def DrawLine(self, start_x, end_x, start_y, end_y):
+    def DrawLine(self, start_x: float, end_x: float, start_y: float, end_y: float) -> None:
         # draw the line on the mask
         if self.scene_parent.tool_index == 0:
             self.parent.MaskDisplay.DrawLine(start_x, end_x, start_y, end_y, self.parent.DrawCursorSize,
@@ -604,7 +610,7 @@ class BrushTool(MaskTool):
             self.parent.MaskEmpty = False
             BroadCastEvent(self.parent.modules, "MaskAdded")
 
-    def sceneEventFilter(self, event):
+    def sceneEventFilter(self, event: QtCore.QEvent) -> bool:
         # call the inherited method
         if MaskTool.sceneEventFilter(self, event):
             return True
@@ -666,26 +672,26 @@ class BrushTool(MaskTool):
 
 
 class EraserTool(BrushTool):
-    def getIconName(self):
+    def getIconName(self) -> str:
         return "fa.eraser"
 
-    def getTooltip(self):
+    def getTooltip(self) -> str:
         return "erase mask<br/>(<b>E</b> or hold <b>ctrl</b>)"
 
-    def isColorTool(self):
+    def isColorTool(self) -> bool:
         return False
 
 
 class PickerTool(MaskTool):
     color_under_cursor = 0
 
-    def getIconName(self):
+    def getIconName(self) -> str:
         return "fa.eyedropper"
 
-    def getTooltip(self):
+    def getTooltip(self) -> str:
         return "pick mask color<br/>(<b>K</b> or hold <b>alt</b>)"
 
-    def PickColor(self):
+    def PickColor(self) -> None:
         # find the type which corresponds to the color_under_cursor
         for index, draw_type in enumerate(self.parent.mask_file.get_mask_type_list()):
             if draw_type.index == self.color_under_cursor:
@@ -694,7 +700,7 @@ class PickerTool(MaskTool):
         # if no color has been found, take background color
         self.parent.maskTypeChooser.setActiveDrawType(0)
 
-    def sceneEventFilter(self, event):
+    def sceneEventFilter(self, event: QtCore.QEvent) -> bool:
         if MaskTool.sceneEventFilter(self, event):
             return True
         # Mouse press starts drawing
@@ -716,21 +722,21 @@ class PickerTool(MaskTool):
 
 
 class BucketTool(MaskTool):
-    def getIconName(self):
+    def getIconName(self) -> str:
         return "Bucket.png"
 
-    def getTooltip(self):
+    def getTooltip(self) -> str:
         return "fill with mask color <b>B</b>"
 
-    def isColorTool(self):
+    def isColorTool(self) -> bool:
         return True
 
-    def fillColor(self, x, y):
+    def fillColor(self, x: float, y: float) -> None:
         if self.parent.MaskDisplay.Fill(x, y, self.parent.maskTypeChooser.active_draw_type):
             self.parent.MaskChanged = True
             self.parent.MaskUnsaved = True
 
-    def sceneEventFilter(self, event):
+    def sceneEventFilter(self, event: QtCore.QEvent) -> bool:
         if MaskTool.sceneEventFilter(self, event):
             return True
         # Mouse press starts drawing
@@ -748,7 +754,8 @@ class BucketTool(MaskTool):
 class MaskToolGroup(MyToolGroup):
     active_draw_type = None
 
-    def __init__(self, mask_handler, parent_hud, image_display):
+    def __init__(self, mask_handler: "MaskHandler", parent_hud: QtWidgets.QGraphicsPathItem,
+                 image_display: BigImageDisplay) -> None:
         MyToolGroup.__init__(self, parent_hud, mask_handler.window.mono_font, mask_handler.window.scale_factor,
                              "Mask")
 
@@ -759,10 +766,10 @@ class MaskToolGroup(MyToolGroup):
         # store the mask handler
         self.mask_handler = mask_handler
 
-    def getAlign(self):
+    def getAlign(self) -> QtCore.Qt.AlignmentFlag:
         return QtCore.Qt.AlignRight
 
-    def selectTool(self, index, temporary=False):
+    def selectTool(self, index: int, temporary: bool = False) -> None:
         if self.tool_index == index:
             return
         MyToolGroup.selectTool(self, index, temporary)
@@ -778,7 +785,7 @@ class MaskToolGroup(MyToolGroup):
         else:
             self.mask_handler.DrawCursor.setVisible(False)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
 
         if self.isVisible():
             if event.key() == QtCore.Qt.Key_K:
@@ -806,7 +813,7 @@ class MaskToolGroup(MyToolGroup):
             # if event.key() == QtCore.Qt.Key_Shift and self.tool_index != 3:
             #    self.selectTool(3, temporary=True)
 
-    def keyReleaseEvent(self, event):
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent) -> None:
         if self.tool_index != -1:
             # show the erase tool highlighted when Control is pressed
             if event.key() == QtCore.Qt.Key_Control:
@@ -833,7 +840,8 @@ class MaskHandler:
     config = None
     mask_file = None
 
-    def __init__(self, window, parent, parent_hud, image_display, modules):
+    def __init__(self, window: "ClickPointsWindow", parent: QtWidgets.QGraphicsPixmapItem,
+                 parent_hud: QtWidgets.QGraphicsPathItem, image_display: BigImageDisplay, modules: List[Any]) -> None:
         # store some references
         self.window = window
         self.parent_hud = parent_hud
@@ -875,7 +883,7 @@ class MaskHandler:
 
         self.tool_group = MaskToolGroup(self, self.parent_hud, image_display)
 
-    def closeDataFile(self):
+    def closeDataFile(self) -> None:
         self.data_file = None
         self.config = None
         self.mask_file = None
@@ -888,7 +896,7 @@ class MaskHandler:
         if self.mask_edit_window:
             self.mask_edit_window.close()
 
-    def updateDataFile(self, data_file, new_database):
+    def updateDataFile(self, data_file: DataFileExtended, new_database: bool) -> None:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
 
@@ -921,21 +929,21 @@ class MaskHandler:
         except IndexError:
             pass
 
-    def maskTypesChangedEvent(self):
+    def maskTypesChangedEvent(self) -> None:
         # update mask interface buttons
         self.maskTypeChooser.updateButtons(self.mask_file)
 
-    def imageLoadedEvent(self, filename, framenumber):
+    def imageLoadedEvent(self, filename: str, framenumber: int) -> None:
         # Broadcast from ClickPoints Main
 
         # load mask from mask database entry
         self.LoadMask(self.mask_file.get_mask())
 
-    def ReloadMask(self):
+    def ReloadMask(self) -> None:
         # load mask from mask database entry
         self.LoadMask(self.mask_file.get_mask())
 
-    def LoadMask(self, mask_entry):
+    def LoadMask(self, mask_entry: None) -> None:
         # Load mask data or set to None if no
         if mask_entry is not None:
             self.MaskDisplay.SetImage(Image.fromarray(mask_entry.data))
@@ -951,12 +959,12 @@ class MaskHandler:
         self.drawPathItem.setPath(self.drawPath)
         self.MaskChanged = False
 
-    def AddEmptyMask(self):
+    def AddEmptyMask(self) -> None:
         # create a new empty mask display
         self.MaskDisplay.SetImage(Image.new('L', (self.ImageDisplay.image.shape[1], self.ImageDisplay.image.shape[0])))
         self.MaskDisplay.setVisible(True)
 
-    def save(self):
+    def save(self) -> None:
         # only save if the mask has been changed
         if self.MaskUnsaved:
             # get the current mask entry
@@ -970,7 +978,7 @@ class MaskHandler:
             # reset the saved flag
             self.MaskUnsaved = False
 
-    def RedrawMask(self):
+    def RedrawMask(self) -> None:
         # redraw the mask image
         self.MaskDisplay.UpdateImage()
         # delete the stroke display
@@ -979,10 +987,10 @@ class MaskHandler:
         # reset the mask changed flag
         self.MaskChanged = False
 
-    def setActiveModule(self, active, first_time=False):
+    def setActiveModule(self, active: Any, first_time: bool = False) -> None:
         return
 
-    def changeOpacity(self, value):
+    def changeOpacity(self, value: float) -> None:
         # alter the opacity by value
         self.mask_opacity += value
         # the opacity has to be maximally 1
@@ -997,7 +1005,7 @@ class MaskHandler:
         # set the opacity
         self.MaskDisplay.setOpacity(self.mask_opacity)
 
-    def changeCursorSize(self, value):
+    def changeCursorSize(self, value: int) -> None:
         # increase/decrease the brush size by value
         self.DrawCursorSize += value
         # size has to be at least 1
@@ -1011,7 +1019,7 @@ class MaskHandler:
         if self.MaskChanged:
             self.RedrawMask()
 
-    def UpdateDrawCursorDisplay(self):
+    def UpdateDrawCursorDisplay(self) -> None:
         # if no type is selected do nothing
         if self.maskTypeChooser.active_draw_type is None:
             return
@@ -1035,7 +1043,7 @@ class MaskHandler:
         self.DrawCursor.setPen(pen)
         self.DrawCursor.setPath(draw_cursor_path)
 
-    def sceneEventFilter(self, event):
+    def sceneEventFilter(self, event: QtCore.QEvent) -> bool:
         if event.type() == QtCore.QEvent.GraphicsSceneWheel:
             try:  # PyQt 5
                 angle = event.angleDelta().y()
@@ -1060,7 +1068,7 @@ class MaskHandler:
         # don't accept the event, so that others can accept it
         return False
 
-    def optionsImported(self):
+    def optionsImported(self) -> None:
         for type_id, type_def in enumerate(self.config.draw_types):
             if len(type_def) >= 3:
                 name = type_def[2]
@@ -1069,7 +1077,7 @@ class MaskHandler:
             self.mask_file.set_type(type_id, name, type_def[1], type_def[0])
         self.maskTypeChooser.updateButtons(self.mask_file)
 
-    def drawToImage0(self, image, slicey, slicex):
+    def drawToImage0(self, image: ndarray, slicey: slice, slicex: slice) -> None:
         # only when the image has a mask
         if self.MaskDisplay.full_image is None:
             return
@@ -1087,7 +1095,7 @@ class MaskHandler:
             # and compose the images
             image[:] = image1 + image2
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         numberkey = event.key() - 49
         # @key ---- Painting ----
         # if self.tool_index >= 0 and 0 <= numberkey < self.mask_file.get_mask_type_list().count()+1 and event.modifiers() != Qt.KeypadModifier:
@@ -1109,21 +1117,21 @@ class MaskHandler:
             self.changeOpacity(-0.1)
 
         self.tool_group.keyPressEvent(event)
-        
+
         # only link the mask type chooser
         if self.tool_group.tool_index >= 0:
             self.maskTypeChooser.keyPressEvent(event)
 
-    def eventToolSelected(self, module, tool):
+    def eventToolSelected(self, module: str, tool: int) -> None:
         if module == "Mask":
             return
         # if another module has selected a tool, we deselect our tool
         self.tool_group.selectTool(-1)
 
-    def keyReleaseEvent(self, event):
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent) -> None:
         self.tool_group.keyReleaseEvent(event)
 
-    def ToggleInterfaceEvent(self, event=None, hidden=None):
+    def ToggleInterfaceEvent(self, event: None = None, hidden: Optional[bool] = None) -> None:
         if hidden is None:
             # invert hidden status
             self.hidden = not self.hidden
@@ -1139,12 +1147,12 @@ class MaskHandler:
         # set the mask button to checked/unchecked
         self.buttonMask.setChecked(not self.hidden)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         # close the mask editor window when ClickPoints is closed
         if self.mask_edit_window:
             self.mask_edit_window.close()
 
     @staticmethod
-    def file():
+    def file() -> str:
         # return the file (needed for the key help display)
         return __file__
