@@ -19,25 +19,30 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
-import os, sys
-import psutil
-import signal
+import os
+import socket
+import sys
 import traceback
+from typing import Any, Callable, List, Union
 
-from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
+from qtpy import QtCore, QtGui, QtWidgets
 
-import socket, threading, subprocess
+from clickpoints.includes.ConfigLoad import dotdict
+from clickpoints.includes.Database import DataFileExtended
+
 try:
     import SocketServer  # python 2
+
     socketobject = socket._socketobject
 except ImportError:
     import socketserver as SocketServer  # python 3
+
     socketobject = socket.socket
 
 import time
 import glob
+
 try:
     import ConfigParser
 except ImportError:
@@ -45,17 +50,20 @@ except ImportError:
 from importlib import import_module
 import pip
 
-if int(pip.__version__.split('.')[0])>9:
+if int(pip.__version__.split('.')[0]) > 9:
     from pip._internal import main
 else:
     from pip import main
 
+
 def install(package_name):
     main(['install', package_name])
+
 
 try:
     # python 3
     from importlib import reload
+
     py2 = False
 except ImportError:
     # python 2
@@ -63,7 +71,7 @@ except ImportError:
     py2 = True
 
 
-def check_packages_installed(package_name):
+def check_packages_installed(package_name: str) -> bool:
     """ check if a package is installed"""
 
     # some packages have other names when they are imported compared to the install name
@@ -91,7 +99,7 @@ def check_packages_installed(package_name):
     return True
 
 
-def get_clickpoints_addons():
+def get_clickpoints_addons() -> List[str]:
     import sys
     addons = []
     for p in sys.path:
@@ -116,12 +124,13 @@ def get_clickpoints_addons():
 
 
 # implement the fallback keyword for the ConfigParser in Python 2.7
-def wrap_get(function):
+def wrap_get(function: Callable) -> Callable:
     def wrapper(section, name, raw=True, fallback=None):
         try:
             return function(section, name, raw=raw)
         except ConfigParser.NoOptionError:
             return fallback
+
     return wrapper
 
 
@@ -134,7 +143,7 @@ class Script(QtCore.QObject):
     script_launcher = None
     button = None
 
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         QtCore.QObject.__init__(self)
         self.filename = filename
         parser = ConfigParser.ConfigParser()
@@ -176,7 +185,7 @@ class Script(QtCore.QObject):
         self.hourglassAnimationTimer = QtCore.QTimer()
         self.hourglassAnimationTimer.timeout.connect(self.displayHourglassAnimation)
 
-    def activate(self, script_launcher, silent=False):
+    def activate(self, script_launcher: "ScriptLauncher", silent: bool = False) -> bool:
         self.script_launcher = script_launcher
         path = os.path.abspath(self.script)
         name = os.path.splitext(os.path.basename(path))[0]
@@ -188,7 +197,8 @@ class Script(QtCore.QObject):
         print("needed_packages", needed_packages, len(needed_packages))
         if len(needed_packages):
             reply = QtWidgets.QMessageBox.question(self.script_launcher.scriptSelector, 'Warning - ClickPoints',
-                                                   'The add-on requires the following packages: %s\nDo you want to install them?' % (", ".join(needed_packages)),
+                                                   'The add-on requires the following packages: %s\nDo you want to install them?' % (
+                                                       ", ".join(needed_packages)),
                                                    QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.No)
             if reply == QtWidgets.QMessageBox.No:
@@ -206,14 +216,15 @@ class Script(QtCore.QObject):
         try:
             if not self.loaded:
                 try:
-                    print("import", folder+"."+basefilename)
+                    print("import", folder + "." + basefilename)
                     if py2:
                         self.addon_module = import_module(basefilename)
                     else:
-                        self.addon_module = import_module(folder+"."+basefilename)
+                        self.addon_module = import_module(folder + "." + basefilename)
                 except Exception as err:
                     QtWidgets.QMessageBox.critical(self.script_launcher.scriptSelector, 'Error - ClickPoints',
-                                                   'An exception occurred when trying to import add-on %s:\n%s' % (name, err),
+                                                   'An exception occurred when trying to import add-on %s:\n%s' % (
+                                                   name, err),
                                                    QtWidgets.QMessageBox.Ok)
                     raise err
                 self.loaded = True
@@ -224,7 +235,8 @@ class Script(QtCore.QObject):
         if "Addon" not in dir(self.addon_module):
             raise NameError("No addon module found in " + path)
         try:
-            self.addon_class_instance = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name, icon=self.icon)
+            self.addon_class_instance = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name,
+                                                                icon=self.icon)
         except Exception as err:
             traceback.print_exc()
             return False
@@ -232,7 +244,7 @@ class Script(QtCore.QObject):
         self.active = True
         if not silent:
             QtWidgets.QMessageBox.information(self.script_launcher.scriptSelector, 'Add-on - ClickPoints',
-                                       'The add-on %s has been activated.' % name, QtWidgets.QMessageBox.Ok)
+                                              'The add-on %s has been activated.' % name, QtWidgets.QMessageBox.Ok)
         return True
 
     def deactivate(self):
@@ -244,13 +256,15 @@ class Script(QtCore.QObject):
         self.active = False
         self.button = None
 
-    def displayHourglassAnimation(self):
-        spin_icon = qta.icon(self.icon_name, 'fa.hourglass-%d' % (int(self.hourglassAnimationTimer.duration() * 2) % 3 + 1),
-                             options=[{}, {'scale_factor': 0.9, 'offset': (0.3, 0.2), 'color': QtGui.QColor(128, 0, 0)}])
+    def displayHourglassAnimation(self) -> None:
+        spin_icon = qta.icon(self.icon_name,
+                             'fa.hourglass-%d' % (int(self.hourglassAnimationTimer.duration() * 2) % 3 + 1),
+                             options=[{},
+                                      {'scale_factor': 0.9, 'offset': (0.3, 0.2), 'color': QtGui.QColor(128, 0, 0)}])
         self.button.setIcon(spin_icon)
         self.button.setChecked(True)
 
-    def setStatus(self, status):
+    def setStatus(self, status: int) -> None:
         if self.button is None:
             return
 
@@ -270,7 +284,7 @@ class Script(QtCore.QObject):
             self.button.setChecked(False)
             self.hourglassAnimationTimer.stop()
 
-    def run(self):
+    def run(self) -> None:
         self.addon_class_instance.buttonPressedEvent()
 
     def reload(self):
@@ -281,7 +295,7 @@ class Script(QtCore.QObject):
 
 
 class ScriptChooser(QtWidgets.QWidget):
-    def __init__(self, script_launcher):
+    def __init__(self, script_launcher: "ScriptLauncher") -> None:
         QtWidgets.QWidget.__init__(self)
         self.script_launcher = script_launcher
 
@@ -310,16 +324,17 @@ class ScriptChooser(QtWidgets.QWidget):
 
         layout2b = QtWidgets.QVBoxLayout()
         self.layout2.addLayout(layout2b)
-        #self.nameDisplay = QtWidgets.QLabel(self)
+        # self.nameDisplay = QtWidgets.QLabel(self)
         self.nameDisplay = QtWidgets.QTextEdit(self)
         self.nameDisplay.setReadOnly(True)
         self.nameDisplay.setMaximumHeight(37)
-        self.nameDisplay.setStyleSheet("border-width: 1px; border-bottom-width: 0px; border-color: darkgray; border-style: solid; /* just a single line */; border-top-right-radius: 0px; /* same radius as the QComboBox */;")
+        self.nameDisplay.setStyleSheet(
+            "border-width: 1px; border-bottom-width: 0px; border-color: darkgray; border-style: solid; /* just a single line */; border-top-right-radius: 0px; /* same radius as the QComboBox */;")
         layout2b.setSpacing(0)
         layout2b.addWidget(self.nameDisplay)
 
         self.imageDisplay = QtWidgets.QLabel(self)
-        #self.layout2.addWidget(self.imageDisplay)
+        # self.layout2.addWidget(self.imageDisplay)
 
         self.textDisplay = QtWidgets.QTextEdit(self)
         self.textDisplay.setReadOnly(True)
@@ -340,7 +355,8 @@ class ScriptChooser(QtWidgets.QWidget):
         self.update_folder_list2()
 
     def importScript(self):
-        srcpath = QtWidgets.QFileDialog.getOpenFileName(None, "Import Add-on - ClickPoints", os.getcwd(), "ClickPoints Scripts *.txt")
+        srcpath = QtWidgets.QFileDialog.getOpenFileName(None, "Import Add-on - ClickPoints", os.getcwd(),
+                                                        "ClickPoints Scripts *.txt")
         if isinstance(srcpath, tuple):
             srcpath = srcpath[0]
         else:
@@ -349,13 +365,14 @@ class ScriptChooser(QtWidgets.QWidget):
             try:
                 script = Script(srcpath)
             except ConfigParser.NoSectionError:
-                reply = QtWidgets.QMessageBox.critical(self, 'Error', "Can not import selected file:\n%s\nThe selected file is no valid ClickPoints add-on file." % srcpath,
+                reply = QtWidgets.QMessageBox.critical(self, 'Error',
+                                                       "Can not import selected file:\n%s\nThe selected file is no valid ClickPoints add-on file." % srcpath,
                                                        QtWidgets.QMessageBox.Ok)
             else:
                 self.script_launcher.scripts.append(script)
                 self.update_folder_list2()
 
-    def list_selected2(self):
+    def list_selected2(self) -> None:
         selections = self.list2.selectedItems()
         if len(selections) == 0:
             self.button_removeAdd.setDisabled(True)
@@ -363,14 +380,14 @@ class ScriptChooser(QtWidgets.QWidget):
             return
         script = selections[0].entry
         self.selected_script = script
-        self.nameDisplay.setText("<h1>"+script.name+"</h1>")
+        self.nameDisplay.setText("<h1>" + script.name + "</h1>")
 
         if script.image:
             with open(script.image, "rb") as fp:
                 import base64
                 image = bytes(base64.b64encode(fp.read())).decode()
             html = '<img src="data:image/png;base64,{}" style="border: 10px solid black;">'.format(image)
-            self.textDisplay.setHtml(html+script.description)
+            self.textDisplay.setHtml(html + script.description)
         else:
             self.textDisplay.setHtml(script.description)
         if script.active:
@@ -381,7 +398,7 @@ class ScriptChooser(QtWidgets.QWidget):
             self.button_removeAdd.setDisabled(False)
         return
 
-    def update_folder_list2(self):
+    def update_folder_list2(self) -> None:
         self.list2.clear()
         for index, script in enumerate(self.script_launcher.scripts):
             text = script.name
@@ -390,7 +407,7 @@ class ScriptChooser(QtWidgets.QWidget):
             item = QtWidgets.QListWidgetItem(script.icon, text, self.list2)
             item.entry = script
 
-    def add_script(self):
+    def add_script(self) -> None:
         if self.selected_script.active:
             self.script_launcher.deactivateScript(self.selected_script)
         else:
@@ -415,7 +432,7 @@ class ScriptLauncher(QtCore.QObject):
     scripts = None
     active_scripts = None
 
-    def __init__(self, window, modules):
+    def __init__(self, window: "ClickPointsWindow", modules: List[Any]) -> None:
         QtCore.QObject.__init__(self)
         self.window = window
         self.modules = modules
@@ -435,7 +452,7 @@ class ScriptLauncher(QtCore.QObject):
 
         self.closeDataFile()
 
-    def loadScripts(self):
+    def loadScripts(self) -> List[Script]:
         scripts = glob.glob(os.path.join(os.environ["CLICKPOINTS_ADDON"], "*", '*.txt'))
         scripts.extend(get_clickpoints_addons())
         loaded_scripts = []
@@ -447,7 +464,7 @@ class ScriptLauncher(QtCore.QObject):
                 pass
         return loaded_scripts
 
-    def closeDataFile(self):
+    def closeDataFile(self) -> None:
         self.data_file = None
         self.config = None
         self.scripts = self.loadScripts()
@@ -456,7 +473,7 @@ class ScriptLauncher(QtCore.QObject):
         if self.scriptSelector:
             self.scriptSelector.close()
 
-    def updateDataFile(self, data_file, new_database):
+    def updateDataFile(self, data_file: DataFileExtended, new_database: bool) -> None:
         self.data_file = data_file
         self.config = data_file.getOptionAccess()
         self.scripts = self.loadScripts()
@@ -466,7 +483,7 @@ class ScriptLauncher(QtCore.QObject):
 
         self.updateScripts()
 
-    def activateScript(self, script_name, silent=False):
+    def activateScript(self, script_name: Union[Script, str], silent: bool = False) -> None:
         script = self.getScriptByFilename(script_name)
         if script is not None:
             if script.activate(self, silent=silent):
@@ -476,13 +493,13 @@ class ScriptLauncher(QtCore.QObject):
         else:
             print("Add-on %s could not be loaded" % script_name, file=sys.stderr)
 
-    def deactivateScript(self, script):
+    def deactivateScript(self, script: Script) -> None:
         script = self.getScriptByFilename(script)
         if script is not None:
             self.active_scripts.remove(script)
             script.deactivate()
 
-    def getScriptByFilename(self, filename):
+    def getScriptByFilename(self, filename: Union[Script, str]) -> Script:
         if isinstance(filename, Script):
             return filename
         filename = os.path.normpath(filename)
@@ -497,7 +514,7 @@ class ScriptLauncher(QtCore.QObject):
         except (FileNotFoundError, ConfigParser.NoSectionError):
             return None
 
-    def updateScripts(self):
+    def updateScripts(self) -> None:
         if self.data_file is not None:
             self.data_file.setOption("scripts", [os.path.normpath(s.filename) for s in self.active_scripts])
         for button in self.script_buttons:
@@ -515,7 +532,7 @@ class ScriptLauncher(QtCore.QObject):
             self.script_buttons.append(button)
             script.button = button
 
-    def receiveBroadCastEvent(self, function, *args, **kwargs):
+    def receiveBroadCastEvent(self, function: str, *args, **kwargs) -> None:
         for script in self.scripts:
             if function in dir(script.addon_class_instance):
                 try:
@@ -524,23 +541,24 @@ class ScriptLauncher(QtCore.QObject):
                     print("Calling", script.addon_class_instance, function, args, kwargs, file=sys.stderr)
                     traceback.print_exc()
 
-    def showScriptSelector(self):
+    def showScriptSelector(self) -> None:
         self.scriptSelector = ScriptChooser(self)
         self.scriptSelector.show()
 
-    def launch(self, index):
+    def launch(self, index: int) -> None:
         self.window.Save()
         script = self.active_scripts[index]
         script.run()
         print("Launch", index)
 
-    def reload(self, index):
+    def reload(self, index: int) -> None:
         script = self.active_scripts[index]
         script.reload()
         print("Reload", index)
 
-    def keyPressEvent(self, event):
-        keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8, QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        keys = [QtCore.Qt.Key_F12, QtCore.Qt.Key_F11, QtCore.Qt.Key_F10, QtCore.Qt.Key_F9, QtCore.Qt.Key_F8,
+                QtCore.Qt.Key_F7, QtCore.Qt.Key_F6, QtCore.Qt.Key_F5]
         for index, key in enumerate(keys):
             # @key F12: Launch
             if event.key() == key:
@@ -549,21 +567,21 @@ class ScriptLauncher(QtCore.QObject):
                 else:
                     self.launch(index)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         if self.scriptSelector:
             self.scriptSelector.close()
         for script in self.active_scripts:
             script.addon_class_instance.close()
 
-    def setStatus(self, name, status):
+    def setStatus(self, name: str, status: int) -> None:
         for script in self.active_scripts:
             if script.name == name:
                 script.setStatus(status)
 
     @staticmethod
-    def file():
+    def file() -> str:
         return __file__
 
     @staticmethod
-    def can_create_module(config):
+    def can_create_module(config: dotdict) -> int:
         return 1
