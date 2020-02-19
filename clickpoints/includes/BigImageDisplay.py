@@ -227,7 +227,12 @@ class BigImageDisplay:
             downsample = self.image.level_downsamples[level]
 
             dimensions_downsampled = (np.array(preview_rect[2:4]) - np.array(preview_rect[:2])) / downsample
-            data = np.asarray(self.image.read_region(preview_rect[0:2], level, dimensions_downsampled.astype("int")))
+            # if the slide allows, we can also try to decode a slightly larger patch
+            if getattr(self.image, "read_region_uncropped", None) is not None:
+                data, loc = self.image.read_region_uncropped(preview_rect[0:2], level, dimensions_downsampled.astype("int"))
+                preview_rect = [loc[1]*downsample, loc[0]*downsample, data.shape[1]*downsample, data.shape[0]*downsample]
+            else:
+                data = np.asarray(self.image.read_region(preview_rect[0:2], level, dimensions_downsampled.astype("int")))
             self.slice_zoom_image = data
             self.hist = np.histogram(self.slice_zoom_image.flatten(),
                                      bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
