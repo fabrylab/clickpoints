@@ -80,7 +80,7 @@ def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
     if max_level == "H":
         fmt = fmt.replace("%H", "%d" % (parts["H"] + parts["d"] * 24))
     else:
-        fmt = fmt.replace("%H", "%2d" % parts["H"])
+        fmt = fmt.replace("%H", "%02d" % parts["H"])
     if max_level == "M":
         fmt = fmt.replace("%M", "%2d" % (parts["M"] + parts["H"] * 60 + parts["d"] * 60 * 24))
     else:
