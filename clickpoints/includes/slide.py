@@ -90,7 +90,7 @@ def crop_of_crop(array: np.ndarray, loc: Tuple[int, int], loc2: Tuple[int, int],
     if len(array.shape) == 3:
         pad.append((0, 0))
 
-    array = np.pad(array[crop], pad)
+    array = np.pad(array[crop], pad, mode='constant')
 
     # then crop/pad at the end
     diff_end = np.array(array.shape[:2])-np.array(size2[:2])
@@ -101,7 +101,7 @@ def crop_of_crop(array: np.ndarray, loc: Tuple[int, int], loc2: Tuple[int, int],
     if len(array.shape) == 3:
         pad.append((0, 0))
 
-    return np.pad(array[crop], pad)
+    return np.pad(array[crop], pad, mode='constant')
 
 
 class myslide():
