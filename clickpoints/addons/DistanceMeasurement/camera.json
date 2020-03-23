@@ -1,0 +1,65 @@
+{
+    "CampbellMpx5": {
+        "focallength_mm": 12,
+        "fov_h_deg": 80,
+        "fov_v_deg": 65,
+        "img_h_px": 1800,
+        "img_w_px": 2470,
+        "sensor_h_mm": null,
+        "sensor_w_mm": null
+    },
+    "Canon_D10": {
+        "focallength_mm": 6.2,
+        "fov_h_deg": null,
+        "fov_v_deg": null,
+        "img_h_px": 3000,
+        "img_w_px": 4000,
+        "sensor_h_mm": 4.55,
+        "sensor_w_mm": 6.17
+    },
+    "GE4000C_400mm": {
+        "focallength_mm": 400,
+        "fov_h_deg": null,
+        "fov_v_deg": null,
+        "img_h_px": 2672,
+        "img_w_px": 4008,
+        "sensor_h_mm": 24,
+        "sensor_w_mm": 36
+    },
+    "GE4000C_400mm_crop05": {
+        "focallength_mm": 400,
+        "fov_h_deg": null,
+        "fov_v_deg": null,
+        "img_h_px": 1336,
+        "img_w_px": 2004,
+        "sensor_h_mm": 24,
+        "sensor_w_mm": 36
+    },
+    "MobotixM12_Day": {
+        "focallength_mm": 22,
+        "fov_h_deg": 45,
+        "fov_v_deg": 34,
+        "img_h_px": 1536,
+        "img_w_px": 2048,
+        "sensor_h_mm": null,
+        "sensor_w_mm": null
+    },
+    "MobotixM12_Night": {
+        "focallength_mm": 22,
+        "fov_h_deg": 45,
+        "fov_v_deg": 34,
+        "img_h_px": 1536,
+        "img_w_px": 2048,
+        "sensor_h_mm": null,
+        "sensor_w_mm": null
+    },
+    "Panasonic_DMC_G5": {
+        "focallength_mm": 14,
+        "fov_h_deg": null,
+        "fov_v_deg": null,
+        "img_h_px": 3456,
+        "img_w_px": 4608,
+        "sensor_h_mm": 13.0,
+        "sensor_w_mm": 17.3
+    }
+}

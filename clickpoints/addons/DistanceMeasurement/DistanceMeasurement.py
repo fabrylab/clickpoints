@@ -23,16 +23,17 @@ from __future__ import division, print_function
 import numpy as np
 import sys
 import clickpoints
-import CameraTransform as ct
+import cameratransform as ct
 import os
 import json
 from qtpy import QtCore, QtGui, QtWidgets
-from clickpoints.includes.QtShortCuts import AddQLineEdit, AddQComboBox, AddQCheckBox
+from clickpoints.includes.QtShortCuts import AddQLineEdit, AddQComboBox, AddQCheckBox, AddQOpenFileChoose, AddQSpinBox
 import qtawesome as qta
 import matplotlibwidget
 from skimage.measure import label, regionprops
+import re
 
-
+UNITS = {"mm": 1e-3, "cm":1e-2, "m":1, "km":1e3}
 # define default dicts, enables .access on dicts
 class dotdict(dict):
     def __getattr__(self, attr):
@@ -118,6 +119,8 @@ class Addon(clickpoints.Addon):
         self.addOption(key='DM_sensor_h_mm', default=None, hidden=True, value_type='float')
         self.addOption(key='DM_img_w_px', default=None, hidden=True, value_type='int')
         self.addOption(key='DM_img_h_px', default=None, hidden=True, value_type='int')
+        self.addOption(key='DM_offset_x_px', default=None, hidden=True, value_type='float')
+        self.addOption(key='DM_offset_y_px', default=None, hidden=True, value_type='float')
 
         self.addOption(key='DM_cam_elevation', default=20, hidden=True, value_type='float')
         self.addOption(key='DM_plane_elevation', default=0, hidden=True, value_type='float')
@@ -216,7 +219,7 @@ class Addon(clickpoints.Addon):
 
         ## Widget
         # set the title and layout
-        self.setWindowTitle("DistnaceMeasure - Config")
+        self.setWindowTitle("Distance - Config")
         self.setWindowIcon(qta.icon("fa.map-signs"))
         # self.setMinimumWidth(400)
         # self.setMinimumHeight(200)
@@ -235,9 +238,19 @@ class Addon(clickpoints.Addon):
         # combo box to select camera models stored in camera.json
         self.cameraComboBox = AddQComboBox(self.camera_layout,'Model:', values=cam_dict.keys())
         self.cameraComboBox.currentIndexChanged.connect(self.getCameraParametersByJson)
+
+        self.openFile = AddQOpenFileChoose(self.camera_layout, "Input", "", file_type="*.ct")
+        self.openFile.textChanged.connect(self.getCameraParametersByCT)
+
+        # self.cameraButton = QtWidgets.QPushButton('Load Cam')
+        # self.cameraButton.clicked.connect(self.loadCamerFromFile)
+        # self.camera_layout.addWidget(self.cameraButton)
+
         # self.cameraComboBox.setCurrentIndex(5)
         # self.cameraComboBox.addItems(cam_dict.keys())
 
+
+        self.cbProjection = AddQComboBox(self.camera_layout, "Camera Projection:", values=["Rectilinear", "Cylindrical", "Equirectangular"])
 
         self.leFocallength = AddQLineEdit(self.camera_layout,"f (mm):", editwidth=120)
         self.leImage_width = AddQLineEdit(self.camera_layout,"image width (px):", editwidth=120)
@@ -246,6 +259,8 @@ class Addon(clickpoints.Addon):
         self.leSensor_height = AddQLineEdit(self.camera_layout,"sensor height (mm):", editwidth=120)
         self.leFOV_horizontal = AddQLineEdit(self.camera_layout,"FOV horizontal (deg):", editwidth=120)
         self.leFOV_vertical = AddQLineEdit(self.camera_layout,"FOV vertical (deg):", editwidth=120)
+        self.leOffsetX = AddQLineEdit(self.camera_layout,"center offset x (px):", "0.", editwidth=120)
+        self.leOffsetY = AddQLineEdit(self.camera_layout,"center offset y (px):", "0.", editwidth=120)
 
 
         ## position region
@@ -265,12 +280,22 @@ class Addon(clickpoints.Addon):
         self.leCamLat = AddQLineEdit(self.position_layout,"camera latitude:", editwidth=120)
         self.leCamLon = AddQLineEdit(self.position_layout,"camera longitude:", editwidth=120)
 
+        # get current frame
+        cframe = self.cp.getCurrentFrame()
+
+        # retrieve data
+        qimg = self.db.getImage(frame=cframe)
+        print(os.path.isfile(os.path.join(qimg.path.path, os.path.splitext(qimg.filename)[0], ".ct")))
+
         # fill context menu from stored options if available
         if self.getOption('DM_last_camera'):
             # load from DB
             self.cameraComboBox.setCurrentIndex(self.getOption('DM_last_camera'))
             self.getCameraParametersByDB()
             self.getPostionParametersByDB()
+            self.updateCameraParameters()
+        elif os.path.isfile(os.path.join(qimg.path.path, os.path.splitext(qimg.filename)[0], ".ct")):
+            self.getCameraParametersByCT(os.path.isfile(os.path.join(qimg.path.path, os.path.splitext(qimg.filename)[0], ".ct")))
             self.updateCameraParameters()
         else:
             # load from json
@@ -287,6 +312,10 @@ class Addon(clickpoints.Addon):
 
         self.cbCalcArea = AddQCheckBox(self.display_layout, "calculate marked area", checked=False, strech=False)
         self.cbCalcArea.setToolTip('NOTE: LUT mode area calculation assumes a cylindrical projection with a straight and horizontal horizon')
+
+        self.cbFitParameters = AddQCheckBox(self.display_layout, "fit camera parameters", checked=False, strech=False)
+
+        self.sbScaleboxDim = AddQSpinBox(self.display_layout, "scale Box size", value=10, strech=False)
 
         self.cbShowHorizon = AddQCheckBox(self.display_layout, "display horizon", checked=True, strech=False)
         self.horizon_line = None
@@ -342,6 +371,8 @@ class Addon(clickpoints.Addon):
         self.leSensor_height.setText(getNumber(     self.getOption('DM_sensor_h_mm'), "%.2f"))
         self.leFOV_horizontal.setText(getNumber(    self.getOption('DM_fov_h_deg'),   "%.2f"))
         self.leFOV_vertical.setText(getNumber(      self.getOption('DM_fov_v_deg'),   "%.2f"))
+        self.leOffsetX.setText(getNumber(           self.getOption('DM_offset_x_px'), "%.2f"))
+        self.leOffsetY.setText(getNumber(           self.getOption('DM_offset_y_px'), "%.2f"))
 
 
 
@@ -373,6 +404,44 @@ class Addon(clickpoints.Addon):
         self.leFOV_horizontal.setText(getNumber(cam_by_dict['fov_h_deg'],"%.2f"))
         self.leFOV_vertical.setText(getNumber(cam_by_dict['fov_v_deg'],"%.2f"))
 
+    def getCameraParametersByCT(self, ct_file):
+        cam = ct.load_camera(ct_file)
+        cam_by_dict = {}
+
+        cam_by_dict['img_w_px'] = cam.image_width_px
+        cam_by_dict['img_h_px'] = cam.image_height_px
+
+        cam_by_dict['offset_x_px'] = cam.center_x_px - cam.image_width_px/2
+        cam_by_dict['offset_y_px'] = cam.center_y_px - cam.image_height_px/2
+
+        cam_by_dict['sensor_w_mm'] = cam.sensor_width_mm
+        cam_by_dict['sensor_h_mm'] = cam.sensor_height_mm
+
+        cam_by_dict['fov_h_deg'] = np.rad2deg(np.arctan2(cam.image_width_px/2, cam.focallength_x_px)*2)
+        cam_by_dict['fov_v_deg'] = np.rad2deg(np.arctan2(cam.image_height_px/2, cam.focallength_y_px)*2)
+
+        cam_by_dict['focallength_mm'] = cam.focallength_x_px*cam.sensor_width_mm/cam.image_width_px
+
+        # set cam parameters in GUI
+        self.leFocallength.setText("%.2f" % cam_by_dict['focallength_mm'])
+        self.leImage_width.setText("%d" % cam_by_dict['img_w_px'])
+        self.leImage_height.setText("%d" % cam_by_dict['img_h_px'])
+        self.leSensor_width.setText(getNumber(cam_by_dict['sensor_w_mm'],"%.2f"))
+        self.leSensor_height.setText(getNumber(cam_by_dict['sensor_h_mm'],"%.2f"))
+        self.leFOV_horizontal.setText(getNumber(cam_by_dict['fov_h_deg'],"%.2f"))
+        self.leFOV_vertical.setText(getNumber(cam_by_dict['fov_v_deg'],"%.2f"))
+
+        self.leOffsetX.setText(getNumber(cam_by_dict['offset_x_px'],"%.2f"))
+        self.leOffsetY.setText(getNumber(cam_by_dict['offset_y_px'],"%.2f"))
+
+        self.leCamPan.setText(getNumber(cam.heading_deg,"%.2f"))
+        self.leCamTilt.setText(getNumber(cam.tilt_deg,"%.2f"))
+        self.leCamRoll.setText(getNumber(cam.roll_deg,"%.2f"))
+
+        self.leCamLat.setText(getNumber(cam.gps_lat,"%.2f"))
+        self.leCamLon.setText(getNumber(cam.gps_lon,"%.2f"))
+
+        self.updateCameraParameters()
 
 
     def calcSensorDimensionsFromFOV(self):
@@ -394,6 +463,21 @@ class Addon(clickpoints.Addon):
         self.cam.focallength_mm = getFloat(self.leFocallength.text())
         self.cam.img_w_px = getInteger(self.leImage_width.text())
         self.cam.img_h_px = getInteger(self.leImage_height.text())
+        self.cam.center_x_px = self.cam.img_w_px/2. + getFloat(self.leOffsetX.text())
+        self.cam.center_y_px = self.cam.img_h_px/2. + getFloat(self.leOffsetY.text())
+
+        self.cam.heading_deg = getFloat(self.leCamPan.text())
+        self.cam.tilt_deg = getFloat(self.leCamTilt.text())
+        self.cam.roll_deg = getFloat(self.leCamRoll.text())
+
+        self.cam.elevation_m = getFloat(self.leCamElevation.text())
+        self.cam.pos_x_m = 0.
+        self.cam.pos_y_m = 0.
+
+        self.cam.projection = self.cbProjection.itemText(self.cbProjection.currentIndex())
+
+        self.cam.gps_lat = getFloat(self.leCamLat.text())
+        self.cam.gps_lon = getFloat(self.leCamLon.text())
 
         if self.cam.sensor_h_mm is None or self.cam.sensor_w_mm is None:
             self.calcSensorDimensionsFromFOV()
@@ -406,6 +490,8 @@ class Addon(clickpoints.Addon):
         self.setOption('DM_sensor_h_mm',self.cam.sensor_h_mm)
         self.setOption('DM_img_w_px', self.cam.img_w_px)
         self.setOption('DM_img_h_px',self.cam.img_h_px)
+        self.setOption('DM_offset_x_px', getFloat(self.leOffsetX.text()))
+        self.setOption('DM_offset_y_px', getFloat(self.leOffsetY.text()))
 
 
         print("Camera:")
@@ -423,6 +509,45 @@ class Addon(clickpoints.Addon):
         print(json.dumps(self.position,indent=4,sort_keys=True))
 
 
+        print(self.cam)
+
+        # update camera parameters
+        # self.camera = ct.CameraTransform(self.cam.focallength_mm, [self.cam.sensor_w_mm, self.cam.sensor_h_mm],[self.cam.img_w_px, self.cam.img_h_px])
+        orientation = ct.SpatialOrientation(heading_deg=self.cam.heading_deg,
+                                            tilt_deg=self.cam.tilt_deg,
+                                            roll_deg=self.cam.roll_deg,
+                                            elevation_m=self.cam.elevation_m,
+                                            pos_x_m=self.cam.pos_x_m,
+                                            pos_y_m=self.cam.pos_y_m)
+        if self.cam.projection == "Cylindrical":
+            projection = ct.CylindricalProjection(focallength_mm=self.cam.focallength_mm,
+                                                  image_width_px=self.cam.img_w_px,
+                                                  image_height_px=self.cam.img_h_px,
+                                                  sensor_width_mm=self.cam.sensor_w_mm,
+                                                  sensor_height_mm=self.cam.sensor_h_mm,
+                                                  center_x_px=self.cam.center_x_px,
+                                                  center_y_px=self.cam.center_y_px)
+        elif self.cam.projection == "Equirectangular":
+            projection = ct.EquirectangularProjection(focallength_mm=self.cam.focallength_mm,
+                                                  image_width_px=self.cam.img_w_px,
+                                                  image_height_px=self.cam.img_h_px,
+                                                  sensor_width_mm=self.cam.sensor_w_mm,
+                                                  sensor_height_mm=self.cam.sensor_h_mm,
+                                                  center_x_px=self.cam.center_x_px,
+                                                  center_y_px=self.cam.center_y_px)
+
+        else: # default to rectilinear projection
+            print("Defaulting to rectiliniear")
+            projection = ct.RectilinearProjection(focallength_mm=self.cam.focallength_mm,
+                                                  image_width_px=self.cam.img_w_px,
+                                                  image_height_px=self.cam.img_h_px,
+                                                  sensor_width_mm=self.cam.sensor_w_mm,
+                                                  sensor_height_mm=self.cam.sensor_h_mm,
+                                                  center_x_px=self.cam.center_x_px,
+                                                  center_y_px=self.cam.center_y_px)
+        self.camera = ct.Camera(orientation=orientation, projection=projection)
+
+
     def run(self, start_frame=0):
 
         self.frame = self.cp.getCurrentFrame()
@@ -430,37 +555,35 @@ class Addon(clickpoints.Addon):
 
         self.updateCameraParameters()
 
-        # try to load marker
-        horizon = self.db.getMarkers(type="DM_horizon", frame=self.frame)
-
-        if horizon.count() < 2:
-            print("ERROR: To few horizon markers placed - please add at least TWO horizon markers")
-            return
-
         # # get image parameters
         # image = self.db.getImage(frame=start_frame)
         # data = image.data
         # im_height, im_width, channels = data.shape
 
-        print(self.cam)
+        # self.camera = ct.Camera(self.cam.)
+        if self.cbFitParameters.isChecked():
+            # try to load marker
+            horizon = self.db.getMarkers(type="DM_horizon", frame=self.frame)
 
-        # update camera parameters
-        self.camera = ct.CameraTransform(self.cam.focallength_mm, [self.cam.sensor_w_mm, self.cam.sensor_h_mm],[self.cam.img_w_px, self.cam.img_h_px])
-        self.camera.fixHorizon(horizon)
-        if self.position.cam_elevation:
-            self.camera.fixHeight(self.position.cam_elevation)
+            if horizon.count() < 2:
+                print("ERROR: Too few horizon markers placed - please add at least TWO horizon markers")
+                return
 
-        # set fit parameter
-        self.fit_params = dotdict()
-        self.fit_params.horizon_points = horizon.count()
-        self.fit_params.cam_elevation = self.camera.height
-        self.fit_params.cam_tilt = np.round(self.camera.tilt,2)
-        self.fit_params.dist_to_horizon = np.round(self.camera.distanceToHorizon(),2)
+            self.camera.fixHorizon(horizon)
+            if self.position.cam_elevation:
+                self.camera.fixHeight(self.position.cam_elevation)
 
-        # update params
-        self.leCamTilt.setText(getNumber(self.camera.tilt, "%.2f"))
-        self.leCamPan.setText(getNumber(self.camera.heading, "%.2f"))
-        self.leCamRoll.setText(getNumber(self.camera.roll, "%.2f"))
+            # set fit parameter
+            self.fit_params = dotdict()
+            self.fit_params.horizon_points = horizon.count()
+            self.fit_params.cam_elevation = self.camera.height
+            self.fit_params.cam_tilt = np.round(self.camera.tilt,2)
+            self.fit_params.dist_to_horizon = np.round(self.camera.distanceToHorizon(),2)
+
+            # update params
+            self.leCamTilt.setText(getNumber(self.camera.tilt, "%.2f"))
+            self.leCamPan.setText(getNumber(self.camera.heading, "%.2f"))
+            self.leCamRoll.setText(getNumber(self.camera.roll, "%.2f"))
 
 
         # succesfully initialized
@@ -532,8 +655,8 @@ class Addon(clickpoints.Addon):
                 self.deleteHorizon()
 
                 # get coordinates
-                p1 = self.camera.getImageHorizon()[:, 0]
-                p2 = self.camera.getImageHorizon()[:, -1]
+                p1 = self.camera.getImageHorizon()[0]
+                p2 = self.camera.getImageHorizon()[-1]
                 print(p1, p2)
 
                 # set pen
@@ -544,6 +667,7 @@ class Addon(clickpoints.Addon):
                 self.horizon_line = QtWidgets.QGraphicsLineItem(QtCore.QLineF(QtCore.QPointF(*p1),QtCore.QPointF(*p2)))
                 self.horizon_line.setPen(pen)
                 self.horizon_line.setParentItem(self.cp.window.view.origin)
+                self.horizon_line.setZValue(100)
 
         else:
             self.deleteHorizon()
@@ -579,7 +703,7 @@ class Addon(clickpoints.Addon):
         """
         Update distance to observer indicated by marker
         """
-        pos = self.camera.transCamToWorld(np.array([marker.x, marker.y]), Z=0).T
+        pos = self.camera.spaceFromImage(np.array([marker.x, marker.y]), Z=0).T
 
         marker.text = "%.2fm" % np.sqrt(pos[0] ** 2 + pos[1] ** 2)
         marker.save()
@@ -591,8 +715,8 @@ class Addon(clickpoints.Addon):
         pts = np.round(np.array([line.getPos1(), line.getPos2()]),0)
 
         #TODO: Why doesnt this work when i supply the same point twice in an array?
-        pos1 = self.camera.transCamToWorld(pts[0], Z=self.position.plane_elevation).T
-        pos2 = self.camera.transCamToWorld(pts[1], Z=self.position.plane_elevation).T
+        pos1 = self.camera.spaceFromImage(pts[0], Z=self.position.plane_elevation).T
+        pos2 = self.camera.spaceFromImage(pts[1], Z=self.position.plane_elevation).T
         dist = np.sqrt(np.sum(((pos1 - pos2)**2)))
 
         line.text = "%.2fm" % dist
@@ -601,12 +725,22 @@ class Addon(clickpoints.Addon):
 
 
     def updateScalebox(self,marker):
+        scalebox_dim = self.sbScaleboxDim.value()
         if marker.id in self.scalebox_dict:
             sb = self.scalebox_dict[marker.id]
             sb.delete()
             self.scalebox_dict.pop(marker.id)
+            if marker.text is not None:
+                match = re.match(r"^(?P<dim>\d*\.?\d*)\s*(?P<unit>\S*)?.*", marker.text)
+                if match:
+                    match= match.groupdict()
+                    if match["unit"] in UNITS.keys():
+                        scalebox_dim = float(match["dim"])*UNITS[match["unit"]]
+                    else:
+                        scalebox_dim = float(match["dim"])
 
-        sb = ScaleBox(self.cp.window.view.origin, '#ff5f00', np.array([marker.x,marker.y]), self.camera, self.scalebox_dim)
+
+        sb = ScaleBox(self.cp.window.view.origin, '#ff5f00', np.array([marker.x,marker.y]), self.camera, scalebox_dim)
         self.scalebox_dict[marker.id] = sb
 
 
@@ -640,8 +774,10 @@ class Addon(clickpoints.Addon):
     def pushbutton_refreshprojction(self):
         print("Refresh projection")
 
-        frame = self.cp.getCurrentFrame()
-        img = self.cp.getImage(frame)
+        # frame = self.cp.getCurrentFrame()
+        img = self.cp.getImage().data
+        if not isinstance(img, np.ndarray):
+            img = img.image
 
         rotation = self.db.getOption('rotation')
         print('rotation', rotation)
@@ -684,22 +820,22 @@ class Addon(clickpoints.Addon):
 class ScaleBox():
     def __init__(self, parent, color, base_pt, camera, scalebox_dim):
         # get the base position in the plane
-        base_pos = camera.transCamToWorld(base_pt, Z=0).T
+        base_pos = camera.spaceFromImage(base_pt, Z=0).T
         print("### base", base_pos, base_pt)
 
         # get the top position
         top_pos = base_pos + np.array([0, 0, scalebox_dim])
-        top_pt = camera.transWorldToCam(top_pos)
+        top_pt = camera.imageFromSpace(top_pos)
         print("### top", top_pos, top_pt)
 
         # get the left position
         left_pos = base_pos + np.array([scalebox_dim, 0, 0])
-        left_pt = camera.transWorldToCam(left_pos)
+        left_pt = camera.imageFromSpace(left_pos)
         print("### left", left_pos, left_pt)
 
         # get the back position
         back_pos = base_pos + np.array([0, scalebox_dim, 0])
-        back_pt = camera.transWorldToCam(back_pos)
+        back_pt = camera.imageFromSpace(back_pos)
         print("### back", back_pos, back_pt)
 
         ## draw element
@@ -717,6 +853,7 @@ class ScaleBox():
 
         _ = [line.setPen(pen) for line in self.lines]
         _ = [line.setParentItem(parent) for line in self.lines]
+        _ = [line.setZValue(100) for line in self.lines]
 
     def delete(self):
         _ = [line.scene().removeItem(line) for line in self.lines]
