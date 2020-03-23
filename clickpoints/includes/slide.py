@@ -113,7 +113,7 @@ class myslide():
         """
         # check the file ending
         if not (filename.endswith(".tif") or filename.endswith(".tiff")):
-            print("ERROR 0")
+            print("ERROR incorrect file ending")
             raise IOError
         # check to open the file
         try:
@@ -121,13 +121,15 @@ class myslide():
         except tifffile.tifffile.TiffFileError:
             print("load error")
             raise IOError
-        print(len(self.tif.pages))
+
+        # print(len(self.tif.pages))
+
         # get the amount of levels = pages
         self.level_count = len(self.tif.pages)
         # get the dimensions of all pages
         self.level_dimensions = []
         for page in self.tif.pages:
-            print(page)
+            # print(page)
             # if we are not the first page
             if len(self.level_dimensions) and page.is_reduced is None:
                 return IOError
@@ -142,9 +144,16 @@ class myslide():
                 #    raise IOError
             # append the dimensions
             self.level_dimensions.append((page.shape[1], page.shape[0]))
+
+
+        # check if this is a multipage tiff stack - all pages have the same dims
+        if np.all(np.array(self.level_dimensions) == self.level_dimensions[0]):
+            print("Tiff page dimensions are equal indicating non-pyramid Tiff")
+            raise IOError
+
         # if there is just one level, its not a pyramid tiff
         if len(self.level_dimensions) == 1:
-            print("ERROR y ")
+            print("ERROR only one level in pyramid")
             raise IOError
         # store the level 0 dimension
         self.dimensions = self.level_dimensions[0]
