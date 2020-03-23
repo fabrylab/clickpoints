@@ -66,6 +66,7 @@ class ImageDisplaySignal(QtCore.QObject):
 
 class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
     conversion = None
+    current_dtype = None
     max_value = None
     percentile = [1, 99]
     gamma = 1
@@ -87,9 +88,12 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
             self.setConversion(generateLUT(0, self.max_value, 1, 2 ** 16))
         else:
             self.setImage = self.setImageDirect
+        self.current_dtype = image.dtype
         self.setImage(image)
 
     def setImageDirect(self, image: np.ndarray) -> None:
+        if image.dtype != self.current_dtype:
+            return self.setImageFirstTime(image)
         self.setPixmap(QtGui.QPixmap(array2qimage(image.astype(np.uint8))))
 
     def getMaxValue(self, image: np.ndarray) -> None:
@@ -102,6 +106,9 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
             self.max_value = 2 ** 8
 
     def setImageLUT(self, image: np.ndarray) -> None:
+        if image.dtype != self.current_dtype:
+            return self.setImageFirstTime(image)
+
         if self.max_value is None:
             self.getMaxValue(image)
 

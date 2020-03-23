@@ -21,7 +21,13 @@
 
 __version__ = '1.9.3'
 
-from .Addon import Addon
+# Try to import the addon library, but for only working with the database, we don't need the Addon
+# definition which is based on Qt
+try:
+    from .Addon import Addon
+except ImportError as err:
+    pass
+
 from .DataFile import DataFile, MaskDtypeMismatch, MaskDimensionMismatch, MaskDimensionUnknown
 from .DataFile import MarkerTypeDoesNotExist, ImageDoesNotExist
 

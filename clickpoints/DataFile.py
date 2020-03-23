@@ -23,7 +23,6 @@ from __future__ import print_function, division
 import numpy as np
 import os
 import peewee
-from PIL import Image as PILImage
 import imageio
 import sys
 import platform
@@ -1807,6 +1806,7 @@ class DataFile:
                 for mask in masks:
                     tmp_maskpath = os.path.join(self.migrate_to_10_mask_path, mask[2])
                     if os.path.exists(tmp_maskpath):
+                        from PIL import Image as PILImage
                         im = np.asarray(PILImage.open(tmp_maskpath))
                         value = imageio.imwrite(imageio.RETURN_BYTES, im, format=".png")
                         value = peewee.binary_construct(value)

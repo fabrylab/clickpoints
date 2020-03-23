@@ -30,6 +30,7 @@ import qtawesome as qta
 from PIL import ImageDraw, Image, ImageFont
 from qtpy import QtCore, QtGui, QtWidgets
 from scipy.ndimage import shift
+import asyncio
 
 from clickpoints.DataFile import OptionAccess
 from clickpoints.includes import QtShortCuts
@@ -80,7 +81,7 @@ def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
     if max_level == "H":
         fmt = fmt.replace("%H", "%d" % (parts["H"] + parts["d"] * 24))
     else:
-        fmt = fmt.replace("%H", "%2d" % parts["H"])
+        fmt = fmt.replace("%H", "%02d" % parts["H"])
     if max_level == "M":
         fmt = fmt.replace("%M", "%2d" % (parts["M"] + parts["H"] * 60 + parts["d"] * 60 * 24))
     else:
@@ -287,6 +288,9 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.abort = True
 
     def SaveImage(self) -> None:
+        asyncio.ensure_future(self.SaveImage_async(), loop=self.window.app.loop)
+
+    async def SaveImage_async(self) -> None:
         # hide the start button and display the abort button
         self.abort = False
         self.button_start.setHidden(True)
@@ -394,7 +398,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         for frame in iter_range:
             # advance progress bar and load next image
             self.progressbar.setValue(frame)
-            self.window.JumpToFrame(frame, threaded=False)
+            await self.window.load_frame(frame)
 
             # get new image and offsets
             image = self.window.ImageDisplay.image

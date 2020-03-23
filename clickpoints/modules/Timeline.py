@@ -31,7 +31,7 @@ import numpy as np
 import qtawesome as qta
 from numpy import float64, int32, ndarray
 from qtpy import QtGui, QtCore, QtWidgets
-from quamash import QIOCPEventLoop
+from quamash import QEventLoop
 
 from clickpoints.includes.Database import DataFileExtended
 from clickpoints.includes.QtShortCuts import AddQSpinBox
@@ -963,7 +963,7 @@ class Timeline(QtCore.QObject):
 
         self.closeDataFile()
 
-    async def runTimer(self, loop: QIOCPEventLoop):
+    async def runTimer(self, loop: QEventLoop):
 
         t = time.time()
         target_fps = 25
