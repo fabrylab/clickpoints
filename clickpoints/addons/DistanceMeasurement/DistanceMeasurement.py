@@ -434,6 +434,7 @@ class Addon(clickpoints.Addon):
         self.leOffsetX.setText(getNumber(cam_by_dict['offset_x_px'],"%.2f"))
         self.leOffsetY.setText(getNumber(cam_by_dict['offset_y_px'],"%.2f"))
 
+        self.leCamElevation.setText(getNumber(cam.elevation_m,"%.2f"))
         self.leCamPan.setText(getNumber(cam.heading_deg,"%.2f"))
         self.leCamTilt.setText(getNumber(cam.tilt_deg,"%.2f"))
         self.leCamRoll.setText(getNumber(cam.roll_deg,"%.2f"))
