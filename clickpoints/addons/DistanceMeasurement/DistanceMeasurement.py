@@ -760,6 +760,11 @@ class Addon(clickpoints.Addon):
             if marker.type.name == 'DM_scalebox':
                 self.updateScalebox(marker)
 
+    def markerRemoveEvent(self, marker):
+        if self.initialized:
+            if marker.type.name == 'DM_scalebox':
+                self.scalebox_dict[marker.id].delete()
+                del self.scalebox_dict[marker.id]
 
     def markerAddEvent(self, marker):
         """
@@ -771,6 +776,9 @@ class Addon(clickpoints.Addon):
 
             if marker.type.name == 'DM_between':
                 self.updateDistLine(marker)
+
+            if marker.type.name == 'DM_scalebox':
+                self.updateScalebox(marker)
 
     def pushbutton_refreshprojction(self):
         print("Refresh projection")
@@ -816,7 +824,8 @@ class Addon(clickpoints.Addon):
         self.deleteHorizon()
 
         # clean scale boxes
-        [sb.delete for sb in self.scalebox_dict]
+        for i,sb in self.scalebox_dict.items():
+            sb.delete()
 
 class ScaleBox():
     def __init__(self, parent, color, base_pt, camera, scalebox_dim):
