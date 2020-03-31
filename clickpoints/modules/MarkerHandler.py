@@ -43,6 +43,7 @@ from threading import Thread
 
 from includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
 from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile, MyCommandButton
+from clickpoints.includes.slide import myslide # strangely I can not ommit clickpoints here. else the isinstance check dies.
 
 try:
     import openslide
@@ -3071,10 +3072,39 @@ class Crosshair(QtWidgets.QGraphicsPathItem):
             return
         if openslide_loaded and isinstance(self.image.image, openslide.OpenSlide):
             return
+        if isinstance(self.image.image, myslide):
+            src, srcpos = self.image.image.read_region_uncropped((x,y), 0, (2*self.radius-1, 2*self.radius-1))
+            self.CrosshairQImageView[:, :, :] = self.SaveSlideSlice(src,
+                                                           [[y - self.radius, y + self.radius + 1],
+                                                            [x - self.radius, x + self.radius + 1], [0, 3]],
+                                                                    srcpos+(0,))
+            self.Crosshair.setPixmap(QtGui.QPixmap(self.CrosshairQImage))
+            return
         self.CrosshairQImageView[:, :, :] = self.SaveSlice(self.image.image,
                                                            [[y - self.radius, y + self.radius + 1],
                                                             [x - self.radius, x + self.radius + 1], [0, 3]])
         self.Crosshair.setPixmap(QtGui.QPixmap(self.CrosshairQImage))
+
+    @staticmethod
+    def SaveSlideSlice(source, slices, sourceposition):
+        shape = []
+        slices1 = []
+        slices2 = []
+        empty = False
+        for length, slice_border, slice_offset in zip(source.shape, slices, sourceposition):
+            slice_border = [int(b) for b in slice_border]
+            shape.append(slice_border[1] - slice_border[0])
+            if slice_border[1] < 0:
+                empty = True
+            slices1.append(slice(max(slice_border[0]-slice_offset, 0), min(slice_border[1]-slice_offset, length)))
+            slices2.append(slice(-min(slice_border[0]-slice_offset, 0),
+                                 min(length - (slice_border[1]-slice_offset), 0) if min(length - (slice_border[1]-slice_offset), 0) != 0 else shape[
+                                     -1]))
+        new_slice = np.zeros(shape)
+        if empty:
+            return new_slice
+        new_slice[slices2[0], slices2[1], :] = source[slices1[0], slices1[1], :3]
+        return new_slice
 
     @staticmethod
     def SaveSlice(source, slices):
