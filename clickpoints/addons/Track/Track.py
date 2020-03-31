@@ -24,6 +24,7 @@ import clickpoints
 import numpy as np
 import cv2
 import asyncio
+from qtpy import QtGui, QtCore
 
 
 class Addon(clickpoints.Addon):
@@ -48,6 +49,14 @@ class Addon(clickpoints.Addon):
             self.db.setMarkerType("track", "#FFFF00", self.db.TYPE_Track)
             self.cp.reloadTypes()
 
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_L:
+            self.start, self.end, self.skip = self.cp.getFrameRange()
+            points = self.db.getMarkers(image=self.start)
+            for p in points:
+                p.processed = 0
+                p.save()
+
     async def run(self, start_frame=0):
         # get the frame range
         self.start, self.end, self.skip = self.cp.getFrameRange()
@@ -58,7 +67,7 @@ class Addon(clickpoints.Addon):
                                     self.getOption("maxIterations"), self.getOption("epsilon")))
 
         # get the images
-        images = self.db.getImageIterator(start_frame=start_frame, end_frame=self.end, skip=self.skip)
+        images = self.db.getImageIterator(start_frame=self.start, end_frame=self.end, skip=self.skip)
 
         # retrieve first image
         image_last = next(images)
