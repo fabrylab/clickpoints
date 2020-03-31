@@ -53,7 +53,8 @@ def read_crop_of_page(page: tifffile.TiffPage, loc: Tuple[int, int], size: Tuple
     fh = page.parent.filehandle
     segmentiter = fh.read_segments(used_offsets, used_bytecounts)
     decodeargs = {}
-    decodeargs["tables"] = page._gettags({347}, lock=None)[0][1].value
+    if 347 in page.keyframe.tags:
+        decodeargs["tables"] = page._gettags({347}, lock=None)[0][1].value
     for seg, i in zip(segmentiter, slide_indices_shapes):
         segment, indices, shape = page.decode(seg[0], i, **decodeargs)
         result[indices[3]-sx1:indices[3]+shape[1]-sx1, indices[4]-sy1:indices[4]+shape[2]-sy1] = segment
