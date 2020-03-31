@@ -20,6 +20,7 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 import json
+import re
 import os
 import subprocess
 from distutils.version import LooseVersion
@@ -38,10 +39,17 @@ from clickpoints.includes.Database import DataFileExtended
 
 repo_path = "\"" + os.path.join(os.path.dirname(__file__), "..", "..") + "\""
 
+def load_dirty_json(dirty_json):
+    regex_replace = [(r"([ \{,:\[])(u)?'([^']+)'", r'\1"\3"'), (r" False([, \}\]])", r' false\1'), (r" True([, \}\]])", r' true\1')]
+    for r, s in regex_replace:
+        dirty_json = re.sub(r, s, dirty_json)
+    clean_json = json.loads(dirty_json)
+    return clean_json
 
 def getNewestVersion() -> LooseVersion:
     result = os.popen("conda search -c rgerum -f clickpoints --json").read()
-    result = json.loads(result)
+    # result = json.loads(result[:-4])
+    result = load_dirty_json(result)
     try:
         version = natsort.natsorted([f["version"] for f in result["clickpoints"]])[-1]
     except KeyError:
