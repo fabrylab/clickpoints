@@ -1,6 +1,6 @@
 package:
   name: clickpoints
-  version: 1.9.4
+  version: 1.9.3
 
 build:
   number: 2
