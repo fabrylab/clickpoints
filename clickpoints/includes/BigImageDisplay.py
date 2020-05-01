@@ -103,7 +103,7 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
             else:
                 self.max_value = 2 ** 16
         else:
-            self.max_value = 2 ** 8
+            self.max_value = 2 ** (8*image.dtype.itemsize)
 
     def setImageLUT(self, image: np.ndarray) -> None:
         if image.dtype != self.current_dtype:
@@ -123,7 +123,10 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
 
         self.min, self.max = np.percentile(image, self.percentile).astype(int)
         self.conversion = generateLUT(self.min, self.max, self.gamma, self.max_value)
-        self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
+        if len(image.shape)>2:
+            self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
+        else:
+            self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, None]])))
 
     def setConversion(self, conversion: np.ndarray) -> None:
         self.conversion = conversion
@@ -251,7 +254,10 @@ class BigImageDisplay:
                                                                self.image_pixMapItem.gamma,
                                                                self.image_pixMapItem.max_value)
             if self.image_pixMapItem.conversion is not None:
-                self.slice_zoom_image = self.image_pixMapItem.conversion[self.slice_zoom_image[:, :, :3]]
+                if len(self.slice_zoom_image.shape)>2:
+                    self.slice_zoom_image = self.image_pixMapItem.conversion[self.slice_zoom_image[:, :, :3]]
+                else:
+                    self.slice_zoom_image = self.image_pixMapItem.conversion[self.slice_zoom_image[:, :, None]]
             self.slice_zoom_pixmap.setPixmap(QtGui.QPixmap(array2qimage(self.slice_zoom_image)))
             self.slice_zoom_pixmap.setOffset(*(np.array(preview_rect[0:2]) / downsample))
             self.slice_zoom_pixmap.setScale(downsample)
