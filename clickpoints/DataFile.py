@@ -854,9 +854,14 @@ class DataFile:
                     # if we don't find anything, complain
                     if new_type is None:
                         raise ValueError("No valid marker type given.")
-                # ensure that the mode is correct
-                if new_type.mode != self.database_class.TYPE_Normal:
-                    raise ValueError("Given type has not the mode TYPE_Normal")
+                if self.type.mode == self.database_class.TYPE_Normal:
+                    # ensure that the mode is correct
+                    if new_type.mode != self.database_class.TYPE_Normal:
+                        raise ValueError("Given type has not the mode TYPE_Normal")
+                elif self.type.mode == self.database_class.TYPE_Track:
+                    # ensure that the mode is correct
+                    if new_type.mode != self.database_class.TYPE_Track:
+                        raise ValueError("Given type has not the mode TYPE_Track")
                 # change the type and save
                 self.type = new_type
                 return self.save()
