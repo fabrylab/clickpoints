@@ -30,3 +30,7 @@ lastnotified.log
 docs\/examples\/.*\.(?!ipynb)
 build/
 *.dll
+clickpoints/.idea/
+3
+2020*
+clickpoints/addons/imageio_plugin/*
