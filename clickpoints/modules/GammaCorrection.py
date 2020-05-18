@@ -81,7 +81,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
 
     def initSliders(self) -> None:
         y_off = 15
-        self.button_autocontrast = TextButton(self, 100, "auto contr. (off)", font=self.window.mono_font,
+        self.button_autocontrast = TextButton(self, 100, "auto (off)", font=self.window.mono_font,
                                               scale=self.window.scale_factor)
         self.button_autocontrast.setPos(3, 10)
         self.button_autocontrast.clicked.connect(self.toogleAutocontrast)
@@ -132,14 +132,14 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
             return value
 
         if self.config.auto_contrast is True:
-            self.button_autocontrast.setText("auto contr. (on)")
+            self.button_autocontrast.setText("auto (on)")
             min_max = [[0, 2], [0, 100], [0, 100]]
             start = [getGamma(), self.getConfigValue(3, 99), self.getConfigValue(4, 1)]
             formats = [" %.2f", "%3d%%", "%3d%%"]
             names = ["Gamma", "Max P.", "Min P."]
         else:
             max_value = self.max_value
-            self.button_autocontrast.setText("auto contr. (off)")
+            self.button_autocontrast.setText("auto (off)")
             min_max = [[0, 2], [0, max_value], [0, max_value]]
             start = [getGamma(), self.getConfigValue(1, max_value), self.getConfigValue(2, 0)]
             formats = [" %.2f", "    %3d", "    %3d"]
