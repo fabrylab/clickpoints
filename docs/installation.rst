@@ -13,7 +13,7 @@ If you are already familiar with python and have a python installation, you can 
 - If you are in a conda env: ``conda install -c conda-forge -c rgerum clickpoints``
 - Or with ``python setup.py install`` (to use this command download the package and call the command in the main folder)
 
-We recommend the conda installation, as this should always be the newest version of ClickPoints.
+We recommend the pip installation, as this should always be the newest version of ClickPoints.
 
 Run ClickPoints via executing
 
