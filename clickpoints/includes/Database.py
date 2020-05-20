@@ -45,10 +45,8 @@ try:
     import openslide
 
     openslide_loaded = True
-    print("openslide", openslide.__version__)
 except ImportError:
     openslide_loaded = False
-    print("no openslide found")
     from .slide import myslide
 
 

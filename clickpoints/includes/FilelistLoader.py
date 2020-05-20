@@ -46,7 +46,7 @@ try:
     print("openslide", openslide.__version__)
 except ImportError:
     openslide_loaded = False
-    print("no openslide found")
+    print("use custom openslide variant with tifffile")
     from .slide import myslide
 
 
