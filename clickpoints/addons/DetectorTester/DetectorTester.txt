@@ -2,5 +2,4 @@
 name=Detector Tester
 file=DetectorTester.py
 icon=fa.flag
-requirements=skimage
 requirements=PenguTrack,scikit-image,pandas
