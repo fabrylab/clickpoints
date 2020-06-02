@@ -772,15 +772,19 @@ class DataFileExtended(DataFile):
         import dateutil.parser
         reader = tifffile.TiffFile(full_path)
 
+        invalid_timestamps = 0
         ts = []  # timestamp per page (image in the stack)
         for i, page in enumerate(reader.pages):
+            if i == invalid_timestamps and i >= 10:
+                return itertools.repeat(None)
             try:
                 # might fail due to missing meta data, missing key or invalid timestamp format
                 ts.append(dateutil.parser.isoparse((json.loads(page.description)['timestamp'])))
             except Exception as e:
-                print(e)
-                print("ts extraction failed for file %s frame %d" % (full_path, i))
+                #print(e)
+                #print("ts extraction failed for file %s frame %d" % (full_path, i))
                 ts.append(None)
+                invalid_timestamps += 1
 
         return ts
 
