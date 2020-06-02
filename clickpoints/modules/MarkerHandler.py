@@ -41,9 +41,9 @@ import json
 import matplotlib.pyplot as plt
 from threading import Thread
 
-from includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
-from includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile, MyCommandButton
-from clickpoints.includes.slide import myslide # strangely I can not ommit clickpoints here. else the isinstance check dies.
+from clickpoints.includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
+from clickpoints.includes.Tools import GraphicsItemEventFilter, disk, PosToArray, BroadCastEvent, HTMLColorToRGB, IconFromFile, MyCommandButton
+from clickpoints.includes.slide import myslide
 
 try:
     import openslide

@@ -18,9 +18,3 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
-
-import sys
-from os.path import join, dirname
-# hack to be able to import sibling modules from includes
-# note: insert 0 puts in to teh front of the list - just in case there are other include paths
-sys.path.insert(0, join(dirname(__file__), ".."))
