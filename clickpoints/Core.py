@@ -38,7 +38,7 @@ import qtawesome as qta
 from .includes import HelpText, BroadCastEvent, SetBroadCastModules, rotate_list
 from .includes import BigImageDisplay
 from .includes import QExtendedGraphicsView
-from .includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats
+from .includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats, specialformats, getFrameNumber
 from .includes import Database
 
 from .modules.ChangeTracker import ChangeTracker
@@ -277,21 +277,21 @@ class ClickPointsWindow(QtWidgets.QWidget):
             else:
                 directory, filename = os.path.split(url)
                 ext = os.path.splitext(filename)[1]
-                # for images load the folder
-                if ext.lower() in imgformats:
-                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                                                        kwargs=dict(use_natsort=config.use_natsort, window=self,
-                                                                    select_file=filename))
-                    self.first_frame = None
-                    # addPath(self.data_file, directory, use_natsort=config.use_natsort)
                 # for videos just load the file
-                elif ext.lower() in vidformats or ext.lower() == ".vms":
+                if (ext.lower() in vidformats) or (ext.lower() == ".vms") or (ext.lower() in specialformats and getFrameNumber(url, ext) != 1):
                     self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
                                                         kwargs=dict(file_filter=os.path.split(filename)[1]))
                     # addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
                 elif ext.lower() == ".txt":
                     self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
                     # addList(self.data_file, directory, filename)
+                # for images load the folder
+                elif ext.lower() in imgformats:
+                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
+                                                        kwargs=dict(use_natsort=config.use_natsort, window=self,
+                                                                    select_file=filename))
+                    self.first_frame = None
+                    # addPath(self.data_file, directory, use_natsort=config.use_natsort)
                 # if the extension is not known, raise an exception
                 else:
                     raise Exception("unknown file extension " + ext, filename)
