@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# make_no_python_installer.py
+# make_python_installer.py
 
-# Copyright (c) 2015-2016, Richard Gerum, Sebastian Richter
+# Copyright (c) 2015-2020, Richard Gerum, Sebastian Richter, Alexander Winterl
 #
 # This file is part of ClickPoints.
 #
@@ -13,7 +13,7 @@
 #
 # ClickPoints is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # conf.py
 
-# Copyright (c) 2015-2016, Richard Gerum, Sebastian Richter
+# Copyright (c) 2015-2020, Richard Gerum, Sebastian Richter, Alexander Winterl
 #
 # This file is part of ClickPoints.
 #
@@ -13,7 +13,7 @@
 #
 # ClickPoints is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
@@ -67,8 +67,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'clickpoints'
-copyright = u'2016, Richard Gerum, Sebastian Richter'
-author = u'Richard Gerum, Sebastian Richter'
+copyright = u'2020, Richard Gerum, Sebastian Richter, Alexander Winterl'
+author = u'Richard Gerum, Sebastian Richter, Alexander Winterl'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

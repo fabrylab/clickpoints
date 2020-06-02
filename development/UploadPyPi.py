@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# MakeRelease.py
+# UploadPyPi.py
 
-# Copyright (c) 2015-2016, Richard Gerum, Sebastian Richter
+# Copyright (c) 2015-2020, Richard Gerum, Sebastian Richter, Alexander Winterl
 #
 # This file is part of ClickPoints.
 #

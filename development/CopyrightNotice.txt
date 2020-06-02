@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # {0}
 
-# Copyright (c) 2015-2016, Richard Gerum, Sebastian Richter
+# Copyright (c) 2015-2020, Richard Gerum, Sebastian Richter, Alexander Winterl
 #
 # This file is part of ClickPoints.
 #
