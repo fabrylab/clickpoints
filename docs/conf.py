@@ -26,7 +26,7 @@ import shlex
 print(os.getcwd())
 
 import mock
-MOCK_MODULES = ['imageio', 'peewee', 'PIL', 'PIL._util', 'PIL.Image', 'numpy', 'qimage2ndarray', 'sip', 'PyQt4', 'PyQt4.QtGui', 'qtpy', 'qtpy.QtGui', 'qtpy.QtCore', 'qtpy.QtWidgets', 'qtawesome', 'matplotlib', 'matplotlib.backends', 'matplotlib.backends.backend_qt4agg', 'matplotlib.backends.backend_qt4', 'matplotlib.figure', 'natsort']
+MOCK_MODULES = ['imageio', 'peewee', 'tifffile', 'PIL', 'PIL._util', 'PIL.Image', 'numpy', 'qimage2ndarray', 'sip', 'PyQt4', 'PyQt4.QtGui', 'qtpy', 'qtpy.QtGui', 'qtpy.QtCore', 'qtpy.QtWidgets', 'qtawesome', 'matplotlib', 'matplotlib.backends', 'matplotlib.backends.backend_qt4agg', 'matplotlib.backends.backend_qt4', 'matplotlib.figure', 'natsort']
 sys.modules.update((mod_name, mock.MagicMock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,

@@ -1,1 +1,1 @@
-sphinx-autobuild . _build_html
+sphinx-autobuild . _build_html -N
