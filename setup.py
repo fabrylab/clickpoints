@@ -53,5 +53,6 @@ setup(name='clickpoints',
                         'imageio-ffmpeg',
                         'quamash',
                         'pyqt5',
+                        'python-dateutil>=2.8.1'
                        ],
       include_package_data=True)
