@@ -152,7 +152,7 @@ class myslide():
         self.level_count = len(self.tif.pages)
         # get the dimensions of all pages
         self.level_dimensions = []
-        for page in self.tif.pages:
+        for i, page in enumerate(self.tif.pages):
             # print(page)
             # if we are not the first page
             if len(self.level_dimensions) and page.is_reduced is None:
@@ -169,6 +169,12 @@ class myslide():
             # append the dimensions
             self.level_dimensions.append((page.shape[1], page.shape[0]))
 
+            # after 10 frames check if we can mybe skip the rest
+            if i == 10:
+                # check if this is a multipage tiff stack - all pages have the same dims
+                if np.all(np.array(self.level_dimensions) == self.level_dimensions[0]):
+                    print("Tiff page dimensions are equal indicating non-pyramid Tiff")
+                    raise IOError
 
         # check if this is a multipage tiff stack - all pages have the same dims
         if np.all(np.array(self.level_dimensions) == self.level_dimensions[0]):
