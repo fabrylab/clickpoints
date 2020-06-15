@@ -31,6 +31,9 @@ except ImportError as err:
 from .DataFile import DataFile, MaskDtypeMismatch, MaskDimensionMismatch, MaskDimensionUnknown
 from .DataFile import MarkerTypeDoesNotExist, ImageDoesNotExist
 
+from .includes.loader import loadUrl as load
+from .includes.loadExamples import loadExample
+
 def print_status():
     # ClickPoints Version
     print("ClickPoints", __version__)
