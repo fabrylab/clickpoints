@@ -86,8 +86,8 @@ def get_meta(file: str) -> dict:
         return {}
     with tifffile.TiffFile(file) as tif:
         try:
-            metadata = tif[0].image_description
-        except AttributeError:
+            metadata = tif.shaped_metadata[0]
+        except (AttributeError, TypeError):
             return {}
         return json.loads(metadata.decode('utf-8'))
 
