@@ -3857,6 +3857,8 @@ class MarkerHandler:
             track.UpdatePath()
 
     def sceneEventFilter(self, event):
+        if self.data_file is None:
+            return False
         if self.hidden or self.data_file.image is None or self.tool_index == -1:
             return False
         if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and \

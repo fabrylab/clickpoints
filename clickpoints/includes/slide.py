@@ -22,6 +22,7 @@
 import tifffile
 import numpy as np
 from typing import Sequence, Tuple
+from pathlib import Path
 
 
 def read_crop_of_page(page: tifffile.TiffPage, loc: Tuple[int, int], size: Tuple[int, int], crop=True):
@@ -135,13 +136,13 @@ class myslide():
     def __init__(self, filename: str):
         """ An interface similar to the slide of OpenSlide
         """
+        filename = Path(filename)
         # check the file ending
-        if not (filename.endswith(".tif") or filename.endswith(".tiff")):
-            print("ERROR incorrect file ending")
+        if filename.suffix not in [".tif", ".tiff"]:
             raise IOError
         # check to open the file
         try:
-            self.tif = tifffile.TiffFile(filename)
+            self.tif = tifffile.TiffFile(str(filename))
         except tifffile.tifffile.TiffFileError:
             print("load error")
             raise IOError

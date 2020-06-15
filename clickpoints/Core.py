@@ -21,14 +21,9 @@
 
 from __future__ import division, print_function
 
-import sys
 import os
-import glob
-import natsort
 
-import threading
 import time
-import numpy as np
 import asyncio
 
 from qtpy import QtGui, QtCore, QtWidgets
@@ -38,13 +33,10 @@ import qtawesome as qta
 from .includes import HelpText, BroadCastEvent, SetBroadCastModules, rotate_list
 from .includes import BigImageDisplay
 from .includes import QExtendedGraphicsView
-from .includes.FilelistLoader import FolderEditor, addPath, addList, imgformats, vidformats, specialformats, getFrameNumber
+from clickpoints.modules.FolderEditor import FolderEditor
 from .includes import Database
 
-from .modules.ChangeTracker import ChangeTracker
 from .modules.MaskHandler import MaskHandler
-from .modules.MarkerHandler import MarkerHandler
-from .modules.Timeline import Timeline
 from .modules.AnnotationHandler import AnnotationHandler
 from .modules.GammaCorrection import GammaCorrection
 from .modules.ScriptLauncher import ScriptLauncher
@@ -60,7 +52,10 @@ from clickpoints.includes.ConfigLoad import dotdict
 from clickpoints.modules.ChangeTracker import ChangeTracker
 from clickpoints.modules.MarkerHandler import MarkerHandler
 from clickpoints.modules.Timeline import Timeline
+from clickpoints.includes.loader import loadUrl
 from typing import Any, List, Union
+
+
 class AddVLine():
     def __init__(self, window: "ClickPointsWindow") -> None:
         line = QtWidgets.QFrame()
@@ -68,12 +63,14 @@ class AddVLine():
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
         window.layoutButtons.addWidget(line)
 
+
 class AddStrech():
     def __init__(self, window: "ClickPointsWindow") -> None:
         window.layoutButtons.addStretch()
 
-used_modules = [ChangeTracker, AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, OptionEditor, Console]
-used_huds = ["", "", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", "", ""]
+
+used_modules = [FolderEditor, ChangeTracker, AddVLine, Timeline, GammaCorrection, VideoExporter, AddVLine, AnnotationHandler, MarkerHandler, MaskHandler, AddVLine, InfoHud, ScriptLauncher, AddStrech, HelpText, OptionEditor, Console]
+used_huds = ["", "", "", "", "hud_lowerRight", "", "", "", "hud", "hud_upperRight", "", "hud_lowerLeft", "", "", "", "", "", "", ""]
 
 
 def GetModuleInitArgs(mod: Any) -> List[str]:
@@ -82,7 +79,6 @@ def GetModuleInitArgs(mod: Any) -> List[str]:
 
 
 class ClickPointsWindow(QtWidgets.QWidget):
-    folderEditor = None
     optionEditor = None
     first_frame = 0
 
@@ -134,12 +130,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.button_play.setToolTip("save current project")
         self.layoutButtons.addWidget(self.button_play)
 
-        self.button_play = QtWidgets.QPushButton()
-        self.button_play.clicked.connect(self.Folder)
-        self.button_play.setIcon(qta.icon("fa.folder-open"))
-        self.button_play.setToolTip("add/remove folder from the current project")
-        self.layoutButtons.addWidget(self.button_play)
-
         self.layout.addLayout(self.layoutButtons)
 
         # view/scene setup
@@ -156,7 +146,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         # init media handler
         self.load_thread = None
         self.load_timer = QtCore.QTimer()
-        self.load_timer.setInterval(0.1)
+        self.load_timer.setInterval(200)
         self.load_timer.timeout.connect(self.LoadTimer)
         self.loading_time = time.time()
 
@@ -233,115 +223,19 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 url = url[len("file:"):]
             self.loadUrl(url, reset=True)
 
-    def loadUrl(self, url: str, reset: bool = False) -> None:
-        print("Loading url", url)
-        if url == "":
-            if self.data_file is None or reset:
-                self.reset()
-            self.GetModule("Timeline").ImagesAdded()
-            BroadCastEvent(self.modules, "LoadingFinishedEvent")
-            return
-
-        # glob support
-        if '*' in url:
-            print("Glob string detected - building list")
-            if self.data_file is None or reset:
-                self.reset()
-            # obj can be directory or files
-            obj_list = natsort.natsorted(glob.glob(url))
-            for obj in obj_list:
-                print("Loading GLOB URL", os.path.abspath(obj))
-                self.loadObject(os.path.abspath(obj))
+    def loadUrl(self, url: str, reset: bool = False, use_natsort: bool = True) -> None:
+        def loadingFinished(data_file):
+            self.data_file = data_file
             self.JumpToFrame(0)
             self.view.fitInView()
             self.GetModule("Timeline").ImagesAdded()
             BroadCastEvent(self.modules, "LoadingFinishedEvent")
-            return
 
-        # open an existing database
-        if url.endswith(".cdb"):
-            self.reset(url)
-            self.JumpToFrame(0)
-            self.view.fitInView()
-            self.GetModule("Timeline").ImagesAdded()
-            BroadCastEvent(self.modules, "LoadingFinishedEvent")
-        else:
-            if self.data_file is None or reset:
-                self.reset()
-            # if it is a directory add it
-            if os.path.isdir(url):
-                self.load_thread = threading.Thread(target=addPath, args=(self.data_file, url),
-                                                    kwargs=dict(subdirectories=True, use_natsort=config.use_natsort))
-                # addPath(self.data_file, config.srcpath, subdirectories=True, use_natsort=config.use_natsort)
-            # if not check what type of file it is
-            else:
-                directory, filename = os.path.split(url)
-                ext = os.path.splitext(filename)[1]
-                # for videos just load the file
-                if (ext.lower() in vidformats) or (ext.lower() == ".vms") or (ext.lower() in specialformats and getFrameNumber(url, ext) != 1):
-                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                                                        kwargs=dict(file_filter=os.path.split(filename)[1]))
-                    # addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
-                elif ext.lower() == ".txt":
-                    self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
-                    # addList(self.data_file, directory, filename)
-                # for images load the folder
-                elif ext.lower() in imgformats:
-                    self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                                                        kwargs=dict(use_natsort=config.use_natsort, window=self,
-                                                                    select_file=filename))
-                    self.first_frame = None
-                    # addPath(self.data_file, directory, use_natsort=config.use_natsort)
-                # if the extension is not known, raise an exception
-                else:
-                    raise Exception("unknown file extension " + ext, filename)
+            self.load_timer.stop()
+            print("Loading finished in %.2fs " % (time.time() - self.loading_time))
 
-            if self.load_thread is not None:
-                self.load_thread.daemon = True
-                self.load_thread.start()
-                self.load_timer.start()
-
-    def loadObject(self, url: str) -> None:
-        #TODO: rebuild threaded version for glob, replace duplicated code above with this function
-        """
-        Loads objects of type directory, img or video file
-        HACKED the non thread version as i couldnt get threaded to work ...
-
-        :param url: path to object
-        :return:
-        """
-        if os.path.isdir(url):
-            # self.load_thread = threading.Thread(target=addPath, args=(self.data_file, url),
-            #                                     kwargs=dict(subdirectories=True, use_natsort=config.use_natsort))
-            addPath(self.data_file, url, subdirectories=True, use_natsort=config.use_natsort)
-        # if not check what type of file it is
-        else:
-            directory, filename = os.path.split(url)
-            ext = os.path.splitext(filename)[1]
-            # for images load the folder
-            if ext.lower() in imgformats:
-                # self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                #                                     kwargs=dict(use_natsort=config.use_natsort, window=self,
-                #                                                 select_file=filename))
-                self.first_frame = None
-                addPath(self.data_file, directory, use_natsort=config.use_natsort)
-            # for videos just load the file
-            elif ext.lower() in vidformats:
-                # self.load_thread = threading.Thread(target=addPath, args=(self.data_file, directory),
-                #                                     kwargs=dict(file_filter=os.path.split(filename)[1]))
-                addPath(self.data_file, directory, file_filter=os.path.split(filename)[1])
-            elif ext.lower() == ".txt":
-                # self.load_thread = threading.Thread(target=addList, args=(self.data_file, directory, filename))
-                addList(self.data_file, directory, filename)
-            # if the extension is not known, raise an exception
-            else:
-                raise Exception("unknown file extension " + ext, filename)
-
-        # if self.load_thread is not None:
-        #     self.load_thread.daemon = True
-        #     self.load_thread.start()
-        #     self.load_timer.start()
-
+        self.load_timer.start()
+        self.data_file = loadUrl(url, self.data_file, window=self, use_natsort=use_natsort, reset=reset, loop=self.app.loop, callback_finished=loadingFinished)
 
     def reset(self, filename: str = "") -> None:
         if self.data_file is not None:
@@ -352,7 +246,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
             BroadCastEvent(self.modules, "closeDataFile")
         # open new database
         self.data_file = Database.DataFileExtended(filename, config, storage_path=os.environ["CLICKPOINTS_TMP"])
-        #self.data_file.signals.loaded.connect(self.FrameLoaded)
         # apply image rotation from config
         if self.data_file.getOption("rotation") != 0:
             self.view.rotate(self.data_file.getOption("rotation"))
@@ -366,16 +259,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
             self.GetModule("Timeline").ImagesAdded()
         else:
             self.GetModule("Timeline").ImagesAdded()
-        if not self.load_thread.is_alive() and (self.data_file.image is not None or self.data_file.get_image_count() == 0):
-            self.load_timer.stop()
-            BroadCastEvent(self.modules, "LoadingFinishedEvent")
-            print("Loading finished in %.2fs " % (time.time()-self.loading_time))
-
-    def Folder(self) -> None:
-        if not self.data_file:
-            return
-        self.folderEditor = FolderEditor(self, self.data_file)
-        self.folderEditor.show()
 
     def ImagesAdded(self) -> None:
         if self.data_file.image is None and self.data_file.get_image_count():
@@ -500,9 +383,6 @@ class ClickPointsWindow(QtWidgets.QWidget):
     def closeEvent(self, event: QCloseEvent) -> None:
         if self.testForUnsaved() == -1:
             return event.ignore()
-        # close the folder editor
-        if self.folderEditor is not None:
-            self.folderEditor.close()
         # save the data
         self.Save()
         # broadcast event

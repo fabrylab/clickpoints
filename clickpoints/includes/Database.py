@@ -200,6 +200,7 @@ def date_linspace(start_date, end_date, frames):
 class DataFileExtended(DataFile):
     def __init__(self, database_filename: Optional[str] = None, config: Optional[dotdict] = None,
                  storage_path: Optional[str] = None) -> None:
+        database_filename = str(database_filename)
         self.exists = os.path.exists(database_filename)
         self._config = config
         self.temporary_db = None
@@ -731,8 +732,8 @@ class DataFileExtended(DataFile):
         if extension.lower() == ".jpg":
             dt = self.getExifTime(file)
             return dt, dt
-        else:
-            print("no time", extension)
+        #else:
+            #print("no time", extension)
         return None, None
 
     def getExifTime(self, path: str) -> None:
