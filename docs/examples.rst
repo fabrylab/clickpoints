@@ -11,7 +11,8 @@ To kept the download size of ClickPoints down, the examples are kept in a separa
     :caption: Examples to retrieve data from clickpoints files
     :maxdepth: 1
 
-    Markers <examples/example_markers.ipynb>
+    examples/example_markers.ipynb
+    examples/example_tracks.ipynb
 
 .. toctree::
     :caption: List of Examples
