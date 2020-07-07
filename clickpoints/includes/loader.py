@@ -148,6 +148,8 @@ def loadUrl(url: str, data_file: DataFile = None, reset: bool = False, use_natso
             asyncio.ensure_future(function, loop=loop)
 
     if url == "":
+        if data_file is None:
+            data_file = reset_database(window=window)
         if callback_finished is not None:
             callback_finished(data_file)
         return data_file
@@ -163,7 +165,9 @@ def loadUrl(url: str, data_file: DataFile = None, reset: bool = False, use_natso
 
     # if the datafile is not defined, reset the database
     if data_file is None or reset:
+        print("reset")
         data_file = reset_database(window=window)
+        print("->", data_file)
 
     # if the url is a glob string
     if '*' in str(url):
