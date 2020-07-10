@@ -2283,7 +2283,7 @@ class DataFile:
         """
         return self._current_version
 
-    def getPath(self, path_string=None, id=None, create=False):
+    def getPath(self, path_string=None, id=None, create=False, absolute=False):
         """
         Get a :py:class:`Path` entry from the database.
 
@@ -2297,6 +2297,8 @@ class DataFile:
             the id of the path.
         create: bool, optional
             whether the path should be created if it does not exist. (default: False)
+        absolute: bool, optional
+            whether the created path should be absolute or relative to the database file. (default: False)
 
         Returns
         -------
@@ -2310,12 +2312,13 @@ class DataFile:
         kwargs = {}
         # normalize the path, making it relative to the database file
         if path_string is not None:
-            if self._database_filename:
-                try:
-                    path_string = os.path.relpath(path_string, os.path.dirname(self._database_filename))
-                except ValueError:
-                    path_string = os.path.abspath(path_string)
-            path_string = os.path.normpath(path_string)
+            if not absolute:
+                if self._database_filename:
+                    try:
+                        path_string = os.path.relpath(path_string, os.path.dirname(self._database_filename))
+                    except ValueError:
+                        path_string = os.path.abspath(path_string)
+                path_string = os.path.normpath(path_string)
             kwargs["path"] = path_string
         # add the id
         if id:
