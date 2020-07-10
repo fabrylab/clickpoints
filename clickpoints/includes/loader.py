@@ -165,9 +165,7 @@ def loadUrl(url: str, data_file: DataFile = None, reset: bool = False, use_natso
 
     # if the datafile is not defined, reset the database
     if data_file is None or reset:
-        print("reset")
         data_file = reset_database(window=window)
-        print("->", data_file)
 
     # if the url is a glob string
     if '*' in str(url):
@@ -185,17 +183,20 @@ def loadUrl(url: str, data_file: DataFile = None, reset: bool = False, use_natso
     elif url.is_dir():
         call(addPath(data_file, InputIteratorFolder(url), callback_finished=callback_finished))
     # if not check what type of file it is
+    # for images load the folder
+    elif url.suffix.lower() in imgformats and \
+            (url.suffix.lower() not in specialformats or getFrameNumber(url, url.suffix) == 1):
+        call(addPath(data_file, InputIteratorGlob(url.parent, "*" + url.suffix.lower()), window=window, select_file=url,
+                     callback_finished=callback_finished))
+        if window is not None:
+            window.first_frame = None
     # for videos just load the file
     elif (url.suffix.lower() in vidformats) or (url.suffix.lower() == ".vms") or (
             url.suffix.lower() in specialformats and getFrameNumber(url, url.suffix) != 1):
         call(addPath(data_file, InputIteratorList([url]), callback_finished=callback_finished))
     elif url.suffix.lower() == ".txt":
         call(addPath(data_file, InputIteratorFile(url), callback_finished=callback_finished))
-    # for images load the folder
-    elif url.suffix.lower() in imgformats:
-        call(addPath(data_file, InputIteratorGlob(url.parent, "*"+url.suffix.lower()), window=window, select_file=url, callback_finished=callback_finished))
-        if window is not None:
-            window.first_frame = None
+
     # if the extension is not known, raise an exception
     else:
         raise Exception("unknown file extension " + url.suffix, url)
