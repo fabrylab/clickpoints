@@ -25,14 +25,14 @@ __version__ = '1.9.6'
 # definition which is based on Qt
 try:
     from .Addon import Addon
+    from .includes.loader import loadUrl as load
+    from .includes.loadExamples import loadExample
 except ImportError as err:
     pass
 
 from .DataFile import DataFile, MaskDtypeMismatch, MaskDimensionMismatch, MaskDimensionUnknown
 from .DataFile import MarkerTypeDoesNotExist, ImageDoesNotExist
 
-from .includes.loader import loadUrl as load
-from .includes.loadExamples import loadExample
 
 def print_status():
     # ClickPoints Version
