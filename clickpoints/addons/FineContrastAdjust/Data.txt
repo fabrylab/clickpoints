@@ -1,0 +1,5 @@
+[addon]
+name=Fine Contrast Adjust
+file=FineContrast.py
+icon=fa.adjust
+image=Image.png
