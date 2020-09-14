@@ -615,6 +615,8 @@ class DataFileExtended(DataFile):
             except:
                 pass
             self.temporary_db = None
+        # close main db
+        self.db.close()
         pass
 
     def initTimeStampRegEx(self) -> None:
