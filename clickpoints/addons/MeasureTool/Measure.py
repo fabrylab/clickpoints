@@ -77,7 +77,7 @@ class ModuleScaleBar(QtWidgets.QWidget):
     def getBarParameters(self, scale):
         if self.parent.getOption("length") != 0:
             mu = self.parent.getOption("length")
-            pixel = mu / self.pixtomu * self.scale
+            pixel = mu / self.pixtomu * scale
             return pixel, mu
         mu = 100 * self.pixtomu / scale
         values = [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000, 1500, 2000, 2500, 5000, 10000]
@@ -87,7 +87,7 @@ class ModuleScaleBar(QtWidgets.QWidget):
                 mu = old_v
                 break
             old_v = v
-        pixel = mu / (self.pixtomu) * scale
+        pixel = mu / self.pixtomu * scale
         return pixel, mu
 
     def updateBar(self):
