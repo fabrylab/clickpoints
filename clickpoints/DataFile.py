@@ -5189,3 +5189,13 @@ class DataFile:
             pos += offsets
 
         return pos
+
+    def __enter__(self):
+        self.db.connect(reuse_if_open=True)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.db.close()
+
+    def __call__(self, *args, **kwargs):
+        return self
