@@ -354,7 +354,8 @@ class DataFile:
     _buffer = None
 
     """ Enumerations """
-    TYPE_Normal = 0
+    TYPE_Normal = 0  # old synonym for TYPE_Marker
+    TYPE_Marker = 0
     TYPE_Rect = 1
     TYPE_Line = 2
     TYPE_Track = 4
@@ -405,7 +406,6 @@ class DataFile:
         if database_filename is None:
             raise TypeError("No database filename supplied.")
         self._database_filename = database_filename
-        print("path", self._database_filename)
 
         version = self._current_version
         new_database = True
@@ -1696,8 +1696,8 @@ class DataFile:
             version = self.db.execute_sql('SELECT value FROM meta WHERE key = "version"').fetchone()[0]
         except (KeyError, peewee.DoesNotExist):
             version = "0"
-        print("Open database with version", version)
         if int(version) < int(self._current_version):
+            print("Open database with version", version)
             self._migrateDBFrom(version)
         elif int(version) > int(self._current_version):
             print("Warning Database version %d is newer than ClickPoints version %d "
