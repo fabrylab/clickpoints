@@ -67,7 +67,7 @@ class Addon(clickpoints.Addon):
                                     self.getOption("maxIterations"), self.getOption("epsilon")))
 
         # get the images
-        images = self.db.getImageIterator(start_frame=self.start, end_frame=self.end+1, skip=self.skip)
+        images = self.db.getImageIterator(start_frame=start_frame, end_frame=self.end+1, skip=self.skip)
 
         # retrieve first image
         image_last = next(images)
