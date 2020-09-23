@@ -894,6 +894,21 @@ class DataFile:
             def getPos2(self):
                 return [self.x2, self.y2]
 
+            @property
+            def points(self):
+                return np.array([[self.x1, self.y1],
+                                 [self.x2, self.y2],
+                                 ])
+
+            @property
+            def center(self):
+                # the center is the mean of all points
+                return np.array([(self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2])
+
+            @property
+            def perimeter(self):
+                return np.sqrt((self.x1-self.x2)**2 + (self.y1-self.y2)**2)
+
             # def __getattribute__(self, item):
             #     if item == "correctedXY":
             #         return self.correctedXY()
@@ -997,6 +1012,22 @@ class DataFile:
             #def setPos2(self, x, y):
             #    self.x = x
             #    self.y = y
+
+            @property
+            def points(self):
+                return np.array([[self.x, self.y],
+                                 [self.x+self.width, self.y],
+                                 [self.x+self.width, self.y+self.height],
+                                 [self.x, self.y+self.height]])
+
+            @property
+            def center(self):
+                # the center is the mean of all points
+                return np.array([self.x+self.width/2, self.y+self.height/2])
+
+            @property
+            def perimeter(self):
+                return self.width*2 + self.height*2
 
             def getRect(self):
                 return [self.x, self.y, self.width, self.height]
