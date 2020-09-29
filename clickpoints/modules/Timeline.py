@@ -1040,6 +1040,8 @@ class Timeline(QtCore.QObject):
         return self.data_file.get_current_image()
 
     def get_frame_count(self) -> int:
+        if self.data_file is None:
+            return 0
         return self.data_file.get_image_count()
 
     def ImagesAdded(self) -> None:
@@ -1133,6 +1135,8 @@ class Timeline(QtCore.QObject):
                 self.window.JumpFrames(self.skip)
 
     def updateLabel(self) -> None:
+        if self.data_file is None:
+            return
         if self.slider_update or 1:
             self.frameSlider.setValue(self.get_current_frame())
 
