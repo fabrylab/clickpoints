@@ -127,6 +127,7 @@ def reset_database(filename: str = "", window=None) -> None:
     data_file = Database.DataFileExtended(filename, config, storage_path=os.environ["CLICKPOINTS_TMP"])
     # self.data_file.signals.loaded.connect(self.FrameLoaded)
     if window is not None:
+        window.data_file = data_file
         # apply image rotation from config
         if data_file.getOption("rotation") != 0:
             window.view.rotate(data_file.getOption("rotation"))
