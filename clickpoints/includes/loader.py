@@ -296,7 +296,7 @@ async def addPath(data_file: DataFile,
             # add the file to the database
             try:
                 data.extend(
-                    data_file.add_image(filename, extension, None, frames, path=paths[file_path], layer=layer_entry,
+                    data_file.add_image(filename.name, extension, None, frames, path=paths[file_path], layer=layer_entry,
                                         full_path=filename, commit=False))
             except OSError as err:
                 print("ERROR:", err)
@@ -311,7 +311,7 @@ async def addPath(data_file: DataFile,
                 data = []
                 # if the file is the file which should be selected jump to that frame
                 if filename == select_file:
-                    file = data_file.table_image.get(filename=select_file)
+                    file = data_file.table_image.get(filename=select_file.name)
                     window.first_frame = file.sort_index
                     select_file = None
 
