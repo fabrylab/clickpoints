@@ -231,7 +231,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
 
         self.cbCustomTime = QtShortCuts.QInputBool(Vlayout, 'Custom time:', options.export_custom_time)
         self.cbCustomTimeDelta = QtShortCuts.QInputNumber(Vlayout, 'Time between two frames (s):',
-                                                          options.export_custom_time_delta)
+                                                          options.export_custom_time_delta, decimals=3)
 
         Vlayout.addStretch()
 
@@ -478,7 +478,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
             # draw timestamp
             if self.time_drawing is not None:
                 if options.export_custom_time:
-                    text = str(datetime.timedelta(seconds=self.custom_time))
+                    text = formatTimedelta(datetime.timedelta(seconds=self.custom_time), options.export_timedelta_format)
                     draw.text((self.time_drawing.x, self.time_drawing.y), text, self.time_drawing.color,
                               font=self.time_drawing.font)
                     self.custom_time += options.export_custom_time_delta
