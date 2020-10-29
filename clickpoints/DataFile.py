@@ -26,6 +26,7 @@ import peewee
 import imageio
 import sys
 import platform
+import PIL
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -51,6 +52,13 @@ def dict_factory(cursor, row):
 class ImageField(peewee.BlobField):
     """ A database field, that """
     def db_value(self, value):
+        # if the maximal value is 1, we can save it as a 1bit PNG
+        if np.max(value) == 1:
+            stream = io.BytesIO()
+            PIL.Image.fromarray(value.astype(np.bool)).save(stream, bits=1, optimize=True, format="png")
+            stream.seek(0)
+            return stream.read()
+
         value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".png")
         if PY3:
             return value
@@ -59,7 +67,11 @@ class ImageField(peewee.BlobField):
     def python_value(self, value):
         if not PY3:
             return imageio.imread(StringIO(str(value)), format=".png")
-        return imageio.imread(io.BytesIO(value), format=".png")
+        im = imageio.imread(io.BytesIO(value), format=".png")
+        # if the maximum is 255, it is a binary png
+        if im.max() == 255:
+            return np.clip(im, 0, 1)
+        return im
 
 def CheckValidColor(color):
     class NoValidColor(Exception):
