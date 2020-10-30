@@ -7,11 +7,9 @@ operating system you are using.
 Python Packages
 ~~~~~~~~~~~~~~~
 
-If you are already familiar with python and have a python installation, you can choose one of the following ways:
+You can install the latest release version of clickpoints with pip:
 
-- If you have pip: ``pip install clickpoints`` (recommended)
-- If you are in a conda env: ``conda install -c conda-forge -c rgerum clickpoints``
-- Or with ``python setup.py install`` (to use this command download the package and call the command in the main folder)
+    ``pip install clickpoints``
 
 We recommend the pip installation, as this should always be the newest version of ClickPoints.
 
@@ -30,8 +28,11 @@ If you want to remove it again, call
 Developer Version
 ~~~~~~~~~~~~~~~~~
 
-If you want to have ClickPoints installed from the repository and be able to update to the newest changesets, you can
-follow this guide. First of all you need to have git installed (`Git <https://git-scm.com/>`_ or directly a git client e.g. `GitHub Desktop<https://desktop.github.com/>`_).
+If you just want to get the very latest features you can install with pip the latest revision:
+
+    ``pip install git+https://github.com/fabrylab/clickpoints``
+
+If you want to actively work on the ClickPoints code, you should clone the repository. First of all you need to have git installed (`Git <https://git-scm.com/>`_ or directly a git client e.g. `GitHub Desktop<https://desktop.github.com/>`_).
 Then you can open a command line in the folder where you want to install ClickPoints (e.g. C:\Software) and run the following command:
 
     ``git clone https://github.com/fabrylab/clickpoints.git``
