@@ -196,10 +196,11 @@ def getOptionInputWidget(option: Option, layout: QtWidgets.QVBoxLayout, **kwargs
 
 class OptionEditorWindow(QtWidgets.QWidget):
 
-    def __init__(self, window: "ClickPointsWindow", data_file: DataFileExtended) -> None:
+    def __init__(self, window: "ClickPointsWindow", data_file: DataFileExtended, parent: "OptionEditor") -> None:
         QtWidgets.QWidget.__init__(self)
         self.window = window
         self.data_file = data_file
+        self.parent = parent
 
         # Widget
         self.setMinimumWidth(450)
@@ -295,7 +296,8 @@ class OptionEditorWindow(QtWidgets.QWidget):
             config_path = str(config_path)
         if not config_path or not os.path.exists(config_path):
             return
-        config = LoadConfig(config_path, just_load=True)
+        config = LoadConfig(srcpath=config_path, just_load=True)
+
         for key in config:
             if key in self.edits_by_name:
                 edit = self.edits_by_name[key]
@@ -490,12 +492,25 @@ class OptionEditor:
         if self.OptionsWindow is not None:
             self.OptionsWindow.close()
             self.OptionsWindow = None
-        self.OptionsWindow = OptionEditorWindow(self.window, self.data_file)
+        self.OptionsWindow = OptionEditorWindow(self.window, self.data_file, self)
         self.OptionsWindow.show()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         if self.OptionsWindow:
             self.OptionsWindow.close()
+
+    def applyConfig(self, config):
+        for key in config:
+            # set the option in the database
+            try:
+                self.data_file.setOption(key, config[key])
+            except KeyError:
+                # not a valid option
+                pass
+        # notify everyone that the options have changed
+        self.data_file.optionsChanged(None)
+        BroadCastEvent(self.window.modules, "optionsImported")
+        BroadCastEvent(self.window.modules, "optionsChanged", None)
 
     @staticmethod
     def file() -> str:

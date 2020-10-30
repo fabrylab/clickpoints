@@ -199,6 +199,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.setFocus()
 
         self.start_timer = QtCore.QTimer.singleShot(1, lambda: self.loadUrl(config.srcpath))
+        self.start_config = config
 
         self.app.processEvents()
 
@@ -233,6 +234,8 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
             self.load_timer.stop()
             print("Loading finished in %.2fs " % (time.time() - self.loading_time))
+            if not url.endswith(".cdb"):
+                self.GetModule("OptionEditor").applyConfig(self.start_config)
 
         self.load_timer.start()
         self.data_file = loadUrl(url, self.data_file, window=self, use_natsort=use_natsort, reset=reset, loop=self.app.loop, callback_finished=loadingFinished)
