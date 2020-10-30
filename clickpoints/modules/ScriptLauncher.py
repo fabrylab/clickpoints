@@ -483,6 +483,11 @@ class ScriptLauncher(QtCore.QObject):
 
         self.updateScripts()
 
+    def optionsImported(self, config):
+        for script in config.scripts:
+            self.activateScript(script, silent=True)
+        self.updateScripts()
+
     def activateScript(self, script_name: Union[Script, str], silent: bool = False) -> None:
         script = self.getScriptByFilename(script_name)
         if script is not None:

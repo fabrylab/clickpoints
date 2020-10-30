@@ -500,16 +500,29 @@ class OptionEditor:
             self.OptionsWindow.close()
 
     def applyConfig(self, config):
+        invalid_key = []
         for key in config:
             # set the option in the database
             try:
                 self.data_file.setOption(key, config[key])
             except KeyError:
+                invalid_key.append(key)
                 # not a valid option
                 pass
         # notify everyone that the options have changed
         self.data_file.optionsChanged(None)
-        BroadCastEvent(self.window.modules, "optionsImported")
+        BroadCastEvent(self.window.modules, "optionsImported", config)
+        BroadCastEvent(self.window.modules, "optionsChanged", None)
+        # for config keys that are only for the addons that were not activated before
+        for key in invalid_key:
+            # set the option in the database
+            try:
+                self.data_file.setOption(key, config[key])
+            except KeyError:
+                if key not in ["TYPE_Normal", "TYPE_Rect", "TYPE_Line", "TYPE_Track", "__builtins__", "__doc__", "srcpath"]:
+                    print("error", key)
+                # not a valid option
+                pass
         BroadCastEvent(self.window.modules, "optionsChanged", None)
 
     @staticmethod
