@@ -132,7 +132,8 @@ format = BoolFormat('bool',  # short name
                    'i'  # modes, characters in iIvV
                    )
 
-formats.add_format(format)
+if "BOOL" not in formats.get_format_names():
+    formats.add_format(format)
 
 if __name__ == "__main__":
     from time import time
