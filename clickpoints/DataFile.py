@@ -27,6 +27,7 @@ import imageio
 import sys
 import platform
 import PIL
+import zlib
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -54,10 +55,11 @@ class ImageField(peewee.BlobField):
     def db_value(self, value):
         # if the maximal value is 1, we can save it as a 1bit PNG
         if np.max(value) == 1:
-            stream = io.BytesIO()
-            PIL.Image.fromarray(value.astype(np.bool)).save(stream, bits=1, optimize=True, format="png")
-            stream.seek(0)
-            return stream.read()
+            out = b"BOOL"
+            out += value.shape[0].to_bytes(4, "big")
+            out += value.shape[1].to_bytes(4, "big")
+            out += zlib.compress(np.packbits(value).tobytes(), level=1)
+            return out
 
         value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".png")
         if PY3:
@@ -66,12 +68,16 @@ class ImageField(peewee.BlobField):
 
     def python_value(self, value):
         if not PY3:
-            return imageio.imread(StringIO(str(value)), format=".png")
-        im = imageio.imread(io.BytesIO(value), format=".png")
-        # if the maximum is 255, it is a binary png
-        if im.max() == 255:
-            return np.clip(im, 0, 1)
-        return im
+            stream = StringIO(str(value))
+        else:
+            stream = io.BytesIO(value)
+        if stream.read(4)==b"BOOL":
+            h,w = np.frombuffer(stream.read(8), dtype=">i", count=2)
+            l = int(np.ceil(w*h/8))
+            return np.unpackbits(np.frombuffer(zlib.decompress(stream.read()), np.uint8)).reshape((h,w))
+        else:
+            stream.seek(0)
+        return imageio.imread(stream, format=".png")
 
 def CheckValidColor(color):
     class NoValidColor(Exception):
@@ -3425,7 +3431,7 @@ class DataFile:
 
         return query
 
-    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=None):
+    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=None, checkShape=False):
         """
         Update or create new :py:class:`Mask` entry with the given parameters.
 
@@ -3446,6 +3452,8 @@ class DataFile:
             id of the mask entry.
         layer: int, optional
             the layer of the image, which masks should be set. always use with frame.
+        checkShape: bool, optional
+            check if the maks and image have the same shape
 
         Returns
         -------
@@ -3474,11 +3482,12 @@ class DataFile:
         if data is not None:
             if not data.dtype == np.uint8:
                 raise MaskDtypeMismatch("mask.data dtype is not of type uint8")
-            try:
-                if not tuple(data.shape) == image.getShape():
-                    raise MaskDimensionMismatch("mask.data shape doesn't match image dimensions!")
-            except IOError:
-                UserWarning("Couldn't retrieve image dimension - shape verification not possible ")
+            if checkShape:
+                try:
+                    if not tuple(data.shape) == image.getShape():
+                        raise MaskDimensionMismatch("mask.data shape doesn't match image dimensions!")
+                except IOError:
+                    UserWarning("Couldn't retrieve image dimension - shape verification not possible ")
 
         # create mask element
         if not mask:
@@ -3491,11 +3500,12 @@ class DataFile:
             else:
                 if not data.dtype == np.uint8:
                     raise MaskDtypeMismatch("mask.data dtype is not of type uint8")
-                try:
-                    if not tuple(data.shape) == image.getShape():
-                        raise MaskDimensionMismatch("mask.data shape doesn't match image dimensions!")
-                except IOError:
-                    UserWarning("Couldn't retrieve image dimension - shape verification not possible ")
+                if checkShape:
+                    try:
+                        if not tuple(data.shape) == image.getShape():
+                            raise MaskDimensionMismatch("mask.data shape doesn't match image dimensions!")
+                    except IOError:
+                        UserWarning("Couldn't retrieve image dimension - shape verification not possible ")
             mask = self.table_mask(image=image, data=data)
 
         setFields(mask, dict(data=data, image=image))
