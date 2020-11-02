@@ -40,6 +40,7 @@ PY3 = sys.version_info[0] == 3
 if PY3:
     basestring = str
 
+from .addons.imageio_plugin.imageio_plugin_BOOL import *
 
 # to get query results as dictionaries
 def dict_factory(cursor, row):
@@ -55,13 +56,9 @@ class ImageField(peewee.BlobField):
     def db_value(self, value):
         # if the maximal value is 1, we can save it as a 1bit PNG
         if np.max(value) == 1:
-            out = b"BOOL"
-            out += value.shape[0].to_bytes(4, "big")
-            out += value.shape[1].to_bytes(4, "big")
-            out += zlib.compress(np.packbits(value).tobytes(), level=1)
-            return out
-
-        value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".png")
+            value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".bool")
+        else:
+            value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".png")
         if PY3:
             return value
         return peewee.binary_construct(value)
@@ -72,12 +69,11 @@ class ImageField(peewee.BlobField):
         else:
             stream = io.BytesIO(value)
         if stream.read(4)==b"BOOL":
-            h,w = np.frombuffer(stream.read(8), dtype=">i", count=2)
-            l = int(np.ceil(w*h/8))
-            return np.unpackbits(np.frombuffer(zlib.decompress(stream.read()), np.uint8)).reshape((h,w))
+            stream.seek(0)
+            return imageio.imread(stream, format=".bool")
         else:
             stream.seek(0)
-        return imageio.imread(stream, format=".png")
+            return imageio.imread(stream, format=".png")
 
 def CheckValidColor(color):
     class NoValidColor(Exception):
