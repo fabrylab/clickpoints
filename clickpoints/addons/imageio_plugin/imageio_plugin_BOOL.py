@@ -68,7 +68,7 @@ class BoolFormat(imageio.core.Format):
                 except AssertionError:
                     break
                     # return out ,{}
-            out = np.array(LUT)[out]
+            out = np.array(LUT, dtype=np.uint8)[out]
             return out, {}
 
         def _get_meta_data(self, index):
