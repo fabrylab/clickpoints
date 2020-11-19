@@ -221,6 +221,7 @@ class BigImageDisplay:
         else:
             self.image_pixMapItem.setImage(image)
             self.image_pixMapItem.setOffset(*offset)
+            self.last_offset = np.array(offset)
             self.image_pixMapItem.setScale(1)
             self.slice_zoom_pixmap.setVisible(False)
 
