@@ -416,6 +416,14 @@ class DataFile:
             for idx in range(0, len(data), chunk_size):
                 table.replace_many(data[idx:idx + chunk_size]).execute()
 
+    def saveInsertMany(self, table, data, fields=None):
+        if self._SQLITE_MAX_VARIABLE_NUMBER is None:
+            self._SQLITE_MAX_VARIABLE_NUMBER = self.max_sql_variables()
+        chunk_size = ((self._SQLITE_MAX_VARIABLE_NUMBER // len(data[0])) - 1) // 2
+        with self.db.atomic():
+            for idx in range(0, len(data), chunk_size):
+                table.insert_many(data[idx:idx + chunk_size], fields=fields).execute()
+
     def __init__(self, database_filename=None, mode='r'):
         if database_filename is None:
             raise TypeError("No database filename supplied.")
@@ -1062,7 +1070,7 @@ class DataFile:
                 return np.array(self.database_class.db.execute_sql(
                     "SELECT r.x - IFNULL(o.x, 0), r.y - IFNULL(o.y, 0) FROM rectangle r LEFT JOIN image i ON r.image_id == i.id LEFT JOIN offset o ON i.id == o.image_id WHERE r.id == ?",
                     [self.id]).fetchone())
-            
+
                 join_condition = (Marker.image == Offset.image)
 
                 querry = Marker.select(Marker.x,
@@ -1391,7 +1399,7 @@ class DataFile:
         class Mask(BaseModel):
             image = peewee.ForeignKeyField(Image, backref="masks", on_delete='CASCADE')
             data = ImageField()
-            
+
             def __array__(self):
                 return self.data
 
@@ -2631,7 +2639,7 @@ class DataFile:
     def getImageCount(self):
         """
         Returns the number of images in the database.
-        
+
         Returns
         -------
         count : int
@@ -5238,6 +5246,53 @@ class DataFile:
             pos += offsets
 
         return pos
+
+    def setTracksNanPadded(self, nan_padded, track_type, layer=None, clear_tracks_before=True):
+        # get the type
+        type = self._processesTypeNameField(track_type, ["TYPE_Normal", "TYPE_Track"])
+
+        # get the layer
+        if layer is not None:
+            layer_id = self.db.execute_sql(f"SELECT id FROM layer WHERE layer.name = {layer} LIMIT 1").fetchall()[0][0]
+        else:
+            try:
+                layer_id = self.db.execute_sql(f"SELECT id FROM layer WHERE layer.base_layer_id is NULL LIMIT 1").fetchall()[0][0]
+            except IndexError:
+                layer_id = None
+
+        if clear_tracks_before is True:
+            # remove previous tracks (deletes also their markers)
+            self.deleteTracks(track_type)
+
+            # create the new tracks
+            data = [[type] for i in range(nan_padded.shape[0])]
+            self.saveInsertMany(self.table_track, data, ["type"])
+
+            # get the ids of the new tracks, as we deleted all tracks before, we can just get all ids
+            track_ids = np.array(self.db.execute_sql(f"SELECT id FROM track WHERE track.type_id = {type.id}").fetchall()).astype(np.int).ravel()
+        else:
+            # if we do not delete the tracks before, we have to insert them one after the other to obtain their ids
+            with self.db.atomic():
+                track_ids = []
+                for i in range(nan_padded.shape[0]):
+                    track_ids.append(self.table_track.insert(dict(type=track_type)).execute())
+
+        # get the image ids
+        if layer_id is None:
+            image_ids = np.array([self.db.execute_sql(f"SELECT id FROM image WHERE image.sort_index = {i} LIMIT 1").fetchall()[0][0] for i in range(nan_padded.shape[1])]).astype(np.int)#.ravel()
+        else:
+            image_ids = np.array([self.db.execute_sql(f"SELECT id FROM image WHERE image.sort_index = {i} AND image.layer_id = {layer_id} LIMIT 1").fetchall()[0][0] for i in range(nan_padded.shape[1])]).astype(np.int)  # .ravel()
+
+        # prepare the data
+        data = []
+        isnan = np.isnan(nan_padded[:, :, 0])
+        for i in range(nan_padded.shape[1]):
+            for t in range(nan_padded.shape[0]):
+                if not isnan[t, i]:
+                    data.append([track_ids[t], type, nan_padded[t, i, 0], nan_padded[t, i, 1], image_ids[i]])
+
+        # add the data to the database
+        return self.saveInsertMany(self.table_marker, data, ["track_id", "type", "x", "y", "image_id"])
 
     def __enter__(self):
         self.db.connect(reuse_if_open=True)
