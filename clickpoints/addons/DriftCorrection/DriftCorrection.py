@@ -29,6 +29,10 @@ import clickpoints
 from qtpy import QtWidgets, QtCore, QtGui
 
 
+def contrastEnhance(image):
+    return ((image-image.min()) / (image.max() - image.min())*255).astype(np.uint8)
+
+
 class Addon(clickpoints.Addon):
     def __init__(self, *args, **kwargs):
         clickpoints.Addon.__init__(self, *args, **kwargs)
@@ -40,6 +44,8 @@ class Addon(clickpoints.Addon):
         self.addOption(key="compareToFirst", display_name="Compare to first image", default=False, value_type="bool",
                        tooltip="Weather each image should be compared to the first image or the previous image.")
         self.addOption(key="matchFunction", display_name="Match Function", default=3, value_type="choice", values=self.matchFunctions)
+        self.addOption(key="contrastEnhance", display_name="Enhance the contrast of every image", default=False, value_type="bool",
+                       tooltip="Weather each image should be contrast enhanced (minimum to maximum mapped to 0 to 255).")
 
         # Check if the marker type is present
         if not self.db.getMarkerType("drift_rect"):
@@ -130,7 +136,10 @@ class Addon(clickpoints.Addon):
         last_shift = np.array([0, 0])
         for image in images:
             # template matching for drift correction
-            res = cv2.matchTemplate(image.data[rect.slice()], template, match_func)
+            if self.getOption("contrastEnhance") is True:
+                res = cv2.matchTemplate(contrastEnhance(image.data[rect.slice()]), contrastEnhance(template), match_func)
+            else:
+                res = cv2.matchTemplate(image.data[rect.slice()], template, match_func)
             res += np.amin(res)
             res = res ** 4.
 
