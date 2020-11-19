@@ -220,6 +220,7 @@ class BigImageDisplay:
             self.updateSlideView()
         else:
             self.image_pixMapItem.setImage(image)
+            self.image_pixMapItem.setOffset(*offset)
             self.image_pixMapItem.setScale(1)
             self.slice_zoom_pixmap.setVisible(False)
 
