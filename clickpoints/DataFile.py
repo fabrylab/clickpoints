@@ -5247,7 +5247,7 @@ class DataFile:
 
         return pos
 
-    def setTracksNanPadded(self, nan_padded, track_type, layer=None, clear_tracks_before=True):
+    def setTracksNanPadded(self, nan_padded, track_type, layer=None, start_frame=0, clear_tracks_before=True):
         # get the type
         type = self._processesTypeNameField(track_type, ["TYPE_Normal", "TYPE_Track"])
 
@@ -5256,7 +5256,7 @@ class DataFile:
             layer_id = self.db.execute_sql(f"SELECT id FROM layer WHERE layer.name = {layer} LIMIT 1").fetchall()[0][0]
         else:
             try:
-                layer_id = self.db.execute_sql(f"SELECT id FROM layer WHERE layer.base_layer_id is NULL LIMIT 1").fetchall()[0][0]
+                layer_id = self.db.execute_sql(f"SELECT id FROM layer WHERE layer.base_layer_id is layer.id LIMIT 1").fetchall()[0][0]
             except IndexError:
                 layer_id = None
 
@@ -5279,9 +5279,9 @@ class DataFile:
 
         # get the image ids
         if layer_id is None:
-            image_ids = np.array([self.db.execute_sql(f"SELECT id FROM image WHERE image.sort_index = {i} LIMIT 1").fetchall()[0][0] for i in range(nan_padded.shape[1])]).astype(np.int)#.ravel()
+            image_ids = np.array([self.db.execute_sql(f"SELECT id FROM image WHERE image.sort_index = {i+start_frame} LIMIT 1").fetchall()[0][0] for i in range(nan_padded.shape[1])]).astype(np.int)#.ravel()
         else:
-            image_ids = np.array([self.db.execute_sql(f"SELECT id FROM image WHERE image.sort_index = {i} AND image.layer_id = {layer_id} LIMIT 1").fetchall()[0][0] for i in range(nan_padded.shape[1])]).astype(np.int)  # .ravel()
+            image_ids = np.array([self.db.execute_sql(f"SELECT id FROM image WHERE image.sort_index = {i+start_frame} AND image.layer_id = {layer_id} LIMIT 1").fetchall()[0][0] for i in range(nan_padded.shape[1])]).astype(np.int)  # .ravel()
 
         # prepare the data
         data = []
