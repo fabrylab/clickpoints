@@ -234,7 +234,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
             self.load_timer.stop()
             print("Loading finished in %.2fs " % (time.time() - self.loading_time))
-            if not url.endswith(".cdb"):
+            if not str(url).endswith(".cdb"):
                 self.GetModule("OptionEditor").applyConfig(self.start_config)
 
         self.load_timer.start()
