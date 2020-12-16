@@ -210,7 +210,8 @@ class Addon(clickpoints.Addon):
         datas = []
         for j in np.arange(0, self.h)-self.h/2.+0.5:
             data = []
-            for i in np.linspace(0, 1, np.ceil(length)):
+            print (np.ceil(length))
+            for i in np.linspace(0, 1, int(np.ceil(length))):
                 x = x1 + w * i + w2 * j
                 y = y1 + h * i + h2 * j
                 xp = x - np.floor(x)
