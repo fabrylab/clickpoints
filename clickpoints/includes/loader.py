@@ -239,7 +239,7 @@ class InputIteratorFolder(InputIterator):
 
     def __iter__(self):
         for path in self.url.iterdir():
-            if path.is_file() and path.suffix in formats:
+            if path.is_file() and path.suffix.lower() in formats:
                 yield path
 
 class InputIteratorFile(InputIterator):
