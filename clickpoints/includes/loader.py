@@ -172,9 +172,9 @@ def loadUrl(url: str, data_file: DataFile = None, reset: bool = False, use_natso
     if '*' in str(url):
         print("Glob string detected - building list")
         # obj can be directory or files
-        obj_list = glob.glob(str(url))
-        if use_natsort is True:
-            obj_list = natsort.natsorted(obj_list)
+        obj_list = natsorted(glob.glob(str(url)))
+        # if use_natsort is True:
+        #     obj_list = natsort.natsorted(obj_list)
         call(addPath(data_file, InputIteratorList(obj_list), callback_finished=callback_finished))
 
         if loop is None and callback_finished is not None:
@@ -223,24 +223,50 @@ class InputIteratorList(InputIterator):
             yield Path(path)
 
 class InputIteratorGlob(InputIterator):
-    def __init__(self, url, query):
+    def __init__(self, url, query, sorted_list=True):
+        """  with sorted_list flag enabled elements of a natsorted list are returned
+        this requires caching of all file names and might be slower than using the iterator directly
+        however correct file sorting is guarantied and not OS and FS dependent """
         # store the filename
         self.url = Path(url)
         self.query = query
+        self.input_elements = []
+
+        if sorted_list:
+            self.input_elements = natsorted(self.url.glob(self.query))
+        else:
+            self.input_elements = self.url.glob(self.query)
 
     def __iter__(self):
-        for path in self.url.glob(self.query):
+        for path in self.input_elements:
             yield path
 
 class InputIteratorFolder(InputIterator):
-    def __init__(self, url):
+    def __init__(self, url, sorted_list=True):
+        """ with sorted_list flag enabled elements of a natsorted list are returned
+        this requires caching of all file names and might be slower than using the iterator directly
+        however correct file sorting is guarantied and not OS and FS dependent """
+
         # store the filename
         self.url = Path(url)
+        self.sorted_list = sorted_list
+        self.input_elements = []
+
+
+        if self.sorted_list:
+            for path in self.url.iterdir():
+                if path.is_file() and path.suffix.lower() in formats:
+                    self.input_elements.append(path)
+            self.input_elements = natsorted(self.input_elements)
 
     def __iter__(self):
-        for path in self.url.iterdir():
-            if path.is_file() and path.suffix.lower() in formats:
-                yield path
+        if self.sorted_list:
+            for file in self.input_elements:
+                yield file
+        else:
+            for path in self.url.iterdir():
+                if path.is_file() and path.suffix.lower() in formats:
+                    yield path
 
 class InputIteratorFile(InputIterator):
     def __init__(self, url):
