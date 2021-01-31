@@ -72,6 +72,7 @@ class PseudoSlide:
         self.dimensions = (image.shape[1], image.shape[0])
         self.ndim = len(image.shape)
         self.shape = image.shape
+        self.dtype = image.dtype
 
         self.level_dimensions = []
         self.level_downsamples = []
