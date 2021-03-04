@@ -1837,6 +1837,11 @@ class MyDisplayItem:
                     text = text.replace('$length', '%.2f' % self.data.length())
                 else:
                     text = text.replace('$length', '')
+            elif type(self.data) is self.marker_handler.data_file.table_polygon:
+                if self.data.perimeter is not None:
+                    text = text.replace('$length', '%.2f' % self.data.perimeter)
+                else:
+                    text = text.replace('$length', '')
             else:
                 text = text.replace('$length', '??')
         if '$area' in text:

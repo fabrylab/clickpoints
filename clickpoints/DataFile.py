@@ -1321,7 +1321,7 @@ class DataFile:
                 p = np.asarray(self.points)
                 # if it is closed, include the distance form the last to the first
                 if self.closed:
-                    return np.sum(np.linalg.norm(p - np.roll(p, axis=0), axis=1))
+                    return np.sum(np.linalg.norm(p - np.roll(p, shift=1, axis=0), axis=1))
                 else:
                     # if not, it is just the sum of the distances between subsequent points
                     return np.sum(np.linalg.norm(p[:-1] - p[1:], axis=1))
