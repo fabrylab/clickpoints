@@ -101,6 +101,10 @@ class Addon(clickpoints.Addon):
             self.db.setMarkerType("DM_scalebox", [0, 255, 255], self.db.TYPE_Normal)
             self.cp.reloadTypes()
 
+        if not self.db.getMarkerType("DM_GPS"):
+            self.db.setMarkerType("DM_GPS", [128, 128, 255], self.db.TYPE_Normal)
+            self.cp.reloadTypes()
+
         # TODO: move to parameter
         self.scalebox_dim = 10 # in meter
         self.scalebox_dict = dict()
@@ -239,7 +243,7 @@ class Addon(clickpoints.Addon):
         self.cameraComboBox = AddQComboBox(self.camera_layout,'Model:', values=cam_dict.keys())
         self.cameraComboBox.currentIndexChanged.connect(self.getCameraParametersByJson)
 
-        self.openFile = AddQOpenFileChoose(self.camera_layout, "Input", "", file_type="*.ct")
+        self.openFile = AddQOpenFileChoose(self.camera_layout, "Input", "", file_type="*.*")
         self.openFile.textChanged.connect(self.getCameraParametersByCT)
 
         # self.cameraButton = QtWidgets.QPushButton('Load Cam')
@@ -279,6 +283,8 @@ class Addon(clickpoints.Addon):
         self.leCamPan = AddQLineEdit(self.position_layout,"camera pan:", editwidth=120, value=None)
         self.leCamLat = AddQLineEdit(self.position_layout,"camera latitude:", editwidth=120)
         self.leCamLon = AddQLineEdit(self.position_layout,"camera longitude:", editwidth=120)
+        self.leCamPosX = AddQLineEdit(self.position_layout,"camera position X:", editwidth=120)
+        self.leCamPosY = AddQLineEdit(self.position_layout,"camera position Y:", editwidth=120)
 
         # get current frame
         cframe = self.cp.getCurrentFrame()
@@ -442,6 +448,9 @@ class Addon(clickpoints.Addon):
         self.leCamLat.setText(getNumber(cam.gps_lat,"%.2f"))
         self.leCamLon.setText(getNumber(cam.gps_lon,"%.2f"))
 
+        self.leCamPosX.setText(getNumber(cam.pos_x_m,"%.2f"))
+        self.leCamPosY.setText(getNumber(cam.pos_y_m,"%.2f"))
+
         self.updateCameraParameters()
 
 
@@ -472,8 +481,8 @@ class Addon(clickpoints.Addon):
         self.cam.roll_deg = getFloat(self.leCamRoll.text())
 
         self.cam.elevation_m = getFloat(self.leCamElevation.text())
-        self.cam.pos_x_m = 0.
-        self.cam.pos_y_m = 0.
+        self.cam.pos_x_m = getFloat(self.leCamPosX.text())
+        self.cam.pos_y_m = getFloat(self.leCamPosY.text())
 
         self.cam.projection = self.cbProjection.itemText(self.cbProjection.currentIndex())
 
@@ -547,6 +556,7 @@ class Addon(clickpoints.Addon):
                                                   center_x_px=self.cam.center_x_px,
                                                   center_y_px=self.cam.center_y_px)
         self.camera = ct.Camera(orientation=orientation, projection=projection)
+        self.camera.setGPSpos(lat=self.cam.gps_lat, lon=self.cam.gps_lon, elevation=self.cam.elevation_m)
 
 
     def run(self, start_frame=0):
@@ -697,6 +707,12 @@ class Addon(clickpoints.Addon):
         for marker in distscalebox:
             self.updateScalebox(marker)
 
+        # get scalebox markers and update size
+        gpsMarkers = self.db.getMarkers(type="DM_GPS", frame=self.frame)
+        for marker in gpsMarkers:
+            self.updateGPS(marker)
+        self.cp.reloadMarker(frame=self.frame)
+
 
         self.cp.reloadMarker(frame=self.frame)
 
@@ -744,6 +760,23 @@ class Addon(clickpoints.Addon):
         sb = ScaleBox(self.cp.window.view.origin, '#ff5f00', np.array([marker.x,marker.y]), self.camera, scalebox_dim)
         self.scalebox_dict[marker.id] = sb
 
+    def updateGPS(self, marker):
+        locationData = json.loads(marker.style)
+        if "lon" in locationData and "lat" in locationData:
+            lon = locationData["lon"]
+            lat = locationData["lat"]
+            if "h" in locationData:
+                h = locationData["h"]
+            else:
+                h = 0
+            imagePos = self.camera.imageFromSpace(self.camera.spaceFromGPS(np.array([lat,lon,h])), hide_backpoints=False)
+            if np.all(~np.isnan(imagePos)):
+                marker.x = imagePos[0]
+                marker.y = imagePos[1]
+                marker.save()
+            else:
+                print("gps position of marker is not in Image!")
+        # pass
 
 
     def markerMoveEvent(self, marker):
