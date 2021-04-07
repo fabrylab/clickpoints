@@ -995,9 +995,18 @@ class MarkerEditor(QtWidgets.QWidget):
         if (type(data)in [self.data_file.table_marker, self.data_file.table_line, self.data_file.table_rectangle, self.data_file.table_ellipse, self.data_file.table_polygon]) and self.data == data:
             # got to the frame of the selected object
             self.marker_handler.window.JumpToFrame(self.data.image.sort_index)
-        if (type(data)in [self.data_file.table_marker]) and self.data == data:
-            # center view on marker
-            self.marker_handler.window.CenterOn(self.data.x, self.data.y)
+            if type(data) is self.data_file.table_marker:
+                self.marker_handler.window.CenterOn(self.data.x, self.data.y) # center view on marker
+            elif type(data) is self.data_file.table_line:
+                self.marker_handler.window.CenterOn( (self.data.x1+self.data.x2)/2, (self.data.y1+self.data.y2)/2,) # center view on line
+            elif type(data) is self.data_file.table_rectangle:
+                self.marker_handler.window.CenterOn( self.data.x+self.data.width/2, self.data.y+self.data.height/2,) # center view on rectangle
+            elif type(data) is self.data_file.table_ellipse:
+                self.marker_handler.window.CenterOn( self.data.x, self.data.y,) # center view on ellipse
+            elif type(data) is self.data_file.table_polygon:
+                if not np.any(np.isnan(self.data.center)):
+                    self.marker_handler.window.CenterOn(*self.data.center) # center view on ellipse
+
         if (type(data)in [self.data_file.table_track]) and self.data == data:
             # center view on first track marker
             self.marker_handler.window.JumpToFrame(self.data.markers[0].image.sort_index)
