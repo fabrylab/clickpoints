@@ -286,6 +286,12 @@ class Addon(clickpoints.Addon):
         self.leCamPosX = AddQLineEdit(self.position_layout,"camera position X:", editwidth=120)
         self.leCamPosY = AddQLineEdit(self.position_layout,"camera position Y:", editwidth=120)
 
+        for c in self.position_groupbox.children():
+            if hasattr(c, "editingFinished"):
+                c.editingFinished.connect(self.update)
+        for c in self.camera_groupbox.children():
+            if hasattr(c, "editingFinished"):
+                c.editingFinished.connect(self.update)
         # get current frame
         cframe = self.cp.getCurrentFrame()
 
@@ -662,23 +668,24 @@ class Addon(clickpoints.Addon):
     def plotHorizon(self):
 
         if self.cbShowHorizon.isChecked():
-                # delete old horizon
-                self.deleteHorizon()
+            # delete old horizon
+            self.deleteHorizon()
 
-                # get coordinates
-                p1 = self.camera.getImageHorizon()[0]
-                p2 = self.camera.getImageHorizon()[-1]
-                print(p1, p2)
+            # get coordinates
+            p1 = self.camera.getImageHorizon()[0]
+            p2 = self.camera.getImageHorizon()[-1]
+            print(p1, p2)
 
-                # set pen
-                pen = QtGui.QPen(QtGui.QColor("#00ffff"))
-                pen.setWidth(5)
+            # set pen
+            pen = QtGui.QPen(QtGui.QColor("#00ffff"))
+            pen.setWidth(5)
+            pen.setCosmetic(True)
 
-                # add object
-                self.horizon_line = QtWidgets.QGraphicsLineItem(QtCore.QLineF(QtCore.QPointF(*p1),QtCore.QPointF(*p2)))
-                self.horizon_line.setPen(pen)
-                self.horizon_line.setParentItem(self.cp.window.view.origin)
-                self.horizon_line.setZValue(100)
+            # add object
+            self.horizon_line =  QtWidgets.QGraphicsLineItem(QtCore.QLineF(QtCore.QPointF(*p1), QtCore.QPointF(*p2)))
+            self.horizon_line.setPen(pen)
+            self.horizon_line.setParentItem(self.cp.window.view.origin)
+            self.horizon_line.setZValue(100)
 
         else:
             self.deleteHorizon()
@@ -689,6 +696,9 @@ class Addon(clickpoints.Addon):
             self.horizon_line.scene().removeItem(self.horizon_line)
             self.horizon_line = None
 
+    def update(self):
+        self.updateCameraParameters()
+        self.updateAllMarker()
 
     def updateAllMarker(self):
 
@@ -713,6 +723,7 @@ class Addon(clickpoints.Addon):
             self.updateGPS(marker)
         self.cp.reloadMarker(frame=self.frame)
 
+        self.plotHorizon()
 
         self.cp.reloadMarker(frame=self.frame)
 
@@ -738,8 +749,6 @@ class Addon(clickpoints.Addon):
 
         line.text = "%.2fm" % dist
         line.save()
-
-
 
     def updateScalebox(self,marker):
         scalebox_dim = self.sbScaleboxDim.value()
