@@ -4720,9 +4720,9 @@ class DataFile:
             images = self.table_image.select(self.table_image.id)
             images = addFilter(images, frame, self.table_image.sort_index)
             images = addFilter(images, filename, self.table_image.filename)
-            query = query.where(self.table_ellipse.image.in_(images))
+            query = query.where(self.table_polygon.image.in_(images))
         else:
-            query = addFilter(query, image, self.table_ellipse.image)
+            query = addFilter(query, image, self.table_polygon.image)
 
         query = addFilter(query, id, self.table_polygon.id)
         query = addFilter(query, type, self.table_polygon.type)
