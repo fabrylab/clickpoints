@@ -5132,7 +5132,7 @@ class DataFile:
                 kwargs["image"] = image
                 self.setAnnotation(**kwargs)
 
-    def getTracksNanPadded(self, type=None, id=None, start_frame=None, end_frame=None, skip=None, layer=0, apply_offset=False):
+    def getTracksNanPadded(self, type=None, id=None, start_frame=None, end_frame=None, skip=None, layer=None, apply_offset=False):
         """
         Return an array of all track points with the given filters. The array has the shape of [n_tracks, n_images, pos],
         where pos is the 2D position of the markers.
@@ -5169,11 +5169,7 @@ class DataFile:
 
         # get the filter condition (only filter if it is necessary, e.g. if we have more than one layer)
         if layer is not None and layer_count != 1:
-            if layer == 0:
-                layer = self.table_layer.select().where(self.table_layer.id == self.table_layer.base_layer).limit(1)[0]
-            else:
-                layer = self.table_layer.select().where(self.table_layer.id == layer).limit(1)[0]
-            where_condition_image.append("layer_id = %d" % layer.base_layer_id)
+            where_condition_image.append("i.layer_id = %d" % layer)
 
         # if a start frame is given, only export marker from images >= the given frame
         if start_frame is not None:
