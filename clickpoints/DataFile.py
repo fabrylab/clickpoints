@@ -4628,7 +4628,7 @@ class DataFile:
 
         return query
 
-    def setPolygon(self, image=None, frame=None, filename=None, points=None, type=None, processed=None, style=None,
+    def setPolygon(self, image=None, frame=None, filename=None, points=None, type=None, closed=None, processed=None, style=None,
                    text=None, id=None, layer=None):
         """
         Insert or update an :py:class:`Polygon` object in the database.
@@ -4648,6 +4648,8 @@ class DataFile:
             the points of the vertices of the polygon.
         type : string, :py:class:`MarkerType`, optional
             the marker type (or name) of the polygon.
+        closed : int, optional
+            makes the polygon a closed shape.
         processed : int, optional
             the processed flag of the polygon.
         text : string, optional
@@ -4673,7 +4675,7 @@ class DataFile:
         type = self._processesTypeNameField(type, ["TYPE_Polygon"])
         image = self._processImagesField(image, frame, filename, layer)
 
-        setFields(item, dict(image=image, points=points, type=type, processed=processed, style=style, text=text))
+        setFields(item, dict(image=image, points=points, type=type, closed=closed, processed=processed, style=style, text=text))
         item.save()
         return item
 
