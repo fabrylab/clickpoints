@@ -5162,8 +5162,6 @@ class DataFile:
             the array which contains all the track marker positions.
         """
 
-        layer_count = self.table_layer.select().count()
-
         """ image conditions """
         where_condition_image = []
 
@@ -5210,32 +5208,45 @@ class DataFile:
         else:
             where_condition_tracks = ""
 
-        track_ids = self.db.execute_sql("SELECT id FROM track t "+where_condition_tracks+";").fetchall()
+        track_ids = self.db.execute_sql("SELECT id FROM track t " + where_condition_tracks+";").fetchall()
         track_count = len(track_ids)
 
-        # create empty array to be filled by the queries
-        pos = np.zeros((track_count, image_count, 2), "float")
+        # ---- fast (but a little komplex) query algorithm ----
+        # this will be faster than iterating as long as track_ids and image ids are not extreeeeemly sparse
+        # (e.g 1, 1002, 678194083, ...), because that will create mindnumbingly big LUTs
+        # start with an array of the correct size for all the data, but flattened shape
+        pos = np.zeros((track_count*image_count,2), "float")
+        # make the array NaN
+        pos[:] = np.nan
+        # now query all positions at once, but include track id and image id -> shape (N, 4)
+        nonNanPos = np.asarray(self.db.execute_sql(
+                    "SELECT t.id, image_id, x, y FROM track t LEFT JOIN marker m ON m.track_id = t.id LEFT JOIN image i ON i.id = m.image_id "+\
+            where_condition_image +" AND " + where_condition_tracks.replace("WHERE","")
+        ).fetchall())
 
-        # iterate either over images or over tracks
-        # for some reasons it is better to iterate over the images even if the number of tracks is lower
-        if image_count < track_count * 100:
-            # iterate over all images
-            for index, (id,) in enumerate(image_ids):
-                # get the tracks for this image
-                q = self.db.execute_sql(
-                    "SELECT x, y FROM track t LEFT JOIN marker m ON m.track_id = t.id AND m.image_id = ? "+where_condition_tracks+" ORDER BY t.id",
-                    (id,))
-                # store the result in the array
-                pos[:, index] = q.fetchall()
-        else:
-            # iterate over all tracks
-            for index, (id,) in enumerate(track_ids):
-                # get the images for this track
-                q = self.db.execute_sql(
-                    "SELECT x, y FROM image i LEFT JOIN marker m ON m.track_id = ? AND m.image_id = i.id " + where_condition_image + " ORDER BY i.sort_index",
-                    (id,))
-                # store the result in the array
-                pos[index] = q.fetchall()
+        # now we built a little LUT/encoding scheme, that tells us which positions in the "pos" array encodes which image/track
+        # start with what track ids could possibly be in nonNanPos
+        allowedTracksIds = np.array(track_ids, dtype=int)
+        # now built a look up table, that maps these track ids to a an id in [0, track_count] -> column id of that track
+        allowedTracksLUT = np.cumsum(np.isin(np.arange(max(allowedTracksIds)+1), allowedTracksIds))
+        # now we renumber the tracks from our query to fit into [0, track_count]
+        encTracksId = allowedTracksLUT[nonNanPos[:,0].astype(int)] - allowedTracksIds.min()
+
+        # repeat the same with the image ids
+        # start with what image ids could possibly be in nonNanPos
+        allowedImageIds = np.array(image_ids, dtype=int)
+        # now built a look up table, that maps these image ids to a an id in [0, image_count] -> column id of that image
+        allowedImageLUT = np.cumsum(np.isin(np.arange(max(allowedImageIds)+1), allowedImageIds))
+        # now we renumber the iamges from our query to fit into [0, image_count]
+        encImageId = allowedImageLUT[nonNanPos[:,1].astype(int)] - allowedImageIds.min()
+
+        # now we stack our encoding scheme together -> this now identifies all entries in pos
+        encId = encImageId + image_count*encTrackId
+        # write the entries from our nonNanPos to the correct entries
+        # note that we do implicit ordering of track/image id here, because of how the LUT above are constructed
+        pos[encId] = nonNanPos[:,2:]
+        # a simple reshape brings us to the final nanPaddedTrackArray form
+        pos = pos.reshape((track_count, image_count, 2))
 
         # if the offset is required, get the offsets for all images and add them to the marker positions
         if apply_offset:
