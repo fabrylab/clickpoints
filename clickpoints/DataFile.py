@@ -888,6 +888,14 @@ class DataFile:
                 self.type = new_type
                 return self.save()
 
+            def getPixels(self, shape=None, perimeter=False):
+                import skimage.draw
+                if shape is None:
+                    shape = self.image.data.shape
+                if 0 <= self.x < shape[1] and 0 <= self.y < shape[0]:
+                    return (int(self.y+0.5), int(self.x+0.5))
+                return (), ()
+
         class Line(BaseModel):
             image = peewee.ForeignKeyField(Image, backref="lines", on_delete='CASCADE')
             x1 = peewee.FloatField()
@@ -1015,6 +1023,14 @@ class DataFile:
 
             def __array__(self):
                 return np.array([[self.x1, self.y1], [self.x2, self.y2]])
+
+            def getPixels(self, shape=None, perimeter=False):
+                import skimage.draw
+                if shape is None:
+                    shape = self.image.data.shape
+                rr, cc = skimage.draw.line(int(self.y1+0.5), int(self.x1+0.5), int(self.y2+0.5), int(self.x2+0.5))
+                inside = (rr>0) & (rr<shape[0]) & (cc>0) & (cc<shape[1])
+                return rr[inside], cc[inside]
 
         class Rectangle(BaseModel):
             image = peewee.ForeignKeyField(Image, backref="rectangles", on_delete='CASCADE')
@@ -1223,6 +1239,19 @@ class DataFile:
                 self.type = new_type
                 return self.save()
 
+            def getPixels(self, shape=None, perimeter=False):
+                import skimage.draw
+                if shape is None:
+                    shape = self.image.data.shape
+                x1, y1 = self.getPos1()
+                x2, y2 = self.getPos3()
+                w, h = self.width, self.height
+                if perimeter is True:
+                    rr, cc = skimage.draw.rectangle_perimeter((int(y1+0.5), int(x1+0.5)), (int(y2+0.5), int(x2+0.5)), shape=shape)
+                else:
+                    rr, cc = skimage.draw.rectangle((int(y1+0.5), int(x1+0.5)), (int(y2+0.5), int(x2+0.5)), shape=shape)
+                return rr, cc
+
         class Ellipse(BaseModel):
             image = peewee.ForeignKeyField(Image, backref="ellipses", on_delete='CASCADE')
             x = peewee.FloatField()
@@ -1278,6 +1307,19 @@ class DataFile:
                 # change the type and save
                 self.type = new_type
                 return self.save()
+
+            def getPixels(self, shape=None, perimeter=False):
+                import skimage.draw
+                if shape is None:
+                    shape = self.image.data.shape
+                if perimeter is True:
+                    rr, cc = skimage.draw.ellipse_perimeter(int(self.y + 0.5), int(self.x + 0.5),
+                                                            int(self.width / 2), int(self.height / 2),
+                                                            np.pi / 2 + np.deg2rad(self.angle), shape)
+                else:
+                    rr, cc = skimage.draw.ellipse(self.y, self.x, self.width / 2, self.height / 2, shape,
+                                                  np.pi / 2 - np.deg2rad(self.angle))
+                return rr, cc
 
         this = self
         class Polygon(BaseModel):
@@ -1370,6 +1412,17 @@ class DataFile:
                 # change the type and save
                 self.type = new_type
                 return self.save()
+
+            def getPixels(self, shape=None, perimeter=False):
+                import skimage.draw
+                if shape is None:
+                    shape = self.image.data.shape
+                x, y = self.__array__().T
+                if perimeter is True:
+                    rr, cc = skimage.draw.polygon_perimeter(y, x, shape)
+                else:
+                    rr, cc = skimage.draw.polygon(y, x)
+                return rr, cc
 
         class PolygonPoint(BaseModel):
             polygon = peewee.ForeignKeyField(Polygon, backref="points_raw", on_delete='CASCADE')

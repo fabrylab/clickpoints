@@ -205,6 +205,14 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
             Parameters:
                  - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this marker. It has to be of mode TYPE_Normal.
 
+        .. py:function:: getPixes(shape, perimeter)
+
+            Get a row, column tuple to index an image.
+
+            Parameters:
+                - **shape** *(tuple, optional)* - The extent of the image to crop the indices to.
+                - **perimeter** *(bool, optional)* - Whether to index the area (default) or the perimeter. (Has no effect for single marker points)
+
 .. py:class:: Line()
 
     A line.
@@ -243,6 +251,14 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
             Parameters:
                 - **image** *(ndarray, * :py:class:`Image` *)* - the image as a database entry or a numpy array.
                 - **width** *(int, optional)* - the width of the 2D line to crop from the image.
+
+        .. py:function:: getPixes(shape, perimeter)
+
+            Get a row, column tuple to index an image.
+
+            Parameters:
+                - **shape** *(tuple, optional)* - The extent of the image to crop the indices to.
+                - **perimeter** *(bool, optional)* - Whether to index the area (default) or the perimeter. (Has no effect for a line)
 
 
 .. py:class:: Rectangle()
@@ -287,6 +303,14 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
                 - **with_subpixel** *(bool)* - whether to apply a subpixel shift for the region. Default True.
                 - **border** *(number)* - a number of border pixels to add to the region. Default 0.
 
+        .. py:function:: getPixes(shape, perimeter)
+
+            Get a row, column tuple to index an image.
+
+            Parameters:
+                - **shape** *(tuple, optional)* - The extent of the image to crop the indices to.
+                - **perimeter** *(bool, optional)* - Whether to index the area (default) or the perimeter.
+
 
 .. py:class:: Ellipse()
 
@@ -317,6 +341,14 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
             Parameters:
                  - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this ellipse. It has to be of mode TYPE_Ellipse.
 
+        .. py:function:: getPixes(shape, perimeter)
+
+            Get a row, column tuple to index an image.
+
+            Parameters:
+                - **shape** *(tuple, optional)* - The extent of the image to crop the indices to.
+                - **perimeter** *(bool, optional)* - Whether to index the area (default) or the perimeter.
+
 
 .. py:class:: Polygon()
 
@@ -344,6 +376,13 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
             Parameters:
                  - **new_type** *(str, int* :py:class:`MarkerType` *)* - the id, name or entry for the marker type which should be the new type of this polygon. It has to be of mode TYPE_Polygon.
 
+        .. py:function:: getPixes(shape, perimeter)
+
+            Get a row, column tuple to index an image.
+
+            Parameters:
+                - **shape** *(tuple, optional)* - The extent of the image to crop the indices to.
+                - **perimeter** *(bool, optional)* - Whether to index the area (default) or the perimeter.
 
 .. py:class:: Mask()
 
