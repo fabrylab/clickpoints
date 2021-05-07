@@ -1421,7 +1421,7 @@ class DataFile:
                 if perimeter is True:
                     rr, cc = skimage.draw.polygon_perimeter(y, x, shape)
                 else:
-                    rr, cc = skimage.draw.polygon(y, x)
+                    rr, cc = skimage.draw.polygon(y, x, shape)
                 return rr, cc
 
         class PolygonPoint(BaseModel):
