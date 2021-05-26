@@ -27,8 +27,12 @@ from pathlib import Path
 
 def read_crop_of_page(page: tifffile.TiffPage, loc: Tuple[int, int], size: Tuple[int, int], crop=True):
     # split loc and size
-    x1, y1 = loc
-    x2, y2 = x1 + size[0], y1 + size[1]
+    # TODO: fix the CP x/y coordinate system. Tiffile 2021 version is correct, the older version is wrong.
+    #  Ours seems to be wrong all the time, but two wrongs made it right.
+    #  I believe there is something genuinly wrong with how we think about coordinates here,
+    #  but I refuse to think more about it. - Alex Mai 2021
+    y1, x1 = loc
+    y2, x2 = y1 + size[0], x1 + size[1]
 
     # if the page is not tiled, we have to read the whole page
     if not page.is_tiled:
@@ -49,19 +53,20 @@ def read_crop_of_page(page: tifffile.TiffPage, loc: Tuple[int, int], size: Tuple
     # iterate over all tiles
     for i in range(len(offsets)):
         # decode with empty content to obtain the position and shape of the tile
-        segment, indices, shape = page.decode(None, i)
+        if tifffile.__version__ >= "2020.9.22":
+            segment, (_, _, tile_y, tile_x, _), (_, tile_h, tile_w, _) = page.decode(None, i)
+        else:
+            segment, (_, _, _, tile_y, tile_x, _), (_, tile_h, tile_w, _) = page.decode(None, i)
         # check if it overlaps with the target region
-        if (x1 > indices[3] + shape[1]) or (x2 < indices[3]):
-            continue
-        # if it is outside in y, ignore
-        if (y1 > indices[4] + shape[2]) or (y2 < indices[4]):
+        if any([(tile_x + tile_w) < x1, tile_x > x2, (tile_y + tile_h) < y1, tile_y > y2]):
             continue
         # store the offsets
         used_offsets.append(offsets[i])
         used_bytecounts.append(bytecounts[i])
 
         slide_indices_shapes.append(i)
-        slide_rects.append([indices[3], indices[4], indices[3]+shape[1], indices[4]+shape[2]])
+        # slide_rects.append([indices[3], indices[4], indices[3] + shape[1], indices[4] + shape[2]])
+        slide_rects.append([tile_x, tile_y, tile_x + tile_w, tile_y + tile_h])
 
     # determine the region covered by the tiles
     slide_rects = np.array(slide_rects)
@@ -69,17 +74,23 @@ def read_crop_of_page(page: tifffile.TiffPage, loc: Tuple[int, int], size: Tuple
     sx2, sy2 = np.max(slide_rects[:, 2:], axis=0)
 
     # and initialize an array accordingly
-    result = np.zeros((sx2-sx1, sy2-sy1, 1 if len(page.shape) == 2 else page.shape[2]), dtype=page.dtype)
-
+    result = np.zeros((sy2-sy1, sx2-sx1, 1 if len(page.shape) == 2 else page.shape[2]), dtype=page.dtype)
     # decode the tiles
     fh = page.parent.filehandle
     segmentiter = fh.read_segments(used_offsets, used_bytecounts)
     decodeargs = {}
     if 347 in page.keyframe.tags:
-        decodeargs["tables"] = page._gettags({347}, lock=None)[0][1].value
+        if tifffile.__version__ >= "2020.9.22":
+            decodeargs["jpegtables"] = page._gettags({347}, lock=None)[0][1].value
+        else:
+            decodeargs["tables"] = page._gettags({347}, lock=None)[0][1].value
+
     for seg, i in zip(segmentiter, slide_indices_shapes):
-        segment, indices, shape = page.decode(seg[0], i, **decodeargs)
-        result[indices[3]-sx1:indices[3]+shape[1]-sx1, indices[4]-sy1:indices[4]+shape[2]-sy1] = segment
+        if tifffile.__version__ >= "2020.9.22":
+            segment, (_, _, tile_y, tile_x, _), (_, tile_h, tile_w, _) = page.decode(seg[0], i, **decodeargs)
+        else:
+            segment, (_, _, _, tile_y, tile_x, _), (_, tile_h, tile_w, _) = page.decode(seg[0], i, **decodeargs)
+        result[tile_y - sy1:tile_y - sy1 + tile_h, tile_x - sx1:tile_x - sx1 + tile_w] = segment
 
     # optionally drop the channel dimension
     if len(page.shape) == 2:
@@ -87,8 +98,8 @@ def read_crop_of_page(page: tifffile.TiffPage, loc: Tuple[int, int], size: Tuple
 
     if crop is True:
         # crop the region covered by the tiles to the desired size
-        return crop_of_crop(result, (sx1, sy1), loc, size)
-    return result, (sx1, sy1)
+        return crop_of_crop(result, (sy1, sx1), loc, size)
+    return result, (sy1, sx1)
 
 
 def crop_of_crop(array: np.ndarray, loc: Tuple[int, int], loc2: Tuple[int, int], size2: Tuple[int, int]):
