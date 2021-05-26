@@ -56,6 +56,6 @@ try:
 
     os.system("conda config --set anaconda_upload yes")
 
-    os.system("conda-build . -c conda-forge -c rgerum -u rgerum")
+    os.system("conda-build . -c conda-forge -c rgerum --user rgerum")
 finally:
     os.chdir(current_folder)
