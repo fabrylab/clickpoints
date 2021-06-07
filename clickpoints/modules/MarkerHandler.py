@@ -1853,6 +1853,32 @@ class MyDisplayItem:
                     text = text.replace('$length', '')
             else:
                 text = text.replace('$length', '??')
+        if '$width' in text:
+            if type(self.data) is self.marker_handler.data_file.table_rectangle:
+                if self.data.width is not None:
+                    text = text.replace('$width', '%.2f' % self.data.width)
+                else:
+                    text = text.replace('$width', '')
+            elif type(self.data) is self.marker_handler.data_file.table_ellipse:
+                if self.data.width is not None:
+                    text = text.replace('$width', '%.2f' % self.data.width)
+                else:
+                    text = text.replace('$width', '')
+            else:
+                text = text.replace('$width', '??')
+        if '$width' in text:
+            if type(self.data) is self.marker_handler.data_file.table_rectangle:
+                if self.data.width is not None:
+                    text = text.replace('$height', '%.2f' % self.data.height)
+                else:
+                    text = text.replace('$height', '')
+            elif type(self.data) is self.marker_handler.data_file.table_ellipse:
+                if self.data.height is not None:
+                    text = text.replace('$height', '%.2f' % self.data.height)
+                else:
+                    text = text.replace('$height', '')
+            else:
+                text = text.replace('$height', '??')
         if '$area' in text:
             if type(self.data) is self.marker_handler.data_file.table_rectangle or\
                     type(self.data) is self.marker_handler.data_file.table_ellipse or \
