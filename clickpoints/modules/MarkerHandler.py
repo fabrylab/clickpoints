@@ -1359,7 +1359,6 @@ class MarkerEditor(QtWidgets.QWidget):
                     data.delete_instance()
                 self.tree.deleteEntry(data)
             else:
-
                 # find corresponding track and remove the point
                 track_item = self.marker_handler.GetMarkerItem(data.track)
                 # if we have a track display item, tell it to remove a point (removes the point from the database, too)
@@ -1866,7 +1865,7 @@ class MyDisplayItem:
                     text = text.replace('$width', '')
             else:
                 text = text.replace('$width', '??')
-        if '$width' in text:
+        if '$height' in text:
             if type(self.data) is self.marker_handler.data_file.table_rectangle:
                 if self.data.width is not None:
                     text = text.replace('$height', '%.2f' % self.data.height)
