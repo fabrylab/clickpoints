@@ -50,7 +50,7 @@ setup(name='clickpoints',
                         'sortedcontainers',
                         'psutil',
                         'imageio-ffmpeg',
-                        'quamash',
+                        'qasync',
                         'pyqt5',
                         'python-dateutil>=2.8.1'
                        ],

@@ -77,7 +77,7 @@ def main(*args):
     import ctypes
     from clickpoints.Core import ClickPointsWindow
     from clickpoints.includes import LoadConfig
-    import quamash
+    import qasync
     import asyncio
 
     from clickpoints import define_paths
@@ -85,7 +85,7 @@ def main(*args):
     define_paths()
 
     app = QtWidgets.QApplication(args)
-    loop = quamash.QEventLoop(app)
+    loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
     app.loop = loop
 
