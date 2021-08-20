@@ -321,7 +321,7 @@ class DataFileExtended(DataFile):
                     table._meta.database = self.db
                 self.exists = True
             # rewrite the paths
-            if self._database_filename:
+            if self._database_filename and self.exists:
                 old_directory = os.path.dirname(self._database_filename)
             else:
                 old_directory = ""
@@ -339,7 +339,7 @@ class DataFileExtended(DataFile):
                 else:
                     # not more than one path up, the rest should stay with an absolute path
                     if path.path.find("../..") != -1 or path.path.find("..\\..") != -1:
-                        print("path containes more ..", path.path)
+                        print("path contains more ..", path.path)
                         path.path = abs_path
                 path.save()
             if file:
