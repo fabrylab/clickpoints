@@ -128,7 +128,7 @@ class GammaCorrection(QtWidgets.QGraphicsRectItem):
         def getGamma():
             value = self.getConfigValue(0, 1)
             if value > 1:
-                return 1 / value - 2.00001
+                return 2.00001 - 1 / value
             return value
 
         if self.config.auto_contrast is True:
