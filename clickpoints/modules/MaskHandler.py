@@ -356,6 +356,12 @@ class MaskEditor(QtWidgets.QWidget):
                 return
             else:
                 raise err
+        # readonly mode
+        except peewee.OperationalError:
+            QtWidgets.QMessageBox.critical(self, 'Error - ClickPoints',
+                                           'Database is opened in read-only mode.',
+                                           QtWidgets.QMessageBox.Ok)
+            return
         self.mask_handler.maskTypeChooser.updateButtons(self.mask_handler.mask_file)
 
         # get the item from tree or insert a new one
@@ -974,7 +980,11 @@ class MaskHandler:
                 mask_entry = self.mask_file.add_mask()
             # assign the current mask data and save it
             mask_entry.data = np.asarray(self.MaskDisplay.full_image)
-            mask_entry.save()
+            try:
+                mask_entry.save()
+            # readonly mode
+            except peewee.OperationalError:
+                pass
             # reset the saved flag
             self.MaskUnsaved = False
 

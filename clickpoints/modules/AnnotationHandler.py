@@ -367,7 +367,14 @@ class AnnotationEditor(QtWidgets.QWidget):
 
     def saveAnnotation(self):
         # save the annotation
-        self.db.annotation.save()
+        try:
+            self.db.annotation.save()
+        # readonly mode
+        except peewee.OperationalError:
+            QtWidgets.QMessageBox.critical(self, 'Error - ClickPoints',
+                                           'Database is opened in read-only mode.',
+                                           QtWidgets.QMessageBox.Ok)
+            return
         # update tag association table
         self.db.setTags(self.leTag.getTagList())
         self.db.annotation.tags = ",".join(self.leTag.getTagList())

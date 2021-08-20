@@ -1196,6 +1196,12 @@ class MarkerEditor(QtWidgets.QWidget):
                     return
                 else:
                     raise err
+            # readonly mode
+            except peewee.OperationalError:
+                QtWidgets.QMessageBox.critical(self, 'Error - ClickPoints',
+                                               'Database is opened in read-only mode.',
+                                               QtWidgets.QMessageBox.Ok)
+                return
             if new_type:
                 self.marker_handler.addCounter(self.data)
             else:
@@ -1690,7 +1696,11 @@ class MyDisplayItem:
             self.is_new = False
         else:
             self.data = self.newData(event, type)
-            self.data.save()
+            try:
+                self.data.save()
+            # readonly database
+            except peewee.OperationalError:
+                pass
             BroadCastEvent(self.marker_handler.modules, "markerAddEvent", self.data)
             self.is_new = True
         # extract the style information
@@ -2009,12 +2019,20 @@ class MyDisplayItem:
         # only if there are fields which are changed
         if self.data.is_dirty():
             self.data.processed = 0
-            self.data.save(only=self.data.dirty_fields)
+            try:
+                self.data.save(only=self.data.dirty_fields)
+            # readonly database
+            except peewee.OperationalError:
+                pass
 
     def delete(self, just_display=False):
         # delete the database entry
         if not just_display:
-            self.data.delete_instance()
+            try:
+                self.data.delete_instance()
+            # readonly mode
+            except peewee.OperationalError:
+                pass
             BroadCastEvent(self.marker_handler.modules, "markerRemoveEvent", self.data)
 
         # delete from marker handler list
@@ -2880,7 +2898,11 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
             data = self.markers.pop(frame)
             entry = self.marker_handler.marker_file.table_marker(id=data.data["id"])
             # delete entry from database
-            self.marker_handler.marker_file.table_marker.delete().where(self.marker_handler.marker_file.table_marker.id == data.data["id"]).execute()
+            try:
+                self.marker_handler.marker_file.table_marker.delete().where(self.marker_handler.marker_file.table_marker.id == data.data["id"]).execute()
+            # readonly mode
+            except peewee.OperationalError:
+                pass
             # notify marker_handler
             BroadCastEvent(self.marker_handler.modules, "markerRemoveEvent", entry)
             # if it is the current frame, delete reference to marker
@@ -3839,7 +3861,11 @@ class MarkerHandler:
     def save(self):
         for list in self.display_lists:
             for point in list:
-                point.save()
+                try:
+                    point.save()
+                # readonly mode
+                except peewee.OperationalError:
+                    pass
 
     def SetActiveMarkerType(self, new_index=None, new_type=None):
         if new_type is not None:

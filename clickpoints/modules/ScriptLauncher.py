@@ -23,6 +23,7 @@ import os
 import socket
 import sys
 import traceback
+import peewee
 from typing import Any, Callable, List, Union
 
 import qtawesome as qta
@@ -237,6 +238,11 @@ class Script(QtCore.QObject):
         try:
             self.addon_class_instance = self.addon_module.Addon(script_launcher.data_file, script_launcher, self.name,
                                                                 icon=self.icon)
+        except peewee.OperationalError:
+            QtWidgets.QMessageBox.critical(None, 'Error - ClickPoints',
+                                           'Database is opened in read-only mode.',
+                                           QtWidgets.QMessageBox.Ok)
+            return
         except Exception as err:
             traceback.print_exc()
             return False

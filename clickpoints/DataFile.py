@@ -1778,13 +1778,23 @@ class DataFile:
                 self.table_option.get(key=option.key).delete_instance()
             except peewee.DoesNotExist:
                 return
+            # write protected
+            except peewee.OperationalError:
+                pass
         else:
             try:
                 entry = self.table_option.get(key=option.key)
                 entry.value = value
                 entry.save()
             except peewee.DoesNotExist:
-                self.table_option(key=option.key, value=value).save(force_insert=True)
+                try:
+                    self.table_option(key=option.key, value=value).save(force_insert=True)
+                # write protected
+                except peewee.OperationalError:
+                    pass
+            # write protected
+            except peewee.OperationalError:
+                pass
 
     def getOption(self, key):
         option = self._options_by_key[key]
