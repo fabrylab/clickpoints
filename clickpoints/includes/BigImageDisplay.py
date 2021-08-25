@@ -220,7 +220,8 @@ class BigImageDisplay:
             self.updateSlideView()
         else:
             self.image_pixMapItem.setImage(image)
-            self.image_pixMapItem.setOffset(*offset)
+            if offset is not None:
+                self.image_pixMapItem.setOffset(*offset)
             self.last_offset = np.array(offset)
             self.image_pixMapItem.setScale(1)
             self.slice_zoom_pixmap.setVisible(False)
@@ -261,6 +262,7 @@ class BigImageDisplay:
                 else:
                     self.slice_zoom_image = self.image_pixMapItem.conversion[self.slice_zoom_image[:, :, None]]
             self.slice_zoom_pixmap.setPixmap(QtGui.QPixmap(array2qimage(self.slice_zoom_image)))
+            #self.pixmaps[i].setOffset(x+self.offset[0]*0, y+self.offset[1])
             self.slice_zoom_pixmap.setOffset(*(np.array(preview_rect[0:2]) / downsample))
             self.slice_zoom_pixmap.setScale(downsample)
             self.slice_zoom_pixmap.show()

@@ -602,7 +602,11 @@ class DataFileExtended(DataFile):
             offset = self.table_offset.get(image=image)
             return [offset.x, offset.y]
         except peewee.DoesNotExist:
-            return [0, 0]
+            baseImage_oject = self.getImage(frame=image.sort_index, layer=image.layer.base_layer)
+            try:
+                offset = self.table_offset.get(image=baseImage_oject)
+            except peewee.DoesNotExist:
+                return [0, 0]
 
     def closeEvent(self, QCloseEvent: QtGui.QCloseEvent) -> None:
         # join the thread on closing
