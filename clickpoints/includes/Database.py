@@ -543,8 +543,6 @@ class DataFileExtended(DataFile):
             width = image.width if image.width is not None else 640
             height = image.height if image.height is not None else 480
             image_data = np.zeros((height, width), dtype=np.uint8)
-        elif max(image_data.shape) > 6400:
-            image_data = PseudoSlide(image_data)
 
         if self.reader is not None and self.reader.is_slide:
             image_data = self.reader
