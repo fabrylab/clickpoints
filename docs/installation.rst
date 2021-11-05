@@ -24,6 +24,15 @@ If you want to register clickpoints for the typical file extensions, e.g. add it
 If you want to remove it again, call
 
     ``clickpoints unregister``
+    
+Update
+~~~~~~
+
+ClickPoints can be updated like any other python package with:
+
+    ``pip install clickpoints --upgrade``
+    
+You can see the current version number when you open ClickPoints and click on the cog wheels icon to open the options dialog. In the top right corner you will see the current version number.
 
 Developer Version
 ~~~~~~~~~~~~~~~~~
