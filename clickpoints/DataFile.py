@@ -5304,7 +5304,7 @@ class DataFile:
         encImageId = allowedImageLUT[nonNanPos[:,1].astype(int)] - allowedImageIds.min()
 
         # now we stack our encoding scheme together -> this now identifies all entries in pos
-        encId = encImageId + image_count*encTrackId
+        encId = encImageId + image_count*encTracksId
         # write the entries from our nonNanPos to the correct entries
         # note that we do implicit ordering of track/image id here, because of how the LUT above are constructed
         pos[encId] = nonNanPos[:,2:]
