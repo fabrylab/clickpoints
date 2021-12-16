@@ -156,7 +156,7 @@ class Script(QtCore.QObject):
             self.description = parser.get("addon", "description", fallback="")
         except ConfigParser.NoOptionError:
             self.description = ""
-        if self.description is "":
+        if self.description == "":
             path = os.path.join(os.path.dirname(filename), "Desc.html")
             try:
                 with open(path) as fp:
@@ -168,7 +168,7 @@ class Script(QtCore.QObject):
         self.script = parser.get("addon", "file", fallback="Script.py")
         self.script = os.path.join(os.path.dirname(filename), self.script)
         self.requirements = parser.get("addon", "requirements", fallback="")
-        self.requirements = [s.strip() for s in self.requirements.split(",") if s.strip() is not ""]
+        self.requirements = [s.strip() for s in self.requirements.split(",") if s.strip() != ""]
         self.image = parser.get("addon", "image", fallback="")
         if self.image:
             self.image = os.path.join(os.path.dirname(filename), self.image)
