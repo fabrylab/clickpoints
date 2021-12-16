@@ -13,6 +13,8 @@ class BoolFormat(imageio.core.Format):
         if request.mode[1] in (self.modes + '?'):
             if request.filename.lower().endswith(self.extensions):
                 return True
+            if request.firstbytes.startswith(b"BOOL"):
+                return True
 
     def _can_write(self, request):
         return True
@@ -160,8 +162,8 @@ if __name__ == "__main__":
         mask = np.random.choice(np.arange(256, dtype=np.uint8), i, replace=False)[np.random.randint(i, size=(1000, 1000)).astype(np.uint8)]
         # mask = (mask==mask.max()).astype(np.uint8)
         # mask = (np.random.random(size=(100, 100))>0.99).astype(np.uint8)
-        path = r"C:\Users\Alex\tmp\test.bool"
-        path2 = r"C:\Users\Alex\tmp\test.png"
+        path = r"test.bool"
+        path2 = r"test.png"
         with timer("Write:", end="\t"):
             writer = imageio.get_writer(path)
             writer.append_data(mask, {})
