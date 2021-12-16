@@ -31,7 +31,7 @@ import numpy as np
 import qtawesome as qta
 from numpy import float64, int32, ndarray
 from qtpy import QtGui, QtCore, QtWidgets
-from quamash import QEventLoop
+from qasync import QEventLoop
 
 from clickpoints.includes.Database import DataFileExtended
 from clickpoints.includes.QtShortCuts import AddQSpinBox
