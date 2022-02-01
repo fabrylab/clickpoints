@@ -219,7 +219,7 @@ class MySlider(QtWidgets.QGraphicsRectItem):
         if font is None:
             font = QtGui.QFont("", 11 / scale)
         else:
-            font.setPointSize(11 / scale)
+            font.setPointSize(int(11 / scale))
         self.text.setFont(font)
         self.text.setPos(0, -23)
         self.text.setBrush(QtGui.QBrush(QtGui.QColor("white")))
@@ -330,7 +330,7 @@ class TextButton(QtWidgets.QGraphicsRectItem):
         if font is None:
             font = QtGui.QFont("", 11 / scale)
         else:
-            font.setPointSize(11 / scale)
+            font.setPointSize(int(11 / scale))
         self.text.setFont(font)
         self.text.setText(text)
         self.text.setPos((width - self.text.boundingRect().width()) / 2 + 1, 0)
@@ -374,7 +374,7 @@ class MyCommandButton(QtWidgets.QGraphicsRectItem):
         self.setZValue(9)
 
         self.pixmap = QtWidgets.QGraphicsPixmapItem(self)
-        self.pixmap.setPixmap(icon.pixmap(16 * scale))
+        self.pixmap.setPixmap(icon.pixmap(int(16 * scale)))
 
         self.setRect(-5 * scale, -3 * scale, 26 * scale, 22 * scale)
         self.setPos(pos[0] * scale, pos[1] * scale)

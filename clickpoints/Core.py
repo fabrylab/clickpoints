@@ -109,7 +109,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         screen_geometry = QtWidgets.QApplication.desktop().screenGeometry()
         x = (screen_geometry.width()-self.width()) / 2
         y = (screen_geometry.height()-self.height()) / 2
-        self.move(x, y*0.5)
+        self.move(int(x), int(y//2))
 
         # add layout
         self.layout = QtWidgets.QVBoxLayout()

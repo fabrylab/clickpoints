@@ -201,7 +201,7 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
     def __init__(self, max_value: int = 0, min_value: int = 0, scale: float = 1) -> None:
         QtWidgets.QGraphicsView.__init__(self)
 
-        self.setMaximumHeight(30 * scale)
+        self.setMaximumHeight(int(30 * scale))
         if scale != 1:
             self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
