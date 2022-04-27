@@ -5289,7 +5289,7 @@ class DataFile:
         # now query all positions at once, but include track id and image id -> shape (N, 4)
         nonNanPos = np.asarray(self.db.execute_sql(
                     "SELECT t.id, image_id, x, y FROM track t LEFT JOIN marker m ON m.track_id = t.id LEFT JOIN image i ON i.id = m.image_id "+\
-            where_condition_image +" AND " + where_condition_tracks.replace("WHERE","")
+            where_condition
         ).fetchall())
 
         # now we built a little LUT/encoding scheme, that tells us which positions in the "pos" array encodes which image/track
