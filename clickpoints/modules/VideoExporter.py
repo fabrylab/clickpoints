@@ -241,6 +241,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         Vlayout = QtWidgets.QVBoxLayout(scaleWidget)
 
         self.cbImageScaleSize = QtShortCuts.QInputNumber(Vlayout, 'Image scale:', options.export_image_scale,
+                                                         decimals=5,
                                                          float=True, stretch=True)
         self.cbMarkerScaleSize = QtShortCuts.QInputNumber(Vlayout, 'Marker scale:', options.export_marker_scale,
                                                           float=True, stretch=True)

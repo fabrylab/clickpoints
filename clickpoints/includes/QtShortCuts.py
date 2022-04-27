@@ -388,6 +388,25 @@ def AddQLineEdit(layout, text, value=None, strech=False, editwidth=None):
         horizontal_layout.addStretch()
     return lineEdit
 
+def AddQTextEdit(layout, text, value=None, strech=False, editwidth=None, editheight=None):
+    horizontal_layout = QtWidgets.QHBoxLayout()
+    layout.addLayout(horizontal_layout)
+    text = QtWidgets.QLabel(text)
+    textEdit = QtWidgets.QTextEdit()
+    if editwidth:
+        textEdit.setFixedWidth(editwidth)
+    if editheight:
+        textEdit.setFixedHeight(editheight)
+    if value:
+        textEdit.setText(value)
+    textEdit.label = text
+    horizontal_layout.addWidget(text)
+    horizontal_layout.addWidget(textEdit)
+    textEdit.managingLayout = horizontal_layout
+    if strech:
+        horizontal_layout.addStretch()
+    return textEdit
+
 
 def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", file_type="All", filename_checker=None,
                        strech=False):

@@ -27,7 +27,7 @@ import cameratransform as ct
 import os
 import json
 from qtpy import QtCore, QtGui, QtWidgets
-from clickpoints.includes.QtShortCuts import AddQLineEdit, AddQComboBox, AddQCheckBox, AddQOpenFileChoose, AddQSpinBox
+from clickpoints.includes.QtShortCuts import AddQLineEdit, AddQTextEdit, AddQComboBox, AddQCheckBox, AddQOpenFileChoose, AddQSpinBox
 import qtawesome as qta
 import matplotlibwidget
 from skimage.measure import label, regionprops
