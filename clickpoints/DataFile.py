@@ -5229,7 +5229,7 @@ class DataFile:
         where_condition_image = []
 
         # get the filter condition (only filter if it is necessary, e.g. if we have more than one layer)
-        if layer is not None and layer_count != 1:
+        if layer is not None:
             where_condition_image.append("i.layer_id = %d" % layer)
 
         # if a start frame is given, only export marker from images >= the given frame
@@ -5244,12 +5244,13 @@ class DataFile:
 
         # append sorting by sort index
         if len(where_condition_image):
-            where_condition_image = " WHERE " + " AND ".join(where_condition_image)
+            where_condition_image = " AND ".join(where_condition_image)
         else:
             where_condition_image = ""
 
         # get the image ids according to the conditions
-        image_ids = self.db.execute_sql("SELECT id FROM image i "+where_condition_image+" ORDER BY sort_index;").fetchall()
+        image_ids = self.db.execute_sql(
+            "SELECT id FROM image i " + where_condition_image + " ORDER BY sort_index;").fetchall()
         image_count = len(image_ids)
 
         """ track conditions """
@@ -5267,18 +5268,22 @@ class DataFile:
 
         # append sorting by sort index
         if len(where_condition_tracks):
-            where_condition_tracks = " WHERE " + " AND ".join(where_condition_tracks)
+            where_condition_tracks = " AND ".join(where_condition_tracks)
         else:
             where_condition_tracks = ""
 
-        track_ids = self.db.execute_sql("SELECT id FROM track t " + where_condition_tracks+";").fetchall()
+        where_condition = " AND ".join([cond for cond in [where_condition_image, where_condition_tracks] if cond != ""])
+        if where_condition != "":
+            where_condition = "WHERE " + where_condition
+
+        track_ids = self.db.execute_sql("SELECT id FROM track t " + where_condition_tracks + ";").fetchall()
         track_count = len(track_ids)
 
         # ---- fast (but a little komplex) query algorithm ----
         # this will be faster than iterating as long as track_ids and image ids are not extreeeeemly sparse
         # (e.g 1, 1002, 678194083, ...), because that will create mindnumbingly big LUTs
         # start with an array of the correct size for all the data, but flattened shape
-        pos = np.zeros((track_count*image_count,2), "float")
+        pos = np.zeros((track_count * image_count, 2), "float")
         # make the array NaN
         pos[:] = np.nan
         # now query all positions at once, but include track id and image id -> shape (N, 4)
