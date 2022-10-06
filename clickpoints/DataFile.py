@@ -5248,11 +5248,6 @@ class DataFile:
         else:
             where_condition_image = ""
 
-        # get the image ids according to the conditions
-        image_ids = self.db.execute_sql(
-            "SELECT id FROM image i " + where_condition_image + " ORDER BY sort_index;").fetchall()
-        image_count = len(image_ids)
-
         """ track conditions """
         where_condition_tracks = []
 
@@ -5275,6 +5270,17 @@ class DataFile:
         where_condition = " AND ".join([cond for cond in [where_condition_image, where_condition_tracks] if cond != ""])
         if where_condition != "":
             where_condition = "WHERE " + where_condition
+
+        if where_condition_tracks != "":
+            where_condition_tracks = "WHERE " + where_condition_tracks
+
+        if where_condition_image != "":
+            where_condition_image = "WHERE " + where_condition_image
+
+        # get the image ids according to the conditions
+        image_ids = self.db.execute_sql(
+            "SELECT id FROM image i " + where_condition_image + " ORDER BY sort_index;").fetchall()
+        image_count = len(image_ids)
 
         track_ids = self.db.execute_sql("SELECT id FROM track t " + where_condition_tracks + ";").fetchall()
         track_count = len(track_ids)
