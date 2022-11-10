@@ -9,7 +9,7 @@ This add-on implements diffusion of florescence proteins between adjacent cells.
 The add-on can be used as follows:
 
 1. add the add-on "Fluorescence Diffusion"
-2. create a mask-type for each cell (see module `Mask <mask.html#define-colors>`_ on creating mask-types)
+2. create a mask-type for each cell (see module :ref:`Mask <mask-define-colors>`_ on creating mask-types)
 3. paint the cell area for each cell in each image
 4. add line marker of the type "connect" to mark between which cells diffusion is allowed. (Only necessary for the first image)
 5. specify the "Delta T", the time between two images
@@ -34,7 +34,7 @@ summed as the total fluorescence intensity of the cell at this time.
 Repeat this process for all images.
 
 .. seealso::
-    For more information on the usage of masks, see the page on `Masks <mask.html>`_.
+    For more information on the usage of masks, see the page on :doc:`Mask`.
 
 4. Specify the links between cells
 ----------------------------------
@@ -45,7 +45,7 @@ between these cells is allowed and a diffusion value will be fitted for this lin
 Links are only needed in one image of the sequence, not for all images.
 
 .. seealso::
-    For more information on the usage of markers, see the page on `Markers <marker.html>`_.
+    For more information on the usage of markers, see the page on :doc:`Marker`.
 
 5. Specify the time between two images
 --------------------------------------

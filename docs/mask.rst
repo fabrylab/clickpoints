@@ -15,6 +15,8 @@ corresponding number key. Holding the left mouse button down draws a line in the
 save the mask press ``S`` or change to the next image, which automatically saves the current mask.
 The mask type ``delete`` acts as an eraser and allows to remove labeled regions.
 
+.. _mask-define-colors
+
 Define colors
 -------------
 

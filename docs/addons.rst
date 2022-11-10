@@ -13,7 +13,7 @@ of the add-on in a separate thread, or tell the thread to stop if it is already 
 To configure ClickPoints to already have scripts loaded on startup, you can define them in the ``ConfigClickPoints.txt``
 file as ``launch_scripts =``.
 
-For writing your own add-ons please refer to the `add-on api <api_addon.html>`_.
+For writing your own add-ons please refer to the :doc:`add-on api`.
 
 .. toctree::
     :caption: List of Addons

@@ -56,13 +56,13 @@ Getting started
 
         ``H`` - hide time line
 
-        See `General <general.html#zooming-panning-rotating>`_
+        See :ref:`General <zooming-panning-rotating>`
 
     * Navigating the dataset:
 
         ``left`` & ``right`` cursor keys to go one frame forward and backward
 
-        * Jump a specified set of frames with the numbad keys. See `Jumping Frames <general.html#jumping-frames>`_
+        * Jump a specified set of frames with the numbad keys. See :ref:`Jumping Frames <jumping_frames>`
 
         * Use the frame and time navigation slider to by clicking or dragging the cursor to the desired position.
 
@@ -115,8 +115,6 @@ markers is still support and is usefull for intersecting tracks.
 
 To activate "connect nearest" mode, set the config parameter ``tracking_connect_nearest = True``.
 
-See `ConfigFiles <recipes_configfiles.html#using-configfiles>`_ for more details.
-
 
 
 7. Important Controls
@@ -139,7 +137,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
 
 * Use SmartText to display additional information
 
-  See `SmartText <XXX>`_
+  See :ref:`SmartText <marker-text-smarttext>`
 
   Example:
     **Display Track IDs**
@@ -164,7 +162,7 @@ A list of useful controls for labeling tracks. Connect-nearest mode extends the 
 
 * Use Styles to modify the display of markers and tracks
 
-  See `Marker Styles <marker.html#marker-style-definitions>`_
+  See :ref:`Marker Styles <marker-style-definitions>`
 
   Example:
     **Change track point display**

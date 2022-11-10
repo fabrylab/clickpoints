@@ -68,7 +68,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'clickpoints'
-copyright = u'2020, Richard Gerum, Sebastian Richter, Alexander Winterl'
+copyright = u'2022, Richard Gerum, Sebastian Richter, Alexander Winterl'
 author = u'Richard Gerum, Sebastian Richter, Alexander Winterl'
 
 # The version info for the project you're documenting, acts as replacement for

@@ -4,7 +4,7 @@ Add-on API
 ClickPoints allows to easily write add-on scripts.
 
 .. note::
-    The `Addons <addons.html>`_ section demonstrates how the add-ons can be used and may serve as a good starting point
+    The :doc:`Add-ons` section demonstrates how the add-ons can be used and may serve as a good starting point
     to write custom add-ons.
 
 The add-on consists of at least two files. A meta data file with ``.txt`` ending which contains basic information on the add-on and a script file
@@ -88,14 +88,14 @@ new marker types to ClickPoints.
 
 To process data, you can overload the ``run`` function. Here the add-on can do it's heavy work. Some caution has to be
 taken when executing interface actions, as ``run`` is called in a second thread to not block ClickPoints during its
-execution. For a good example of an add-on that uses the ``run`` function, refer to the `Track Add-on <addon_track.html>`_.
+execution. For a good example of an add-on that uses the ``run`` function, refer to the :doc:`Track Add-on`.
 
 But add-ons can also provide passive features that are not executed by a call of the ``run`` method, but rely on callbacks.
-Here a good example is the `Measure Tool Add-on <addon_measure_tool.html>`_, which just reacts on the ``MarkerMoved`` callback.
+Here a good example is the :doc:`Measure Tool Add-on`, which just reacts on the ``MarkerMoved`` callback.
 
 The add-on class has two main member variables: ``self.db`` and ``self.cp``.
 
-- ``self.db`` is a `DataFile <api.html#datafile>`_ instance which gives access to the ClickPoints database. For details on the interface see `Database API <api.html>`_.
+- ``self.db`` is a :ref:`datafile` instance which gives access to the ClickPoints database. For details on the interface see :doc:`Database API`.
 
 - ``self.cp`` is a `Commands <#id1>`_ instance which allows for communication with the ClickPoints interface.
 

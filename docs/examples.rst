@@ -5,7 +5,7 @@ The examples provide some usage examples of ClickPoints to demonstrate its vario
 processed with ClickPoints and later easily evaluated with ClickPoints.
 
 To kept the download size of ClickPoints down, the examples are kept in a separate repository. They can be downloaded
-`here <https://bitbucket.org/fabry_biophysics/clickpointsexamples/get/tip.zip>`_.
+`here <https://github.com/fabrylab/clickpointsexamples/archive/refs/heads/master.zip>`_.
 
 .. toctree::
     :caption: Examples to retrieve data from clickpoints files
