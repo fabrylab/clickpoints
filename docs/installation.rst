@@ -41,7 +41,7 @@ If you just want to get the very latest features you can install with pip the la
 
     ``pip install git+https://github.com/fabrylab/clickpoints``
 
-If you want to actively work on the ClickPoints code, you should clone the repository. First of all you need to have git installed (`Git <https://git-scm.com/>`_ or directly a git client e.g. `GitHub Desktop<https://desktop.github.com/>`_).
+If you want to actively work on the ClickPoints code, you should clone the repository. First of all you need to have git installed (`Git <https://git-scm.com/>`_ or directly a git client e.g. `GitHub Desktop <https://desktop.github.com/>`_).
 Then you can open a command line in the folder where you want to install ClickPoints (e.g. C:\Software) and run the following command:
 
     ``git clone https://github.com/fabrylab/clickpoints.git``
