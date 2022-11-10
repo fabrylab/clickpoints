@@ -20,10 +20,10 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 from PIL import Image
-try:
-    from PIL._util import isPath
-except:
-    from PIL._util import is_path as isPath
+from pathlib import Path
+def isPath(f):
+    return isinstance(f, (bytes, str, Path))
+
 import sys
 
 if 'PyQt4.QtGui' not in sys.modules:
