@@ -105,6 +105,10 @@ class Addon(clickpoints.Addon):
             self.db.setMarkerType("DM_GPS", [128, 128, 255], self.db.TYPE_Normal)
             self.cp.reloadTypes()
 
+        if not self.db.getMarkerType("DM_2GPS"):
+            self.db.setMarkerType("DM_2GPS", [128, 128, 255], self.db.TYPE_Normal)
+            self.cp.reloadTypes()
+
         # TODO: move to parameter
         self.scalebox_dim = 10 # in meter
         self.scalebox_dict = dict()
@@ -721,6 +725,10 @@ class Addon(clickpoints.Addon):
         gpsMarkers = self.db.getMarkers(type="DM_GPS", frame=self.frame)
         for marker in gpsMarkers:
             self.updateGPS(marker)
+        # get scalebox markers and update size
+        gpsMarkers = self.db.getMarkers(type="DM_2GPS", frame=self.frame)
+        for marker in gpsMarkers:
+            self.update2GPS(marker)
         self.cp.reloadMarker(frame=self.frame)
 
         self.plotHorizon()
@@ -768,6 +776,11 @@ class Addon(clickpoints.Addon):
 
         sb = ScaleBox(self.cp.window.view.origin, '#ff5f00', np.array([marker.x,marker.y]), self.camera, scalebox_dim)
         self.scalebox_dict[marker.id] = sb
+
+    def update2GPS(self, marker):
+        lat, lon, _ = self.camera.gpsFromSpace(self.camera.spaceFromImage([marker.x, marker.y], Z=0))
+        marker.text = "lat= %.2f, lon=%.2f"%(lat, lon)
+        marker.save()
 
     def updateGPS(self, marker):
         locationData = json.loads(marker.style)
