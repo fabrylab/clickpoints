@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Highlight_Objects.py
 
-# Copyright (c) 2015-2020, Richard Gerum, Sebastian Richter, Alexander Winterl
+# Copyright (c) 2015-2022, Richard Gerum, Sebastian Richter, Alexander Winterl
 #
 # This file is part of ClickPoints.
 #
@@ -29,9 +29,6 @@ How does it work: The program divides the picture in superpixels  (size adjustab
 Programm created by Jakob. For any problems ask me or write an email to Jakob.Peschel@fau.de
 """
 
-
-
-from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import skimage.measure

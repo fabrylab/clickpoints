@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Test_MaskHandler.py
 
-# Copyright (c) 2015-2020, Richard Gerum, Sebastian Richter, Alexander Winterl
+# Copyright (c) 2015-2022, Richard Gerum, Sebastian Richter, Alexander Winterl
 #
 # This file is part of ClickPoints.
 #

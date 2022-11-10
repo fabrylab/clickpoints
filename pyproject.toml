@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "clickpoints"
+version = "1.9.11"
+description = "Scientific toolbox for manual and automatic image evaluation."
+authors = ["Richard Gerum <richard.gerum@fau.de>", "Sebastian Richter <57496278+foxsr@users.noreply.github.com>"]
+maintainers = ["Alexander Winterl <alexander.winterl@fau.de>"]
+repository = "https://github.com/fabrylab/clickpoints"
+documentation = "https://clickpoints.readthedocs.io/"
+license = "GPLv3"
+readme = "README.rst"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+scipy = "*"
+matplotlib = "*"
+imageio = ">=2.0.1"
+QtPy = "*"
+QtAwesome = "*"
+qimage2ndarray = "*"
+Pillow = "*"
+peewee = ">= 3.1"
+natsort = "*"
+tifffile = ">=2020.2.16"
+imagecodecs = "*"
+sortedcontainers = "*"
+psutil = "*"
+imageio-ffmpeg = "*"
+qasync = "*"
+PyQt5 = "*"
+python-dateutil = ">=2.8.1"
+scikit-image = ">=0.14"
+
+[tool.poetry.scripts]
+clickpoints = "clickpoints.launch:main"
+
+[tool.poetry.group.doc.dependencies]
+sphinxcontrib-bibtex = "^2.5.0"
+sphinxcontrib-svg2pdfconverter = "^1.2.1"
+nbsphinx = "^0.8.9"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest-qt = "^4.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

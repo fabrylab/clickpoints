@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # register_winpy.py
 
-# Copyright (c) 2015-2020, Richard Gerum, Sebastian Richter, Alexander Winterl
+# Copyright (c) 2015-2022, Richard Gerum, Sebastian Richter, Alexander Winterl
 #
 # This file is part of ClickPoints.
 #
@@ -27,8 +27,6 @@ without system PATH variable
 
 This should work without UAC elevation
 '''
-from __future__ import division, print_function
-
 import sys
 import os
 import _winreg

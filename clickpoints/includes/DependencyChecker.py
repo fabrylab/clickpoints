@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # DependencyChecker.py
 
-# Copyright (c) 2015-2020, Richard Gerum, Sebastian Richter, Alexander Winterl
+# Copyright (c) 2015-2022, Richard Gerum, Sebastian Richter, Alexander Winterl
 #
 # This file is part of ClickPoints.
 #
@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import print_function, division
 import os
 import sys
 import pip
