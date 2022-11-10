@@ -34,7 +34,7 @@ summed as the total fluorescence intensity of the cell at this time.
 Repeat this process for all images.
 
 .. seealso::
-    For more information on the usage of masks, see the page on :doc:`Mask`.
+    For more information on the usage of masks, see the page on :doc:`mask`.
 
 4. Specify the links between cells
 ----------------------------------
@@ -45,7 +45,7 @@ between these cells is allowed and a diffusion value will be fitted for this lin
 Links are only needed in one image of the sequence, not for all images.
 
 .. seealso::
-    For more information on the usage of markers, see the page on :doc:`Marker`.
+    For more information on the usage of markers, see the page on :doc:`marker`.
 
 5. Specify the time between two images
 --------------------------------------

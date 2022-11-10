@@ -23,7 +23,7 @@ ClickPoints can be opened with various files as target:
 Pressing ``Esc`` closes ClickPoints.
 
 To easily access marker, masks, track or other information, stored in the ``.cdb`` ClickPoints Project file,
-we provide a python based :doc:`API`
+we provide a python based :doc:`api`
 
 
 .. attention::
@@ -31,7 +31,8 @@ we provide a python based :doc:`API`
     otherwise all changes will be lost upon closing the program. If a project was saved, all changes are saved
     automatically upon frame change or  by pressing ``S``
 
-.. _zooming-panning-rotating
+
+.. _zooming-panning-rotating:
 
 Zooming, Panning, Rotating
 --------------------------

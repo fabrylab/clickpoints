@@ -111,6 +111,7 @@ deleted.
     .. warning::
         There is no undo button!
 
+.. _marker-style-definitions:
 
 Marker Style Definitions
 ------------------------
@@ -180,6 +181,8 @@ The styles use the JSON format for data storage. The following fields can be use
    {"track-line-style": "dash", "track-point-shape": "none"}  # change the track style
 
 .. |the marker icon| image:: images/IconMarker.png
+
+.. _marker-text-smarttext:
 
 Marker Text & SmartText
 -----------------------

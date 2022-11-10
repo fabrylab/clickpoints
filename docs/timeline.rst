@@ -22,8 +22,8 @@ The two tick boxes at the right contain the current frame rate and the number of
 between each frame.
 To go directly to a desired frame simply click on the frame display (left) and enter the frame number.
 
-Each frame which has selected marker or masks is marked with a green tick mark (see :doc:`Marker` and
-:doc:`Mask`) and each frame marked with an annotation (see :doc:`Annotations`) is marked with a
+Each frame which has selected marker or masks is marked with a green tick mark (see :doc:`marker` and
+:doc:`mask`) and each frame marked with an annotation (see :doc:`annotations`) is marked with a
 red tick. To jump to the next annotated frame press ``Ctrl``\ +\ ``Left`` or ``Ctrl``\ +\ ``Right``.
 
 Config Parameter

@@ -14,7 +14,7 @@ To get started reading and writing to a database use:
 This will open an existing project file called ``project.cdb``.
 
 .. note::
-    The :doc:`Examples` section demonstrates the use of the API with various examples and provides a good
+    The :doc:`examples` section demonstrates the use of the API with various examples and provides a good
     starting point to write custom evaluations.
 
 Database Models
@@ -443,6 +443,7 @@ The tables are: :py:class:`Meta`, :py:class:`Path`, :py:class:`Layer`, :py:class
 
 
 .. _datafile:
+
 DataFile
 --------
 
