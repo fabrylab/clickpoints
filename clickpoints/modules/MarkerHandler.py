@@ -1480,7 +1480,7 @@ def AnimationChangeScale(target, start=0, end=1, duration=200, fps=36, endcall=N
     timer.animation_time = 0
     target.setScale(animation_scale=start)
     target.animation_timer = timer
-    timer.start(1e3/fps)
+    timer.start(int(1e3/fps))
 
 
 class MyGrabberItem(QtWidgets.QGraphicsPathItem):

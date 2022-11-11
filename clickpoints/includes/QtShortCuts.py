@@ -163,7 +163,10 @@ class QInputNumber(QInput):
             self._emitSignal()
 
     def _doSetValue(self, value):
-        self.spin_box.setValue(value)
+        if isinstance(self.spin_box, QtWidgets.QSpinBox):
+            self.spin_box.setValue(int(value))
+        else:
+            self.spin_box.setValue(value)
         if self.slider is not None:
             self.slider.setValue(value * self.decimal_factor)
 
@@ -268,7 +271,7 @@ class QInputColor(QInput):
 
     def _openDialog(self):
         # get new color from color picker
-        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.value())[0] * 255)),
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*tuple(int(x) for x in mpl.colors.to_rgba_array(self.value())[0] * 255)),
                                                 self.parent(), self.label.text() + " choose color")
         # if a color is set, apply it
         if color.isValid():

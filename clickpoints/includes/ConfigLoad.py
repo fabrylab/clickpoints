@@ -58,7 +58,7 @@ def LoadConfig(*args, srcpath="", just_load=False) -> dotdict:
         args = list(args)
     print("LoadConfig", args, srcpath, just_load)
 
-    replacements = dict(TYPE_Normal=0, TYPE_Rect=1, TYPE_Line=2, TYPE_Track=4)
+    replacements = dict(TYPE_Normal=0, TYPE_Rect=1, TYPE_Line=2, TYPE_Track=4, TYPE_Ellipse=8, TYPE_Polygon=16)
     config = {}
 
     if not just_load:

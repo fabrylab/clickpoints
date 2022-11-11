@@ -450,7 +450,7 @@ class AnnotationOverview(QtWidgets.QWidget):
         if self.config.server_annotations is True:
             filename = annotation.reffilename
         else:
-            filename = annotation.image_filename
+            filename = str(annotation.image)
         if annotation.tags is None:
             annotation.tags = ""
         if annotation.timestamp is not None and annotation.timestamp:

@@ -91,14 +91,14 @@ print("Setting version number to", new_version)
 #    CheckForUncommitedChanges(path_to_website)
 
 """ Let's go """
-RelaceVersion("setup.py", current_version, new_version)
+RelaceVersion("pyproject.toml", current_version, new_version)
 RelaceVersion("meta.yaml", current_version, new_version)
 RelaceVersion("docs/conf.py", current_version, new_version)
 RelaceVersion("clickpoints/__init__.py", current_version, new_version)
 
 if options.release:
     # commit changes
-    os.system("git add setup.py docs/conf.py clickpoints/__init__.py meta.yaml")
+    os.system("git add pyproject.toml docs/conf.py clickpoints/__init__.py meta.yaml")
     os.system("git commit -m \"set version to v%s\"" % new_version)
     os.system("git tag \"v%s\"" % new_version)
 

@@ -26,6 +26,7 @@ import subprocess
 from distutils.version import LooseVersion
 from threading import Thread
 from typing import Any, List, Union, IO
+from subprocess import PIPE, Popen
 
 import natsort
 import qtawesome as qta
@@ -39,14 +40,24 @@ from clickpoints.includes.Database import DataFileExtended
 
 repo_path = "\"" + os.path.join(os.path.dirname(__file__), "..", "..") + "\""
 
+def get_pip_versions(package_name="clickpoints"):
+    p = Popen(f"pip install {package_name}==", shell=True, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    match = re.match(r".*\(from versions: ([^)]*)\).*", stderr.decode())
+    versions = [s.strip() for s in match.groups()[0].split(",")]
+    return natsort.natsorted(versions)
+
 def load_dirty_json(dirty_json):
     regex_replace = [(r"([ \{,:\[])(u)?'([^']+)'", r'\1"\3"'), (r" False([, \}\]])", r' false\1'), (r" True([, \}\]])", r' true\1')]
     for r, s in regex_replace:
         dirty_json = re.sub(r, s, dirty_json)
+    if dirty_json == "":
+        return dict()
     clean_json = json.loads(dirty_json)
     return clean_json
 
 def getNewestVersion() -> LooseVersion:
+    return LooseVersion(get_pip_versions()[-1])
     result = os.popen("conda search -c rgerum -f clickpoints --json").read()
     # result = json.loads(result[:-4])
     result = load_dirty_json(result)
@@ -158,7 +169,8 @@ class VersionDisplay(QtWidgets.QWidget):
             return
         self.clickpoints_main_window.close()
         if self.newestet_version_hg is None:
-            subprocess.Popen(["conda", "update", "clickpoints", "-c", "rgerum", "-c", "conda-forge", "-y"])
+            #subprocess.Popen(["conda", "update", "clickpoints", "-c", "rgerum", "-c", "conda-forge", "-y"])
+            subprocess.Popen(["pip", "install", "clickpoints", "--upgrade"])
         else:
             subprocess.Popen(["hg", "update", self.newestet_version_hg, "-R", repo_path[1:-1]])
 

@@ -395,7 +395,7 @@ class MyCommandButton(QtWidgets.QGraphicsRectItem):
 
     def hoverEnterEvent(self, event):
         if self.active is False:
-            self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128 + 128 / 2)))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 128 + 128 // 2)))
 
     def hoverLeaveEvent(self, event):
         if self.active is False:
