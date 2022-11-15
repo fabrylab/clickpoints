@@ -19,7 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-__version__ = '1.9.11'
+import importlib.metadata
+
+__version__ = importlib.metadata.metadata('clickpoints')['version']
 
 # Try to import the addon library, but for only working with the database, we don't need the Addon
 # definition which is based on Qt
