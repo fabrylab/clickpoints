@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "clickpoints"
-version = "1.9.11"
+version = "1.10.0"
 description = "Scientific toolbox for manual and automatic image evaluation."
 authors = ["Richard Gerum <richard.gerum@fau.de>", "Sebastian Richter <57496278+foxsr@users.noreply.github.com>"]
 maintainers = ["Alexander Winterl <alexander.winterl@fau.de>"]
