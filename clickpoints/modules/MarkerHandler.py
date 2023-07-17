@@ -2656,13 +2656,13 @@ class MyPolygonItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         pass  # TODO implement
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyEllipseItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super(MyPolygonItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         pass  # TODO implement
 
     def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyEllipseItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super(MyPolygonItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         for grabber in self.grabbers:
