@@ -78,7 +78,7 @@ def createBatFile():
         with open(os.path.join(os.path.dirname(sys.executable), "ClickPoints.bat"), 'w') as fp:
             print("Writing ClickPoints.bat")
             fp.write("@echo off\n")
-            fp.write(os.path.join(os.path.dirname(sys.executable), "Scripts", "clickpoints.exe"))
+            fp.write('"'+os.path.join(os.path.dirname(sys.executable), "Scripts", "clickpoints.exe")+'"')
             fp.write(" %1\n")
             fp.write("IF %ERRORLEVEL% NEQ 0 pause\n")
         return os.path.join(os.path.dirname(sys.executable), "ClickPoints.bat"), icon_path
