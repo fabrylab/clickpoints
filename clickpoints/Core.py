@@ -20,6 +20,7 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 import os
+import sys
 
 import time
 import asyncio
@@ -254,6 +255,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.GetModule("Timeline").ImagesAdded()
 
     def LoadTimer(self) -> None:
+        if not self.data_file:
+            print("ERROR: Database not connected!")
+            sys.exit(1)
         if self.data_file.image is None and self.data_file.get_image_count() and self.first_frame is not None:
             self.JumpToFrame(self.first_frame)
             self.view.fitInView()
