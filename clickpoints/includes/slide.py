@@ -90,7 +90,8 @@ def read_crop_of_page(page: tifffile.TiffPage, loc: Tuple[int, int], size: Tuple
             segment, (_, _, tile_y, tile_x, _), (_, tile_h, tile_w, _) = page.decode(seg[0], i, **decodeargs)
         else:
             segment, (_, _, _, tile_y, tile_x, _), (_, tile_h, tile_w, _) = page.decode(seg[0], i, **decodeargs)
-        result[tile_y - sy1:tile_y - sy1 + tile_h, tile_x - sx1:tile_x - sx1 + tile_w] = segment
+        if not segment is None:
+            result[tile_y - sy1:tile_y - sy1 + tile_h, tile_x - sx1:tile_x - sx1 + tile_w] = segment
 
     # optionally drop the channel dimension
     if len(page.shape) == 2:
@@ -116,6 +117,7 @@ def crop_of_crop(array: np.ndarray, loc: Tuple[int, int], loc2: Tuple[int, int],
     Returns:
         array: the crooped/padded array
     """
+    loc2 = tuple(np.round(loc2).astype(int))
     # first crop/pad at the start
     diff_start = np.array(loc2)-np.array(loc)
     pad_start = -diff_start * (diff_start < 0)
@@ -200,7 +202,7 @@ class myslide():
         # store the level 0 dimension
         self.dimensions = self.level_dimensions[0]
         # calculate how much the pyramid pages downsample
-        self.level_downsamples = [self.dimensions[0] // dim[0] for dim in self.level_dimensions]
+        self.level_downsamples = [self.dimensions[0] / dim[0] for dim in self.level_dimensions]
 
     def read_region(self, location: Tuple[int, int], level: int, size: Tuple[int, int]):
         x, y = location
