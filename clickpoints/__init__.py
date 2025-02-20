@@ -48,7 +48,7 @@ def print_status():
     # Qt Version
     from qtpy import API_NAME as QT_API_NAME
     from qtpy import QtCore
-    print("Using %s" % QT_API_NAME, QtCore.PYQT_VERSION_STR)
+    print("Using %s" % QT_API_NAME, QtCore._qt_version)
 
 def define_paths():
     import os

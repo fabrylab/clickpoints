@@ -271,7 +271,9 @@ class TimeLineSlider(QtWidgets.QGraphicsView):
         self.parent = QtWidgets.QGraphicsRectItem(None)
         self.parent.setScale(scale)
         self.scene.addItem(self.parent)
-        self.scene.setBackgroundBrush(self.palette().color(QtGui.QPalette.Background))
+        palette = self.palette()
+        background_color = palette.color(QtGui.QPalette.ColorRole.Window)  # Use Window role for background
+        self.scene.setBackgroundBrush(QtGui.QBrush(background_color))
         self.setStyleSheet("border: 0px")
 
         self.max_value = max_value
@@ -495,7 +497,11 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
 
         self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
-        self.scene.setBackgroundBrush(self.palette().color(QtGui.QPalette.Background))
+
+        # Get the background color from the palette
+        palette = self.palette()
+        background_color = palette.color(QtGui.QPalette.ColorRole.Window)  # Use Window role for background
+        self.scene.setBackgroundBrush(QtGui.QBrush(background_color))
         self.setStyleSheet("border: 0px")
 
         self.slider_line = QtWidgets.QGraphicsRectItem(None)

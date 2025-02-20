@@ -411,7 +411,7 @@ class MyTreeView(QtWidgets.QTreeView):
     last_hover = None
 
     def __init__(self, parent, layout):
-        super(QtWidgets.QTreeView, self).__init__()
+        super().__init__()
 
         self.data_file = parent.data_file
 

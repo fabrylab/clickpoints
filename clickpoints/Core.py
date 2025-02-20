@@ -44,9 +44,9 @@ from .modules.InfoHud import InfoHud
 from .modules.Console import Console
 from .modules.OptionEditor import OptionEditor
 
-from PyQt5.QtCore import QPoint, QPointF
-from PyQt5.QtGui import QCloseEvent, QKeyEvent, QResizeEvent
-from PyQt5.QtWidgets import QApplication
+from qtpy.QtCore import QPoint, QPointF
+from qtpy.QtGui import QCloseEvent, QKeyEvent, QResizeEvent
+from qtpy.QtWidgets import QApplication
 from clickpoints.includes.ConfigLoad import dotdict
 from clickpoints.modules.ChangeTracker import ChangeTracker
 from clickpoints.modules.MarkerHandler import MarkerHandler
@@ -77,6 +77,34 @@ def GetModuleInitArgs(mod: Any) -> List[str]:
     return inspect.getfullargspec(mod.__init__).args
 
 
+def get_dpi():
+    """Gets the screen DPI."""
+    app = QtWidgets.QApplication.instance()  # Get the application instance
+    if app is None:
+        app = QtWidgets.QApplication([])  # Create a QApplication if it doesn't exist
+
+    screen = app.primaryScreen()  # Get the primary screen
+    dpi = screen.logicalDotsPerInch()  # Get the DPI
+    return dpi
+
+
+def center_window(window: QtWidgets.QWidget):
+    """Centers the given window on the screen."""
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        app = QtWidgets.QApplication([])
+
+    screen = app.primaryScreen()
+    screen_geometry = screen.geometry()
+    window_width = window.width()
+    window_height = window.height()
+
+    x = (screen_geometry.width() - window_width) // 2
+    y = (screen_geometry.height() - window_height) // 2
+
+    window.move(x, y // 2)  # Move the window to the center
+    return window
+
 class ClickPointsWindow(QtWidgets.QWidget):
     optionEditor = None
     first_frame = 0
@@ -93,22 +121,19 @@ class ClickPointsWindow(QtWidgets.QWidget):
         config = my_config
 
         self.app = app
-        super(QtWidgets.QWidget, self).__init__(parent)
+        super().__init__(parent)
         self.setWindowIcon(QtGui.QIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "ClickPoints.ico"))))
 
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
         self.setWindowTitle("ClickPoints")
 
-        self.scale_factor = app.desktop().logicalDpiX()/96
+        self.scale_factor = get_dpi()/96
 
         self.setAcceptDrops(True)
 
         # center window
-        screen_geometry = QtWidgets.QApplication.desktop().screenGeometry()
-        x = (screen_geometry.width()-self.width()) / 2
-        y = (screen_geometry.height()-self.height()) / 2
-        self.move(int(x), int(y//2))
+        center_window(self)
 
         # add layout
         self.layout = QtWidgets.QVBoxLayout()
