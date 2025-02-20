@@ -50,7 +50,7 @@ jobs:
       run: gh release upload $TAG output/clickpoints_run/clickpoints --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TAG: v1.0.6
+        TAG: v1.10.0
 
   build-windows:
 
@@ -92,10 +92,10 @@ jobs:
           path: output/clickpoints_run
 
       - name: Upload GitHub release assets
-        run: gh release upload v1.0.6 "output\clickpoints_run\clickpoints.exe" --clobber
+        run: gh release upload v1.10.0 "output\clickpoints_run\clickpoints.exe" --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: v1.0.6
+          TAG: v1.10.0
 
   build-mac:
     runs-on: macos-latest
@@ -139,4 +139,4 @@ jobs:
       run: gh release upload $TAG output/clickpoints_run/clickpoints_mac.app.zip --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TAG: v1.0.6
+        TAG: v1.10.0
