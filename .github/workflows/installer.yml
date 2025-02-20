@@ -38,7 +38,7 @@ jobs:
       shell: bash
       run: |
           poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/icons:clickpoints/icons"  clickpoints/launch.py 
-          mv output/clickpoints_run/gui_master output/clickpoints_run/clickpoints
+          mv output/clickpoints_run/launch output/clickpoints_run/clickpoints
           chmod +x output/clickpoints_run/clickpoints
 
     - uses: actions/upload-artifact@v4
@@ -84,7 +84,7 @@ jobs:
         shell: bash
         run: |
           poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/img;clickpoints/img"  clickpoints/launch.py
-          mv output/clickpoints_run/gui_master.exe output/clickpoints_run/clickpoints.exe
+          mv output/clickpoints_run/launch.exe output/clickpoints_run/clickpoints.exe
 
       - uses: actions/upload-artifact@v4
         with:
@@ -125,7 +125,7 @@ jobs:
       shell: bash
       run: |
         poetry run pyinstaller --clean -y --dist output/clickpoints_run --windowed --add-data "clickpoints/icons:clickpoints/icons" clickpoints/launch.py
-        mv output/clickpoints_run/gui_master.app output/clickpoints_run/clickpoints_mac.app     
+        mv output/clickpoints_run/launch.app output/clickpoints_run/clickpoints_mac.app     
         cd output/clickpoints_run
         zip -r clickpoints_mac.app.zip clickpoints_mac.app
         cd ../../
