@@ -797,9 +797,9 @@ class DataFileExtended(DataFile):
     def get_meta(self, file: str) -> Optional[datetime]:
         import tifffile
         import json
-        from distutils.version import LooseVersion
+        from packaging.version import Version
 
-        if LooseVersion(tifffile.__version__) > LooseVersion("0.13"):
+        if Version(tifffile.__version__) > Version("0.13"):
             with tifffile.TiffFile(file) as tif:
                 metadata = tif.shaped_metadata
                 if metadata is None:

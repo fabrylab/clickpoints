@@ -23,7 +23,7 @@ import json
 import re
 import os
 import subprocess
-from distutils.version import LooseVersion
+from packaging.version import Version
 from threading import Thread
 from typing import Any, List, Union, IO
 from subprocess import PIPE, Popen
@@ -56,8 +56,8 @@ def load_dirty_json(dirty_json):
     clean_json = json.loads(dirty_json)
     return clean_json
 
-def getNewestVersion() -> LooseVersion:
-    return LooseVersion(get_pip_versions()[-1])
+def getNewestVersion() -> Version:
+    return Version(get_pip_versions()[-1])
     result = os.popen("conda search -c rgerum -f clickpoints --json").read()
     # result = json.loads(result[:-4])
     result = load_dirty_json(result)
@@ -65,12 +65,12 @@ def getNewestVersion() -> LooseVersion:
         version = natsort.natsorted([f["version"] for f in result["clickpoints"]])[-1]
     except KeyError:
         return None
-    return LooseVersion(version)
+    return Version(version)
 
 
-def getCurrentVersion() -> LooseVersion:
+def getCurrentVersion() -> Version:
     import clickpoints
-    return LooseVersion(clickpoints.__version__)
+    return Version(clickpoints.__version__)
 
 
 def getCurrentVersionHG() -> None:
