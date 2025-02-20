@@ -18,6 +18,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
+import asyncio
 
 def main(*args):
     import sys
@@ -77,7 +78,7 @@ def main(*args):
     from clickpoints.Core import ClickPointsWindow
     from clickpoints.includes import LoadConfig
     import qasync
-    import asyncio
+
 
     from clickpoints import define_paths
 
@@ -96,13 +97,20 @@ def main(*args):
     # load config and exec addon code
     config = LoadConfig(*args)
 
-    with loop:
-        # init and open the ClickPoints window
-        window = ClickPointsWindow(config, app)
-        window.show()
+    # Initialize and show the ClickPoints window
+    window = ClickPointsWindow(config, app)
+    window.show()
+
+    # Run the event loop
+    try:
         loop.run_forever()
+    except Exception as e:
+        print(f"Event loop error: {e}", exc_info=True)
+    finally:
+        print("Closing ClickPoints")
+        loop.close()
 
 
-# start the main function as entry point
-if __name__ == '__main__':
-    main()
+# Entry point
+if __name__ == "__main__":
+    asyncio.run(main())
