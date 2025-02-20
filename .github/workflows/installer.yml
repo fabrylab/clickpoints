@@ -1,0 +1,144 @@
+name: Create PyInstaller .exe
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up python
+      id: setup-python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+      #----------------------------------------------
+      #  -----  install & configure poetry  -----
+      #----------------------------------------------
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: true
+
+    - name: install dependencies
+      shell: bash
+      run: |
+        poetry install --with dev
+
+    - name: build exe with pyinstaller
+      shell: bash
+      run: |
+          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/icons:clickpoints/icons"  clickpoints/launch.py 
+          mv output/clickpoints_run/gui_master output/clickpoints_run/clickpoints
+          chmod +x output/clickpoints_run/clickpoints
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: clickpoints_linux
+        path: output/clickpoints_run
+
+    - name: Upload GitHub release assets
+      run: gh release upload $TAG output/clickpoints_run/clickpoints --clobber
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: v1.0.6
+
+  build-windows:
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up python
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+        #----------------------------------------------
+        #  -----  install & configure poetry  -----
+        #----------------------------------------------
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: install dependencies
+        shell: bash
+        run: |
+          poetry install --with dev
+          poetry run python clickpoints/add_source.py
+
+      - name: build exe with pyinstaller
+        shell: bash
+        run: |
+          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/img;clickpoints/img"  clickpoints/launch.py
+          mv output/clickpoints_run/gui_master.exe output/clickpoints_run/clickpoints.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clickpoints_windows
+          path: output/clickpoints_run
+
+      - name: Upload GitHub release assets
+        run: gh release upload v1.0.6 "output\clickpoints_run\clickpoints.exe" --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v1.0.6
+
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up python
+      id: setup-python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: true
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        poetry install --with dev
+        poetry run python clickpoints/add_source.py
+
+    - name: Build executable with PyInstaller
+      shell: bash
+      run: |
+        poetry run pyinstaller --clean -y --dist output/clickpoints_run --windowed --add-data "clickpoints/icons:clickpoints/icons" clickpoints/launch.py
+        mv output/clickpoints_run/gui_master.app output/clickpoints_run/clickpoints_mac.app     
+        cd output/clickpoints_run
+        zip -r clickpoints_mac.app.zip clickpoints_mac.app
+        cd ../../
+        
+    - uses: actions/upload-artifact@v4
+      with:
+        name: clickpoints_mac
+        path: output/clickpoints_run
+
+    - name: Upload GitHub release assets
+      run: gh release upload $TAG output/clickpoints_run/clickpoints_mac.app.zip --clobber
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: v1.0.6
