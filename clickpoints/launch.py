@@ -100,15 +100,7 @@ def main(*args):
     # Initialize and show the ClickPoints window
     window = ClickPointsWindow(config, app)
     window.show()
-
-    # Run the event loop
-    try:
-        loop.run_forever()
-    except Exception as e:
-        print(f"Event loop error: {e}", exc_info=True)
-    finally:
-        print("Closing ClickPoints")
-        loop.close()
+    sys.exit(app.exec_())
 
 
 # Entry point
