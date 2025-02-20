@@ -79,7 +79,6 @@ jobs:
         shell: bash
         run: |
           poetry install --with dev
-          poetry run python clickpoints/add_source.py
 
       - name: build exe with pyinstaller
         shell: bash
@@ -121,7 +120,6 @@ jobs:
       shell: bash
       run: |
         poetry install --with dev
-        poetry run python clickpoints/add_source.py
 
     - name: Build executable with PyInstaller
       shell: bash
