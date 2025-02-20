@@ -83,7 +83,7 @@ jobs:
       - name: build exe with pyinstaller
         shell: bash
         run: |
-          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "img;img"  clickpoints/launch.py
+          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" clickpoints/launch.py
           mv output/clickpoints_run/launch.exe output/clickpoints_run/clickpoints.exe
 
       - uses: actions/upload-artifact@v4
