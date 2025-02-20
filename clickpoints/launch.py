@@ -113,4 +113,4 @@ def main(*args):
 
 # Entry point
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
