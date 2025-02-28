@@ -60,7 +60,7 @@ for marker_type in [marker_type_name, marker_type_class0, marker_type_class1]:
 class ClassifierWindow(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
-        super(QtWidgets.QWidget, self).__init__(parent)
+        super().__init__(parent)
         self.setWindowTitle("ManualClassifier - ClickPoints")
         self.setWindowIcon(qta.icon("fa5s.tag"))
 

@@ -48,7 +48,7 @@ class PartialFormatter(string.Formatter):
     def get_field(self, field_name: str, args: list, kwargs: dict) -> Any:
         # Handle a key not found
         try:
-            val = super(PartialFormatter, self).get_field(field_name, args, kwargs)
+            val = super().get_field(field_name, args, kwargs)
             # Python 3, 'super().get_field(field_name, args, kwargs)' works
         except (KeyError, AttributeError):
             val = None, field_name
@@ -58,7 +58,7 @@ class PartialFormatter(string.Formatter):
         # handle an invalid format
         if value is None: return self.missing
         try:
-            return super(PartialFormatter, self).format_field(value, spec)
+            return super().format_field(value, spec)
         except ValueError:
             if self.bad_fmt is not None:
                 return self.bad_fmt

@@ -457,7 +457,7 @@ class MyTreeView(QtWidgets.QTreeView):
     def setCurrentIndex(self, entry):
         item = self.getItemFromEntry(entry)
         if item is not None:
-            super(QtWidgets.QTreeView, self).setCurrentIndex(item.index())
+            super().setCurrentIndex(item.index())
 
     def treeClicked(self, index):
         # upon selecting one of the tree elements
@@ -1601,12 +1601,12 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
             self.scale_hover = hover_scale
         # adjust scale
         if self.outline:
-            super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value)
+            super().setScale(self.scale_value)
             pen = self.pen()
             pen.setWidthF(5*self.scale_animation*self.scale_hover)
             self.setPen(pen)
         else:
-            super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value*self.scale_animation*self.scale_hover)
+            super().setScale(self.scale_value*self.scale_animation*self.scale_hover)
 
     def delete(self):
         self.setAcceptedMouseButtons(Qt.MouseButtons(0))
@@ -1661,7 +1661,7 @@ class MyNonGrabberItem(QtWidgets.QGraphicsPathItem):
         if hover_scale is not None:
             self.scale_hover = hover_scale
         # adjust scale
-        super(QtWidgets.QGraphicsPathItem, self).setScale(self.scale_value*self.scale_animation*self.scale_hover)
+        super().setScale(self.scale_value*self.scale_animation*self.scale_hover)
 
     def delete(self, just_remove=False):
         if just_remove:
@@ -2079,16 +2079,16 @@ class MyMarkerItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         BroadCastEvent(self.marker_handler.modules, "markerMoveFinishedEvent", self.data)
 
     def draw(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyMarkerItem, self).drawMarker(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawMarker(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyMarkerItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyMarkerItem, self).drawMarkerSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawMarkerSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyMarkerItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)
@@ -2157,7 +2157,7 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
         image.line([x1, y1, x2, y2], color, width=int(3 * scale * self.style.get("scale", 1)))
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyLineItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
@@ -2167,7 +2167,7 @@ class MyLineItem(MyDisplayItem, QtWidgets.QGraphicsLineItem):
         image.add(image.polyline([(x1, y1), (x2, y2)], stroke=self.color.name(), stroke_width=3 * scale * self.style.get("scale", 1)))
 
     def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyLineItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)
@@ -2279,7 +2279,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         image.line([x1, y2, x1, y1], color, width=int(3 * scale * self.style.get("scale", 1)))
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyRectangleItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         x1, y1 = self.data.getPos1()[0] - start_x, self.data.getPos1()[1] - start_y
@@ -2288,7 +2288,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
         image.add(image.polyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], stroke=self.color.name(), stroke_width=3 * scale * self.style.get("scale", 1), fill="none"))
 
     def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyRectangleItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)
@@ -2473,7 +2473,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
         image.pil_image.paste(rotated, (int(x1-rotated.size[0]/2), int(y1-rotated.size[1]/2)), rotated)
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyEllipseItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         x1, y1 = self.data.x - start_x, self.data.y - start_y
@@ -2481,7 +2481,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
         image.add(image.ellipse((0, 0), r=(w/2, h/2), stroke=self.color.name(), stroke_width=3 * scale * self.style.get("scale", 1), fill="none", transform="translate(%f, %f) rotate(%d)" % (x1, y1, self.data.angle)))
 
     def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyEllipseItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)
@@ -2657,13 +2657,13 @@ class MyPolygonItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         pass  # TODO implement
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyPolygonItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def drawSvg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         pass  # TODO implement
 
     def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
-        super(MyPolygonItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+        super().drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         for grabber in self.grabbers:
@@ -2953,7 +2953,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         if self.data.hidden or self.data.type.hidden:
             return
         if self.active:
-            super(MyTrackItem, self).drawMarker(image, start_x, start_y, scale, image_scale, rotation)
+            super().drawMarker(image, start_x, start_y, scale, image_scale, rotation)
 
         color = (self.color.red(), self.color.green(), self.color.blue())
         circle_width = scale * self.style.get("track-point-scale", 1)
@@ -2985,7 +2985,7 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
         if self.data.hidden or self.data.type.hidden:
             return
         if self.active:
-            super(MyTrackItem, self).drawMarkerSvg(image, start_x, start_y, scale, image_scale, rotation)
+            super().drawMarkerSvg(image, start_x, start_y, scale, image_scale, rotation)
         scale *= self.style.get("scale", 1)
 
         color = (self.color.red(), self.color.green(), self.color.blue())
@@ -3028,11 +3028,11 @@ class MyTrackItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
 
     def draw2(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         if self.active:
-            super(MyTrackItem, self).drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+            super().drawText(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def draw2Svg(self, image, start_x, start_y, scale=1, image_scale=1, rotation=0):
         if self.active:
-            super(MyTrackItem, self).drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
+            super().drawTextSvg(image, start_x, start_y, scale=scale, image_scale=image_scale, rotation=rotation)
 
     def hoverEnter(self):
         self.g1.hoverEnterEvent(None)

@@ -31,7 +31,7 @@ class Booster(QtWidgets.QWidget):
         from ClickPoints import ClickPointsWindow
         from includes import LoadConfig
         global start_new_time
-        super(QtWidgets.QWidget, self).__init__(parent)
+        super().__init__(parent)
         self.new_window.connect(self.OpenNewWindow)
         self.windows = []
 

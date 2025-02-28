@@ -85,7 +85,7 @@ class MemMap(object):
             else:
                 raise ValueError("Access memmap array with []")
         else:
-            super(MemMap, self).__setattr__(name, value)
+            super().__setattr__(name, value)
 
     def __str__(self):
         text = "<Memmap: \"%s\" from bytes %d to %d>" % (self.filename, self.start_offset, self.offset)

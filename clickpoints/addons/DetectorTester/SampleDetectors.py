@@ -33,7 +33,7 @@ class DetectorThreshold(Detector):
     """
 
     def __init__(self, threshold=128):
-        super(Detector, self).__init__()
+        super().__init__()
 
         # define the parameters of the detector
         self.ParameterList = ParameterList(Parameter("threshold", threshold, range=[0, 255], desc="the threshold"),
@@ -62,7 +62,7 @@ class DetectorRandom(Detector):
     """
 
     def __init__(self):
-        super(Detector, self).__init__()
+        super().__init__()
 
         self.ParameterList = ParameterList(Parameter("count", 128, min=0, max=255))
 

@@ -280,7 +280,7 @@ class Addon(clickpoints.Addon):
         self.show()
 
     def run_stopped(self):
-        super(Addon, self).run_stopped()
+        super().run_stopped()
         print("run_stopped", self.scheduled_run)
         if self.scheduled_run:
             # if we have scheduled to run a detection, start it with a single shot timer

@@ -200,7 +200,7 @@ class AnnotationFile:
 class pyQtTagSelector(QtWidgets.QWidget):
     class unCheckBox(QtWidgets.QCheckBox):
         def __init__(self, parent, name):
-            super(QtWidgets.QCheckBox, self).__init__(parent)
+            super().__init__(parent)
             self.name = name
             self.parent = parent
 
@@ -219,7 +219,7 @@ class pyQtTagSelector(QtWidgets.QWidget):
             self.deleteLater()
 
     def __init__(self, parent=None, add_button=True):
-        super(QtWidgets.QWidget, self).__init__(parent)
+        super().__init__(parent)
 
         self.cbTag = QtWidgets.QComboBox(self)
         self.cbTag.addItems([''])

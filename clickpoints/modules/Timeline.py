@@ -860,7 +860,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
             self.last_pos = PosToArray(
                 self.slider_line.mapFromScene(self.mapToScene(event.pos())))  # PosToArray(self.mapToScene(event.pos()))
             self.scene_panning = True
-        super(RealTimeSlider, self).mousePressEvent(event)
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if self.scene_panning:
@@ -871,7 +871,7 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
             self.markerParent.setPos(self.pan, 0)
             self.updateTicks()
             self.repaint()
-        super(RealTimeSlider, self).mouseMoveEvent(event)
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.button() == 1:
@@ -882,11 +882,11 @@ class RealTimeSlider(QtWidgets.QGraphicsView):
             self.slider_position.signal.sliderReleased.emit()
         if event.button() == 2:
             self.scene_panning = False
-        super(RealTimeSlider, self).mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QtGui.QMouseEvent) -> None:
         event.ignore()
-        super(RealTimeSlider, self).wheelEvent(event)
+        super().wheelEvent(event)
         if event.isAccepted():
             return
 

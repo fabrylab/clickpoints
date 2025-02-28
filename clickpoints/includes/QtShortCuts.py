@@ -46,7 +46,7 @@ class QInput(QtWidgets.QWidget):
 
     def __init__(self, layout=None, name=None, tooltip=None, stretch=False):
         # initialize the super widget
-        super(QInput, self).__init__()
+        super().__init__()
 
         # initialize the layout of this widget
         QtWidgets.QHBoxLayout(self)

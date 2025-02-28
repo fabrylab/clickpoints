@@ -633,7 +633,7 @@ class MyTextButtonGroup(QtWidgets.QGraphicsPathItem):
 
 class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):
     def __init__(self, parent, command_object):
-        super(GraphicsItemEventFilter, self).__init__(parent)
+        super().__init__(parent)
         self.commandObject = command_object
         self.active = False
 

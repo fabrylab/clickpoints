@@ -164,11 +164,11 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         if not self.initialized:
             self.initialized = True
             self.fitInView()
-        super(QExtendedGraphicsView, self).paintEvent(QPaintEvent)
+        super().paintEvent(QPaintEvent)
         self.painted = True
 
     def resizeEvent(self, event):
-        super(QExtendedGraphicsView, self).resizeEvent(event)
+        super().resizeEvent(event)
         if self.fitted:
             self.fitInView()
         self.hud_lowerRight.setTransform(QtGui.QTransform(1, 0, 0, 1, self.size().width(), self.size().height()))
@@ -302,7 +302,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         if event.button() == 2:
             self.last_pos = PosToArray(self.mapToScene(event.pos()))
             self.scene_panning = True
-        super(QExtendedGraphicsView, self).mousePressEvent(event)
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if self.scene_panning:
@@ -313,7 +313,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
             self.last_pos = new_pos
             self.fitted = 0
             self.panEvent(*delta)
-        super(QExtendedGraphicsView, self).mouseMoveEvent(event)
+        super().mouseMoveEvent(event)
 
     def DoTranslateOrigin(self, delta):
         self.offset.setTransform(QtGui.QTransform(1, 0, 0, 1, *delta), combine=True)
@@ -321,11 +321,11 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
     def mouseReleaseEvent(self, event):
         if event.button() == 2:
             self.scene_panning = False
-        super(QExtendedGraphicsView, self).mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event):
         event.ignore()
-        super(QExtendedGraphicsView, self).wheelEvent(event)
+        super().wheelEvent(event)
         if event.isAccepted():
             return
 

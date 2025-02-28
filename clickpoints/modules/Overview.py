@@ -51,7 +51,7 @@ class loaderSignals(QtCore.QObject):
 
 class checkUpdateThread(QtCore.QThread):
     def __init__(self, parent):
-        super(QtCore.QThread, self).__init__()
+        super().__init__()
         self.exiting = False
         self.signal = loaderSignals()
         self.parent = parent
