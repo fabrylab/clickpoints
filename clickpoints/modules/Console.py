@@ -79,7 +79,7 @@ class Console(QtWidgets.QTextEdit):
 
         self.text_deque = deque(maxlen=400)
 
-        self.setWindowIcon(qta.icon("fa.terminal"))
+        self.setWindowIcon(qta.icon("fa5s.terminal"))
         self.setWindowTitle("Log - ClickPoints")
 
         self.splitter.addWidget(self)

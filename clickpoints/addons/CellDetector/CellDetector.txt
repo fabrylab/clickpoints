@@ -1,6 +1,6 @@
 [addon]
 name=CellDetector
 file=CellDetector.py
-icon=fa.bullseye
+icon=fa5s.bullseye
 requirements=scikit-image,opencv-python
 image=Image.png

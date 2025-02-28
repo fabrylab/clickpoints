@@ -1,6 +1,6 @@
 [addon]
 name=DriftCorrection
 file=DriftCorrection.py
-icon=fa.object-ungroup
+icon=fa5s.object-ungroup
 image=Image.png
 requirements=opencv-python

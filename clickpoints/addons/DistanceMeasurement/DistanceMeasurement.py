@@ -227,7 +227,7 @@ class Addon(clickpoints.Addon):
         ## Widget
         # set the title and layout
         self.setWindowTitle("Distance - Config")
-        self.setWindowIcon(qta.icon("fa.map-signs"))
+        self.setWindowIcon(qta.icon("fa5s.map-signs"))
         # self.setMinimumWidth(400)
         # self.setMinimumHeight(200)
         self.layout = QtWidgets.QGridLayout(self)

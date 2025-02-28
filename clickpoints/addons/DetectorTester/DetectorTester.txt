@@ -1,5 +1,5 @@
 [addon]
 name=Detector Tester
 file=DetectorTester.py
-icon=fa.flag
+icon=fa5s.flag
 requirements=PenguTrack,scikit-image,pandas

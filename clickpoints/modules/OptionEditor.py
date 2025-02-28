@@ -255,7 +255,7 @@ class OptionEditorWindow(QtWidgets.QWidget):
         self.list.currentRowChanged.connect(self.stackedLayout.setCurrentIndex)
         self.top_layout.addLayout(self.stackedLayout)
 
-        self.setWindowIcon(qta.icon("fa.gears"))
+        self.setWindowIcon(qta.icon("ei.cogs"))
 
         self.edits = []
         self.edits_by_name = {}
@@ -484,7 +484,7 @@ class OptionEditor:
         self.OptionsWindow = None
 
         self.button = QtWidgets.QPushButton()
-        self.button.setIcon(qta.icon('fa.gears'))
+        self.button.setIcon(qta.icon('ei.cogs'))
         self.button.setToolTip("change the options for the project")
         self.button.clicked.connect(self.showDialog)
         window.layoutButtons.addWidget(self.button)

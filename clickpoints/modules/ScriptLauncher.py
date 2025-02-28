@@ -163,7 +163,7 @@ class Script(QtCore.QObject):
                     self.description = fp.read()
             except IOError:
                 self.description = "<i>no description available</i>"
-        self.icon = parser.get("addon", "icon", fallback="fa.code")
+        self.icon = parser.get("addon", "icon", fallback="fa5s.code")
         self.icon_name = self.icon
         self.script = parser.get("addon", "file", fallback="Script.py")
         self.script = os.path.join(os.path.dirname(filename), self.script)
@@ -180,7 +180,7 @@ class Script(QtCore.QObject):
                 self.icon = QtGui.QIcon(self.icon)
             except Exception as err:
                 print("ERROR: the icon %s is neither a valid qtawsome icon nor a valid filename." % self.icon_name)
-                self.icon_name = "fa.code"
+                self.icon_name = "fa5s.code"
                 self.icon = qta.icon(self.icon_name)
 
         self.hourglassAnimationTimer = QtCore.QTimer()
@@ -264,7 +264,7 @@ class Script(QtCore.QObject):
 
     def displayHourglassAnimation(self) -> None:
         spin_icon = qta.icon(self.icon_name,
-                             'fa.hourglass-%d' % (int(self.hourglassAnimationTimer.duration() * 2) % 3 + 1),
+                             'fa5s.hourglass-%d' % (int(self.hourglassAnimationTimer.duration() * 2) % 3 + 1),
                              options=[{},
                                       {'scale_factor': 0.9, 'offset': (0.3, 0.2), 'color': QtGui.QColor(128, 0, 0)}])
         self.button.setIcon(spin_icon)
@@ -315,7 +315,7 @@ class ScriptChooser(QtWidgets.QWidget):
         self.layout2 = QtWidgets.QVBoxLayout()
         self.layout_main.addLayout(self.layout2)
 
-        self.setWindowIcon(qta.icon("fa.code"))
+        self.setWindowIcon(qta.icon("fa5s.code"))
 
         self.list2 = QtWidgets.QListWidget(self)
         self.layout.addWidget(self.list2)
@@ -444,7 +444,7 @@ class ScriptLauncher(QtCore.QObject):
         self.modules = modules
 
         self.button = QtWidgets.QPushButton()
-        self.button.setIcon(qta.icon("fa.external-link"))
+        self.button.setIcon(qta.icon("fa5s.external-link-alt"))
         self.button.clicked.connect(self.showScriptSelector)
         self.button.setToolTip("load/remove add-ons")
         self.window.layoutButtons.addWidget(self.button)

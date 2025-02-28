@@ -160,7 +160,7 @@ class Addon(clickpoints.Addon):
         self.detector_file = QtShortCuts.QInputFilename(self.layout, "Detector File:", "", file_type="Python File (*.py)", existing=True)
         self.detector_file.valueChanged.connect(self.detectorFileSelected)
         self.detector_file_button_reload = QtWidgets.QPushButton()
-        self.detector_file_button_reload.setIcon(qta.icon("fa.repeat"))
+        self.detector_file_button_reload.setIcon(qta.icon("fa5s.redo"))
         self.detector_file_button_reload.clicked.connect(self.detectorFileSelected)
         self.detector_file.layout().addWidget(self.detector_file_button_reload)
 

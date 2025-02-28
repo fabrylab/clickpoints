@@ -39,7 +39,7 @@ class Addon(clickpoints.Addon):
         clickpoints.Addon.__init__(self, *args, **kwargs)
         # set the title and layout
         self.setWindowTitle("TileViewer - ClickPoints")
-        self.setWindowIcon(qta.icon("fa.eye"))
+        self.setWindowIcon(qta.icon("fa5s.eye"))
         self.layout = QtWidgets.QVBoxLayout(self)
 
         # inut file chooser
@@ -49,11 +49,11 @@ class Addon(clickpoints.Addon):
         # the page selector
         self.layout_navigate = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.layout_navigate)
-        self.pushButton_left = QtWidgets.QPushButton(qta.icon("fa.arrow-left"), "")
+        self.pushButton_left = QtWidgets.QPushButton(qta.icon("fa5s.arrow-left"), "")
         self.pushButton_left.clicked.connect(lambda: self.setPage(offset=-1))
         QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self, lambda: self.setPage(offset=-1))
         self.layout_navigate.addWidget(self.pushButton_left)
-        self.pushButton_right = QtWidgets.QPushButton(qta.icon("fa.arrow-right"), "")
+        self.pushButton_right = QtWidgets.QPushButton(qta.icon("fa5s.arrow-right"), "")
         self.pushButton_right.clicked.connect(lambda: self.setPage(offset=+1))
         QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self, lambda: self.setPage(offset=1))
         self.layout_navigate.addWidget(self.pushButton_right)

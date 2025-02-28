@@ -234,7 +234,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
         self.setWindowTitle("MaskEditor - ClickPoints")
-        self.setWindowIcon(qta.icon("fa.paint-brush"))
+        self.setWindowIcon(qta.icon("fa5s.paint-brush"))
         main_layout = QtWidgets.QHBoxLayout(self)
 
         # initialize tree view
@@ -248,7 +248,7 @@ class MaskEditor(QtWidgets.QWidget):
         row = -1
         for row, mask_type in enumerate(mask_types):
             item = QtGui.QStandardItem(mask_type.name)
-            item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(mask_type.color))))
+            item.setIcon(qta.icon("fa5s.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(mask_type.color))))
             item.setEditable(False)
             item.entry = mask_type
             self.mask_type_modelitems[mask_type.id] = item
@@ -256,7 +256,7 @@ class MaskEditor(QtWidgets.QWidget):
 
         # add an "add type" row
         item = QtGui.QStandardItem("add type")
-        item.setIcon(qta.icon("fa.plus"))
+        item.setIcon(qta.icon("fa5s.plus"))
         item.setEditable(False)
         self.new_type = self.mask_file.table_masktype()
         self.new_type.color = GetColorByIndex(mask_types.count() + 16)
@@ -377,7 +377,7 @@ class MaskEditor(QtWidgets.QWidget):
             item = self.mask_type_modelitems[self.data.id]
 
         # update item
-        item.setIcon(qta.icon("fa.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(self.data.color))))
+        item.setIcon(qta.icon("fa5s.paint-brush", color=QtGui.QColor(*HTMLColorToRGB(self.data.color))))
         item.setText(self.data.name)
         # if a new type was created switch selection to create a new type
         if new_type:
@@ -535,7 +535,7 @@ class MaskTool:
 
     def getIcon(self, color: Optional[QtGui.QColor] = None) -> QtGui.QIcon:
         cursor_name = self.getIconName()
-        if cursor_name.startswith("fa."):
+        if cursor_name.startswith("fa5s."):
             icon = qta.icon(cursor_name, color=color)
         else:
             icon = IconFromFile(cursor_name, color=color)
@@ -585,7 +585,7 @@ class BrushTool(MaskTool):
     last_y = 0
 
     def getIconName(self) -> str:
-        return "fa.paint-brush"
+        return "fa5s.paint-brush"
 
     def getTooltip(self) -> str:
         return "paint mask color <b>P</b>"
@@ -679,7 +679,7 @@ class BrushTool(MaskTool):
 
 class EraserTool(BrushTool):
     def getIconName(self) -> str:
-        return "fa.eraser"
+        return "fa5s.eraser"
 
     def getTooltip(self) -> str:
         return "erase mask<br/>(<b>E</b> or hold <b>ctrl</b>)"
@@ -692,7 +692,7 @@ class PickerTool(MaskTool):
     color_under_cursor = 0
 
     def getIconName(self) -> str:
-        return "fa.eyedropper"
+        return "fa5s.eye-dropper"
 
     def getTooltip(self) -> str:
         return "pick mask color<br/>(<b>K</b> or hold <b>alt</b>)"
@@ -877,7 +877,7 @@ class MaskHandler:
         # a button to display/hide the mask interface
         self.buttonMask = QtWidgets.QPushButton()
         self.buttonMask.setCheckable(True)
-        self.buttonMask.setIcon(qta.icon("fa.paint-brush"))
+        self.buttonMask.setIcon(qta.icon("fa5s.paint-brush"))
         self.buttonMask.setToolTip("add/edit mask for current frame")
         self.buttonMask.clicked.connect(self.ToggleInterfaceEvent)
         self.window.layoutButtons.addWidget(self.buttonMask)

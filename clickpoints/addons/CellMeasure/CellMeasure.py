@@ -203,7 +203,7 @@ class Addon(clickpoints.Addon):
         """ GUI Widgets"""
         # set the title and layout
         self.setWindowTitle("Cell Measurement")
-        self.setWindowIcon(qta.icon("fa.compress"))
+        self.setWindowIcon(qta.icon("fa5s.compress"))
         self.setMinimumWidth(400)
         self.setMinimumHeight(900)
         self.layout = QtWidgets.QVBoxLayout(self)

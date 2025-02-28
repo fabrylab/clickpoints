@@ -232,7 +232,7 @@ class pyQtTagSelector(QtWidgets.QWidget):
 
         if add_button:
             self.pbAdd = QtWidgets.QPushButton(self)
-            self.pbAdd.setIcon(qta.icon("fa.plus"))
+            self.pbAdd.setIcon(qta.icon("fa5s.plus"))
             self.pbAdd.setMaximumWidth(30)
             self.pbAdd.released.connect(self.hPB_add)
         else:
@@ -299,7 +299,7 @@ class AnnotationEditor(QtWidgets.QWidget):
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
         self.setWindowTitle("Edit Annotation - ClickPoints")
-        self.setWindowIcon(qta.icon("fa.file-text-o"))
+        self.setWindowIcon(qta.icon("fa5s.file-text-o"))
         self.layout = QtWidgets.QGridLayout(self)
 
         self.layout.addWidget(QtWidgets.QLabel('Filename:'), 0, 0)
@@ -401,7 +401,7 @@ class AnnotationOverview(QtWidgets.QWidget):
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
         self.setWindowTitle('Annotations Overview - ClickPoints')
-        self.setWindowIcon(qta.icon("fa.list"))
+        self.setWindowIcon(qta.icon("fa5s.list"))
         self.layout = QtWidgets.QGridLayout(self)
         self.annoation_ids = annoation_ids
         self.window = window
@@ -496,7 +496,7 @@ class AnnotationHandler:
         self.modules = modules
 
         self.button_annotationEditor = QtWidgets.QPushButton()
-        self.button_annotationEditor.setIcon(qta.icon("fa.edit"))
+        self.button_annotationEditor.setIcon(qta.icon("fa5s.edit"))
         self.button_annotationEditor.setToolTip("add/edit annotation for current frame")
         self.button_annotationEditor.clicked.connect(self.showAnnotationEditor)
         self.window.layoutButtons.addWidget(self.button_annotationEditor)

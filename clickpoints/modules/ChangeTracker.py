@@ -340,14 +340,14 @@ class ChangeTracker:
 
         # a undo button
         self.button_undo = QtWidgets.QPushButton()
-        self.button_undo.setIcon(qta.icon("fa.undo"))
+        self.button_undo.setIcon(qta.icon("fa5s.undo"))
         self.button_undo.clicked.connect(self.do_undo)
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Z"), self.window).activated.connect(self.do_undo)
         self.window.layoutButtons.addWidget(self.button_undo)
 
         # a button to display/hide the mask interface
         self.button_redo = QtWidgets.QPushButton()
-        self.button_redo.setIcon(qta.icon("fa.repeat"))
+        self.button_redo.setIcon(qta.icon("fa5s.redo"))
         self.button_redo.clicked.connect(self.do_redo)
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Y"), self.window).activated.connect(self.do_redo)
         self.window.layoutButtons.addWidget(self.button_redo)

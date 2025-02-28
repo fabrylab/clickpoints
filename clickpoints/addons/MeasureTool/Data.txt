@@ -1,6 +1,6 @@
 [addon]
 name=Measure Tool
 file=Measure.py
-icon=fa.wrench
+icon=fa5s.wrench
 requirements=tifffile,PIL
 image=Image.png

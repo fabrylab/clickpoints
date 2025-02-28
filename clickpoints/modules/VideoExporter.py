@@ -126,7 +126,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         # widget layout and elements
         self.setMinimumWidth(700)
         self.setMinimumHeight(300)
-        self.setWindowIcon(qta.icon('fa.film'))
+        self.setWindowIcon(qta.icon('fa5s.film'))
         self.setWindowTitle('Video Export - ClickPoints')
         self.layout = QtWidgets.QVBoxLayout(self)
         self.parent = parent
@@ -547,7 +547,7 @@ class VideoExporter:
         self.ExporterWindow = None
 
         self.button = QtWidgets.QPushButton()
-        self.button.setIcon(qta.icon('fa.film'))
+        self.button.setIcon(qta.icon('fa5s.film'))
         self.button.setToolTip("export images as video/image series")
         self.button.clicked.connect(self.showDialog)
         window.layoutButtons.addWidget(self.button)

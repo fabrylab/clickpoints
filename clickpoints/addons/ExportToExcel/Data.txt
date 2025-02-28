@@ -1,6 +1,6 @@
 [addon]
 name=Export to Excel
 file=ExportToExcel.py
-icon=fa.file-excel-o
+icon=fa5.file-excel
 image=Image.png
 requirements=xlwt

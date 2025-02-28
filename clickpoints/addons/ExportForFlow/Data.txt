@@ -1,4 +1,4 @@
 [addon]
 name=Export For Flow
 file=Export.py
-icon=fa.clock-o
+icon=fa5.clock

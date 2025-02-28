@@ -163,7 +163,7 @@ class SelectFrame(QtWidgets.QDialog):
 
         # Widget
         self.setWindowTitle("Select Frame - ClickPoints")
-        self.setWindowIcon(qta.icon("fa.play"))
+        self.setWindowIcon(qta.icon("fa5s.play"))
         self.setModal(True)
         main_layout = QtWidgets.QVBoxLayout(self)
         self.spinBox = AddQSpinBox(main_layout, "Frame Number:", value=frame, float=False)
@@ -939,7 +939,7 @@ class Timeline(QtCore.QObject):
 
         self.button = QtWidgets.QPushButton()
         self.button.setCheckable(True)
-        self.button.setIcon(qta.icon("fa.play"))
+        self.button.setIcon(qta.icon("fa5s.play"))
         self.button.setToolTip("display timeline")
         self.button.clicked.connect(lambda: self.HideInterface(self.hidden is False))
         self.button.setFocusPolicy(QtCore.Qt.NoFocus)

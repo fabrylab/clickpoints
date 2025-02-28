@@ -1,5 +1,5 @@
 [addon]
 name=Layer Sorter
 file=Sorter.py
-icon=fa.sort-amount-asc
+icon=fa5s.sort-amount-down-alt
 image=Image.png

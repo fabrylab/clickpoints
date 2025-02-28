@@ -126,7 +126,7 @@ class HelpText(QtWidgets.QGraphicsRectItem):
 
         self.button = QtWidgets.QPushButton()
         self.button.setCheckable(True)
-        self.button.setIcon(qta.icon('fa.question'))
+        self.button.setIcon(qta.icon('fa5s.question'))
         self.button.setToolTip("display help")
         self.button.clicked.connect(self.ShowHelpText)
         window.layoutButtons.addWidget(self.button)

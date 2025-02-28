@@ -1,6 +1,6 @@
 [addon]
 name=DistanceMeasurement (alpha)
 file=DistanceMeasurement.py
-icon=fa.map-signs
+icon=fa5s.map-signs
 image=Image.png
 requirements=scikit-image

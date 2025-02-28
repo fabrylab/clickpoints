@@ -26,7 +26,7 @@ import qtawesome as qta
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "includes", "qextendedgraphicsview"))
 from QExtendedGraphicsView import QExtendedGraphicsView
 
-__icon__ = "fa.tag"
+__icon__ = "fa5s.tag"
 
 import clickpoints
 
@@ -62,7 +62,7 @@ class ClassifierWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(QtWidgets.QWidget, self).__init__(parent)
         self.setWindowTitle("ManualClassifier - ClickPoints")
-        self.setWindowIcon(qta.icon("fa.tag"))
+        self.setWindowIcon(qta.icon("fa5s.tag"))
 
         # window layout
         self.layout = QtWidgets.QVBoxLayout()

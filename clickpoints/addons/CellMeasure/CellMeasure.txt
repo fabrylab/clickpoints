@@ -1,6 +1,6 @@
 [addon]
 name=Cell  Measurement (alpha)
 file=CellMeasure.py
-icon=fa.compress
+icon=fa5s.compress
 image=Image.png
 requirements=scikit-image,opencv-python,pandas

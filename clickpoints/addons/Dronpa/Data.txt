@@ -1,6 +1,6 @@
 [addon]
 name=Fluorescence Diffusion
 file=Dronpa.py
-icon=fa.flask
+icon=fa5s.flask
 requirements=theano,opencv-python,xlwt
 image=Image.png

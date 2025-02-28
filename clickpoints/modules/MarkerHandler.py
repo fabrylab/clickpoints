@@ -352,7 +352,7 @@ class DeleteType(QtWidgets.QDialog):
         self.setMinimumWidth(500)
         self.setMinimumHeight(100)
         self.setWindowTitle("Delete Type - ClickPoints")
-        self.setWindowIcon(qta.icon("fa.crosshairs"))
+        self.setWindowIcon(qta.icon("fa5s.crosshairs"))
         self.setModal(True)
         main_layout = QtWidgets.QVBoxLayout(self)
 
@@ -551,7 +551,7 @@ class MyTreeView(QtWidgets.QTreeView):
     def getIconOfEntry(self, entry):
         if isinstance(entry, self.data_file.table_markertype):
             if entry.mode == TYPE_Normal:
-                return qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
+                return qta.icon("fa5s.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
             if entry.mode == TYPE_Line:
                 return IconFromFile("Line.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
             if entry.mode == TYPE_Rect:
@@ -612,7 +612,7 @@ class MyTreeView(QtWidgets.QTreeView):
             self.new_type.color = GetColorByIndex(self.data_file.table_markertype.select().count()-1)
             item_type = myTreeWidgetItem("add type")
             item_type.entry = self.new_type
-            item_type.setIcon(qta.icon("fa.plus"))
+            item_type.setIcon(qta.icon("fa5s.plus"))
             item_type.setEditable(False)
             self.model.setItem(row + 1, 0, item_type)
             self.setItemForEntry(self.new_type, item_type)
@@ -649,7 +649,7 @@ class MyTreeView(QtWidgets.QTreeView):
             child = QtGui.QStandardItem("loading")
             child.entry = None
             child.setEditable(False)
-            child.setIcon(qta.icon("fa.hourglass-half"))
+            child.setIcon(qta.icon("fa5s.hourglass-half"))
             item.appendRow(child)
             item.expanded = False
         return item
@@ -774,7 +774,7 @@ class MarkerEditor(QtWidgets.QWidget):
         self.setMinimumWidth(500)
         self.setMinimumHeight(200)
         self.setWindowTitle("MarkerEditor - ClickPoints")
-        self.setWindowIcon(qta.icon("fa.crosshairs"))
+        self.setWindowIcon(qta.icon("fa5s.crosshairs"))
         main_layout = QtWidgets.QHBoxLayout(self)
 
         # create tree view
@@ -797,19 +797,19 @@ class MarkerEditor(QtWidgets.QWidget):
         self.layout.addWidget(self.StackedWidget)
 
         """ Context Menue Actions """
-        self.act_delete = QtWidgets.QAction(qta.icon("fa.trash"),self.tr("Delete"),self)
+        self.act_delete = QtWidgets.QAction(qta.icon("fa5s.trash"),self.tr("Delete"),self)
         self.act_delete.triggered.connect(self.removeMarker)
 
-        self.act_delete_after = QtWidgets.QAction(qta.icon("fa.trash-o"),self.tr("Delete after this marker"),self)
+        self.act_delete_after = QtWidgets.QAction(qta.icon("fa5s.trash-o"),self.tr("Delete after this marker"),self)
         self.act_delete_after.triggered.connect(self.removeMarkersAfter)
 
-        self.act_split = QtWidgets.QAction(qta.icon("fa.scissors"),self.tr("Split"),self)
+        self.act_split = QtWidgets.QAction(qta.icon("fa5s.scissors"),self.tr("Split"),self)
         self.act_split.triggered.connect(self.splitTrack)
 
-        self.act_merge = QtWidgets.QAction(qta.icon("fa.compress"),self.tr("Merge ..."),self)
+        self.act_merge = QtWidgets.QAction(qta.icon("fa5s.compress"),self.tr("Merge ..."),self)
         self.act_merge.triggered.connect(self.mergeTrack)
 
-        self.act_changeType = QtWidgets.QAction(qta.icon("fa.arrow-right"),self.tr("Change Type ..."),self)
+        self.act_changeType = QtWidgets.QAction(qta.icon("fa5s.arrow-right"),self.tr("Change Type ..."),self)
         self.act_changeType.triggered.connect(self.changeType)
 
         """ Marker Properties """
@@ -3349,7 +3349,7 @@ class MarkerHandler:
 
         self.button = QtWidgets.QPushButton()
         self.button.setCheckable(True)
-        self.button.setIcon(qta.icon("fa.crosshairs"))
+        self.button.setIcon(qta.icon("fa5s.crosshairs"))
         self.button.setToolTip("add/edit marker for current frame")
         self.button.clicked.connect(self.ToggleInterfaceEvent)
         self.window.layoutButtons.addWidget(self.button)
@@ -3378,9 +3378,9 @@ class MarkerHandler:
 
         self.closeDataFile()
 
-        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa.plus"), (10 + (26+5)*0, 10), scale=self.window.scale_factor)
-        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa.trash"), (10 + (26+5)*1, 10), scale=self.window.scale_factor)
-        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa.tint"), (10 + (26+5)*2, 10), scale=self.window.scale_factor)
+        self.button1 = MyCommandButton(self.parent_hud, self, qta.icon("fa5s.plus"), (10 + (26+5)*0, 10), scale=self.window.scale_factor)
+        self.button2 = MyCommandButton(self.parent_hud, self, qta.icon("fa5s.trash"), (10 + (26+5)*1, 10), scale=self.window.scale_factor)
+        self.button3 = MyCommandButton(self.parent_hud, self, qta.icon("fa5s.tint"), (10 + (26+5)*2, 10), scale=self.window.scale_factor)
         self.button1.setToolTip("add or move marker <b>M</b>")
         self.button2.setToolTip("delete marker<br/>(<b>D</b> or hold <b>ctrl</b>)")
         self.button3.setToolTip("change marker type <b>C</b>")
@@ -3410,7 +3410,7 @@ class MarkerHandler:
                 self.counter[index].SetToInactiveColor()
 
         # set the cursor according to the tool
-        cursor_name = ["fa.plus", "fa.trash", "fa.tint", None][self.tool_index]
+        cursor_name = ["fa5s.plus", "fa5s.trash", "fa5s.tint", None][self.tool_index]
         self.setCursor(cursor_name)
 
     def setCursor(self, cursor_name):
@@ -3419,7 +3419,7 @@ class MarkerHandler:
             self.window.ImageDisplay.unsetCursor()
         else:
             # get the cursor from file or name
-            if cursor_name.startswith("fa."):
+            if cursor_name.startswith("fa5s."):
                 icon = qta.icon(cursor_name, color=QtGui.QColor(*HTMLColorToRGB(self.active_type.color)[::-1]))
             else:
                 icon = IconFromFile(cursor_name, color=QtGui.QColor(*HTMLColorToRGB(self.active_type.color)))
@@ -3884,7 +3884,7 @@ class MarkerHandler:
         self.counter[self.active_type_index].SetToActiveColor()
 
         # reset the cursor to adjust the color to the new markertype
-        cursor_name = ["fa.plus", "fa.trash", "fa.tint", None][self.tool_index]
+        cursor_name = ["fa5s.plus", "fa5s.trash", "fa5s.tint", None][self.tool_index]
         self.setCursor(cursor_name)
 
     def zoomEvent(self, scale, pos):

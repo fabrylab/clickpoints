@@ -40,7 +40,7 @@ class FolderEditor(QtWidgets.QWidget):
 
         # add button to the icon toolbar
         self.button = QtWidgets.QPushButton()
-        self.button.setIcon(qta.icon('fa.folder-open'))
+        self.button.setIcon(qta.icon('fa5s.folder-open'))
         self.button.setToolTip("add/remove folder from the current project")
         self.button.clicked.connect(self.showDialog)
         window.layoutButtons.addWidget(self.button)
@@ -51,7 +51,7 @@ class FolderEditor(QtWidgets.QWidget):
         self.setWindowTitle("Folder Selector - ClickPoints")
         self.layout = QtWidgets.QVBoxLayout(self)
 
-        self.setWindowIcon(qta.icon("fa.folder-open"))
+        self.setWindowIcon(qta.icon("fa5s.folder-open"))
 
         """ """
         self.list = QtWidgets.QListWidget(self)
@@ -155,10 +155,10 @@ class FolderEditor(QtWidgets.QWidget):
         if self.data_file is None:
             return
         for path in self.data_file.table_path.select():
-            item = QtWidgets.QListWidgetItem(qta.icon("fa.folder"), "%s  (%d)" % (path.path, path.images.count()),
+            item = QtWidgets.QListWidgetItem(qta.icon("fa5s.folder"), "%s  (%d)" % (path.path, path.images.count()),
                                              self.list)
             item.path_entry = path
-        QtWidgets.QListWidgetItem(qta.icon("fa.plus"), "add folder", self.list)
+        QtWidgets.QListWidgetItem(qta.icon("fa5s.plus"), "add folder", self.list)
 
     def closeDataFile(self):
         self.data_file = None

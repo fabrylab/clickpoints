@@ -1,5 +1,5 @@
 [addon]
 name=Kymograph
 file=Kymograph.py
-icon=fa.clock-o
+icon=fa5.clock
 image=Image.png

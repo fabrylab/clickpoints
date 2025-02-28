@@ -1,6 +1,6 @@
 [addon]
 name=Track
 file=Track.py
-icon=fa.road
+icon=fa5s.road
 requirements=opencv-python
 image=Image.png
