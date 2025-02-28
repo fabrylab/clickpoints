@@ -38,64 +38,6 @@ from clickpoints.includes.QtShortCuts import AddQSpinBox
 from clickpoints.includes.Tools import MySpinBox, HiddeableLayout
 
 
-class AsyncPlayback(QtCore.QObject):
-    """
-    Handles asynchronous playback in a separate thread.
-    """
-    frame_ready = QtCore.Signal(int)  # Signal to indicate a frame is ready
-
-    def __init__(self, window, timeline):
-        super().__init__()
-        self.window = window
-        self.timeline = timeline
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-        self.running = False
-        self.target_delta_t = 0
-
-    async def playback_loop(self):
-        """
-        The main playback loop that runs in the separate thread.
-        """
-        while self.running:
-            if self.timeline.data_file is None or self.timeline.get_current_frame() is None:
-                await asyncio.sleep(0.01)  # Avoid busy-waiting
-                continue
-
-            if self.timeline.get_current_frame() < self.timeline.frameSlider.startValue() or \
-               self.timeline.get_current_frame() + self.timeline.skip > self.timeline.frameSlider.endValue():
-                target_frame = self.timeline.frameSlider.startValue()
-            else:
-                target_frame = self.timeline.window.target_frame + self.timeline.skip
-
-            # Load the frame asynchronously
-            await self.window.load_frame(target_frame)
-
-            # Emit a signal to update the GUI (in the main thread)
-            self.frame_ready.emit(target_frame)
-
-            # Wait for the next frame
-            await asyncio.sleep(max(self.target_delta_t, 0))
-
-    def start_playback(self):
-        """Starts the playback loop."""
-        self.running = True
-        asyncio.run_coroutine_threadsafe(self.playback_loop(), self.loop)
-
-    def stop_playback(self):
-        """Stops the playback loop."""
-        self.running = False
-
-    def run(self):
-        """Runs the asyncio event loop."""
-        self.loop.run_forever()
-
-    def stop(self):
-        """Stops the event loop."""
-        self.loop.call_soon_threadsafe(self.loop.stop)
-
-
-
 def timedelta_mul(self: timedelta, other: float) -> timedelta:
     if isinstance(other, (int, float)):
         return datetime.timedelta(seconds=self.total_seconds() * other)
@@ -922,8 +864,6 @@ class Timeline(QtCore.QObject):
     _endframe = None
 
     fps = 25
-    current_fps = None
-    last_time = 0
     skip = 1  # where skip should be called step width i.e step=10 -> frame0 to frame10
 
     subsecond_decimals = 0
@@ -1018,30 +958,46 @@ class Timeline(QtCore.QObject):
         self.spinBox_Skip.setToolTip("display every Nth frame")
         self.layoutCtrl.addWidget(self.spinBox_Skip)
 
-        # Video replay
-        self.playing = False
-        self.async_playback = AsyncPlayback(self.window, self)
-        self.playback_thread = QtCore.QThread()
-        self.async_playback.moveToThread(self.playback_thread)
-
-        # Connect signals and slots
-        self.button_play.toggled.connect(self.Play)
-        self.async_playback.frame_ready.connect(self.on_frame_ready)
-        self.playback_thread.started.connect(self.async_playback.run)
-        self.playback_thread.finished.connect(self.async_playback.stop)
-        self.playback_thread.finished.connect(self.playback_thread.deleteLater)
-        self.playback_thread.start()
+        # video replay
+        self.current_fps = 0
+        self.last_time = time.time()
+        # initialize the frame timer
+        loop = self.window.app.loop
+        asyncio.ensure_future(self.runTimer(loop), loop=loop)
 
         self.hidden = True
+
         self.closeDataFile()
 
-    def on_frame_ready(self, frame_number):
-        """
-        Slot to handle the frame_ready signal from the async playback thread.
-        """
-        self.updateLabel()  # Update the label
-        # No need to call JumpToFrame here, as the frame is already loaded
-        # by the async playback loop.
+    async def runTimer(self, loop: QEventLoop):
+
+        t = time.time()
+        target_fps = 25
+        self.target_delta_t = 1 / target_fps
+        last_overhead = 0
+        mean_fps = target_fps
+        averaging_decay = 0.9
+
+        while True:
+            if self.running:
+                wait = loop.create_task(asyncio.sleep(max(self.target_delta_t - last_overhead, 0)))
+                if self.data_file is None or self.get_current_frame() is None:
+                    return
+                if self.get_current_frame() < self.frameSlider.startValue() or self.get_current_frame() + self.skip > self.frameSlider.endValue():
+                    self.window.load_frame(self.frameSlider.startValue())
+                else:
+                    self.window.load_frame(self.window.target_frame + self.skip)
+                await wait
+
+                # calculate the time slip
+                delta_t = time.time() - t
+                t = time.time()
+                last_overhead += 0.1 * (delta_t - self.target_delta_t)
+
+                mean_fps = averaging_decay * mean_fps + (1 - averaging_decay) * 1 / (delta_t + 1e-9)
+            else:
+                await asyncio.sleep(0.01)
+                t = time.time()
 
     def closeDataFile(self) -> None:
         self.data_file = None
@@ -1139,7 +1095,7 @@ class Timeline(QtCore.QObject):
         self.data_file.setOption("fps", self.fps)
         if self.playing:
             self.target_delta_t = 1 / self.fps
-            self.async_playback.target_delta_t = self.target_delta_t
+            self.running = True
             # self.timer.start(1000 / self.fps)
 
     def ReleasedSlider(self) -> None:
@@ -1163,12 +1119,13 @@ class Timeline(QtCore.QObject):
     def Play(self, state: bool) -> None:
         if state:
             self.target_delta_t = 1 / self.fps
-            self.async_playback.target_delta_t = self.target_delta_t
-            self.async_playback.start_playback()
+            self.running = True
+            # self.timer.start(1000 / self.fps)
             self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "pause.ico")))
             self.playing = True
         else:
-            self.async_playback.stop_playback()
+            self.running = False
+            # self.timer.stop()
             self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "play.ico")))
             self.playing = False
 
@@ -1315,9 +1272,6 @@ class Timeline(QtCore.QObject):
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self.Play(False)
-        self.async_playback.stop()
-        self.playback_thread.quit()
-        self.playback_thread.wait()
 
     @staticmethod
     def file() -> str:

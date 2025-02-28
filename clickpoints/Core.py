@@ -338,9 +338,9 @@ class ClickPointsWindow(QtWidgets.QWidget):
 
     # jump absolute
     def JumpToFrame(self, target_id: int, threaded: bool = True) -> None:
-        asyncio.ensure_future(self.load_frame(target_id), loop=self.app.loop)
+        self.load_frame(target_id)
 
-    async def load_frame(self, target_id: int, layer_id: None = None) -> None:
+    def load_frame(self, target_id: int, layer_id: None = None) -> None:
         # if no frame is loaded yet, do nothing
         if self.data_file.get_image_count() == 0:
             return
@@ -371,7 +371,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         image_object = self.data_file.table_image.get(sort_index=target_id, layer_id=layer_id.id)
 
         # load the image from disk
-        image = await self.data_file.load_frame_async(image_object, target_id, layer=layer_id)
+        image = self.data_file.load_frame(image_object, target_id, layer=layer_id)
 
         # set the index of the current frame
         self.data_file.set_image(target_id, layer_id)
@@ -381,7 +381,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
         self.setWindowTitle("%s - %s - ClickPoints - Layer %s" % (image_object.filename, self.data_file.getFilename(), self.current_layer.name))
 
         # display the image
-        await self.ImageDisplay.SetImage_async(image, self.data_file.get_offset())
+        self.ImageDisplay.SetImage(image, self.data_file.get_offset())
 
         # tell the QExtendedGraphicsView the shape of the new image
         self.view.setExtend(*image.shape[:2][::-1])

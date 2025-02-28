@@ -476,7 +476,7 @@ class DataFileExtended(DataFile):
         # return the current image index
         return self.current_layer
 
-    async def load_frame_async(self, image: "Image", index: id, layer: id) -> np.ndarray:
+    def load_frame(self, image: "Image", index: id, layer: id) -> np.ndarray:
         # check if frame is already buffered then we don't need to load it
         frame = self.buffer.get_frame(index, layer)
         if frame is not None:
@@ -485,12 +485,8 @@ class DataFileExtended(DataFile):
         # prepare a slot in the buffer
         slots, slot_index, = self.buffer.prepare_slot(index, layer)
         # call buffer_frame in a separate thread or directly
-        frame = await self.buffer_frame_async(image, filename, slots, slot_index, index, layer=layer)
+        frame = self.buffer_frame(image, filename, slots, slot_index, index, layer=layer)
         return frame
-
-    async def buffer_frame_async(self, image: "Image", filename: str, slots: list, slot_index: int, index: int,
-                                 layer: int = 1, signal: bool = True, threaded: bool = True):
-        return self.buffer_frame(image, filename, slots, slot_index, index, layer, signal, threaded)
 
     def buffer_frame(self, image: "Image", filename: str, slots: list, slot_index: int, index: int, layer: int = 1,
                      signal: bool = True, threaded: bool = True):

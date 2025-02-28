@@ -201,7 +201,7 @@ class BigImageDisplay:
         self.background_rect.setAcceptHoverEvents(True)
         self.background_rect.installSceneEventFilter(event_filter)
 
-    async def SetImage_async(self, image: np.ndarray, offset: List[int]) -> None:
+    def SetImage(self, image: np.ndarray, offset: List[int]) -> None:
         self.background_rect.setRect(0, 0, image.shape[1], image.shape[0])
         # if image doesn't have a dimension for color channels, add one
         if len(image.shape) == 2:
