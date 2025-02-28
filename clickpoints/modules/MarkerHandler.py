@@ -2187,7 +2187,7 @@ class MyRectangleItem(MyDisplayItem, QtWidgets.QGraphicsRectItem):
     default_shape = "rect"
 
     def __init__(self, marker_handler, parent, data=None, event=None, type=None):
-        QtWidgets.QGraphicsLineItem.__init__(self, parent)
+        QtWidgets.QGraphicsRectItem.__init__(self, parent)
         MyDisplayItem.__init__(self, marker_handler, data, event, type)
 
     def init2(self):
@@ -2314,7 +2314,7 @@ class MyEllipseItem(MyDisplayItem, QtWidgets.QGraphicsEllipseItem):
     default_shape = "rect"
 
     def __init__(self, marker_handler, parent, data=None, event=None, type=None):
-        QtWidgets.QGraphicsLineItem.__init__(self, parent)
+        QtWidgets.QGraphicsEllipseItem.__init__(self, parent)
         MyDisplayItem.__init__(self, marker_handler, data, event, type)
 
     def getRect(self):
@@ -2515,7 +2515,7 @@ class MyPolygonItem(MyDisplayItem, QtWidgets.QGraphicsPathItem):
     preview_point = None
 
     def __init__(self, marker_handler, parent, data=None, event=None, type=None):
-        QtWidgets.QGraphicsLineItem.__init__(self, parent)
+        QtWidgets.QGraphicsPathItem.__init__(self, parent)
         self.points = []
         self.grabbers = []
         if data is None:
