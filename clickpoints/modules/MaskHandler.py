@@ -37,6 +37,7 @@ from clickpoints.includes import QtShortCuts
 from clickpoints.includes.BigImageDisplay import BigImageDisplay
 from clickpoints.includes.Database import DataFileExtended
 from clickpoints.includes.QtShortCuts import GetColorByIndex
+from clickpoints.includes.setCursor import qicon_to_numpy
 from clickpoints.includes.Tools import GraphicsItemEventFilter, BroadCastEvent, HTMLColorToRGB, IconFromFile, \
     MyTextButtonGroup, \
     MyToolGroup, array2qimage
@@ -547,9 +548,7 @@ class MaskTool:
 
     def setCursor(self) -> None:
         icon = self.getIcon(color=QtGui.QColor(255, 255, 255))
-        # convert icon to numpy array
-        buffer = icon.pixmap(16, 16).toImage().constBits()
-        cursor2 = np.ndarray(shape=(16, 16, 4), buffer=buffer.asarray(size=16 * 16 * 4), dtype=np.uint8)
+        cursor2 = qicon_to_numpy(icon)
         # load the cursor image
         cursor = imageio.imread(os.path.join(os.environ["CLICKPOINTS_ICON"], "Cursor.png"))
         # compose them

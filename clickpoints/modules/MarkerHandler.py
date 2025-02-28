@@ -3416,31 +3416,6 @@ class MarkerHandler:
 
     def setCursor(self, cursor_name):
         return setCursor(self.window, cursor_name, self.active_type.color)
-        # if no cursor is given, hide the cursor
-        if cursor_name is None:
-            self.window.ImageDisplay.unsetCursor()
-        else:
-            # get the cursor from file or name
-            if cursor_name.startswith("fa5s."):
-                icon = qta.icon(cursor_name, color=QtGui.QColor(*HTMLColorToRGB(self.active_type.color)[::-1]))
-            else:
-                icon = IconFromFile(cursor_name, color=QtGui.QColor(*HTMLColorToRGB(self.active_type.color)))
-            # convert icon to numpy array
-            buffer = icon.pixmap(16, 16).toImage().constBits()
-            cursor2 = np.ndarray(shape=(16, 16, 4), buffer=buffer.asarray(size=16 * 16 * 4), dtype=np.uint8)
-            # load the cursor image
-            cursor = imageio.imread(os.path.join(os.environ["CLICKPOINTS_ICON"], "Cursor.png"))
-            # compose them
-            cursor3 = np.zeros([cursor.shape[0] + cursor2.shape[0], cursor.shape[1] + cursor2.shape[1], 4],
-                               cursor.dtype)
-            cursor3[:cursor.shape[0], :cursor.shape[1], :] = cursor
-            y, x = (cursor.shape[0] - 6, cursor.shape[1] - 4)
-            cursor3[y:y + cursor2.shape[0], x:x + cursor2.shape[1], :] = cursor2
-            # create a cursor
-            cursor = QtGui.QCursor(QtGui.QPixmap(array2qimage(cursor3)), 0, 0)
-
-            # and the the cursor as the active one
-            self.window.ImageDisplay.setCursor(cursor)
 
     def eventToolSelected(self, module, tool):
         if module == "Marker":
