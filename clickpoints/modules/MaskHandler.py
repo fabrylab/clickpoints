@@ -271,7 +271,7 @@ class MaskEditor(QtWidgets.QWidget):
         self.tree.setAnimated(True)
         self.tree.setModel(model)
         self.tree.selectionModel().selectionChanged.connect(lambda selection, y: self.setMaskType(
-            selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry))
+            selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry) if len(selection.indexes()) else None)
 
         # create editor layout
         edit_layout = QtWidgets.QVBoxLayout()
