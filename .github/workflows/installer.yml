@@ -37,7 +37,7 @@ jobs:
     - name: build exe with pyinstaller
       shell: bash
       run: |
-          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/icons:clickpoints/icons"  clickpoints/launch.py 
+          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/icons:clickpoints/icons" --add-data "clickpoints/addons:clickpoints/addons" clickpoints/launch.py 
           mv output/clickpoints_run/launch output/clickpoints_run/clickpoints
           chmod +x output/clickpoints_run/clickpoints
 
@@ -83,7 +83,7 @@ jobs:
       - name: build exe with pyinstaller
         shell: bash
         run: |
-          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" clickpoints/launch.py
+          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --add-data "clickpoints/addons:clickpoints/addons" --splash "clickpoints/icons/Splash.png" clickpoints/launch.py
           mv output/clickpoints_run/launch.exe output/clickpoints_run/clickpoints.exe
 
       - uses: actions/upload-artifact@v4
