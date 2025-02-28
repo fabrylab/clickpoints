@@ -1525,20 +1525,21 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         self.color = color
         if not self.outline:
             self.setBrush(QtGui.QBrush(color))
+            self.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         else:
-            self.setBrush(QtGui.QBrush(0))
+            self.setBrush(QtCore.Qt.NoBrush)
             self.setPen(QtGui.QPen(color))
             pen = self.pen()
             pen.setColor(color)
             pen.setCosmetic(True)
             self.setPen(pen)
 
-    def shape(self):
-        if self.outline:
-            return QtWidgets.QGraphicsPathItem.shape(self)
-        path = QtGui.QPainterPath()
-        path.addEllipse(self.boundingRect())
-        return path
+    #def shape(self):
+    #    if self.outline:
+    #        return super().shape()
+    #    path = QtGui.QPainterPath()
+    #    path.addEllipse(self.boundingRect())
+    #    return path
 
     def hoverEnterEvent(self, event):
         # a bit bigger during hover
