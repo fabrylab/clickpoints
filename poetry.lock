@@ -1467,7 +1467,7 @@ files = [
 name = "opencv-python"
 version = "4.11.0.86"
 description = "Wrapper package for OpenCV python bindings."
-optional = true
+optional = false
 python-versions = ">=3.6"
 files = [
     {file = "opencv-python-4.11.0.86.tar.gz", hash = "sha256:03d60ccae62304860d232272e4a4fda93c39d595780cb40b161b310244b736a4"},
@@ -2950,4 +2950,4 @@ docs = ["mock", "nbsphinx", "sphinx-rtd-theme", "sphinxcontrib-bibtex", "sphinxc
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.14"
-content-hash = "ec858e5e8cb6247df01e45941fdcfe55f3fc202cbeb5f5893d7cc0889ce9252a"
+content-hash = "0c2d1899eec44c6614da3aad0cf7618665bb2b3203b93e3dbd264386471164e1"
