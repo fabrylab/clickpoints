@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 import asyncio
+import cv2
 
 def main(*args):
     import sys
@@ -102,7 +103,6 @@ def main(*args):
     try:
         # only available in the pyinstaller version
         import pyi_splash
-        import cv2
         pyi_splash.close()
     except ImportError:
         pass
