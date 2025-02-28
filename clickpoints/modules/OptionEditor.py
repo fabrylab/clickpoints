@@ -41,11 +41,34 @@ from clickpoints.includes.Database import DataFileExtended
 repo_path = "\"" + os.path.join(os.path.dirname(__file__), "..", "..") + "\""
 
 def get_pip_versions(package_name="clickpoints"):
-    p = Popen(f"pip install {package_name}==", shell=True, stdout=PIPE, stderr=PIPE)
-    stdout, stderr = p.communicate()
-    match = re.match(r".*\(from versions: ([^)]*)\).*", stderr.decode())
-    versions = [s.strip() for s in match.groups()[0].split(",")]
+    try:
+        # Try using 'pip index versions' (requires pip >= 10)
+        result = subprocess.run(
+            ["pip", "index", "versions", package_name],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        output = result.stdout
+        versions = re.findall(r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?", output)  # More robust regex
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Fallback for older pip versions
+        p = subprocess.Popen(
+            f"pip install {package_name}==",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = p.communicate()
+        stderr_str = stderr.decode()
+        match = re.search(r"\(from versions: ([^)]*)\)", stderr_str)  # Use re.search
+        if match:
+            versions = [s.strip() for s in match.groups()[0].split(",")]
+        else:
+            return []  # Return empty list if no versions found
+
     return natsort.natsorted(versions)
+
 
 def load_dirty_json(dirty_json):
     regex_replace = [(r"([ \{,:\[])(u)?'([^']+)'", r'\1"\3"'), (r" False([, \}\]])", r' false\1'), (r" True([, \}\]])", r' true\1')]
@@ -140,7 +163,7 @@ class VersionDisplay(QtWidgets.QWidget):
         self.version_changed.emit()
 
     def updateVersionDisplay(self) -> None:
-        text = "v" + self.current_version.vstring
+        text = "v" + str(self.current_version)
         if self.current_version_hg:
             text += " (rev %s)" % self.current_version_hg
             if self.newestet_version_hg is not None:
@@ -151,7 +174,7 @@ class VersionDisplay(QtWidgets.QWidget):
                     text += ", up to date)"
         elif self.newestet_version is not None:
             if self.newestet_version > self.current_version:
-                text += " (update to version <a href='update.html'>v%s</a>)" % self.newestet_version.vstring
+                text += " (update to version <a href='update.html'>v%s</a>)" % str(self.newestet_version)
             else:
                 text += " (up to date)"
 
@@ -159,7 +182,7 @@ class VersionDisplay(QtWidgets.QWidget):
 
     def updateClicked(self):
         if self.newestet_version_hg is None:
-            text = 'Do you want to update ClickPoints to version v%s?\nThe current instance will be closed.' % self.newestet_version.vstring
+            text = 'Do you want to update ClickPoints to version v%s?\nThe current instance will be closed.' % str(self.newestet_version)
         else:
             text = 'Do you want to update ClickPoints to revision rev%s?\nThe current instance will be closed.' % self.newestet_version_hg
         reply = QtWidgets.QMessageBox.question(self, 'Update', text,
