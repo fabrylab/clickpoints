@@ -33,8 +33,8 @@ from sortedcontainers import SortedDict
 
 from qimage2ndarray import array2qimage, rgb_view
 import imageio
-
 import uuid
+from clickpoints.includes.setCursor import setCursor
 
 import json
 import matplotlib.pyplot as plt
@@ -800,10 +800,10 @@ class MarkerEditor(QtWidgets.QWidget):
         self.act_delete = QtWidgets.QAction(qta.icon("fa5s.trash"),self.tr("Delete"),self)
         self.act_delete.triggered.connect(self.removeMarker)
 
-        self.act_delete_after = QtWidgets.QAction(qta.icon("fa5s.trash-o"),self.tr("Delete after this marker"),self)
+        self.act_delete_after = QtWidgets.QAction(qta.icon("fa5.trash-alt"),self.tr("Delete after this marker"),self)
         self.act_delete_after.triggered.connect(self.removeMarkersAfter)
 
-        self.act_split = QtWidgets.QAction(qta.icon("fa5s.scissors"),self.tr("Split"),self)
+        self.act_split = QtWidgets.QAction(qta.icon("ri.scissors-fill"),self.tr("Split"),self)
         self.act_split.triggered.connect(self.splitTrack)
 
         self.act_merge = QtWidgets.QAction(qta.icon("fa5s.compress"),self.tr("Merge ..."),self)
@@ -3414,6 +3414,7 @@ class MarkerHandler:
         self.setCursor(cursor_name)
 
     def setCursor(self, cursor_name):
+        return setCursor(self.window, cursor_name, self.active_type.color)
         # if no cursor is given, hide the cursor
         if cursor_name is None:
             self.window.ImageDisplay.unsetCursor()
