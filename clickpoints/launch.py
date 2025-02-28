@@ -19,11 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 import asyncio
-try:
-    # only availabel in the pyinstaller version
-    import pyi_splash
-except ImportError:
-    pyi_splash = None
 
 def main(*args):
     import sys
@@ -104,8 +99,13 @@ def main(*args):
 
     # Initialize and show the ClickPoints window
     window = ClickPointsWindow(config, app)
-    if pyi_splash is not None:
+    try:
+        # only available in the pyinstaller version
+        import pyi_splash
+        import cv2
         pyi_splash.close()
+    except ImportError:
+        pass
     window.show()
     sys.exit(app.exec_())
 
