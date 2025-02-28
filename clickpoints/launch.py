@@ -19,6 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 import asyncio
+try:
+    # only availabel in the pyinstaller version
+    import pyi_splash
+except ImportError:
+    pyi_splash = None
 
 def main(*args):
     import sys
@@ -77,7 +82,7 @@ def main(*args):
     import ctypes
     from clickpoints.Core import ClickPointsWindow
     from clickpoints.includes import LoadConfig
-    #import qasync
+    import qasync
 
 
     from clickpoints import define_paths
@@ -85,9 +90,9 @@ def main(*args):
     define_paths()
 
     app = QtWidgets.QApplication(args)
-    #loop = qasync.QEventLoop(app)
-    #asyncio.set_event_loop(loop)
-    #app.loop = loop
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    app.loop = loop
 
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
@@ -99,6 +104,8 @@ def main(*args):
 
     # Initialize and show the ClickPoints window
     window = ClickPointsWindow(config, app)
+    if pyi_splash is not None:
+        pyi_splash.close()
     window.show()
     sys.exit(app.exec_())
 
