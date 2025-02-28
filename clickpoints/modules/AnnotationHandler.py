@@ -299,7 +299,7 @@ class AnnotationEditor(QtWidgets.QWidget):
         self.setMinimumWidth(650)
         self.setMinimumHeight(400)
         self.setWindowTitle("Edit Annotation - ClickPoints")
-        self.setWindowIcon(qta.icon("fa5s.file-text-o"))
+        self.setWindowIcon(qta.icon("fa5.file-alt"))
         self.layout = QtWidgets.QGridLayout(self)
 
         self.layout.addWidget(QtWidgets.QLabel('Filename:'), 0, 0)
