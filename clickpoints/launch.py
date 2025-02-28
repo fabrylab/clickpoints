@@ -77,7 +77,7 @@ def main(*args):
     import ctypes
     from clickpoints.Core import ClickPointsWindow
     from clickpoints.includes import LoadConfig
-    import qasync
+    #import qasync
 
 
     from clickpoints import define_paths
@@ -85,9 +85,9 @@ def main(*args):
     define_paths()
 
     app = QtWidgets.QApplication(args)
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
-    app.loop = loop
+    #loop = qasync.QEventLoop(app)
+    #asyncio.set_event_loop(loop)
+    #app.loop = loop
 
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
