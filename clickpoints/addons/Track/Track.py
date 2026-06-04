@@ -22,7 +22,6 @@
 import clickpoints
 import numpy as np
 import cv2
-import asyncio
 from qtpy import QtGui, QtCore
 
 
@@ -56,7 +55,7 @@ class Addon(clickpoints.Addon):
                 p.processed = 0
                 p.save()
 
-    async def run(self, start_frame=0):
+    def run(self, start_frame=0):
         # get the frame range
         self.start, self.end, self.skip = self.cp.getFrameRange()
 
@@ -102,7 +101,7 @@ class Addon(clickpoints.Addon):
                                type=list(types))
 
             # update ClickPoints
-            await self.cp.window.load_frame(image.sort_index)
+            self.cp.jumpToFrameWait(image.sort_index)
 
             # store positions and image
             p0 = p1[valid]
@@ -116,5 +115,7 @@ class Addon(clickpoints.Addon):
                 print("No tracks left")
                 return
 
-            # add a task switch point to allow qt to display the next image
-            await asyncio.sleep(0)
+            # check if we should terminate
+            if self.cp.hasTerminateSignal():
+                print("Cancelled Tracking")
+                return

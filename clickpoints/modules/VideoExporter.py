@@ -30,7 +30,6 @@ import qtawesome as qta
 from PIL import ImageDraw, Image, ImageFont
 from qtpy import QtCore, QtGui, QtWidgets
 from scipy.ndimage import shift
-import asyncio
 
 from clickpoints.DataFile import OptionAccess
 from clickpoints.includes import QtShortCuts
@@ -289,9 +288,6 @@ class VideoExporterDialog(QtWidgets.QWidget):
         self.abort = True
 
     def SaveImage(self) -> None:
-        asyncio.ensure_future(self.SaveImage_async(), loop=self.window.app.loop)
-
-    async def SaveImage_async(self) -> None:
         # hide the start button and display the abort button
         self.abort = False
         self.button_start.setHidden(True)
@@ -399,7 +395,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
         for frame in iter_range:
             # advance progress bar and load next image
             self.progressbar.setValue(frame)
-            await self.window.load_frame(frame)
+            self.window.load_frame(frame)
 
             # get new image and offsets
             image = self.window.ImageDisplay.image

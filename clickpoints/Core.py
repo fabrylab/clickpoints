@@ -23,7 +23,6 @@ import os
 import sys
 
 import time
-import asyncio
 
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtCore import Qt
@@ -262,7 +261,7 @@ class ClickPointsWindow(QtWidgets.QWidget):
                 self.GetModule("OptionEditor").applyConfig(self.start_config)
 
         self.load_timer.start()
-        self.data_file = loadUrl(url, self.data_file, window=self, use_natsort=use_natsort, reset=reset, loop=self.app.loop, callback_finished=loadingFinished)
+        self.data_file = loadUrl(url, self.data_file, window=self, use_natsort=use_natsort, reset=reset, callback_finished=loadingFinished)
 
     def reset(self, filename: str = "") -> None:
         if self.data_file is not None:

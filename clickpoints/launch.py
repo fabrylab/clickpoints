@@ -18,7 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
-import asyncio
 import os
 
 os.environ.setdefault("QT_API", "pyside6")
@@ -82,7 +81,6 @@ def main(*args):
     import ctypes
     from clickpoints.Core import ClickPointsWindow
     from clickpoints.includes import LoadConfig
-    import qasync
 
 
     from clickpoints import define_paths
@@ -90,9 +88,6 @@ def main(*args):
     define_paths()
 
     app = QtWidgets.QApplication(args)
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
-    app.loop = loop
 
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
@@ -111,8 +106,7 @@ def main(*args):
     except ImportError:
         pass
     window.show()
-    with loop:
-        sys.exit(loop.run_forever())
+    sys.exit(app.exec_())
 
 
 # Entry point

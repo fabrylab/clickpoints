@@ -25,11 +25,11 @@ import sys
 
 from typing import Iterable
 from pathlib import Path
-import asyncio
 
 import imageio
 import natsort
 import peewee
+from qtpy import QtWidgets
 
 from clickpoints import DataFile
 from clickpoints.includes import BroadCastEvent
@@ -136,17 +136,11 @@ def reset_database(filename: str = "", window=None) -> None:
     return data_file
 
 
-def loadUrl(url: str, data_file: DataFile = None, reset: bool = False, use_natsort: bool = True, window = None, loop = None, callback_finished: callable = None) -> None:
+def loadUrl(url: str, data_file: DataFile = None, reset: bool = False, use_natsort: bool = True, window = None, callback_finished: callable = None) -> None:
     global formats
     if formats is None:
         loadFileFormats()
     print("Loading url", url)
-
-    def call(function):
-        if loop is None:
-            asyncio.run(function)
-        else:
-            asyncio.ensure_future(function, loop=loop)
 
     if url == "":
         if data_file is None:
@@ -175,35 +169,30 @@ def loadUrl(url: str, data_file: DataFile = None, reset: bool = False, use_natso
         obj_list = natsorted(glob.glob(str(url)))
         # if use_natsort is True:
         #     obj_list = natsort.natsorted(obj_list)
-        call(addPath(data_file, InputIteratorList(obj_list), callback_finished=callback_finished))
-
-        if loop is None and callback_finished is not None:
-            callback_finished(data_file)
+        addPath(data_file, InputIteratorList(obj_list), callback_finished=callback_finished)
         return data_file
     # if it is a directory add it
     elif url.is_dir():
-        call(addPath(data_file, InputIteratorFolder(url), callback_finished=callback_finished))
+        addPath(data_file, InputIteratorFolder(url), callback_finished=callback_finished)
     # if not check what type of file it is
     # for images load the folder
     elif url.suffix.lower() in imgformats and \
             (url.suffix.lower() not in specialformats or getFrameNumber(url, url.suffix) == 1):
-        call(addPath(data_file, InputIteratorGlob(url.parent, "*" + url.suffix.lower()), window=window, select_file=url,
-                     callback_finished=callback_finished))
+        addPath(data_file, InputIteratorGlob(url.parent, "*" + url.suffix.lower()), window=window, select_file=url,
+                callback_finished=callback_finished)
         if window is not None:
             window.first_frame = None
     # for videos just load the file
     elif (url.suffix.lower() in vidformats) or (url.suffix.lower() == ".vms") or (
             url.suffix.lower() in specialformats and getFrameNumber(url, url.suffix) != 1):
-        call(addPath(data_file, InputIteratorList([url]), callback_finished=callback_finished))
+        addPath(data_file, InputIteratorList([url]), callback_finished=callback_finished)
     elif url.suffix.lower() == ".txt":
-        call(addPath(data_file, InputIteratorFile(url), callback_finished=callback_finished))
+        addPath(data_file, InputIteratorFile(url), callback_finished=callback_finished)
 
     # if the extension is not known, raise an exception
     else:
         raise Exception("unknown file extension " + url.suffix, url)
 
-    if loop is None and callback_finished is not None:
-            callback_finished(data_file)
     return data_file
 
 class InputIterator:
@@ -288,7 +277,7 @@ class InputIteratorFile(InputIterator):
             if path != "":
                 yield path
 
-async def addPath(data_file: DataFile,
+def addPath(data_file: DataFile,
             iterator: Iterable,
             layer_entry: "Layer" = None,
             select_file: str = None,
@@ -342,7 +331,7 @@ async def addPath(data_file: DataFile,
                     window.first_frame = file.sort_index
                     select_file = None
 
-                await asyncio.sleep(0)
+                QtWidgets.QApplication.processEvents()
 
         data_file.add_bulk(data)
     if callback_finished is not None:
