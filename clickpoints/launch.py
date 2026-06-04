@@ -111,7 +111,8 @@ def main(*args):
     except ImportError:
         pass
     window.show()
-    sys.exit(app.exec_())
+    with loop:
+        sys.exit(loop.run_forever())
 
 
 # Entry point

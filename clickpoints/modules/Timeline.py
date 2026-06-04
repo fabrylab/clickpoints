@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-import asyncio
 import datetime
 import os
 import re
@@ -31,7 +30,6 @@ import numpy as np
 import qtawesome as qta
 from numpy import float64, int32, ndarray
 from qtpy import QtGui, QtCore, QtWidgets
-from qasync import QEventLoop
 
 from clickpoints.includes.Database import DataFileExtended
 from clickpoints.includes.QtShortCuts import AddQSpinBox
@@ -961,43 +959,12 @@ class Timeline(QtCore.QObject):
         # video replay
         self.current_fps = 0
         self.last_time = time.time()
-        # initialize the frame timer
-        loop = self.window.app.loop
-        asyncio.ensure_future(self.runTimer(loop), loop=loop)
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.updateFrame)
 
         self.hidden = True
 
         self.closeDataFile()
-
-    async def runTimer(self, loop: QEventLoop):
-
-        t = time.time()
-        target_fps = 25
-        self.target_delta_t = 1 / target_fps
-        last_overhead = 0
-        mean_fps = target_fps
-        averaging_decay = 0.9
-
-        while True:
-            if self.running:
-                wait = loop.create_task(asyncio.sleep(max(self.target_delta_t - last_overhead, 0)))
-                if self.data_file is None or self.get_current_frame() is None:
-                    return
-                if self.get_current_frame() < self.frameSlider.startValue() or self.get_current_frame() + self.skip > self.frameSlider.endValue():
-                    self.window.load_frame(self.frameSlider.startValue())
-                else:
-                    self.window.load_frame(self.window.target_frame + self.skip)
-                await wait
-
-                # calculate the time slip
-                delta_t = time.time() - t
-                t = time.time()
-                last_overhead += 0.1 * (delta_t - self.target_delta_t)
-
-                mean_fps = averaging_decay * mean_fps + (1 - averaging_decay) * 1 / (delta_t + 1e-9)
-            else:
-                await asyncio.sleep(0.01)
-                t = time.time()
 
     def closeDataFile(self) -> None:
         self.data_file = None
@@ -1094,9 +1061,7 @@ class Timeline(QtCore.QObject):
         self.fps = self.spinBox_FPS.value()
         self.data_file.setOption("fps", self.fps)
         if self.playing:
-            self.target_delta_t = 1 / self.fps
-            self.running = True
-            # self.timer.start(1000 / self.fps)
+            self.timer.start(max(1, round(1000 / self.fps)))
 
     def ReleasedSlider(self) -> None:
         n = self.frameSlider.value()
@@ -1118,14 +1083,11 @@ class Timeline(QtCore.QObject):
 
     def Play(self, state: bool) -> None:
         if state:
-            self.target_delta_t = 1 / self.fps
-            self.running = True
-            # self.timer.start(1000 / self.fps)
+            self.timer.start(max(1, round(1000 / self.fps)))
             self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "pause.ico")))
             self.playing = True
         else:
-            self.running = False
-            # self.timer.stop()
+            self.timer.stop()
             self.button_play.setIcon(QtGui.QIcon(os.path.join(os.environ["CLICKPOINTS_ICON"], "play.ico")))
             self.playing = False
 
