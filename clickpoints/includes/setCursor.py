@@ -1,12 +1,5 @@
 import os
 import numpy as np
-from PySide6.QtGui import (
-    QColor,
-    QCursor,
-    QPixmap,
-    QImage,
-)
-from PySide6.QtCore import QSize
 from qtpy import QtGui, QtWidgets, QtCore
 import qtawesome as qta
 import imageio.v3 as iio  # Use imageio.v3
@@ -16,7 +9,7 @@ from clickpoints.includes.Tools import HTMLColorToRGB, IconFromFile
 
 def qicon_to_numpy(icon: QtGui.QIcon) -> np.ndarray:
     """
-    Converts a QIcon to a NumPy array using PySide6.
+    Converts a QIcon to a NumPy array.
 
 
     Args:
@@ -33,7 +26,7 @@ def qicon_to_numpy(icon: QtGui.QIcon) -> np.ndarray:
     # Get the pixmap from the icon (you might want to choose a specific size)
     available_sizes = icon.availableSizes()
 
-    pixmap = icon.pixmap(QSize(16, 16))  # Use the first available size
+    pixmap = icon.pixmap(QtCore.QSize(16, 16))  # Use the first available size
 
     # Ensure the pixmap is valid
     if pixmap.isNull():
@@ -55,11 +48,11 @@ def setCursor(window, cursor_name, color):
         # 1. Create the base icon (either from FontAwesome or a file)
         if cursor_name.startswith("fa5s."):
             icon = qta.icon(
-                cursor_name, color=QColor(*HTMLColorToRGB(color))
+                cursor_name, color=QtGui.QColor(*HTMLColorToRGB(color))
             )
         else:
             icon = IconFromFile(
-                cursor_name, color=QColor(*HTMLColorToRGB(color))
+                cursor_name, color=QtGui.QColor(*HTMLColorToRGB(color))
             )
 
         icon_array = qicon_to_numpy(icon)
@@ -81,8 +74,8 @@ def setCursor(window, cursor_name, color):
 
         # 6. Create the final QCursor
         final_image = array2qimage(cursor_final)
-        final_pixmap = QPixmap.fromImage(final_image)
-        cursor = QCursor(final_pixmap, 0, 0)
+        final_pixmap = QtGui.QPixmap.fromImage(final_image)
+        cursor = QtGui.QCursor(final_pixmap, 0, 0)
 
         # 7. Set the cursor
         window.ImageDisplay.setCursor(cursor)

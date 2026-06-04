@@ -41,14 +41,21 @@ import distutils.util
 import scipy as scp
 
 #region import QT-Widget for Gui
-try:
-    from PyQt5 import QtGui, QtCore
-    from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSpinBox, QIcon, QCheckBox,QDoubleSpinBox
-    from PyQt5.QtCore import Qt
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtGui import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSpinBox, QIcon, QCheckBox,QDoubleSpinBox
-    from PyQt4.QtCore import Qt
+from qtpy import QtCore, QtGui
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
+
+QIcon = QtGui.QIcon
 
 icon_path = os.path.join(os.path.dirname(__file__), "icons")
 

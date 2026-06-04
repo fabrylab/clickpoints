@@ -19,6 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 import asyncio
+import os
+
+os.environ.setdefault("QT_API", "pyside6")
+
 import cv2
 
 def main(*args):

@@ -20,6 +20,9 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 import importlib.metadata
+import os
+
+os.environ.setdefault("QT_API", "pyside6")
 
 __version__ = importlib.metadata.metadata('clickpoints')['version']
 
