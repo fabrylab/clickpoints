@@ -141,7 +141,19 @@ jobs:
     - name: Build executable with PyInstaller
       shell: bash
       run: |
-        poetry run pyinstaller --copy-metadata imageio --clean -y --dist output/clickpoints_run --windowed --icon "clickpoints/icons/ClickPoints.icns" --add-data "clickpoints/icons:clickpoints/icons" clickpoints/launch.py
+        poetry run pyinstaller \
+          --copy-metadata imageio \
+          --clean -y \
+          --dist output/clickpoints_run \
+          --windowed \
+          --icon "clickpoints/icons/ClickPoints.icns" \
+          --add-data "clickpoints/icons:clickpoints/icons" \
+          --exclude-module PyQt5 \
+          --exclude-module PyQt6 \
+          --exclude-module PySide2 \
+          --exclude-module PySide6.QtWebEngineCore \
+          --exclude-module PySide6.QtWebEngineWidgets \
+          clickpoints/launch.py
         mv output/clickpoints_run/launch.app output/clickpoints_run/clickpoints_mac.app
 
     - name: Sign macOS app

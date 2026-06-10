@@ -28,7 +28,7 @@ from datetime import datetime, timedelta, MINYEAR
 from io import StringIO
 from typing import List, Optional, Tuple, Union, Sequence
 
-import PIL
+import PIL.Image
 import imageio
 import numpy as np
 import peewee

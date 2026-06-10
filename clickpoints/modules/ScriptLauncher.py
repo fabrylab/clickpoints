@@ -49,15 +49,14 @@ try:
 except ImportError:
     import configparser as ConfigParser
 from importlib import import_module
-import pip
-
-if int(pip.__version__.split('.')[0]) > 9:
-    from pip._internal import main
-else:
-    from pip import main
 
 
 def install(package_name):
+    import pip
+    if int(pip.__version__.split('.')[0]) > 9:
+        from pip._internal import main
+    else:
+        from pip import main
     main(['install', package_name])
 
 

@@ -20,23 +20,50 @@
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
 import importlib.metadata
+from importlib import import_module
 import os
+from typing import Any
 
 os.environ.setdefault("QT_API", "pyside6")
 
 __version__ = importlib.metadata.metadata('clickpoints')['version']
 
-# Try to import the addon library, but for only working with the database, we don't need the Addon
-# definition which is based on Qt
-try:
-    from .Addon import Addon
-    from .includes.loader import loadUrl as load
-    from .includes.loadExamples import loadExample
-except ImportError as err:
-    pass
+_lazy_imports = {
+    "Addon": (".Addon", "Addon"),
+    "load": (".includes.loader", "loadUrl"),
+    "loadExample": (".includes.loadExamples", "loadExample"),
+    "DataFile": (".DataFile", "DataFile"),
+    "MaskDtypeMismatch": (".DataFile", "MaskDtypeMismatch"),
+    "MaskDimensionMismatch": (".DataFile", "MaskDimensionMismatch"),
+    "MaskDimensionUnknown": (".DataFile", "MaskDimensionUnknown"),
+    "MarkerTypeDoesNotExist": (".DataFile", "MarkerTypeDoesNotExist"),
+    "ImageDoesNotExist": (".DataFile", "ImageDoesNotExist"),
+}
 
-from .DataFile import DataFile, MaskDtypeMismatch, MaskDimensionMismatch, MaskDimensionUnknown
-from .DataFile import MarkerTypeDoesNotExist, ImageDoesNotExist
+__all__ = [
+    "__version__",
+    "Addon",
+    "load",
+    "loadExample",
+    "DataFile",
+    "MaskDtypeMismatch",
+    "MaskDimensionMismatch",
+    "MaskDimensionUnknown",
+    "MarkerTypeDoesNotExist",
+    "ImageDoesNotExist",
+    "print_status",
+    "define_paths",
+]
+
+
+def __getattr__(name: str) -> Any:
+    if name not in _lazy_imports:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attribute_name = _lazy_imports[name]
+    module = import_module(module_name, __name__)
+    value = getattr(module, attribute_name)
+    globals()[name] = value
+    return value
 
 
 def print_status():

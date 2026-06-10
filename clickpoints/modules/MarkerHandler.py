@@ -37,7 +37,6 @@ import uuid
 from clickpoints.includes.setCursor import setCursor
 
 import json
-import matplotlib.pyplot as plt
 from threading import Thread
 
 from clickpoints.includes.QtShortCuts import AddQSpinBox, AddQLineEdit, AddQLabel, AddQComboBox, AddQColorChoose, GetColorByIndex, AddQCheckBox
@@ -329,6 +328,8 @@ def ReadTypeDict(string):
 
 
 def GetColorFromMap(identifier, id):
+    import matplotlib.pyplot as plt
+
     match = re.match(r"([^\(]*)\((\d*)\)", identifier)
     count = 100
     if match:

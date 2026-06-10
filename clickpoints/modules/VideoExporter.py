@@ -29,7 +29,6 @@ import numpy as np
 import qtawesome as qta
 from PIL import ImageDraw, Image, ImageFont
 from qtpy import QtCore, QtGui, QtWidgets
-from scipy.ndimage import shift
 
 from clickpoints.DataFile import OptionAccess
 from clickpoints.includes import QtShortCuts
@@ -427,6 +426,7 @@ class VideoExporterDialog(QtWidgets.QWidget):
 
             # apply the subpixel decimal shift
             if offset_float[0] or offset_float[1]:
+                from scipy.ndimage import shift
                 self.preview_slice = shift(self.preview_slice, [offset_float[1], offset_float[0], 0])
 
             # use min/max & gamma correction

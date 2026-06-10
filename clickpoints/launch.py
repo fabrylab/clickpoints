@@ -19,13 +19,34 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 import os
+import time
 
 os.environ.setdefault("QT_API", "pyside6")
 
-import cv2
+_startup_profile_enabled = os.environ.get("CLICKPOINTS_PROFILE_STARTUP") not in (None, "", "0", "false", "False")
+_startup_profile_exit_after_show = os.environ.get("CLICKPOINTS_PROFILE_EXIT_AFTER_SHOW") not in (None, "", "0", "false", "False")
+_startup_profile_start = time.perf_counter()
+_startup_profile_last = _startup_profile_start
+
+
+def _profile_startup(label):
+    global _startup_profile_last
+    if not _startup_profile_enabled:
+        return
+    now = time.perf_counter()
+    print(
+        "[CLICKPOINTS_PROFILE_STARTUP] "
+        f"{label}: +{now - _startup_profile_last:.3f}s total={now - _startup_profile_start:.3f}s",
+        flush=True,
+    )
+    _startup_profile_last = now
+
+
+_profile_startup("launch module imported")
 
 def main(*args):
     import sys
+    _profile_startup("main entered")
     if len(args) == 0:
         args = sys.argv
     else:
@@ -46,7 +67,6 @@ def main(*args):
         elif args[1] == "ffmpeg":
             import imageio
             import glob
-            import os
             # check for ffmpeg
             try:
                 # check if imageio already has an exe file
@@ -67,8 +87,10 @@ def main(*args):
             return
 
     from clickpoints import print_status
+    _profile_startup("imported clickpoints.print_status")
     # print
     print_status()
+    _profile_startup("printed status")
 
     """ some magic to prevent PyQt5 from swallowing exceptions """
     # Back up the reference to the exceptionhook
@@ -77,17 +99,22 @@ def main(*args):
     sys.excepthook = lambda *args: sys._excepthook(*args)
 
     from qtpy import QtCore, QtWidgets, QtGui
+    _profile_startup("imported Qt")
     import sys
     import ctypes
     from clickpoints.Core import ClickPointsWindow
+    _profile_startup("imported ClickPointsWindow")
     from clickpoints.includes import LoadConfig
+    _profile_startup("imported LoadConfig")
 
 
     from clickpoints import define_paths
 
     define_paths()
+    _profile_startup("defined paths")
 
     app = QtWidgets.QApplication(args)
+    _profile_startup("created QApplication")
 
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
@@ -96,16 +123,21 @@ def main(*args):
 
     # load config and exec addon code
     config = LoadConfig(*args)
+    _profile_startup("loaded config")
 
     # Initialize and show the ClickPoints window
     window = ClickPointsWindow(config, app)
-    try:
-        # only available in the pyinstaller version
-        import pyi_splash
-        pyi_splash.close()
-    except ImportError:
-        pass
+    _profile_startup("constructed ClickPointsWindow")
+    if os.environ.get("_PYI_SPLASH_IPC"):
+        try:
+            import pyi_splash
+            pyi_splash.close()
+        except ImportError:
+            pass
     window.show()
+    _profile_startup("showed ClickPointsWindow")
+    if _startup_profile_exit_after_show:
+        QtCore.QTimer.singleShot(0, app.quit)
     sys.exit(app.exec_())
 
 

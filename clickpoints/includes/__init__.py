@@ -19,12 +19,38 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from .ConfigLoad import LoadConfig, ExceptionPathDoesntExist
-from .Tools import GraphicsItemEventFilter, HelpText, BroadCastEvent, BroadCastEvent2, SetBroadCastModules, rotate_list, HTMLColorToRGB, TextButton, StartHooks, GetHooks, IconFromFile
-from .BigImageDisplay import BigImageDisplay
-#from .Database import DataFileExtended
-from .MemMap import MemMap
-from .matplotlibwidget import CanvasWindow
-from .ImageQt_Stride import *
+from importlib import import_module
+from typing import Any
 
-from .qextendedgraphicsview.QExtendedGraphicsView import QExtendedGraphicsView
+_lazy_imports = {
+    "LoadConfig": (".ConfigLoad", "LoadConfig"),
+    "ExceptionPathDoesntExist": (".ConfigLoad", "ExceptionPathDoesntExist"),
+    "GraphicsItemEventFilter": (".Tools", "GraphicsItemEventFilter"),
+    "HelpText": (".Tools", "HelpText"),
+    "BroadCastEvent": (".Tools", "BroadCastEvent"),
+    "BroadCastEvent2": (".Tools", "BroadCastEvent2"),
+    "SetBroadCastModules": (".Tools", "SetBroadCastModules"),
+    "rotate_list": (".Tools", "rotate_list"),
+    "HTMLColorToRGB": (".Tools", "HTMLColorToRGB"),
+    "TextButton": (".Tools", "TextButton"),
+    "StartHooks": (".Tools", "StartHooks"),
+    "GetHooks": (".Tools", "GetHooks"),
+    "IconFromFile": (".Tools", "IconFromFile"),
+    "BigImageDisplay": (".BigImageDisplay", "BigImageDisplay"),
+    "MemMap": (".MemMap", "MemMap"),
+    "CanvasWindow": (".matplotlibwidget", "CanvasWindow"),
+    "ImageQt": (".ImageQt_Stride", "ImageQt"),
+    "QExtendedGraphicsView": (".qextendedgraphicsview.QExtendedGraphicsView", "QExtendedGraphicsView"),
+}
+
+__all__ = list(_lazy_imports)
+
+
+def __getattr__(name: str) -> Any:
+    if name not in _lazy_imports:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attribute_name = _lazy_imports[name]
+    module = import_module(module_name, __name__)
+    value = getattr(module, attribute_name)
+    globals()[name] = value
+    return value
