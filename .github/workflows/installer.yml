@@ -37,11 +37,11 @@ jobs:
     - name: build exe with pyinstaller
       shell: bash
       run: |
-          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/icons:clickpoints/icons" --add-data "clickpoints/addons:clickpoints/addons" clickpoints/launch.py 
+          poetry run pyinstaller --hidden-import=scipy.io --copy-metadata imageio --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/icons:clickpoints/icons" --add-data "clickpoints/addons:clickpoints/addons" clickpoints/launch.py
           mv output/clickpoints_run/launch output/clickpoints_run/clickpoints
           chmod +x output/clickpoints_run/clickpoints
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: clickpoints_linux
         path: output/clickpoints_run
@@ -83,10 +83,10 @@ jobs:
       - name: build exe with pyinstaller
         shell: bash
         run: |
-          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --add-data "clickpoints/addons:clickpoints/addons" --splash "clickpoints/icons/Splash.png" clickpoints/launch.py
+          poetry run pyinstaller --hidden-import=scipy.io --copy-metadata imageio --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --add-data "clickpoints/addons:clickpoints/addons" --splash "clickpoints/icons/Splash.png" clickpoints/launch.py
           mv output/clickpoints_run/launch.exe output/clickpoints_run/clickpoints.exe
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: clickpoints_windows
           path: output/clickpoints_run
@@ -98,7 +98,7 @@ jobs:
           TAG: v1.10.0
 
   build-mac:
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
     - uses: actions/checkout@v4
@@ -121,16 +121,56 @@ jobs:
       run: |
         poetry install --with dev
 
+    - name: Import Apple signing certificate
+      shell: bash
+      env:
+        MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+        MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
+      run: |
+        echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+        security create-keychain -p "$KEYCHAIN_PWD" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
+        security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PWD" build.keychain
+
     - name: Build executable with PyInstaller
       shell: bash
       run: |
-        poetry run pyinstaller --clean -y --dist output/clickpoints_run --windowed --add-data "clickpoints/icons:clickpoints/icons" clickpoints/launch.py
-        mv output/clickpoints_run/launch.app output/clickpoints_run/clickpoints_mac.app     
-        cd output/clickpoints_run
-        zip -r clickpoints_mac.app.zip clickpoints_mac.app
-        cd ../../
-        
-    - uses: actions/upload-artifact@v4
+        poetry run pyinstaller --copy-metadata imageio --clean -y --dist output/clickpoints_run --windowed --icon "clickpoints/icons/ClickPoints.icns" --add-data "clickpoints/icons:clickpoints/icons" clickpoints/launch.py
+        mv output/clickpoints_run/launch.app output/clickpoints_run/clickpoints_mac.app
+
+    - name: Sign macOS app
+      shell: bash
+      env:
+        DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+      run: |
+        codesign --force --deep --options runtime --timestamp \
+          --entitlements .github/macos/entitlements.plist \
+          --sign "$DEVELOPER_ID_APPLICATION" \
+          output/clickpoints_run/clickpoints_mac.app
+        codesign --verify --deep --strict --verbose=2 output/clickpoints_run/clickpoints_mac.app
+
+    - name: Notarize macOS app
+      shell: bash
+      env:
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      run: |
+        ditto -c -k --keepParent output/clickpoints_run/clickpoints_mac.app output/clickpoints_run/clickpoints_mac.notary.zip
+        xcrun notarytool submit output/clickpoints_run/clickpoints_mac.notary.zip \
+          --apple-id "$APPLE_ID" \
+          --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+          --team-id "$APPLE_TEAM_ID" \
+          --wait
+        xcrun stapler staple output/clickpoints_run/clickpoints_mac.app
+        xcrun stapler validate output/clickpoints_run/clickpoints_mac.app
+        rm output/clickpoints_run/clickpoints_mac.notary.zip
+        ditto -c -k --keepParent output/clickpoints_run/clickpoints_mac.app output/clickpoints_run/clickpoints_mac.app.zip
+
+    - uses: actions/upload-artifact@v6
       with:
         name: clickpoints_mac
         path: output/clickpoints_run
