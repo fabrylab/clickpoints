@@ -2290,7 +2290,7 @@ class DataFile:
 
     def _CreateTables(self):
         for table in self._tables:
-            table.create_table(fail_silently=True)
+            table.create_table(safe=True)
 
     def _checkTrackField(self, tracks):
         if not isinstance(tracks, (tuple, list)):
