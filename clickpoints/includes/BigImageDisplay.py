@@ -121,7 +121,7 @@ class MyQGraphicsPixmapItem(QtWidgets.QGraphicsPixmapItem):
         if self.max_value is None:
             self.getMaxValue(image)
 
-        self.min, self.max = np.percentile(image, self.percentile).astype(int)
+        self.min, self.max = np.percentile(np.asarray(image), self.percentile).astype(int)
         self.conversion = generateLUT(self.min, self.max, self.gamma, self.max_value)
         if len(image.shape)>2:
             self.setPixmap(QtGui.QPixmap(array2qimage(self.conversion[image[:, :, :3]])))
@@ -250,9 +250,8 @@ class BigImageDisplay:
             self.hist = np.histogram(self.slice_zoom_image.flatten(),
                                      bins=np.linspace(0, self.image_pixMapItem.max_value, 256), density=True)
             if self.config.auto_contrast:
-                self.image_pixMapItem.min, self.image_pixMapItem.max = np.percentile(self.slice_zoom_image,
-                                                                                     self.image_pixMapItem.percentile).astype(
-                    int)
+                self.image_pixMapItem.min, self.image_pixMapItem.max = np.percentile(
+                    np.asarray(self.slice_zoom_image), self.image_pixMapItem.percentile).astype(int)
                 self.image_pixMapItem.conversion = generateLUT(self.image_pixMapItem.min, self.image_pixMapItem.max,
                                                                self.image_pixMapItem.gamma,
                                                                self.image_pixMapItem.max_value)

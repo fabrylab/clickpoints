@@ -129,7 +129,7 @@ class Test_MediaHandler(unittest.TestCase, BaseTest):
         self.createInstance(os.path.join("ClickPointsExamples", "PlantRoot"))
         self.assertEqual(self.db.getImages().count(), 6, "Didn't load tiff properly")
         self.assertEqual(self.window.ImageDisplay.image.shape, (1024, 1024, 3))
-        self.assertTrue(8 < np.mean(self.window.ImageDisplay.image) < 128)
+        self.assertTrue(8 < np.mean(np.asarray(self.window.ImageDisplay.image)) < 128)
 
 if __name__ == '__main__':
     __path__ = os.path.dirname(os.path.abspath(__file__))

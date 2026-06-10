@@ -150,7 +150,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # check size of circle
         im = self.db.getMask(frame=0).data
-        self.assertEqual(np.sum(im == 1), 97, "Brush size does not match")
+        self.assertEqual(np.sum(np.asarray(im) == 1), 97, "Brush size does not match")
 
         ''' Test size of increased circle '''
 
@@ -169,7 +169,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # check size of bigger circle
         im = self.db.getMask(frame=0).data
-        self.assertEqual(np.sum(im == 1), 129, "Brush size increasing does not work")
+        self.assertEqual(np.sum(np.asarray(im) == 1), 129, "Brush size increasing does not work")
 
         ''' Test size of decreased circle '''
 
@@ -194,7 +194,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # check size of smaller circle
         im = self.db.getMask(frame=0).data
-        self.assertEqual(np.sum(im == 1), 97, "Brush size decreasing does not work")
+        self.assertEqual(np.sum(np.asarray(im) == 1), 97, "Brush size decreasing does not work")
 
     def test_colorPickerMask(self):
         """ Test using the color picker to select different colors """
