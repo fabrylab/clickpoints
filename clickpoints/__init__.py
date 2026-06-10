@@ -32,13 +32,10 @@ _lazy_imports = {
     "Addon": (".Addon", "Addon"),
     "load": (".includes.loader", "loadUrl"),
     "loadExample": (".includes.loadExamples", "loadExample"),
-    "DataFile": (".DataFile", "DataFile"),
-    "MaskDtypeMismatch": (".DataFile", "MaskDtypeMismatch"),
-    "MaskDimensionMismatch": (".DataFile", "MaskDimensionMismatch"),
-    "MaskDimensionUnknown": (".DataFile", "MaskDimensionUnknown"),
-    "MarkerTypeDoesNotExist": (".DataFile", "MarkerTypeDoesNotExist"),
-    "ImageDoesNotExist": (".DataFile", "ImageDoesNotExist"),
 }
+
+from .DataFile import DataFile, MaskDtypeMismatch, MaskDimensionMismatch, MaskDimensionUnknown
+from .DataFile import MarkerTypeDoesNotExist, ImageDoesNotExist
 
 __all__ = [
     "__version__",
