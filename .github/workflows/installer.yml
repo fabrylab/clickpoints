@@ -148,6 +148,14 @@ jobs:
           --windowed \
           --icon "clickpoints/icons/ClickPoints.icns" \
           --add-data "clickpoints/icons:clickpoints/icons" \
+          --hidden-import clickpoints.Addon \
+          --hidden-import clickpoints.includes.BigImageDisplay \
+          --hidden-import clickpoints.includes.ImageQt_Stride \
+          --hidden-import clickpoints.includes.MemMap \
+          --hidden-import clickpoints.includes.loadExamples \
+          --hidden-import clickpoints.includes.loader \
+          --hidden-import clickpoints.includes.matplotlibwidget \
+          --hidden-import clickpoints.includes.qextendedgraphicsview.QExtendedGraphicsView \
           --exclude-module PyQt5 \
           --exclude-module PyQt6 \
           --exclude-module PySide2 \
