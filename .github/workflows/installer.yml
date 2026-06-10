@@ -240,7 +240,17 @@ jobs:
       env:
         DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
       run: |
-        codesign --force --deep --options runtime --timestamp \
+        codesign_with_retries() {
+          for attempt in 1 2 3 4 5; do
+            if codesign "$@"; then
+              return 0
+            fi
+            echo "codesign failed on attempt $attempt; retrying in $((attempt * 20)) seconds"
+            sleep $((attempt * 20))
+          done
+          codesign "$@"
+        }
+        codesign_with_retries --force --deep --options runtime --timestamp \
           --entitlements .github/macos/entitlements.plist \
           --sign "$DEVELOPER_ID_APPLICATION" \
           output/clickpoints_run/ClickPoints.app
@@ -281,7 +291,17 @@ jobs:
           --app-drop-link 425 190 \
           "output/clickpoints_run/ClickPoints-mac.dmg" \
           "output/clickpoints_run/ClickPoints.app"
-        codesign --force --timestamp \
+        codesign_with_retries() {
+          for attempt in 1 2 3 4 5; do
+            if codesign "$@"; then
+              return 0
+            fi
+            echo "codesign failed on attempt $attempt; retrying in $((attempt * 20)) seconds"
+            sleep $((attempt * 20))
+          done
+          codesign "$@"
+        }
+        codesign_with_retries --force --timestamp \
           --sign "$DEVELOPER_ID_APPLICATION" \
           output/clickpoints_run/ClickPoints-mac.dmg
         xcrun notarytool submit output/clickpoints_run/ClickPoints-mac.dmg \
