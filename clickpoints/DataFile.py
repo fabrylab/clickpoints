@@ -148,28 +148,35 @@ def packToDictList(table, **kwargs):
     import itertools
     max_len = 0
     singles = {}
+
+    def GetDefault(field):
+        if callable(field.default):
+            return field.default()
+        return field.default
+
+    def GetId(value):
+        if hasattr(value, "id"):
+            return value.id
+        return value
+
     def WrapSingle(key, i):
         return kwargs[key]
     def WrapMultiple(key, i):
         return kwargs[key][i]
     def WrapNoneID(key, i):
         field = getattr(table, key)
-        if field.default is not None:
-            result = table.select(peewee.fn.COALESCE(peewee.fn.MAX(field)).where(table.id == singles["id"](i)))
-        else:
-            result = table.select(field).where(table.id == singles["id"](i))
+        result = table.select(field).where(table.id == GetId(singles["id"](i))).scalar()
+        if result is None and field.default is not None:
+            return GetDefault(field)
         return result
+
     def WrapNoneImageTrack(key, i):
         field = getattr(table, key)
-        if field.default is not None:
-            # if the field has no default value, the SELECT query would return an empty list if the element does not exist
-            # this would throw a not-null constraint exception and it would ignore the default value
-            # therefore we have to use the default value, if no entry is found
-            # MAX "convertes" the empy query to a NULL and COALESCE converts the NULL to the default value
-            result = table.select(peewee.fn.COALESCE(peewee.fn.MAX(field), field.default)).where(table.image == singles["image"](i), table.track == singles["track"](i))
-        else:
-            result = table.select(field).where(table.image == singles["image"](i), table.track == singles["track"](i))
+        result = table.select(field).where(table.image == singles["image"](i), table.track == singles["track"](i)).scalar()
+        if result is None and field.default is not None:
+            return GetDefault(field)
         return result
+
     for key in list(kwargs.keys()):
         if kwargs[key] is None:
             if "id" in kwargs and kwargs["id"] is not None:

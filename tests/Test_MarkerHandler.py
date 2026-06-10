@@ -109,7 +109,8 @@ class Test_MarkerHandler(unittest.TestCase, BaseTest):
         self.window.app.processEvents()
         time.sleep(0.1)
         # Test deletion of marker
-        self.mouseClick(50, 50, modifier=Qt.ControlModifier)
+        self.keyPress(Qt.Key_D)
+        self.mouseClick(50, 50)
         self.assertEqual(len(self.window.GetModule("MarkerHandler").points), 0, "Marker deletion didn't work")
 
 if __name__ == '__main__':

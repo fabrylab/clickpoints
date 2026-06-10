@@ -243,7 +243,7 @@ class InputIteratorFolder(InputIterator):
 
 
         if self.sorted_list:
-            for path in self.url.iterdir():
+            for path in self.url.rglob("*"):
                 if path.is_file() and path.suffix.lower() in formats:
                     self.input_elements.append(path)
             self.input_elements = natsorted(self.input_elements)
@@ -253,7 +253,7 @@ class InputIteratorFolder(InputIterator):
             for file in self.input_elements:
                 yield file
         else:
-            for path in self.url.iterdir():
+            for path in self.url.rglob("*"):
                 if path.is_file() and path.suffix.lower() in formats:
                     yield path
 

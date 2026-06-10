@@ -1556,7 +1556,7 @@ class MyGrabberItem(QtWidgets.QGraphicsPathItem):
         # store start position of move
         if event.button() == QtCore.Qt.LeftButton:
             # left click + control -> remove
-            if self.parent.marker_handler.tool_index == 1 or event.modifiers() == QtCore.Qt.ControlModifier:
+            if self.parent.marker_handler.tool_index == 1 or event.modifiers() & QtCore.Qt.ControlModifier:
                 self.parentItem().graberDelete(self)
             elif self.parent.marker_handler.tool_index == 2:
                 self.parentItem().changeTypeEvent()
@@ -4005,6 +4005,8 @@ class MarkerHandler:
         # reset the tool
         if self.hidden:
             self.selectTool(-1)
+        elif self.tool_index == -1:
+            self.selectTool(0)
         # store in options
         if self.config is not None:
             self.config.marker_interface_hidden = self.hidden

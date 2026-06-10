@@ -845,6 +845,10 @@ class MaskHandler:
     config = None
     mask_file = None
 
+    @property
+    def active_draw_type(self):
+        return self.maskTypeChooser.active_draw_type
+
     def __init__(self, window: "ClickPointsWindow", parent: QtWidgets.QGraphicsPixmapItem,
                  parent_hud: QtWidgets.QGraphicsPathItem, image_display: BigImageDisplay, modules: List[Any]) -> None:
         # store some references

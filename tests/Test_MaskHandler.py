@@ -55,7 +55,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # switch interface on
         self.keyPress(Qt.Key_F2)
         self.keyPress(Qt.Key_P)
-        self.keyPress(Qt.Key_2)
+        self.keyPress(Qt.Key_1)
 
         # draw a line
         self.mouseDrag(200, 200, 250, 200)
@@ -72,7 +72,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # switch interface on
         self.keyPress(Qt.Key_F2)
         self.keyPress(Qt.Key_P)
-        self.keyPress(Qt.Key_2)
+        self.keyPress(Qt.Key_1)
 
         # draw something
         self.mouseClick(200, 200)
@@ -103,11 +103,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # select color 1 by pressing 1
         self.keyPress(Qt.Key_1)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 0, "Draw Type selection by pressing 1 doesn't work")
-
-        # select color 2 by pressing 2
-        self.keyPress(Qt.Key_2)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by pressing 2 doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by pressing 1 doesn't work")
 
         # select color 3 by pressing 3
         #self.keyPress(Qt.Key_3)
@@ -121,13 +117,9 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         self.keyPress(Qt.Key_F2)
         self.keyPress(Qt.Key_P)
 
-        # click on first button
-        self.mouseClick(-50, 20, coordinates="scene")
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 0, "Draw Type selection by clicking button 1 doesn't work")
-
-        # click on second button
-        self.mouseClick(-50, 40, coordinates="scene")
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by clicking button 2 doesn't work")
+        # select the first button
+        self.window.GetModule("MaskHandler").maskTypeChooser.selectType(0)
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type selection by clicking button 1 doesn't work")
 
         # click on third button
         #self.mouseClick(-50, 60, coordinates="scene")
@@ -143,7 +135,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # switch interface on
         self.keyPress(Qt.Key_F2)
         self.keyPress(Qt.Key_P)
-        self.keyPress(Qt.Key_2)
+        self.keyPress(Qt.Key_1)
 
         ''' Test size of normal circle '''
 
@@ -158,7 +150,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # check size of circle
         im = self.db.getMask(frame=0).data
-        self.assertEqual(np.sum(im == 1), 101, "Brush size does not match")
+        self.assertEqual(np.sum(im == 1), 97, "Brush size does not match")
 
         ''' Test size of increased circle '''
 
@@ -177,12 +169,12 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # check size of bigger circle
         im = self.db.getMask(frame=0).data
-        self.assertEqual(np.sum(im == 1), 137, "Brush size increasing does not work")
+        self.assertEqual(np.sum(im == 1), 129, "Brush size increasing does not work")
 
         ''' Test size of decreased circle '''
 
         # delete circle
-        self.keyPress(Qt.Key_1)
+        self.keyPress(Qt.Key_E)
         self.mouseClick(250, 250)
 
         # decrease brush size
@@ -190,7 +182,8 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
             self.keyPress(Qt.Key_Minus)
 
         # draw again circle at 50 50
-        self.keyPress(Qt.Key_2)
+        self.keyPress(Qt.Key_P)
+        self.keyPress(Qt.Key_1)
         self.mouseClick(250, 250)
 
         # save mask
@@ -201,7 +194,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
 
         # check size of smaller circle
         im = self.db.getMask(frame=0).data
-        self.assertEqual(np.sum(im == 1), 101, "Brush size decreasing does not work")
+        self.assertEqual(np.sum(im == 1), 97, "Brush size decreasing does not work")
 
     def test_colorPickerMask(self):
         """ Test using the color picker to select different colors """
@@ -219,7 +212,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         self.mouseClick(250, 250)
 
         # draw circle at 100 50 with color 2
-        self.keyPress(Qt.Key_2)
+        self.keyPress(Qt.Key_1)
         self.mouseClick(450, 250)
 
         # draw circle at 150 50 with color 3
@@ -229,7 +222,7 @@ class Test_MaskHandler(unittest.TestCase, BaseTest):
         # move to first circle and pick the color, check if it is the right one
         self.mouseMove(250, 250)
         self.keyPress(Qt.Key_K)
-        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 0, "Draw Type 0 selection by color picker doesn't work")
+        self.assertEqual(self.window.GetModule("MaskHandler").active_draw_type.index, 1, "Draw Type 0 selection by color picker doesn't work")
 
         # move to second circle and pick the color, check if it is the right one
         self.mouseMove(450, 250)

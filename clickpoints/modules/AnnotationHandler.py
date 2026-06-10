@@ -451,8 +451,11 @@ class AnnotationOverview(QtWidgets.QWidget):
             filename = annotation.reffilename
         else:
             filename = str(annotation.image)
-        if annotation.tags is None:
-            annotation.tags = ""
+        tags = annotation.tags
+        if tags is None:
+            tags = ""
+        elif isinstance(tags, list):
+            tags = ",".join(str(tag) for tag in tags)
         if annotation.timestamp is not None and annotation.timestamp:
             timestamp = datetime.strftime(annotation.timestamp, '%Y%m%d-%H%M%S')
         else:
@@ -461,7 +464,10 @@ class AnnotationOverview(QtWidgets.QWidget):
         #    image = self.window.data_file.table_image.get(external_id = annotation.file_id, frame=annotation.frame)
         #else:
         #    image = annotation.image
-        texts = [timestamp, annotation.tags, annotation.comment, str(annotation.rating), filename, str(annotation.image_sort_index), str(annotation.id)]
+        image_sort_index = getattr(annotation, "image_sort_index", None)
+        if image_sort_index is None and getattr(annotation, "image", None) is not None:
+            image_sort_index = annotation.image.sort_index
+        texts = [timestamp, tags, annotation.comment, str(annotation.rating), filename, str(image_sort_index), str(annotation.id)]
         for index, text in enumerate(texts):
             self.table.item(row, index).setText(text)
         if new and sort_if_new:
