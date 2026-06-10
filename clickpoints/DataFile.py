@@ -53,6 +53,7 @@ def dict_factory(cursor, row):
 class ImageField(peewee.BlobField):
     """ A database field, that """
     def db_value(self, value):
+        value = np.asarray(value, dtype=np.uint8)
         # if the maximal value is 1, we can save it as a 1bit PNG
         if np.max(value) == 1:
             value = imageio.imwrite(imageio.RETURN_BYTES, value, format=".bool")
@@ -2351,16 +2352,16 @@ class DataFile:
 
     def _processImagesField(self, images, frames, filenames, layer):
         if images is not None:
-            if not isinstance(frames, (tuple, list)):
+            def CheckImage(image):
                 # if a number is provided, than it is the id of an image in the database
-                if isinstance(images, int):
-                    return self.getImage(id=images)
+                if isinstance(image, int):
+                    return self.getImage(id=image)
                 # if not, it should be an image entry object
-                return self.getImage(frame=images.sort_index, layer=images.layer.base_layer)
-            new_images = []
-            for image in images:
-                new_images.append(self.getImage(frame=image.sort_index, layer=image.layer.base_layer))
-            return new_images
+                return self.getImage(frame=image.sort_index, layer=image.layer.base_layer)
+
+            if isinstance(images, (tuple, list)):
+                return [CheckImage(image) for image in images]
+            return CheckImage(images)
 
         def CheckImageFrame(frame, layer):
             image = self.getImage(frame=frame, layer=layer)
@@ -3497,7 +3498,7 @@ class DataFile:
 
         return query
 
-    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=None, checkShape=False):
+    def setMask(self, image=None, frame=None, filename=None, data=None, id=None, layer=None, checkShape=True):
         """
         Update or create new :py:class:`Mask` entry with the given parameters.
 
@@ -3560,7 +3561,7 @@ class DataFile:
             # create and verify data
             if data is None:
                 try:
-                    data = np.zeros(image.getShape())
+                    data = np.zeros(image.getShape(), dtype=np.uint8)
                 except IOError:
                     raise MaskDimensionUnknown("Can't retreive dimensions for mask from image %s " % image.filename)
             else:
