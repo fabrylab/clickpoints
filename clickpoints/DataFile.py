@@ -482,7 +482,7 @@ class DataFile:
 
         class Layer(BaseModel):
             name = peewee.CharField(unique=True)
-            base_layer = peewee.ForeignKeyField('self', related_name='dependent_layers')
+            base_layer = peewee.ForeignKeyField('self', backref='dependent_layers')
 
             def __str__(self):
                 return "LayerObject id%s:\tname=%s" \
