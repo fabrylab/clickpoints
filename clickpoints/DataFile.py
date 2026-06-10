@@ -22,7 +22,7 @@
 import numpy as np
 import os
 import peewee
-import imageio
+import imageio.v2 as imageio
 import sys
 import platform
 import PIL
@@ -39,7 +39,7 @@ PY3 = sys.version_info[0] == 3
 if PY3:
     basestring = str
 
-from .addons.imageio_plugin.imageio_plugin_BOOL import *
+from .addons.imageio_plugin import imageio_plugin_BOOL  # noqa: F401
 
 # to get query results as dictionaries
 def dict_factory(cursor, row):

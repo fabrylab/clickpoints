@@ -22,7 +22,7 @@
 import os
 from typing import Any, List, Optional
 
-import imageio
+import imageio.v2 as imageio
 import numpy as np
 import peewee
 import qtawesome as qta
