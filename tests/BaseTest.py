@@ -28,6 +28,7 @@ import clickpoints
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtTest import QTest
 
+from clickpoints.Core import ClickPointsWindow
 from clickpoints.includes import LoadConfig
 from clickpoints import define_paths
 
@@ -50,8 +51,8 @@ class BaseTest():
         sys.argv = [__file__, r"-srcpath="+self.test_path]
         config = LoadConfig()
 
-        app = QtWidgets.QApplication(sys.argv)
-        self.window = clickpoints.ClickPointsWindow(config, app)
+        app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
+        self.window = ClickPointsWindow(config, app)
         #self.window.show()
 
         # wait for image to be loaded
@@ -121,8 +122,12 @@ class BaseTest():
 
     def wait_for_image_load(self):
         # wait for image to be loaded
-        while self.window.loading_image:
+        deadline = QtCore.QDeadlineTimer(10000)
+        while self.window.data_file is None or self.window.load_timer.isActive():
             QTest.qWait(1)
+            self.window.app.processEvents()
+            if deadline.hasExpired():
+                raise TimeoutError("Timed out waiting for image loading to finish")
         self.db = self.window.data_file
 
     def tearDown(self):
