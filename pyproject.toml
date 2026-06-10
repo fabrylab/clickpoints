@@ -1,54 +1,70 @@
-[tool.poetry]
+[project]
 name = "clickpoints"
 version = "1.10.0"
 description = "Scientific toolbox for manual and automatic image evaluation."
-authors = ["Richard Gerum <richard.gerum@fau.de>", "Sebastian Richter <57496278+foxsr@users.noreply.github.com>"]
-maintainers = ["Alexander Winterl <alexander.winterl@fau.de>"]
-repository = "https://github.com/fabrylab/clickpoints"
-documentation = "https://clickpoints.readthedocs.io/"
-license = "GPLv3"
+authors = [
+    { name = "Richard Gerum", email = "richard.gerum@fau.de" },
+    { name = "Sebastian Richter", email = "57496278+foxsr@users.noreply.github.com" },
+]
+maintainers = [
+    { name = "Alexander Winterl", email = "alexander.winterl@fau.de" },
+]
 readme = "README.rst"
+license = "GPL-3.0-only"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "imagecodecs",
+    "imageio>=2.0.1",
+    "imageio-ffmpeg",
+    "matplotlib",
+    "natsort",
+    "opencv-python>=4.11.0.86,<5.0.0.0",
+    "peewee>=3.1",
+    "pillow",
+    "psutil",
+    "pyside6>=6.8.2.1,<7.0.0.0",
+    "python-dateutil>=2.8.1",
+    "qimage2ndarray",
+    "qtawesome",
+    "qtpy",
+    "scikit-image>=0.14",
+    "scipy>=1.15.2,<2.0.0",
+    "sortedcontainers",
+    "tifffile>=2020.2.16",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10,<3.14"
-matplotlib = "*"
-imageio = ">=2.0.1"
-QtPy = "*"
-QtAwesome = "*"
-qimage2ndarray = "*"
-Pillow = "*"
-peewee = ">= 3.1"
-natsort = "*"
-tifffile = ">=2020.2.16"
-imagecodecs = "*"
-sortedcontainers = "*"
-psutil = "*"
-imageio-ffmpeg = "*"
-python-dateutil = ">=2.8.1"
-scikit-image = ">=0.14"
-sphinx-rtd-theme = { version = "^1.1.1", optional = true }
-sphinxcontrib-bibtex = { version = "^2.5.0", optional = true }
-sphinxcontrib-svg2pdfconverter = { version = "^1.2.1", optional = true }
-nbsphinx = { version = "^0.8.9", optional = true }
-mock = { version = "^4.0.3", optional = true }
-scipy = "^1.15.2"
-opencv-python = "^4.11.0.86"
-pyside6 = "^6.8.2.1"
+[project.urls]
+Repository = "https://github.com/fabrylab/clickpoints"
+Documentation = "https://clickpoints.readthedocs.io/"
 
+[project.optional-dependencies]
+docs = [
+    "mock>=4.0.3,<5.0.0",
+    "nbsphinx>=0.8.9,<0.9.0",
+    "sphinx-rtd-theme>=1.1.1,<2.0.0",
+    "sphinxcontrib-bibtex>=2.5.0,<3.0.0",
+    "sphinxcontrib-svg2pdfconverter>=1.2.1,<2.0.0",
+]
 
-[tool.poetry.extras]
-docs = ["sphinx-rtd-theme", "sphinxcontrib-bibtex", "sphinxcontrib-svg2pdfconverter", "nbsphinx", "mock"]
-
-
-[tool.poetry.scripts]
+[project.scripts]
 clickpoints = "clickpoints.launch:main"
 
+[dependency-groups]
+dev = [
+    "auto-py-to-exe>=2.33.0,<3.0.0",
+    "pyinstaller>=6.12,<7.0",
+    "pytest-qt>=4.2.0,<5.0.0",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest-qt = "^4.2.0"
-pyinstaller = "^6.12"
-auto-py-to-exe = "^2.33.0"
+[tool.setuptools.package-data]
+clickpoints = [
+    "*.txt",
+    "icons/*",
+]
+
+[tool.setuptools.packages.find]
+include = ["clickpoints*"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
