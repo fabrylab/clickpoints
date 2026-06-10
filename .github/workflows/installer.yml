@@ -5,17 +5,20 @@ on:
     types: [created]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-linux:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up python
       id: setup-python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
 
@@ -23,7 +26,7 @@ jobs:
       #  -----  install & configure poetry  -----
       #----------------------------------------------
     - name: Install Poetry
-      uses: snok/install-poetry@v1
+      uses: snok/install-poetry@v1.4.2
       with:
         virtualenvs-create: true
         virtualenvs-in-project: true
@@ -41,7 +44,7 @@ jobs:
           mv output/clickpoints_run/launch output/clickpoints_run/clickpoints
           chmod +x output/clickpoints_run/clickpoints
 
-    - uses: actions/upload-artifact@v6
+    - uses: actions/upload-artifact@v7
       with:
         name: clickpoints_linux
         path: output/clickpoints_run
@@ -57,11 +60,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up python
         id: setup-python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -69,7 +72,7 @@ jobs:
         #  -----  install & configure poetry  -----
         #----------------------------------------------
       - name: Install Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@v1.4.2
         with:
           virtualenvs-create: true
           virtualenvs-in-project: true
@@ -86,7 +89,7 @@ jobs:
           poetry run pyinstaller --hidden-import=scipy.io --copy-metadata imageio --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --add-data "clickpoints/addons:clickpoints/addons" --splash "clickpoints/icons/Splash.png" clickpoints/launch.py
           mv output/clickpoints_run/launch.exe output/clickpoints_run/clickpoints.exe
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: clickpoints_windows
           path: output/clickpoints_run
@@ -101,16 +104,16 @@ jobs:
     runs-on: macos-14
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up python
       id: setup-python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
 
     - name: Install Poetry
-      uses: snok/install-poetry@v1
+      uses: snok/install-poetry@v1.4.2
       with:
         virtualenvs-create: true
         virtualenvs-in-project: true
@@ -170,7 +173,7 @@ jobs:
         rm output/clickpoints_run/clickpoints_mac.notary.zip
         ditto -c -k --keepParent output/clickpoints_run/clickpoints_mac.app output/clickpoints_run/clickpoints_mac.app.zip
 
-    - uses: actions/upload-artifact@v6
+    - uses: actions/upload-artifact@v7
       with:
         name: clickpoints_mac
         path: output/clickpoints_run
