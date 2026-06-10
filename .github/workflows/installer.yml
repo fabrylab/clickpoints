@@ -40,7 +40,25 @@ jobs:
     - name: build exe with pyinstaller
       shell: bash
       run: |
-          poetry run pyinstaller --hidden-import=scipy.io --copy-metadata imageio --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --splash "clickpoints/icons/Splash.png" --add-data "clickpoints/icons:clickpoints/icons" --add-data "clickpoints/addons:clickpoints/addons" clickpoints/launch.py
+          poetry run pyinstaller \
+            --hidden-import=scipy.io \
+            --copy-metadata imageio \
+            --clean -y \
+            --dist output/clickpoints_run \
+            --onefile \
+            --icon "clickpoints/icons/ClickPoints.ico" \
+            --splash "clickpoints/icons/Splash.png" \
+            --add-data "clickpoints/icons:clickpoints/icons" \
+            --add-data "clickpoints/addons:clickpoints/addons" \
+            --hidden-import clickpoints.Addon \
+            --hidden-import clickpoints.includes.BigImageDisplay \
+            --hidden-import clickpoints.includes.ImageQt_Stride \
+            --hidden-import clickpoints.includes.MemMap \
+            --hidden-import clickpoints.includes.loadExamples \
+            --hidden-import clickpoints.includes.loader \
+            --hidden-import clickpoints.includes.matplotlibwidget \
+            --hidden-import clickpoints.includes.qextendedgraphicsview.QExtendedGraphicsView \
+            clickpoints/launch.py
           mv output/clickpoints_run/launch output/clickpoints_run/clickpoints
           chmod +x output/clickpoints_run/clickpoints
 
@@ -86,7 +104,24 @@ jobs:
       - name: build exe with pyinstaller
         shell: bash
         run: |
-          poetry run pyinstaller --hidden-import=scipy.io --copy-metadata imageio --clean -y --dist output/clickpoints_run --onefile --icon "clickpoints/icons/ClickPoints.ico" --add-data "clickpoints/addons:clickpoints/addons" --splash "clickpoints/icons/Splash.png" clickpoints/launch.py
+          poetry run pyinstaller \
+            --hidden-import=scipy.io \
+            --copy-metadata imageio \
+            --clean -y \
+            --dist output/clickpoints_run \
+            --onefile \
+            --icon "clickpoints/icons/ClickPoints.ico" \
+            --add-data "clickpoints/addons:clickpoints/addons" \
+            --splash "clickpoints/icons/Splash.png" \
+            --hidden-import clickpoints.Addon \
+            --hidden-import clickpoints.includes.BigImageDisplay \
+            --hidden-import clickpoints.includes.ImageQt_Stride \
+            --hidden-import clickpoints.includes.MemMap \
+            --hidden-import clickpoints.includes.loadExamples \
+            --hidden-import clickpoints.includes.loader \
+            --hidden-import clickpoints.includes.matplotlibwidget \
+            --hidden-import clickpoints.includes.qextendedgraphicsview.QExtendedGraphicsView \
+            clickpoints/launch.py
           mv output/clickpoints_run/launch.exe output/clickpoints_run/clickpoints.exe
 
       - uses: actions/upload-artifact@v7
@@ -147,6 +182,8 @@ jobs:
           --clean -y \
           --dist output/clickpoints_run \
           --windowed \
+          --name "ClickPoints" \
+          --osx-bundle-identifier "org.fabrylab.clickpoints" \
           --icon "clickpoints/icons/ClickPoints.icns" \
           --add-data "clickpoints/icons:clickpoints/icons" \
           --hidden-import clickpoints.Addon \
@@ -163,7 +200,6 @@ jobs:
           --exclude-module PySide6.QtWebEngineCore \
           --exclude-module PySide6.QtWebEngineWidgets \
           clickpoints/launch.py
-        mv output/clickpoints_run/launch.app output/clickpoints_run/clickpoints_mac.app
 
     - name: Sign macOS app
       shell: bash
@@ -173,8 +209,8 @@ jobs:
         codesign --force --deep --options runtime --timestamp \
           --entitlements .github/macos/entitlements.plist \
           --sign "$DEVELOPER_ID_APPLICATION" \
-          output/clickpoints_run/clickpoints_mac.app
-        codesign --verify --deep --strict --verbose=2 output/clickpoints_run/clickpoints_mac.app
+          output/clickpoints_run/ClickPoints.app
+        codesign --verify --deep --strict --verbose=2 output/clickpoints_run/ClickPoints.app
 
     - name: Notarize macOS app
       shell: bash
@@ -183,16 +219,16 @@ jobs:
         APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        ditto -c -k --keepParent output/clickpoints_run/clickpoints_mac.app output/clickpoints_run/clickpoints_mac.notary.zip
-        xcrun notarytool submit output/clickpoints_run/clickpoints_mac.notary.zip \
+        ditto -c -k --keepParent output/clickpoints_run/ClickPoints.app output/clickpoints_run/ClickPoints.notary.zip
+        xcrun notarytool submit output/clickpoints_run/ClickPoints.notary.zip \
           --apple-id "$APPLE_ID" \
           --password "$APPLE_APP_SPECIFIC_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
           --wait
-        xcrun stapler staple output/clickpoints_run/clickpoints_mac.app
-        xcrun stapler validate output/clickpoints_run/clickpoints_mac.app
-        rm output/clickpoints_run/clickpoints_mac.notary.zip
-        ditto -c -k --keepParent output/clickpoints_run/clickpoints_mac.app output/clickpoints_run/clickpoints_mac.app.zip
+        xcrun stapler staple output/clickpoints_run/ClickPoints.app
+        xcrun stapler validate output/clickpoints_run/ClickPoints.app
+        rm output/clickpoints_run/ClickPoints.notary.zip
+        ditto -c -k --keepParent output/clickpoints_run/ClickPoints.app output/clickpoints_run/ClickPoints.app.zip
 
     - name: Create notarized macOS DMG
       shell: bash
@@ -207,10 +243,10 @@ jobs:
           --window-pos 200 120 \
           --window-size 600 400 \
           --icon-size 100 \
-          --icon "clickpoints_mac.app" 175 190 \
+          --icon "ClickPoints.app" 175 190 \
           --app-drop-link 425 190 \
           "output/clickpoints_run/ClickPoints-mac.dmg" \
-          "output/clickpoints_run/clickpoints_mac.app"
+          "output/clickpoints_run/ClickPoints.app"
         codesign --force --timestamp \
           --sign "$DEVELOPER_ID_APPLICATION" \
           output/clickpoints_run/ClickPoints-mac.dmg
@@ -229,7 +265,7 @@ jobs:
 
     - name: Upload GitHub release assets
       run: |
-        gh release upload $TAG output/clickpoints_run/clickpoints_mac.app.zip --clobber
+        gh release upload $TAG output/clickpoints_run/ClickPoints.app.zip --clobber
         gh release upload $TAG output/clickpoints_run/ClickPoints-mac.dmg --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
