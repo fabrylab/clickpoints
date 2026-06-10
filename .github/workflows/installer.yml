@@ -201,6 +201,40 @@ jobs:
           --exclude-module PySide6.QtWebEngineWidgets \
           clickpoints/launch.py
 
+    - name: Add macOS document type associations
+      shell: bash
+      run: |
+        PLIST="output/clickpoints_run/ClickPoints.app/Contents/Info.plist"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName ClickPoints" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleName ClickPoints" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Delete :CFBundleDocumentTypes" "$PLIST" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes array" "$PLIST"
+
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:0 dict" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:0:CFBundleTypeName string 'ClickPoints Database'" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:0:CFBundleTypeRole string Editor" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:0:LSHandlerRank string Owner" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:0:CFBundleTypeExtensions array" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:0:CFBundleTypeExtensions:0 string cdb" "$PLIST"
+
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:1 dict" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:1:CFBundleTypeName string 'Image Files'" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:1:CFBundleTypeRole string Editor" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:1:LSHandlerRank string Alternate" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:1:CFBundleTypeExtensions array" "$PLIST"
+        for ext in tif tiff png jpg jpeg bmp gif; do
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:1:CFBundleTypeExtensions: string $ext" "$PLIST"
+        done
+
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:2 dict" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:2:CFBundleTypeName string 'Video Files'" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:2:CFBundleTypeRole string Editor" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:2:LSHandlerRank string Alternate" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:2:CFBundleTypeExtensions array" "$PLIST"
+        for ext in avi mp4 mov mkv; do
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:2:CFBundleTypeExtensions: string $ext" "$PLIST"
+        done
+
     - name: Sign macOS app
       shell: bash
       env:
