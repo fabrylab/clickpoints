@@ -123,6 +123,7 @@ jobs:
       shell: bash
       run: |
         poetry install --with dev
+        brew install create-dmg
 
     - name: Import Apple signing certificate
       shell: bash
@@ -193,13 +194,43 @@ jobs:
         rm output/clickpoints_run/clickpoints_mac.notary.zip
         ditto -c -k --keepParent output/clickpoints_run/clickpoints_mac.app output/clickpoints_run/clickpoints_mac.app.zip
 
+    - name: Create notarized macOS DMG
+      shell: bash
+      env:
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+      run: |
+        create-dmg \
+          --volname "ClickPoints" \
+          --window-pos 200 120 \
+          --window-size 600 400 \
+          --icon-size 100 \
+          --icon "clickpoints_mac.app" 175 190 \
+          --app-drop-link 425 190 \
+          "output/clickpoints_run/ClickPoints-mac.dmg" \
+          "output/clickpoints_run/clickpoints_mac.app"
+        codesign --force --timestamp \
+          --sign "$DEVELOPER_ID_APPLICATION" \
+          output/clickpoints_run/ClickPoints-mac.dmg
+        xcrun notarytool submit output/clickpoints_run/ClickPoints-mac.dmg \
+          --apple-id "$APPLE_ID" \
+          --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+          --team-id "$APPLE_TEAM_ID" \
+          --wait
+        xcrun stapler staple output/clickpoints_run/ClickPoints-mac.dmg
+        xcrun stapler validate output/clickpoints_run/ClickPoints-mac.dmg
+
     - uses: actions/upload-artifact@v7
       with:
         name: clickpoints_mac
         path: output/clickpoints_run
 
     - name: Upload GitHub release assets
-      run: gh release upload $TAG output/clickpoints_run/clickpoints_mac.app.zip --clobber
+      run: |
+        gh release upload $TAG output/clickpoints_run/clickpoints_mac.app.zip --clobber
+        gh release upload $TAG output/clickpoints_run/ClickPoints-mac.dmg --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG: v1.10.0
