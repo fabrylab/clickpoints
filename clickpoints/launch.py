@@ -44,6 +44,29 @@ def _profile_startup(label):
 
 _profile_startup("launch module imported")
 
+
+def create_clickpoints_application(QtCore, QtWidgets, args):
+    class ClickPointsApplication(QtWidgets.QApplication):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.open_files = []
+            self.clickpoints_window = None
+
+        def event(self, event):
+            if event.type() == QtCore.QEvent.FileOpen:
+                path = event.file()
+                if path:
+                    window = self.clickpoints_window
+                    if window is None:
+                        self.open_files.append(path)
+                    else:
+                        QtCore.QTimer.singleShot(0, lambda path=path: window.loadUrl(path, reset=True))
+                    return True
+            return super().event(event)
+
+    return ClickPointsApplication(args)
+
+
 def main(*args):
     import sys
     _profile_startup("main entered")
@@ -113,7 +136,7 @@ def main(*args):
     define_paths()
     _profile_startup("defined paths")
 
-    app = QtWidgets.QApplication(args)
+    app = create_clickpoints_application(QtCore, QtWidgets, args)
     _profile_startup("created QApplication")
 
     # set an application id, so that windows properly stacks them in the task bar
@@ -127,6 +150,7 @@ def main(*args):
 
     # Initialize and show the ClickPoints window
     window = ClickPointsWindow(config, app)
+    app.clickpoints_window = window
     _profile_startup("constructed ClickPointsWindow")
     if os.environ.get("_PYI_SPLASH_IPC"):
         try:
@@ -136,6 +160,9 @@ def main(*args):
             pass
     window.show()
     _profile_startup("showed ClickPointsWindow")
+    for path in app.open_files:
+        QtCore.QTimer.singleShot(0, lambda path=path: window.loadUrl(path, reset=True))
+    app.open_files.clear()
     if _startup_profile_exit_after_show:
         QtCore.QTimer.singleShot(0, app.quit)
     sys.exit(app.exec_())
