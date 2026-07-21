@@ -22,7 +22,7 @@
 '''
 register winpy to user PATH
 via registry
-this was not feasable via setx as there is no easy way to acces user PATH
+this was not feasible via setx as there is no easy way to acces user PATH
 without system PATH variable
 
 This should work without UAC elevation
